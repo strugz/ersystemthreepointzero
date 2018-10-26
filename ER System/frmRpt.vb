@@ -28,12 +28,8 @@ Public Class frmRpt
             cryptRptER.Anchor = AnchorStyles.Left
             CreateUserDSN()
             Me.cryptRptER.ShowNextPage()
-            'frmEReport.TopMost = False
-            'Me.TopMost = True
         Else
             CreateUserDSN()
-            'frmEReport.TopMost = False
-            'Me.TopMost = True
         End If
     End Sub
     Public Sub export()
