@@ -1,4 +1,5 @@
-﻿Imports System.Security.Cryptography
+﻿Imports System.Data.SqlClient
+Imports System.Security.Cryptography
 Imports Microsoft.Win32
 Module modReport
     'Public conn As New SqlClient.SqlConnection
@@ -6,7 +7,7 @@ Module modReport
     Public TripleDes As New clsEncryption(MyKey)
     Public smpleID As String
     Private Declare Function SQLConfigDataSource Lib "ODBCCP32.DLL" _
-    (ByVal hwndParent As Integer, ByVal ByValfRequest As Integer, _
+    (ByVal hwndParent As Integer, ByVal ByValfRequest As Integer,
     ByVal lpszDriver As String, ByVal lpszAttributes As String) As Integer
     Private Const vbAPINull As Integer = 0
     Private Const ODBC_ADD_DSN As Short = 1
@@ -15,9 +16,12 @@ Module modReport
     Public tempDB As String
 
     Public Function CreateUserDSN()
-        tempServerName = SQLConnection.DataSource.ToString
-        tempDSNName = SQLConnection.Database.ToString
-        tempDB = SQLConnection.Database.ToString
+        DBConnection()
+        Using SQLConnection As SqlConnection = mConn.SQLConnection
+            tempServerName = SQLConnection.DataSource.ToString()
+            tempDSNName = SQLConnection.Database.ToString
+            tempDB = SQLConnection.Database.ToString
+        End Using
 
         On Error Resume Next
         Dim Driver As String

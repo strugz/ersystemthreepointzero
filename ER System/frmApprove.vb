@@ -1,11 +1,4 @@
 ﻿Public Class frmApprove
-    Public userIDApprove As String
-    Dim UserID As String
-    Dim sqlUpdatefileStatus As New SqlClient.SqlCommand
-    Private Sub frmApprove_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
-        Me.TopMost = False
-    End Sub
-
     Private Sub frmApprove_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
         Me.KeyPreview = True
         If e.KeyCode = Keys.Escape Then
@@ -13,37 +6,42 @@
         End If
     End Sub
     Private Sub frmApprove_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        dgvUser.Columns("UserID").Visible = False
-        dgvUser.Columns("Position").Visible = False
-        dgvUser.Columns("Username").Visible = False
-        dgvUser.Columns("User Level").Visible = False
-        dgvUser.Columns("Email Address").Visible = False
-        dgvUser.Columns("Email To").Visible = False
-        dgvUser.Columns("EmailBCC").Visible = False
-        dgvUser.Columns("Signature").Visible = False
-        dgvUser.Columns("DeptID").Visible = False
-        dgvUser.Columns("Password").Visible = False
-        dgvUser.Columns("EmailPass").Visible = False
-        dgvUser.Columns("Department").Visible = False
-        dgvUser.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
-        Me.TopMost = True
-        frmMain.TopMost = False
+        Call UserAccount()
+    End Sub
+
+    Private Sub UserAccount()
+        Using dtLoadUserAccountFiled As DataTable = LoadingUserAccountFiled(
+        GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0),
+        GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+            dgvUser.DataSource = dtLoadUserAccountFiled
+        End Using
+        DgUserDataVisibility({"UserID"})
+
+        If GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0) = 0 Then
+            Me.dgvUser.Columns("Number of File").Visible = False
+            Me.dgvUser.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+        Else
+            Me.dgvUser.Columns("Number of File").Visible = True
+        End If
     End Sub
     Private Sub dgvUser_CellDoubleClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvUser.CellDoubleClick
-        Try
-            If e.RowIndex < 0 Then
-                MsgBox("Please Double click on the row you are interested in")
-                Exit Sub
-            Else
-                userIDApprove = dgvUser.Rows(e.RowIndex).Cells("UserID").Value
-            End If
-        Catch ex As Exception
-
-        End Try
-        If modLoadingData.ChangeLoad = "1" Then
-            LoadingUserReportDetailsFILED(userIDApprove, frmMain.ChangeLoading, modLoadingData.LoginuserID)
+        If e.RowIndex < 0 Then
+            MsgBox("Please Double click on the row you are interested in")
+            Exit Sub
         Else
-            LoadingUserReportDetailsDONE(userIDApprove, frmMain.ChangeLoading, modLoadingData.LoginuserID)
+            If GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0) = "1" Then
+                Using dtLoadUserReportDetailsFiled As DataTable = LoadingUserReportDetailsFILED(dgvUser.Rows(e.RowIndex).Cells("UserID").Value,
+                                              GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0),
+                                              GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+                    dgvUserReportDetails.DataSource = dtLoadUserReportDetailsFiled
+                End Using
+            Else
+                Using dtLoadUserReportDetailsDONE As DataTable = LoadingUserReportDetailsDONE(dgvUser.Rows(e.RowIndex).Cells("UserID").Value,
+                                             GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0),
+                                             GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+                    dgvUserReportDetails.DataSource = dtLoadUserReportDetailsDONE
+                End Using
+            End If
         End If
         dgvUserReportDetails.Columns("ID").Visible = False
         dgvUserReportDetails.Columns("Report Description").AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
@@ -58,99 +56,101 @@
         End If
     End Sub
     Private Sub btnReject_Click(sender As Object, e As EventArgs) Handles btnReject.Click
-        frmCancelNote.Show()
-    End Sub
-    Private Sub clear()
-        btnApprove.Enabled = False
-        btnReject.Enabled = False
-        btnReportViewer.Enabled = False
+        frmCancelNote.ShowDialog()
+        Call UserAccount()
     End Sub
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnApprove.Click
-        LoadSignatorySigned(modLoadingData.LoginuserID, userIDApprove, ReportID)
-        If SignedID = modLoadingData.LoginuserID Then
-            MsgBox("You Already Confirm the Report")
+        Dim ClsData As New ClsLoadData
+        Dim ApproverValidate As String = ClsData.ApproverValidation(
+            dgvUser.CurrentRow.Cells("UserID").Value,
+            GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0),
+            dgvUserReportDetails.CurrentRow.Cells("ID").Value)
+        If ApproverValidate = "True" Then
+            Call UpdateFileStatus(
+                dgvUser.CurrentRow.Cells("UserID").Value,
+                dgvUserReportDetails.CurrentRow.Cells("ID").Value,
+               GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+            MsgBox("Expense Report Verified")
+            Using dtLoadUserReportDetailsFiled As DataTable = LoadingUserReportDetailsFILED(dgvUser.CurrentRow.Cells("UserID").Value,
+                              GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0),
+                              GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+                dgvUserReportDetails.DataSource = dtLoadUserReportDetailsFiled
+            End Using
+            Call UserAccount()
+        ElseIf ApproverValidate = "Done" Then
+            MsgBox("Already Confirmed")
         Else
-            With sqlUpdatefileStatus
-                .Connection = SQLConnection
-                .CommandText = "sp2_UpdateReportNumberStatus  '" & userIDApprove & "','" & ReportID & "','" & modLoadingData.LoginuserID & "'"
-                .CommandType = CommandType.Text
-                .ExecuteNonQuery()
-            End With
-            If modLoadingData.ChangeLoad = 1 Then
-                LoadingUserReportDetailsFILED(userIDApprove, frmMain.ChangeLoading, LoginuserID)
-            Else
-                LoadingUserReportDetailsDONE(userIDApprove, frmMain.ChangeLoading, LoginuserID)
-            End If
-            dgvUserReportDetails.Columns("ID").Visible = False
-            dgvUserReportDetails.Columns(2).AutoSizeMode = DataGridViewAutoSizeColumnsMode.Fill
-            AddSign(userIDApprove, modLoadingData.LoginuserID, ReportID)
-            ' frmMain.LoadingER()
-            MsgBox("Approve Successfully")
-            btnApprove.Enabled = False
-            btnReject.Enabled = False
-            btnReportViewer.Enabled = False
-            If frmMain.ChangeLoading = "1" Then
-                LoadingUserAccountFiled(modLoadingData.LoginDeptID)
-                Me.Show()
-                frmMain.ChangeLoading = "1"
-                Me.TopMost = True
-                Me.btnApprove.Visible = True
-                '  Me.btnReject.Visible = True
-            Else
-                LoadingUserAccountPending(modLoadingData.LoginDeptID)
-                Me.Show()
-                frmMain.ChangeLoading = "0"
-                Me.TopMost = True
-                Me.btnApprove.Visible = False
-                '  Me.btnReject.Visible = False
-                Me.btnCancel.Location = New Point(331, 480)
-                Me.btnReportViewer.Location = New Point(442, 480)
-                'frmRpt.cryptRptER.ShowPrintButton = False
-                Me.dgvUser.Columns("Number of File").Visible = False
-                Me.dgvUser.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
-            End If
+            MsgBox("Not Yet Verified by the Precedent Approver")
         End If
     End Sub
-
     Private Sub dgvUserReportDetails_CellClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvUserReportDetails.CellClick
+        Dim ClsData As New ClsLoadData
         If e.RowIndex < 0 Then
             MsgBox("Please Double click on the row you are interested in")
             Exit Sub
         Else
-            modLoadingData.ReportID = dgvUserReportDetails.Rows(e.RowIndex).Cells("ID").Value
-            ' MsgBox(reportID)
-        End If
-        If reportID = Nothing Or reportID = "" Then
-            MsgBox("No Selected Report")
-            btnApprove.Enabled = False
-            btnReportViewer.Enabled = False
-            btnCancel.Enabled = False
+            ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
+            Me.Enabled = False
+            Threading.Thread.Sleep(500)
+            Me.Enabled = True
+            ClsData.SetEReportDetails(dgvUserReportDetails.Rows(e.RowIndex).Cells("ID").Value)
+            btnApprove.Enabled = True
+            btnReportViewer.Enabled = True
+            btnCancel.Enabled = True
         End If
     End Sub
     Private Sub Button2_Click(sender As Object, e As EventArgs) Handles btnReportViewer.Click
-        If reportID = Nothing Then
-            MsgBox("No Selected Report")
-        Else
-            frmRpt.reportID = modLoadingData.ReportID
-            frmRpt.MyUserID = Me.userIDApprove
-            frmRpt.Show()
-            Me.SendToBack()
-            frmRpt.BringToFront()
-            'frmRpt.cryptRptER.Dock = DockStyle.Fill
-            frmRpt.btnSendPrint.Visible = False
-            'frmRpt.cryptRptER.DisplayToolbar = True
-            Me.TopMost = False
-            frmRpt.TopMost = True
-        End If
+        frmRpt.Show()
+        dgvUser.Enabled = False
+        dgvUserReportDetails.Enabled = False
+        btnCancel.Enabled = False
+        btnReportViewer.Enabled = False
+        btnReject.Enabled = False
+        btnApprove.Enabled = False
     End Sub
     Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
         btnApprove.Enabled = False
         btnReportViewer.Enabled = False
-        btnCancel.Enabled = False
-        Me.Close()
+        btnReject.Enabled = False
+    End Sub
+    Private Sub dgvUserReportDetails_CellMouseDown(sender As Object, e As DataGridViewCellMouseEventArgs) Handles dgvUserReportDetails.CellMouseDown
+        Dim ClsData As New ClsLoadData
+        If e.Button = MouseButtons.Right Then
+            dgvUserReportDetails.Rows(e.RowIndex).Selected = True
+            dgvUserReportDetails.CurrentCell = dgvUserReportDetails.Rows(e.RowIndex).Cells(1)
+            ClsData.ApproverValidation(
+                dgvUser.CurrentRow.Cells("UserID").Value,
+                GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0),
+                dgvUserReportDetails.Rows(e.RowIndex).Cells("ID").Value)
+            ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
+            Me.Enabled = False
+            Threading.Thread.Sleep(500)
+            Me.Enabled = True
+            ClsData.SetEReportDetails(dgvUserReportDetails.Rows(e.RowIndex).Cells("ID").Value)
+            CMSEditUserExpense.Show(dgvUserReportDetails, e.Location)
+            CMSEditUserExpense.Show(Cursor.Position)
+        End If
     End Sub
 
-    Private Sub dgvUser_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvUser.CellContentClick
+    Private Sub EditExpenseToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles EditExpenseToolStripMenuItem.Click
+        Dim ClsData As New ClsLoadData
+        DGVLoadExpenseReport(EReportOpenValidatiionApprover(), dgvUser.CurrentRow.Cells("UserID").Value)
+        ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", "Settings", {"Approver"}, {"1"})
+        frmEReport.ShowDialog()
+    End Sub
 
+    Private Sub frmApprove_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
+        Call ReleasMemory()
+        frmRpt.Close()
+        dgvUserReportDetails.DataSource = Nothing
+    End Sub
+    Private Sub frmApprove_MouseClick(sender As Object, e As MouseEventArgs) Handles Me.MouseClick
+        If Application.OpenForms().OfType(Of frmRpt).Any Then
+            frmRpt.BringToFront()
+        End If
+    End Sub
+
+    Private Sub BTNRefresh_Click(sender As Object, e As EventArgs) Handles BTNRefresh.Click
+        Call UserAccount()
     End Sub
 End Class

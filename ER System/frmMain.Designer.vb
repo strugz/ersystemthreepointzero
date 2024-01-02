@@ -48,10 +48,9 @@ Partial Class frmMain
         Me.Label1 = New System.Windows.Forms.Label()
         Me.Label5 = New System.Windows.Forms.Label()
         Me.detect = New System.Windows.Forms.Label()
-        Me.txtSearch = New System.Windows.Forms.TextBox()
         Me.lbltime = New System.Windows.Forms.Label()
         Me.ToolTip1 = New System.Windows.Forms.ToolTip(Me.components)
-        Me.ToolStripButton1 = New System.Windows.Forms.Button()
+        Me.btnSearchOpen = New System.Windows.Forms.Button()
         Me.btnReportData = New System.Windows.Forms.Button()
         Me.btnPrintPreview = New System.Windows.Forms.Button()
         Me.btnFileReport = New System.Windows.Forms.Button()
@@ -64,16 +63,26 @@ Partial Class frmMain
         Me.ttuser = New System.Windows.Forms.ToolStripStatusLabel()
         Me.ToolStripStatusLabel2 = New System.Windows.Forms.ToolStripStatusLabel()
         Me.tsslUserDept = New System.Windows.Forms.ToolStripStatusLabel()
-        Me.ToolStripButton2 = New System.Windows.Forms.Button()
-        Me.colored = New System.Windows.Forms.PictureBox()
-        Me.PictureBox1 = New System.Windows.Forms.PictureBox()
+        Me.ContextMenuStrip1 = New System.Windows.Forms.ContextMenuStrip(Me.components)
+        Me.EditReportDetailsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.EditExpensesToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.GBSearch = New System.Windows.Forms.GroupBox()
+        Me.BTNReset = New System.Windows.Forms.Button()
+        Me.Label3 = New System.Windows.Forms.Label()
+        Me.CBBFilter = New System.Windows.Forms.ComboBox()
+        Me.Label2 = New System.Windows.Forms.Label()
+        Me.BtnSearch = New System.Windows.Forms.Button()
+        Me.TxtSearchBy = New System.Windows.Forms.TextBox()
+        Me.BindingSource1 = New System.Windows.Forms.BindingSource(Me.components)
+        Me.ResendingEmailToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         CType(Me.DgvReportDetails, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.MenuStrip1.SuspendLayout()
         CType(Me.PictureBox4, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.PictureBox2, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.StatusStrip1.SuspendLayout()
-        CType(Me.colored, System.ComponentModel.ISupportInitialize).BeginInit()
-        CType(Me.PictureBox1, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.ContextMenuStrip1.SuspendLayout()
+        Me.GBSearch.SuspendLayout()
+        CType(Me.BindingSource1, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'ImageList1
@@ -95,14 +104,14 @@ Partial Class frmMain
         Me.DgvReportDetails.ClipboardCopyMode = System.Windows.Forms.DataGridViewClipboardCopyMode.Disable
         Me.DgvReportDetails.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None
         Me.DgvReportDetails.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing
-        Me.DgvReportDetails.Location = New System.Drawing.Point(4, 163)
+        Me.DgvReportDetails.Location = New System.Drawing.Point(0, 158)
         Me.DgvReportDetails.Name = "DgvReportDetails"
         Me.DgvReportDetails.ReadOnly = True
         Me.DgvReportDetails.RowHeadersVisible = False
         Me.DgvReportDetails.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing
         Me.DgvReportDetails.ScrollBars = System.Windows.Forms.ScrollBars.Vertical
         Me.DgvReportDetails.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.DgvReportDetails.Size = New System.Drawing.Size(1041, 546)
+        Me.DgvReportDetails.Size = New System.Drawing.Size(1049, 551)
         Me.DgvReportDetails.TabIndex = 7
         '
         'PrintDialog1
@@ -254,7 +263,7 @@ Partial Class frmMain
         '
         Me.Label1.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.Label1.AutoSize = True
-        Me.Label1.BackColor = System.Drawing.Color.Transparent
+        Me.Label1.BackColor = System.Drawing.Color.White
         Me.Label1.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.Label1.ForeColor = System.Drawing.Color.Black
         Me.Label1.Location = New System.Drawing.Point(865, 4)
@@ -267,6 +276,7 @@ Partial Class frmMain
         '
         Me.Label5.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.Label5.AutoSize = True
+        Me.Label5.BackColor = System.Drawing.Color.White
         Me.Label5.Font = New System.Drawing.Font("Segoe UI", 10.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.Label5.ForeColor = System.Drawing.Color.Black
         Me.Label5.Location = New System.Drawing.Point(975, 4)
@@ -284,18 +294,11 @@ Partial Class frmMain
         Me.detect.TabIndex = 21
         Me.detect.Visible = False
         '
-        'txtSearch
-        '
-        Me.txtSearch.Location = New System.Drawing.Point(869, 73)
-        Me.txtSearch.Name = "txtSearch"
-        Me.txtSearch.Size = New System.Drawing.Size(100, 23)
-        Me.txtSearch.TabIndex = 11
-        Me.txtSearch.Visible = False
-        '
         'lbltime
         '
         Me.lbltime.Anchor = System.Windows.Forms.AnchorStyles.Top
         Me.lbltime.AutoSize = True
+        Me.lbltime.BackColor = System.Drawing.Color.White
         Me.lbltime.Font = New System.Drawing.Font("Segoe UI", 12.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.lbltime.ForeColor = System.Drawing.Color.Black
         Me.lbltime.Location = New System.Drawing.Point(525, 1)
@@ -304,34 +307,33 @@ Partial Class frmMain
         Me.lbltime.TabIndex = 23
         Me.lbltime.Text = "TIME"
         '
-        'ToolStripButton1
+        'btnSearchOpen
         '
-        Me.ToolStripButton1.Anchor = System.Windows.Forms.AnchorStyles.Top
-        Me.ToolStripButton1.BackColor = System.Drawing.Color.Transparent
-        Me.ToolStripButton1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
-        Me.ToolStripButton1.FlatAppearance.MouseDownBackColor = System.Drawing.Color.White
-        Me.ToolStripButton1.FlatAppearance.MouseOverBackColor = System.Drawing.Color.White
-        Me.ToolStripButton1.ForeColor = System.Drawing.Color.Black
-        Me.ToolStripButton1.Image = CType(resources.GetObject("ToolStripButton1.Image"), System.Drawing.Image)
-        Me.ToolStripButton1.Location = New System.Drawing.Point(673, 51)
-        Me.ToolStripButton1.Name = "ToolStripButton1"
-        Me.ToolStripButton1.Size = New System.Drawing.Size(113, 101)
-        Me.ToolStripButton1.TabIndex = 4
-        Me.ToolStripButton1.Text = "Show Reports"
-        Me.ToolStripButton1.TextAlign = System.Drawing.ContentAlignment.BottomCenter
-        Me.ToolTip1.SetToolTip(Me.ToolStripButton1, "Search Expense Reports")
-        Me.ToolStripButton1.UseVisualStyleBackColor = False
+        Me.btnSearchOpen.BackColor = System.Drawing.Color.Transparent
+        Me.btnSearchOpen.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
+        Me.btnSearchOpen.FlatAppearance.MouseDownBackColor = System.Drawing.Color.White
+        Me.btnSearchOpen.FlatAppearance.MouseOverBackColor = System.Drawing.Color.White
+        Me.btnSearchOpen.ForeColor = System.Drawing.Color.Black
+        Me.btnSearchOpen.Image = CType(resources.GetObject("btnSearchOpen.Image"), System.Drawing.Image)
+        Me.btnSearchOpen.Location = New System.Drawing.Point(869, 41)
+        Me.btnSearchOpen.Name = "btnSearchOpen"
+        Me.btnSearchOpen.Size = New System.Drawing.Size(113, 101)
+        Me.btnSearchOpen.TabIndex = 4
+        Me.btnSearchOpen.Text = "Show Reports"
+        Me.btnSearchOpen.TextAlign = System.Drawing.ContentAlignment.BottomCenter
+        Me.ToolTip1.SetToolTip(Me.btnSearchOpen, "Search Expense Reports")
+        Me.btnSearchOpen.UseVisualStyleBackColor = False
+        Me.btnSearchOpen.Visible = False
         '
         'btnReportData
         '
-        Me.btnReportData.Anchor = System.Windows.Forms.AnchorStyles.Top
         Me.btnReportData.BackColor = System.Drawing.Color.Transparent
         Me.btnReportData.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
         Me.btnReportData.FlatAppearance.MouseDownBackColor = System.Drawing.Color.White
         Me.btnReportData.FlatAppearance.MouseOverBackColor = System.Drawing.Color.White
         Me.btnReportData.ForeColor = System.Drawing.Color.Black
         Me.btnReportData.Image = CType(resources.GetObject("btnReportData.Image"), System.Drawing.Image)
-        Me.btnReportData.Location = New System.Drawing.Point(316, 51)
+        Me.btnReportData.Location = New System.Drawing.Point(12, 41)
         Me.btnReportData.Name = "btnReportData"
         Me.btnReportData.Size = New System.Drawing.Size(113, 101)
         Me.btnReportData.TabIndex = 3
@@ -347,7 +349,7 @@ Partial Class frmMain
         Me.btnPrintPreview.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
         Me.btnPrintPreview.ForeColor = System.Drawing.Color.Black
         Me.btnPrintPreview.Image = CType(resources.GetObject("btnPrintPreview.Image"), System.Drawing.Image)
-        Me.btnPrintPreview.Location = New System.Drawing.Point(554, 51)
+        Me.btnPrintPreview.Location = New System.Drawing.Point(750, 41)
         Me.btnPrintPreview.Name = "btnPrintPreview"
         Me.btnPrintPreview.Size = New System.Drawing.Size(113, 101)
         Me.btnPrintPreview.TabIndex = 0
@@ -355,6 +357,7 @@ Partial Class frmMain
         Me.btnPrintPreview.TextAlign = System.Drawing.ContentAlignment.BottomCenter
         Me.ToolTip1.SetToolTip(Me.btnPrintPreview, "Print Preview")
         Me.btnPrintPreview.UseVisualStyleBackColor = False
+        Me.btnPrintPreview.Visible = False
         '
         'btnFileReport
         '
@@ -365,7 +368,7 @@ Partial Class frmMain
         Me.btnFileReport.FlatAppearance.MouseOverBackColor = System.Drawing.Color.White
         Me.btnFileReport.ForeColor = System.Drawing.Color.Black
         Me.btnFileReport.Image = CType(resources.GetObject("btnFileReport.Image"), System.Drawing.Image)
-        Me.btnFileReport.Location = New System.Drawing.Point(435, 51)
+        Me.btnFileReport.Location = New System.Drawing.Point(631, 41)
         Me.btnFileReport.Name = "btnFileReport"
         Me.btnFileReport.Size = New System.Drawing.Size(113, 101)
         Me.btnFileReport.TabIndex = 1
@@ -373,6 +376,7 @@ Partial Class frmMain
         Me.btnFileReport.TextAlign = System.Drawing.ContentAlignment.BottomCenter
         Me.ToolTip1.SetToolTip(Me.btnFileReport, "File Report")
         Me.btnFileReport.UseVisualStyleBackColor = False
+        Me.btnFileReport.Visible = False
         '
         'Timer2
         '
@@ -384,6 +388,7 @@ Partial Class frmMain
         'PictureBox4
         '
         Me.PictureBox4.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.PictureBox4.BackColor = System.Drawing.Color.White
         Me.PictureBox4.Image = CType(resources.GetObject("PictureBox4.Image"), System.Drawing.Image)
         Me.PictureBox4.Location = New System.Drawing.Point(1006, 0)
         Me.PictureBox4.Name = "PictureBox4"
@@ -395,6 +400,7 @@ Partial Class frmMain
         'PictureBox2
         '
         Me.PictureBox2.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.PictureBox2.BackColor = System.Drawing.Color.White
         Me.PictureBox2.Image = CType(resources.GetObject("PictureBox2.Image"), System.Drawing.Image)
         Me.PictureBox2.Location = New System.Drawing.Point(918, 0)
         Me.PictureBox2.Name = "PictureBox2"
@@ -446,56 +452,111 @@ Partial Class frmMain
         Me.tsslUserDept.Size = New System.Drawing.Size(52, 25)
         Me.tsslUserDept.Text = "Dept"
         '
-        'ToolStripButton2
+        'ContextMenuStrip1
         '
-        Me.ToolStripButton2.Anchor = System.Windows.Forms.AnchorStyles.Top
-        Me.ToolStripButton2.BackColor = System.Drawing.Color.Transparent
-        Me.ToolStripButton2.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
-        Me.ToolStripButton2.FlatAppearance.MouseDownBackColor = System.Drawing.Color.White
-        Me.ToolStripButton2.FlatAppearance.MouseOverBackColor = System.Drawing.Color.White
-        Me.ToolStripButton2.ForeColor = System.Drawing.Color.Black
-        Me.ToolStripButton2.Image = CType(resources.GetObject("ToolStripButton2.Image"), System.Drawing.Image)
-        Me.ToolStripButton2.Location = New System.Drawing.Point(673, 51)
-        Me.ToolStripButton2.Name = "ToolStripButton2"
-        Me.ToolStripButton2.Size = New System.Drawing.Size(113, 101)
-        Me.ToolStripButton2.TabIndex = 22
-        Me.ToolStripButton2.Text = "Show Reports"
-        Me.ToolStripButton2.TextAlign = System.Drawing.ContentAlignment.BottomCenter
-        Me.ToolStripButton2.UseVisualStyleBackColor = False
+        Me.ContextMenuStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.EditReportDetailsToolStripMenuItem, Me.EditExpensesToolStripMenuItem, Me.ResendingEmailToolStripMenuItem})
+        Me.ContextMenuStrip1.Name = "ContextMenuStrip1"
+        Me.ContextMenuStrip1.Size = New System.Drawing.Size(181, 92)
         '
-        'colored
+        'EditReportDetailsToolStripMenuItem
         '
-        Me.colored.Anchor = CType((((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
-            Or System.Windows.Forms.AnchorStyles.Left) _
-            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.colored.Image = CType(resources.GetObject("colored.Image"), System.Drawing.Image)
-        Me.colored.Location = New System.Drawing.Point(0, 158)
-        Me.colored.Name = "colored"
-        Me.colored.Size = New System.Drawing.Size(1049, 559)
-        Me.colored.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage
-        Me.colored.TabIndex = 20
-        Me.colored.TabStop = False
+        Me.EditReportDetailsToolStripMenuItem.Name = "EditReportDetailsToolStripMenuItem"
+        Me.EditReportDetailsToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.EditReportDetailsToolStripMenuItem.Text = "Edit Report Details"
         '
-        'PictureBox1
+        'EditExpensesToolStripMenuItem
         '
-        Me.PictureBox1.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
-            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.PictureBox1.Image = CType(resources.GetObject("PictureBox1.Image"), System.Drawing.Image)
-        Me.PictureBox1.Location = New System.Drawing.Point(0, 30)
-        Me.PictureBox1.Name = "PictureBox1"
-        Me.PictureBox1.Size = New System.Drawing.Size(1049, 129)
-        Me.PictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage
-        Me.PictureBox1.TabIndex = 8
-        Me.PictureBox1.TabStop = False
+        Me.EditExpensesToolStripMenuItem.Name = "EditExpensesToolStripMenuItem"
+        Me.EditExpensesToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.EditExpensesToolStripMenuItem.Text = "Edit Expenses"
+        '
+        'GBSearch
+        '
+        Me.GBSearch.Controls.Add(Me.BTNReset)
+        Me.GBSearch.Controls.Add(Me.Label3)
+        Me.GBSearch.Controls.Add(Me.CBBFilter)
+        Me.GBSearch.Controls.Add(Me.Label2)
+        Me.GBSearch.Controls.Add(Me.BtnSearch)
+        Me.GBSearch.Controls.Add(Me.TxtSearchBy)
+        Me.GBSearch.Location = New System.Drawing.Point(131, 32)
+        Me.GBSearch.Name = "GBSearch"
+        Me.GBSearch.Size = New System.Drawing.Size(262, 120)
+        Me.GBSearch.TabIndex = 25
+        Me.GBSearch.TabStop = False
+        '
+        'BTNReset
+        '
+        Me.BTNReset.ForeColor = System.Drawing.Color.Black
+        Me.BTNReset.Location = New System.Drawing.Point(6, 92)
+        Me.BTNReset.Name = "BTNReset"
+        Me.BTNReset.Size = New System.Drawing.Size(122, 23)
+        Me.BTNReset.TabIndex = 6
+        Me.BTNReset.Text = "Reset"
+        Me.BTNReset.UseVisualStyleBackColor = True
+        '
+        'Label3
+        '
+        Me.Label3.AutoSize = True
+        Me.Label3.ForeColor = System.Drawing.Color.Black
+        Me.Label3.Location = New System.Drawing.Point(3, 66)
+        Me.Label3.Name = "Label3"
+        Me.Label3.Size = New System.Drawing.Size(52, 15)
+        Me.Label3.TabIndex = 5
+        Me.Label3.Text = "Filter By:"
+        '
+        'CBBFilter
+        '
+        Me.CBBFilter.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me.CBBFilter.FormattingEnabled = True
+        Me.CBBFilter.Items.AddRange(New Object() {"All", "New", "For Approval", "Returned", "Approved"})
+        Me.CBBFilter.Location = New System.Drawing.Point(61, 63)
+        Me.CBBFilter.Name = "CBBFilter"
+        Me.CBBFilter.Size = New System.Drawing.Size(195, 23)
+        Me.CBBFilter.TabIndex = 4
+        '
+        'Label2
+        '
+        Me.Label2.AutoSize = True
+        Me.Label2.ForeColor = System.Drawing.Color.Black
+        Me.Label2.Location = New System.Drawing.Point(6, 14)
+        Me.Label2.Name = "Label2"
+        Me.Label2.Size = New System.Drawing.Size(67, 15)
+        Me.Label2.TabIndex = 3
+        Me.Label2.Text = "Description"
+        '
+        'BtnSearch
+        '
+        Me.BtnSearch.ForeColor = System.Drawing.Color.Black
+        Me.BtnSearch.Location = New System.Drawing.Point(134, 92)
+        Me.BtnSearch.Name = "BtnSearch"
+        Me.BtnSearch.Size = New System.Drawing.Size(122, 23)
+        Me.BtnSearch.TabIndex = 2
+        Me.BtnSearch.Text = "Search"
+        Me.BtnSearch.UseVisualStyleBackColor = True
+        '
+        'TxtSearchBy
+        '
+        Me.TxtSearchBy.Location = New System.Drawing.Point(6, 31)
+        Me.TxtSearchBy.Name = "TxtSearchBy"
+        Me.TxtSearchBy.Size = New System.Drawing.Size(250, 23)
+        Me.TxtSearchBy.TabIndex = 1
+        '
+        'ResendingEmailToolStripMenuItem
+        '
+        Me.ResendingEmailToolStripMenuItem.Name = "ResendingEmailToolStripMenuItem"
+        Me.ResendingEmailToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.ResendingEmailToolStripMenuItem.Text = "Resending Email"
         '
         'frmMain
         '
+        Me.AcceptButton = Me.BtnSearch
         Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0!, 15.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.BackColor = System.Drawing.Color.White
+        Me.BackColor = System.Drawing.SystemColors.ActiveCaption
         Me.ClientSize = New System.Drawing.Size(1049, 742)
         Me.ControlBox = False
-        Me.Controls.Add(Me.ToolStripButton1)
+        Me.Controls.Add(Me.GBSearch)
+        Me.Controls.Add(Me.btnSearchOpen)
         Me.Controls.Add(Me.DgvReportDetails)
         Me.Controls.Add(Me.lbltime)
         Me.Controls.Add(Me.detect)
@@ -508,10 +569,6 @@ Partial Class frmMain
         Me.Controls.Add(Me.btnPrintPreview)
         Me.Controls.Add(Me.btnFileReport)
         Me.Controls.Add(Me.MenuStrip1)
-        Me.Controls.Add(Me.txtSearch)
-        Me.Controls.Add(Me.ToolStripButton2)
-        Me.Controls.Add(Me.colored)
-        Me.Controls.Add(Me.PictureBox1)
         Me.DoubleBuffered = True
         Me.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.ForeColor = System.Drawing.Color.FromArgb(CType(CType(255, Byte), Integer), CType(CType(128, Byte), Integer), CType(CType(0, Byte), Integer))
@@ -534,8 +591,10 @@ Partial Class frmMain
         CType(Me.PictureBox2, System.ComponentModel.ISupportInitialize).EndInit()
         Me.StatusStrip1.ResumeLayout(False)
         Me.StatusStrip1.PerformLayout()
-        CType(Me.colored, System.ComponentModel.ISupportInitialize).EndInit()
-        CType(Me.PictureBox1, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.ContextMenuStrip1.ResumeLayout(False)
+        Me.GBSearch.ResumeLayout(False)
+        Me.GBSearch.PerformLayout()
+        CType(Me.BindingSource1, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -550,23 +609,20 @@ Partial Class frmMain
     Friend WithEvents ActiveFormsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents PreviousFormsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents PrintDialog1 As System.Windows.Forms.PrintDialog
-    Friend WithEvents ToolStripButton1 As System.Windows.Forms.Button
+    Friend WithEvents btnSearchOpen As System.Windows.Forms.Button
     Friend WithEvents btnReportData As System.Windows.Forms.Button
     Friend WithEvents btnPrintPreview As System.Windows.Forms.Button
     Friend WithEvents btnFileReport As System.Windows.Forms.Button
-    Friend WithEvents PictureBox1 As System.Windows.Forms.PictureBox
     Friend WithEvents StatusStrip1 As System.Windows.Forms.StatusStrip
     Friend WithEvents Timer1 As System.Windows.Forms.Timer
     Friend WithEvents Label1 As System.Windows.Forms.Label
     Friend WithEvents PictureBox2 As System.Windows.Forms.PictureBox
     Friend WithEvents Label5 As System.Windows.Forms.Label
     Friend WithEvents PictureBox4 As System.Windows.Forms.PictureBox
-    Friend WithEvents colored As System.Windows.Forms.PictureBox
     Friend WithEvents detect As System.Windows.Forms.Label
     Friend WithEvents AboutToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents SignatoryToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ChangePasswordToolStripMenuItem1 As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents txtSearch As System.Windows.Forms.TextBox
     Friend WithEvents ttuser As System.Windows.Forms.ToolStripStatusLabel
     Friend WithEvents ToolStripStatusLabel1 As System.Windows.Forms.ToolStripStatusLabel
     Friend WithEvents lbltime As System.Windows.Forms.Label
@@ -581,7 +637,17 @@ Partial Class frmMain
     Friend WithEvents Timer3 As System.Windows.Forms.Timer
     Friend WithEvents MenuExpenseDetails As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ESCToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents ToolStripButton2 As System.Windows.Forms.Button
     Friend WithEvents fmsExpenseSummary As System.Windows.Forms.ToolStripMenuItem
-
+    Friend WithEvents ContextMenuStrip1 As ContextMenuStrip
+    Friend WithEvents EditReportDetailsToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents EditExpensesToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents GBSearch As GroupBox
+    Friend WithEvents BTNReset As Button
+    Friend WithEvents Label3 As Label
+    Friend WithEvents CBBFilter As ComboBox
+    Friend WithEvents Label2 As Label
+    Friend WithEvents BtnSearch As Button
+    Friend WithEvents TxtSearchBy As TextBox
+    Friend WithEvents BindingSource1 As BindingSource
+    Friend WithEvents ResendingEmailToolStripMenuItem As ToolStripMenuItem
 End Class

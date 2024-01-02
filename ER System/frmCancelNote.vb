@@ -1,45 +1,44 @@
 ﻿Public Class frmCancelNote
 
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnOkay.Click
+        Dim ClsData As New ClsLoadData
+        Dim myERData As String()
+        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+
         Dim sqlcmdUpdateFilePrintStatus As New SqlClient.SqlCommand
 
         Try
-            If modLoadingData.ReportID = Nothing Or modLoadingData.ReportID = "" Then
+            If myERData(13) = Nothing Or myERData(13) = "" Then
                 MsgBox("No Report Selected")
             Else
-                With sqlcmdUpdateFilePrintStatus
-                    .Connection = SQLConnection
-                    .CommandText = "sp2_LoadUserReportDetailsCancel"
-                    .Parameters.Add("@reportID", SqlDbType.BigInt).Value = modLoadingData.ReportID
-                    .Parameters.AddWithValue("@reportCancelNote", rtbNote.Text).SqlDbType = SqlDbType.VarChar
-                    .CommandType = CommandType.StoredProcedure
-                    .ExecuteNonQuery()
-                    MsgBox("Report Rejected")
-                End With
-                If modLoadingData.ChangeLoad = 1 Then
-                    LoadingUserReportDetailsFILED(frmApprove.userIDApprove, frmMain.ChangeLoading, modLoadingData.LoginuserID)
+                modMaintenance.RejectFiledER(myERData(13), rtbNote.Text)
+                'With sqlcmdUpdateFilePrintStatus
+                '    .Connection = SQLConnection
+                '    .CommandText = "sp2_LoadUserReportDetailsCancel"
+                '    .Parameters.Add("@reportID", SqlDbType.BigInt).Value = myERData(13)
+                '    .Parameters.AddWithValue("@reportCancelNote", rtbNote.Text).SqlDbType = SqlDbType.VarChar
+                '    .CommandType = CommandType.StoredProcedure
+                '    .ExecuteNonQuery()
+                '    MsgBox("Report Rejected")
+                'End With
+                If GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0) = "1" Then
+                    frmApprove.dgvUserReportDetails.DataSource = LoadingUserReportDetailsFILED(myERData(14), GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0), GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
                 Else
-                    LoadingUserReportDetailsDONE(frmApprove.userIDApprove, frmMain.ChangeLoading, modLoadingData.LoginuserID)
+                    frmApprove.dgvUserReportDetails.DataSource = LoadingUserReportDetailsDONE(myERData(14), GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0), GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
                 End If
 
                 frmApprove.dgvUserReportDetails.Columns("ID").Visible = False
                 frmApprove.dgvUserReportDetails.Columns(2).AutoSizeMode = DataGridViewAutoSizeColumnsMode.Fill
-                frmMain.LoadingER()
-                If frmMain.ChangeLoading = "1" Then
-                    LoadingUserAccountFiled(modLoadingData.LoginDeptID)
-                    Me.Show()
-                    frmMain.ChangeLoading = "1"
-                    Me.TopMost = True
-                    frmApprove.btnApprove.Visible = True
+                If GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0) = "1" Then
+                    LoadingUserAccountFiled(GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0),
+                                            GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+                    SetRegistry("Settings", {"ChangeLoading"}, {"1"})
                 Else
-                    LoadingUserAccountPending(modLoadingData.LoginDeptID)
+                    LoadingUserAccountPending(GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0))
                     frmApprove.Show()
-                    frmMain.ChangeLoading = "0"
-                    frmApprove.TopMost = True
-                    frmApprove.btnApprove.Visible = False
+                    SetRegistry("Settings", {"ChangeLoading"}, {"0"})
                     frmApprove.btnCancel.Location = New Point(331, 480)
                     frmApprove.btnReportViewer.Location = New Point(442, 480)
-                    'frmRpt.cryptRptER.ShowPrintButton = False
                     frmApprove.dgvUser.Columns("Number of File").Visible = False
                     frmApprove.dgvUser.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
                 End If

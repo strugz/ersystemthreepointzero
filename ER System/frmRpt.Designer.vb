@@ -25,7 +25,7 @@ Partial Class frmRpt
         Me.components = New System.ComponentModel.Container()
         Me.ToolTip1 = New System.Windows.Forms.ToolTip(Me.components)
         Me.btnSendPrint = New System.Windows.Forms.Button()
-        Me.cryptRptER = New CrystalDecisions.Windows.Forms.CrystalReportViewer()
+        Me.CrystalReportViewer1 = New CrystalDecisions.Windows.Forms.CrystalReportViewer()
         Me.SuspendLayout()
         '
         'btnSendPrint
@@ -36,31 +36,41 @@ Partial Class frmRpt
         Me.btnSendPrint.Font = New System.Drawing.Font("Microsoft Sans Serif", 15.75!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnSendPrint.Location = New System.Drawing.Point(0, 0)
         Me.btnSendPrint.Name = "btnSendPrint"
-        Me.btnSendPrint.Size = New System.Drawing.Size(733, 46)
+        Me.btnSendPrint.Size = New System.Drawing.Size(913, 46)
         Me.btnSendPrint.TabIndex = 1
         Me.btnSendPrint.Text = "Send/Print"
         Me.btnSendPrint.UseVisualStyleBackColor = True
         '
-        'cryptRptER
+        'CrystalReportViewer1
         '
-        Me.cryptRptER.ActiveViewIndex = -1
-        Me.cryptRptER.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle
-        Me.cryptRptER.Cursor = System.Windows.Forms.Cursors.Default
-        Me.cryptRptER.DisplayStatusBar = False
-        Me.cryptRptER.DisplayToolbar = False
-        Me.cryptRptER.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.cryptRptER.Location = New System.Drawing.Point(0, 46)
-        Me.cryptRptER.Name = "cryptRptER"
-        Me.cryptRptER.Size = New System.Drawing.Size(733, 504)
-        Me.cryptRptER.TabIndex = 2
-        Me.cryptRptER.ToolPanelView = CrystalDecisions.Windows.Forms.ToolPanelViewType.None
+        Me.CrystalReportViewer1.ActiveViewIndex = -1
+        Me.CrystalReportViewer1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle
+        Me.CrystalReportViewer1.Cursor = System.Windows.Forms.Cursors.Default
+        Me.CrystalReportViewer1.DisplayStatusBar = False
+        Me.CrystalReportViewer1.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.CrystalReportViewer1.Location = New System.Drawing.Point(0, 46)
+        Me.CrystalReportViewer1.Name = "CrystalReportViewer1"
+        Me.CrystalReportViewer1.ShowCloseButton = False
+        Me.CrystalReportViewer1.ShowCopyButton = False
+        Me.CrystalReportViewer1.ShowExportButton = False
+        Me.CrystalReportViewer1.ShowGotoPageButton = False
+        Me.CrystalReportViewer1.ShowGroupTreeButton = False
+        Me.CrystalReportViewer1.ShowLogo = False
+        Me.CrystalReportViewer1.ShowParameterPanelButton = False
+        Me.CrystalReportViewer1.ShowPrintButton = False
+        Me.CrystalReportViewer1.ShowRefreshButton = False
+        Me.CrystalReportViewer1.ShowTextSearchButton = False
+        Me.CrystalReportViewer1.ShowZoomButton = False
+        Me.CrystalReportViewer1.Size = New System.Drawing.Size(913, 703)
+        Me.CrystalReportViewer1.TabIndex = 2
+        Me.CrystalReportViewer1.ToolPanelView = CrystalDecisions.Windows.Forms.ToolPanelViewType.None
         '
         'frmRpt
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(733, 550)
-        Me.Controls.Add(Me.cryptRptER)
+        Me.ClientSize = New System.Drawing.Size(913, 749)
+        Me.Controls.Add(Me.CrystalReportViewer1)
         Me.Controls.Add(Me.btnSendPrint)
         Me.Name = "frmRpt"
         Me.WindowState = System.Windows.Forms.FormWindowState.Maximized
@@ -69,5 +79,5 @@ Partial Class frmRpt
     End Sub
     Friend WithEvents ToolTip1 As System.Windows.Forms.ToolTip
     Friend WithEvents btnSendPrint As System.Windows.Forms.Button
-    Friend WithEvents cryptRptER As CrystalDecisions.Windows.Forms.CrystalReportViewer
+    Friend WithEvents CrystalReportViewer1 As CrystalDecisions.Windows.Forms.CrystalReportViewer
 End Class

@@ -42,14 +42,14 @@ Partial Class frmReturnedER
         Me.DataGridView1.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing
         Me.DataGridView1.ScrollBars = System.Windows.Forms.ScrollBars.Vertical
         Me.DataGridView1.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.DataGridView1.Size = New System.Drawing.Size(544, 272)
+        Me.DataGridView1.Size = New System.Drawing.Size(564, 521)
         Me.DataGridView1.TabIndex = 0
         '
         'frmReturnedER
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(544, 272)
+        Me.ClientSize = New System.Drawing.Size(564, 521)
         Me.Controls.Add(Me.DataGridView1)
         Me.Name = "frmReturnedER"
         Me.Text = "Returned ER"

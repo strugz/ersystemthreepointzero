@@ -2,22 +2,24 @@
 
     Private Sub BackgroundWorker1_DoWork(sender As Object, e As System.ComponentModel.DoWorkEventArgs) Handles BackgroundWorker1.DoWork
         Threading.Thread.Sleep(1000)
-        frmERType.Sending()
     End Sub
     Private Sub BackgroundWorker1_RunWorkerCompleted(sender As Object, e As System.ComponentModel.RunWorkerCompletedEventArgs) Handles BackgroundWorker1.RunWorkerCompleted
         Try
+            Dim ClsData As New ClsLoadData
             Me.Close()
             frmEReport.TopMost = False
             frmERType.TopMost = True
             frmERType.btnSend.Text = "Send"
             MsgBox("E-mail Sent . . .", TopMost = True)
-            If modLoadingData.ReportIDExport <> "" Then
-                PrintSendingReport()
+            Dim myERData As String()
+            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+            If myERData(13) <> "" Then
+                'PrintSendingReport()
             End If
             frmERType.Close()
             frmERType.Enabled = True
             frmEReport.TopMost = True
-            frmRpt.cryptRptER.PrintReport()
+            frmRpt.CrystalReportViewer1.PrintReport()
         Catch ex As Exception
             MsgBox("Please Call IT Immediately")
         End Try

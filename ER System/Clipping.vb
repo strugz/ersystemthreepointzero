@@ -186,75 +186,75 @@ Public Class Clipping
     Public Sub ApplyRegion(ByRef oldRegion As Region, ByRef newRegion As Region)
         oldRegion = newRegion
     End Sub
-    Public Function GetBitmapRegion(ByVal BitmapFileName As String) As Region
-        Dim imgBitmap As Bitmap = Bitmap.FromFile(BitmapFileName)
+    'Public Function GetBitmapRegion(ByVal BitmapFileName As String) As Region
+    '    Dim imgBitmap As Bitmap = Bitmap.FromFile(BitmapFileName)
 
-        If Not (imgBitmap Is Nothing) Then
-            Return baseGetBitmapRegion(imgBitmap, imgBitmap.GetPixel(0, 0))
-        End If
-    End Function
-    Public Function GetBitmapRegion(ByVal imgBitmap As Bitmap) As Region
-        If Not (imgBitmap Is Nothing) Then
-            Return baseGetBitmapRegion(imgBitmap, imgBitmap.GetPixel(0, 0))
-        End If
-    End Function
-    Public Function GetBitmapRegion(ByVal imgBitmap As Bitmap, ByVal TransparentColor As Color) As Region
-        If Not (imgBitmap Is Nothing) Then
-            Return baseGetBitmapRegion(imgBitmap, TransparentColor)
-        End If
-    End Function
-    Public Function GetBitmapRegion(ByVal BitmapFileName As String, ByVal TransparentColor As Color) As Region
-        Dim imgBitmap As Bitmap = Bitmap.FromFile(BitmapFileName)
+    '    If Not (imgBitmap Is Nothing) Then
+    '        Return baseGetBitmapRegion(imgBitmap, imgBitmap.GetPixel(0, 0))
+    '    End If
+    'End Function
+    'Public Function GetBitmapRegion(ByVal imgBitmap As Bitmap) As Region
+    '    If Not (imgBitmap Is Nothing) Then
+    '        Return baseGetBitmapRegion(imgBitmap, imgBitmap.GetPixel(0, 0))
+    '    End If
+    'End Function
+    'Public Function GetBitmapRegion(ByVal imgBitmap As Bitmap, ByVal TransparentColor As Color) As Region
+    '    If Not (imgBitmap Is Nothing) Then
+    '        Return baseGetBitmapRegion(imgBitmap, TransparentColor)
+    '    End If
+    'End Function
+    'Public Function GetBitmapRegion(ByVal BitmapFileName As String, ByVal TransparentColor As Color) As Region
+    '    Dim imgBitmap As Bitmap = Bitmap.FromFile(BitmapFileName)
 
-        If Not (imgBitmap Is Nothing) Then
-            Return baseGetBitmapRegion(imgBitmap, TransparentColor)
-        End If
-    End Function
-    Public Function GetBitmapRegion(ByVal frmForm As Form, ByVal TransparentColor As Color) As Region
-        If Not (frmForm.BackgroundImage Is Nothing) Then
-            Return baseGetBitmapRegion(frmForm.BackgroundImage, TransparentColor)
-        End If
-    End Function
-    Private Function baseGetBitmapRegion(ByVal imgBitmap As Bitmap, ByVal TransparentColor As Color) As Region
-        Dim tmpLocalReg As Region
-        If Not (imgBitmap Is Nothing) Then
-            Dim BackColor As Color, row As Integer, col As Integer
-            tmpLocalReg = New Region(New Rectangle(0, 0, 0, 0))
+    '    If Not (imgBitmap Is Nothing) Then
+    '        Return baseGetBitmapRegion(imgBitmap, TransparentColor)
+    '    End If
+    'End Function
+    'Public Function GetBitmapRegion(ByVal frmForm As Form, ByVal TransparentColor As Color) As Region
+    '    If Not (frmForm.BackgroundImage Is Nothing) Then
+    '        Return baseGetBitmapRegion(frmForm.BackgroundImage, TransparentColor)
+    '    End If
+    'End Function
+    'Private Function baseGetBitmapRegion(ByVal imgBitmap As Bitmap, ByVal TransparentColor As Color) As Region
+    '    Dim tmpLocalReg As Region
+    '    If Not (imgBitmap Is Nothing) Then
+    '        Dim BackColor As Color, row As Integer, col As Integer
+    '        tmpLocalReg = New Region(New Rectangle(0, 0, 0, 0))
 
-            BackColor = TransparentColor
+    '        BackColor = TransparentColor
 
-            For row = 0 To imgBitmap.Height - 1
-                Dim tmpStartCol As Integer = -1
-                Dim tmpStopCol As Integer = -1
+    '        For row = 0 To imgBitmap.Height - 1
+    '            Dim tmpStartCol As Integer = -1
+    '            Dim tmpStopCol As Integer = -1
 
-                For col = 0 To imgBitmap.Width
-                    If col = imgBitmap.Width Then
-                        If tmpStartCol <> -1 Then
-                            tmpStopCol = col
+    '            For col = 0 To imgBitmap.Width
+    '                If col = imgBitmap.Width Then
+    '                    If tmpStartCol <> -1 Then
+    '                        tmpStopCol = col
 
-                            Dim regUnion As New Region(New Rectangle(tmpStartCol, row, tmpStopCol - tmpStartCol, 1))
-                            tmpLocalReg.Union(regUnion)
-                            regUnion = Nothing
-                        End If
-                    Else
-                        If imgBitmap.GetPixel(col, row).Equals(BackColor) = False Then
-                            If tmpStartCol = -1 Then tmpStartCol = col
-                        ElseIf imgBitmap.GetPixel(col, row).Equals(BackColor) = True Then
-                            If tmpStartCol <> -1 Then
-                                tmpStopCol = col
+    '                        Dim regUnion As New Region(New Rectangle(tmpStartCol, row, tmpStopCol - tmpStartCol, 1))
+    '                        tmpLocalReg.Union(regUnion)
+    '                        regUnion = Nothing
+    '                    End If
+    '                Else
+    '                    If imgBitmap.GetPixel(col, row).Equals(BackColor) = False Then
+    '                        If tmpStartCol = -1 Then tmpStartCol = col
+    '                    ElseIf imgBitmap.GetPixel(col, row).Equals(BackColor) = True Then
+    '                        If tmpStartCol <> -1 Then
+    '                            tmpStopCol = col
 
-                                Dim regUnion As New Region(New Rectangle(tmpStartCol, row, tmpStopCol - tmpStartCol, 1))
-                                tmpLocalReg.Union(regUnion)
-                                regunion = Nothing
+    '                            Dim regUnion As New Region(New Rectangle(tmpStartCol, row, tmpStopCol - tmpStartCol, 1))
+    '                            tmpLocalReg.Union(regUnion)
+    '                            regunion = Nothing
 
-                                tmpStartCol = -1
-                                tmpStopCol = -1
-                            End If
-                        End If
-                    End If
-                Next
-            Next
-        End If
-        Return tmpLocalReg
-    End Function
+    '                            tmpStartCol = -1
+    '                            tmpStopCol = -1
+    '                        End If
+    '                    End If
+    '                End If
+    '            Next
+    '        Next
+    '    End If
+    '    Return tmpLocalReg
+    'End Function
 End Class

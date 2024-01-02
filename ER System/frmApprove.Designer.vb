@@ -22,7 +22,7 @@ Partial Class frmApprove
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmApprove))
+        Me.components = New System.ComponentModel.Container()
         Me.dgvUser = New System.Windows.Forms.DataGridView()
         Me.dgvUserReportDetails = New System.Windows.Forms.DataGridView()
         Me.Label1 = New System.Windows.Forms.Label()
@@ -30,11 +30,13 @@ Partial Class frmApprove
         Me.btnApprove = New System.Windows.Forms.Button()
         Me.btnReportViewer = New System.Windows.Forms.Button()
         Me.btnCancel = New System.Windows.Forms.Button()
-        Me.PictureBox1 = New System.Windows.Forms.PictureBox()
         Me.btnReject = New System.Windows.Forms.Button()
+        Me.CMSEditUserExpense = New System.Windows.Forms.ContextMenuStrip(Me.components)
+        Me.EditExpenseToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.BTNRefresh = New System.Windows.Forms.Button()
         CType(Me.dgvUser, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.dgvUserReportDetails, System.ComponentModel.ISupportInitialize).BeginInit()
-        CType(Me.PictureBox1, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.CMSEditUserExpense.SuspendLayout()
         Me.SuspendLayout()
         '
         'dgvUser
@@ -45,14 +47,14 @@ Partial Class frmApprove
         Me.dgvUser.AllowUserToResizeRows = False
         Me.dgvUser.BackgroundColor = System.Drawing.SystemColors.Control
         Me.dgvUser.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
-        Me.dgvUser.Location = New System.Drawing.Point(12, 38)
+        Me.dgvUser.Location = New System.Drawing.Point(12, 81)
         Me.dgvUser.Name = "dgvUser"
         Me.dgvUser.ReadOnly = True
         Me.dgvUser.RowHeadersVisible = False
         Me.dgvUser.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing
         Me.dgvUser.ScrollBars = System.Windows.Forms.ScrollBars.Vertical
         Me.dgvUser.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.dgvUser.Size = New System.Drawing.Size(254, 436)
+        Me.dgvUser.Size = New System.Drawing.Size(254, 443)
         Me.dgvUser.TabIndex = 0
         '
         'dgvUserReportDetails
@@ -63,14 +65,14 @@ Partial Class frmApprove
         Me.dgvUserReportDetails.AllowUserToResizeRows = False
         Me.dgvUserReportDetails.BackgroundColor = System.Drawing.Color.WhiteSmoke
         Me.dgvUserReportDetails.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
-        Me.dgvUserReportDetails.Location = New System.Drawing.Point(272, 38)
+        Me.dgvUserReportDetails.Location = New System.Drawing.Point(272, 81)
         Me.dgvUserReportDetails.Name = "dgvUserReportDetails"
         Me.dgvUserReportDetails.ReadOnly = True
         Me.dgvUserReportDetails.RowHeadersVisible = False
         Me.dgvUserReportDetails.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing
         Me.dgvUserReportDetails.ScrollBars = System.Windows.Forms.ScrollBars.Vertical
         Me.dgvUserReportDetails.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.dgvUserReportDetails.Size = New System.Drawing.Size(527, 436)
+        Me.dgvUserReportDetails.Size = New System.Drawing.Size(515, 443)
         Me.dgvUserReportDetails.TabIndex = 1
         '
         'Label1
@@ -99,15 +101,15 @@ Partial Class frmApprove
         '
         'btnApprove
         '
-        Me.btnApprove.BackColor = System.Drawing.Color.White
+        Me.btnApprove.BackColor = System.Drawing.Color.Lime
         Me.btnApprove.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
         Me.btnApprove.Enabled = False
-        Me.btnApprove.FlatStyle = System.Windows.Forms.FlatStyle.System
+        Me.btnApprove.FlatStyle = System.Windows.Forms.FlatStyle.Flat
         Me.btnApprove.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnApprove.ForeColor = System.Drawing.Color.Black
-        Me.btnApprove.Location = New System.Drawing.Point(516, 480)
+        Me.btnApprove.Location = New System.Drawing.Point(486, 34)
         Me.btnApprove.Name = "btnApprove"
-        Me.btnApprove.Size = New System.Drawing.Size(105, 45)
+        Me.btnApprove.Size = New System.Drawing.Size(105, 41)
         Me.btnApprove.TabIndex = 4
         Me.btnApprove.Text = "Approve"
         Me.btnApprove.UseVisualStyleBackColor = False
@@ -120,38 +122,28 @@ Partial Class frmApprove
         Me.btnReportViewer.FlatStyle = System.Windows.Forms.FlatStyle.System
         Me.btnReportViewer.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnReportViewer.ForeColor = System.Drawing.Color.Black
-        Me.btnReportViewer.Location = New System.Drawing.Point(294, 480)
+        Me.btnReportViewer.Location = New System.Drawing.Point(359, 34)
         Me.btnReportViewer.Name = "btnReportViewer"
-        Me.btnReportViewer.Size = New System.Drawing.Size(105, 45)
+        Me.btnReportViewer.Size = New System.Drawing.Size(121, 41)
         Me.btnReportViewer.TabIndex = 5
-        Me.btnReportViewer.Text = "Report Preview"
+        Me.btnReportViewer.Text = "Preview"
         Me.btnReportViewer.UseVisualStyleBackColor = False
         '
         'btnCancel
         '
-        Me.btnCancel.BackColor = System.Drawing.Color.White
+        Me.btnCancel.BackColor = System.Drawing.Color.FromArgb(CType(CType(255, Byte), Integer), CType(CType(128, Byte), Integer), CType(CType(128, Byte), Integer))
         Me.btnCancel.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
         Me.btnCancel.Enabled = False
-        Me.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.System
+        Me.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat
         Me.btnCancel.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnCancel.ForeColor = System.Drawing.Color.Black
         Me.btnCancel.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me.btnCancel.Location = New System.Drawing.Point(183, 480)
+        Me.btnCancel.Location = New System.Drawing.Point(272, 34)
         Me.btnCancel.Name = "btnCancel"
-        Me.btnCancel.Size = New System.Drawing.Size(105, 45)
+        Me.btnCancel.Size = New System.Drawing.Size(81, 41)
         Me.btnCancel.TabIndex = 6
-        Me.btnCancel.Text = "Cancel"
+        Me.btnCancel.Text = "Reset"
         Me.btnCancel.UseVisualStyleBackColor = False
-        '
-        'PictureBox1
-        '
-        Me.PictureBox1.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.PictureBox1.Image = CType(resources.GetObject("PictureBox1.Image"), System.Drawing.Image)
-        Me.PictureBox1.Location = New System.Drawing.Point(0, 0)
-        Me.PictureBox1.Name = "PictureBox1"
-        Me.PictureBox1.Size = New System.Drawing.Size(799, 528)
-        Me.PictureBox1.TabIndex = 7
-        Me.PictureBox1.TabStop = False
         '
         'btnReject
         '
@@ -161,19 +153,44 @@ Partial Class frmApprove
         Me.btnReject.FlatStyle = System.Windows.Forms.FlatStyle.System
         Me.btnReject.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.btnReject.ForeColor = System.Drawing.Color.Black
-        Me.btnReject.Location = New System.Drawing.Point(405, 480)
+        Me.btnReject.Location = New System.Drawing.Point(633, 34)
         Me.btnReject.Name = "btnReject"
-        Me.btnReject.Size = New System.Drawing.Size(105, 45)
+        Me.btnReject.Size = New System.Drawing.Size(145, 41)
         Me.btnReject.TabIndex = 8
         Me.btnReject.Text = "Return File for Modification"
         Me.btnReject.UseVisualStyleBackColor = True
+        '
+        'CMSEditUserExpense
+        '
+        Me.CMSEditUserExpense.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.EditExpenseToolStripMenuItem})
+        Me.CMSEditUserExpense.Name = "CMSEditUserExpense"
+        Me.CMSEditUserExpense.Size = New System.Drawing.Size(141, 26)
+        '
+        'EditExpenseToolStripMenuItem
+        '
+        Me.EditExpenseToolStripMenuItem.Name = "EditExpenseToolStripMenuItem"
+        Me.EditExpenseToolStripMenuItem.Size = New System.Drawing.Size(140, 22)
+        Me.EditExpenseToolStripMenuItem.Text = "Edit Expense"
+        '
+        'BTNRefresh
+        '
+        Me.BTNRefresh.BackColor = System.Drawing.Color.LightGreen
+        Me.BTNRefresh.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.BTNRefresh.Location = New System.Drawing.Point(12, 34)
+        Me.BTNRefresh.Name = "BTNRefresh"
+        Me.BTNRefresh.Size = New System.Drawing.Size(254, 41)
+        Me.BTNRefresh.TabIndex = 9
+        Me.BTNRefresh.Text = "Refresh User"
+        Me.BTNRefresh.UseVisualStyleBackColor = False
         '
         'frmApprove
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
+        Me.BackColor = System.Drawing.SystemColors.ActiveCaption
         Me.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center
-        Me.ClientSize = New System.Drawing.Size(799, 528)
+        Me.ClientSize = New System.Drawing.Size(790, 528)
+        Me.Controls.Add(Me.BTNRefresh)
         Me.Controls.Add(Me.btnReject)
         Me.Controls.Add(Me.btnCancel)
         Me.Controls.Add(Me.btnReportViewer)
@@ -182,7 +199,6 @@ Partial Class frmApprove
         Me.Controls.Add(Me.Label1)
         Me.Controls.Add(Me.dgvUserReportDetails)
         Me.Controls.Add(Me.dgvUser)
-        Me.Controls.Add(Me.PictureBox1)
         Me.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow
         Me.KeyPreview = True
@@ -192,7 +208,7 @@ Partial Class frmApprove
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
         CType(Me.dgvUser, System.ComponentModel.ISupportInitialize).EndInit()
         CType(Me.dgvUserReportDetails, System.ComponentModel.ISupportInitialize).EndInit()
-        CType(Me.PictureBox1, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.CMSEditUserExpense.ResumeLayout(False)
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -204,6 +220,8 @@ Partial Class frmApprove
     Friend WithEvents btnApprove As System.Windows.Forms.Button
     Friend WithEvents btnReportViewer As System.Windows.Forms.Button
     Friend WithEvents btnCancel As System.Windows.Forms.Button
-    Friend WithEvents PictureBox1 As System.Windows.Forms.PictureBox
     Friend WithEvents btnReject As System.Windows.Forms.Button
+    Friend WithEvents CMSEditUserExpense As ContextMenuStrip
+    Friend WithEvents EditExpenseToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents BTNRefresh As Button
 End Class

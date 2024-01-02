@@ -24,7 +24,7 @@ Partial Class frmERType
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(frmERType))
         Me.rbtERF = New System.Windows.Forms.RadioButton()
-        Me.RadioButton2 = New System.Windows.Forms.RadioButton()
+        Me.RBLocation = New System.Windows.Forms.RadioButton()
         Me.Label1 = New System.Windows.Forms.Label()
         Me.Label2 = New System.Windows.Forms.Label()
         Me.txtLocationCode = New System.Windows.Forms.TextBox()
@@ -32,7 +32,10 @@ Partial Class frmERType
         Me.btnSend = New System.Windows.Forms.Button()
         Me.StatusStrip1 = New System.Windows.Forms.StatusStrip()
         Me.ToolStripStatusLabel1 = New System.Windows.Forms.ToolStripStatusLabel()
+        Me.PbbLoading = New System.Windows.Forms.PictureBox()
+        Me.BWSending = New System.ComponentModel.BackgroundWorker()
         Me.StatusStrip1.SuspendLayout()
+        CType(Me.PbbLoading, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'rbtERF
@@ -48,18 +51,18 @@ Partial Class frmERType
         Me.rbtERF.Text = "ER"
         Me.rbtERF.UseVisualStyleBackColor = False
         '
-        'RadioButton2
+        'RBLocation
         '
-        Me.RadioButton2.AutoSize = True
-        Me.RadioButton2.BackColor = System.Drawing.Color.Transparent
-        Me.RadioButton2.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.RadioButton2.Location = New System.Drawing.Point(130, 13)
-        Me.RadioButton2.Name = "RadioButton2"
-        Me.RadioButton2.Size = New System.Drawing.Size(84, 17)
-        Me.RadioButton2.TabIndex = 1
-        Me.RadioButton2.TabStop = True
-        Me.RadioButton2.Text = "Liquidation"
-        Me.RadioButton2.UseVisualStyleBackColor = False
+        Me.RBLocation.AutoSize = True
+        Me.RBLocation.BackColor = System.Drawing.Color.Transparent
+        Me.RBLocation.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.RBLocation.Location = New System.Drawing.Point(130, 13)
+        Me.RBLocation.Name = "RBLocation"
+        Me.RBLocation.Size = New System.Drawing.Size(84, 17)
+        Me.RBLocation.TabIndex = 1
+        Me.RBLocation.TabStop = True
+        Me.RBLocation.Text = "Liquidation"
+        Me.RBLocation.UseVisualStyleBackColor = False
         '
         'Label1
         '
@@ -118,7 +121,7 @@ Partial Class frmERType
         Me.StatusStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ToolStripStatusLabel1})
         Me.StatusStrip1.Location = New System.Drawing.Point(0, 104)
         Me.StatusStrip1.Name = "StatusStrip1"
-        Me.StatusStrip1.Size = New System.Drawing.Size(236, 22)
+        Me.StatusStrip1.Size = New System.Drawing.Size(252, 22)
         Me.StatusStrip1.TabIndex = 7
         Me.StatusStrip1.Visible = False
         '
@@ -128,21 +131,35 @@ Partial Class frmERType
         Me.ToolStripStatusLabel1.Size = New System.Drawing.Size(74, 17)
         Me.ToolStripStatusLabel1.Text = "Sending . . . ."
         '
+        'PbbLoading
+        '
+        Me.PbbLoading.Image = CType(resources.GetObject("PbbLoading.Image"), System.Drawing.Image)
+        Me.PbbLoading.Location = New System.Drawing.Point(11, 93)
+        Me.PbbLoading.Name = "PbbLoading"
+        Me.PbbLoading.Size = New System.Drawing.Size(152, 20)
+        Me.PbbLoading.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage
+        Me.PbbLoading.TabIndex = 8
+        Me.PbbLoading.TabStop = False
+        Me.PbbLoading.Visible = False
+        '
+        'BWSending
+        '
+        '
         'frmERType
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.BackColor = System.Drawing.SystemColors.ActiveCaption
-        Me.BackgroundImage = CType(resources.GetObject("$this.BackgroundImage"), System.Drawing.Image)
         Me.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center
         Me.ClientSize = New System.Drawing.Size(252, 126)
+        Me.Controls.Add(Me.PbbLoading)
         Me.Controls.Add(Me.StatusStrip1)
         Me.Controls.Add(Me.btnSend)
         Me.Controls.Add(Me.txtLocationName)
         Me.Controls.Add(Me.txtLocationCode)
         Me.Controls.Add(Me.Label2)
         Me.Controls.Add(Me.Label1)
-        Me.Controls.Add(Me.RadioButton2)
+        Me.Controls.Add(Me.RBLocation)
         Me.Controls.Add(Me.rbtERF)
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None
         Me.KeyPreview = True
@@ -152,12 +169,13 @@ Partial Class frmERType
         Me.Text = "Send to Email"
         Me.StatusStrip1.ResumeLayout(False)
         Me.StatusStrip1.PerformLayout()
+        CType(Me.PbbLoading, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
     End Sub
     Friend WithEvents rbtERF As System.Windows.Forms.RadioButton
-    Friend WithEvents RadioButton2 As System.Windows.Forms.RadioButton
+    Friend WithEvents RBLocation As System.Windows.Forms.RadioButton
     Friend WithEvents Label1 As System.Windows.Forms.Label
     Friend WithEvents Label2 As System.Windows.Forms.Label
     Friend WithEvents txtLocationCode As System.Windows.Forms.TextBox
@@ -165,4 +183,6 @@ Partial Class frmERType
     Friend WithEvents btnSend As System.Windows.Forms.Button
     Friend WithEvents StatusStrip1 As System.Windows.Forms.StatusStrip
     Friend WithEvents ToolStripStatusLabel1 As System.Windows.Forms.ToolStripStatusLabel
+    Friend WithEvents PbbLoading As PictureBox
+    Friend WithEvents BWSending As System.ComponentModel.BackgroundWorker
 End Class
