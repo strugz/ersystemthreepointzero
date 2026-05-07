@@ -28,8 +28,8 @@
                     txtReview.Text = dtLoadUserAccDept.Rows(0).Item("emp_Reviewer")
                     txtApprove.Text = dtLoadUserAccDept.Rows(0).Item("emp_Approver")
                 Else
-                    btnUpdate.Visible = True
-                    btnAdd.Visible = False
+                    btnUpdate.Visible = False
+                    btnAdd.Visible = True
                     cbbDept.SelectedValue = GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0)
                 End If
             End Using

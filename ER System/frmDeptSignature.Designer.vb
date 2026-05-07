@@ -154,8 +154,8 @@ Partial Class frmDeptSignature
         Me.Controls.Add(Me.Label4)
         Me.Controls.Add(Me.Label3)
         Me.Controls.Add(Me.Label2)
-        Me.Controls.Add(Me.btnAdd)
         Me.Controls.Add(Me.btnUpdate)
+        Me.Controls.Add(Me.btnAdd)
         Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow
         Me.KeyPreview = True
         Me.MaximizeBox = False
