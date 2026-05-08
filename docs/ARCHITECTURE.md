@@ -66,6 +66,7 @@ The first real extraction is the database connection seam:
 - `Infrastructure/Data/Sql/SqlConnectionFactory.vb` creates SQL Server connections from those settings.
 - `mConn.vb` remains as the legacy compatibility module, but now delegates connection-string creation to the infrastructure layer.
 - `Domain/Entities/UserAccount.vb`, `Application/Repositories/IUserAccountRepository.vb`, `Application/Services/UserAccountService.vb`, and `Infrastructure/Data/Repositories/SqlUserAccountRepository.vb` provide the first repository/application-service slice for login and user status data access.
+- `Application/Services/LoginAccessService.vb` centralizes the login menu-permission rules that used to live directly in `frmLogin.vb`.
 
 This implementation does **not** move form files, update designer nesting, change installer projects, or change user workflows. The touched user-account queries now use repository methods with SQL parameters.
 

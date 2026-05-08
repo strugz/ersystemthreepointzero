@@ -2,6 +2,7 @@
 Imports System.Threading
 Imports ER_System.Application.Repositories
 Imports ER_System.Application.Services
+Imports ER_System.Domain.Entities
 Imports ER_System.Infrastructure.Configuration
 Imports ER_System.Infrastructure.Data.Repositories
 Imports ER_System.Infrastructure.Data.Sql
@@ -87,34 +88,19 @@ Public Class frmLogin
         End If
     End Sub
     Private Sub LoadUserAccount()
-        If GetRegistryValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0) <> "IMS" And
-            GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) = UCase(txtUsername.Text) And
-             GetRegistryValue("Software\\ER System\\UserAccount", {"Userlevel"})(0) = "Admin" Then
+        Dim loginAccess As LoginAccessResult = New LoginAccessService().Resolve(CreateRegisteredUserAccount(), UCase(txtUsername.Text))
+
+        If loginAccess.IsAllowed Then
             Me.Hide()
-            frmMain.ttuser.Text = LTrim(GetRegistryValue("Software\\ER System\\UserAccount", {"Fullname"})(0)).Replace(vbCrLf, "")
-            frmMain.tsslUserDept.Text = LTrim(GetRegistryValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0)).Replace(vbCrLf, "")
-            LoginSettingsControl(True, True, True, False, False, False)
-        ElseIf GetRegistryValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0) = "IMS" And
-            GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) = UCase(txtUsername.Text) And
-            GetRegistryValue("Software\\ER System\\UserAccount", {"Userlevel"})(0) = "Admin" Then
-            Me.Hide()
-            frmMain.ttuser.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"Fullname"})(0).Replace(vbCrLf, "")
-            frmMain.tsslUserDept.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0).Replace(vbCrLf, "")
-            LoginSettingsControl(True, True, True, True, True, True)
-        ElseIf GetRegistryValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0) = "IMS" And
-            GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) = UCase(txtUsername.Text) And
-            GetRegistryValue("Software\\ER System\\UserAccount", {"Userlevel"})(0) = "User" Then
-            Me.Hide()
-            frmMain.ttuser.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"Fullname"})(0).Replace(vbCrLf, "")
-            frmMain.tsslUserDept.Text = LTrim(GetRegistryValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0)).Replace(vbCrLf, "")
-            LoginSettingsControl(False, True, True, True, False, False)
-        ElseIf GetRegistryValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0) <> "IMS" And
-            GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) = UCase(txtUsername.Text) And
-            GetRegistryValue("Software\\ER System\\UserAccount", {"Userlevel"})(0) = "User" Then
-            Me.Hide()
-            frmMain.ttuser.Text = LTrim(GetRegistryValue("Software\\ER System\\UserAccount", {"Fullname"})(0)).Replace(vbCrLf, "")
-            frmMain.tsslUserDept.Text = LTrim(GetRegistryValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0)).Replace(vbCrLf, "")
-            LoginSettingsControl(False, True, True, False, False, False)
+            frmMain.ttuser.Text = loginAccess.DisplayName
+            frmMain.tsslUserDept.Text = loginAccess.DepartmentName
+            LoginSettingsControl(
+                loginAccess.MenuFormsVisible,
+                loginAccess.MenuFileVisible,
+                loginAccess.MainFormEnabled,
+                loginAccess.PreviousReportsVisible,
+                loginAccess.UserAccountVisible,
+                loginAccess.ExpenseSummaryVisible)
         Else
             MsgBox("Invalid Username/Password")
             txtPassword.Clear()
@@ -135,6 +121,15 @@ Public Class frmLogin
         Dim userAccountRepository As IUserAccountRepository = New SqlUserAccountRepository(connectionFactory)
 
         Return New UserAccountService(userAccountRepository)
+    End Function
+
+    Private Function CreateRegisteredUserAccount() As UserAccount
+        Return New UserAccount With {
+            .UserName = GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0),
+            .UserLevel = GetRegistryValue("Software\\ER System\\UserAccount", {"Userlevel"})(0),
+            .FullName = GetRegistryValue("Software\\ER System\\UserAccount", {"Fullname"})(0),
+            .DepartmentName = GetRegistryValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0)
+        }
     End Function
     Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
         Application.Exit()

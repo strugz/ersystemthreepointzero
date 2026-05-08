@@ -179,11 +179,14 @@
   <ItemGroup>
     <Compile Include="ApplicationEvents.vb" />
     <Compile Include="Application\Repositories\IUserAccountRepository.vb" />
+    <Compile Include="Application\Services\LoginAccessResult.vb" />
+    <Compile Include="Application\Services\LoginAccessService.vb" />
     <Compile Include="Application\Services\UserAccountService.vb" />
     <Compile Include="Clipping.vb" />
     <Compile Include="clsEncryption.vb" />
     <Compile Include="ClsLoadData.vb" />
     <Compile Include="Domain\Entities\UserAccount.vb" />
+    <Compile Include="Domain\Enums\UserLevel.vb" />
     <Compile Include="Infrastructure\Configuration\ConnectionSettings.vb" />
     <Compile Include="Infrastructure\Configuration\RegistryConnectionSettingsProvider.vb" />
     <Compile Include="Infrastructure\Data\Repositories\SqlUserAccountRepository.vb" />
