@@ -65,8 +65,9 @@ The first real extraction is the database connection seam:
 - `Infrastructure/Configuration/RegistryConnectionSettingsProvider.vb` loads and decrypts existing registry settings.
 - `Infrastructure/Data/Sql/SqlConnectionFactory.vb` creates SQL Server connections from those settings.
 - `mConn.vb` remains as the legacy compatibility module, but now delegates connection-string creation to the infrastructure layer.
+- `Domain/Entities/UserAccount.vb`, `Application/Repositories/IUserAccountRepository.vb`, `Application/Services/UserAccountService.vb`, and `Infrastructure/Data/Repositories/SqlUserAccountRepository.vb` provide the first repository/application-service slice for login and user status data access.
 
-This implementation does **not** move form files, update designer nesting, alter SQL commands, change installer projects, or change user workflows.
+This implementation does **not** move form files, update designer nesting, change installer projects, or change user workflows. The touched user-account queries now use repository methods with SQL parameters.
 
 ## Refactoring sequence
 

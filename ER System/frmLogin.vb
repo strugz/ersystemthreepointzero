@@ -1,5 +1,11 @@
 ﻿Imports System.Net.NetworkInformation
 Imports System.Threading
+Imports ER_System.Application.Repositories
+Imports ER_System.Application.Services
+Imports ER_System.Infrastructure.Configuration
+Imports ER_System.Infrastructure.Data.Repositories
+Imports ER_System.Infrastructure.Data.Sql
+
 Public Class frmLogin
     Private Const MyKey As String = "crimsonmonastery2003"
     Private TripleDes As New clsEncryption(MyKey)
@@ -66,7 +72,7 @@ Public Class frmLogin
     End Function
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnLogin.Click
         If txtUsername.Text.Length <> 0 Or txtPassword.Text.Length <> 0 Then
-            Using dtLoginUserAccount As DataTable = LoginUserAccount(UCase(txtUsername.Text), TripleDes.EncryptData(txtPassword.Text))
+            Using dtLoginUserAccount As DataTable = CreateUserAccountService().Authenticate(UCase(txtUsername.Text), TripleDes.EncryptData(txtPassword.Text))
                 If dtLoginUserAccount.Rows.Count <> 0 Then
                     SetRegistryValue(dtLoginUserAccount)
                     LoadUserAccount()
@@ -116,36 +122,20 @@ Public Class frmLogin
         End If
     End Sub
     Private Sub SearchDup()
-        DBConnection()
-        Using dt As New DataTable
-            Using sqlcmdSearchDup As New SqlClient.SqlCommand
-                Using SQLConnection As SqlClient.SqlConnection = mConn.SQLConnection
-                    With sqlcmdSearchDup
-                        .Connection = SQLConnection
-                        .CommandText = "Select a.[Status] from tbUserRegistration as a where UserID='" & GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0) & "'"
-                        .CommandType = CommandType.Text
-                        dt.Load(.ExecuteReader)
-                        'If dt.Rows.Count <> 0 Then
-                        '    loginSearchStatus = dt.Rows(0).Item("Status")
-                        'End If
-                    End With
-                End Using
-            End Using
-        End Using
+        CreateUserAccountService().GetByUserId(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
     End Sub
+
     Private Sub DUpAcct(ByVal loginStatus As String)
-        DBConnection()
-        Using sqlcmdDup As New SqlClient.SqlCommand
-            Using SQLConnection As SqlClient.SqlConnection = mConn.SQLConnection
-                With sqlcmdDup
-                    .Connection = SQLConnection
-                    .CommandText = "Update tbUserRegistration set [Status] = '" & loginStatus & "' where UserID = '" & GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0) & "'"
-                    .CommandType = CommandType.Text
-                    .ExecuteNonQuery()
-                End With
-            End Using
-        End Using
+        CreateUserAccountService().UpdateLoginStatus(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), loginStatus)
     End Sub
+
+    Private Function CreateUserAccountService() As UserAccountService
+        Dim settingsProvider As New RegistryConnectionSettingsProvider(TripleDes)
+        Dim connectionFactory As New SqlConnectionFactory(settingsProvider)
+        Dim userAccountRepository As IUserAccountRepository = New SqlUserAccountRepository(connectionFactory)
+
+        Return New UserAccountService(userAccountRepository)
+    End Function
     Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
         Application.Exit()
     End Sub
