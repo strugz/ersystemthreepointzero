@@ -19,6 +19,6 @@ Public Class frmSelectDept
         DeptAddPassword(cbbDept.SelectedValue.ToString, TripleDes.EncryptData(txtDeptPassword.Text))
         MsgBox("Admin Account Saved" & vbNewLine & "The Application need to close......")
         frmLogin.Close()
-        Application.Exit()
+        System.Windows.Forms.Application.Exit()
     End Sub
 End Class

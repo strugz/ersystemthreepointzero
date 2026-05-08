@@ -1,9 +1,10 @@
 ﻿Public Class frmCancelNote
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
 
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnOkay.Click
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
 
         Dim sqlcmdUpdateFilePrintStatus As New SqlClient.SqlCommand
 

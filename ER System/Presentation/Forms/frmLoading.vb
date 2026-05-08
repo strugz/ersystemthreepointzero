@@ -1,4 +1,5 @@
 ﻿Public Class frmLoading
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
 
     Private Sub BackgroundWorker1_DoWork(sender As Object, e As System.ComponentModel.DoWorkEventArgs) Handles BackgroundWorker1.DoWork
         Threading.Thread.Sleep(1000)
@@ -12,7 +13,7 @@
             frmERType.btnSend.Text = "Send"
             MsgBox("E-mail Sent . . .", TopMost = True)
             Dim myERData As String()
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+            myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
             If myERData(13) <> "" Then
                 'PrintSendingReport()
             End If

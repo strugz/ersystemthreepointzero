@@ -3,6 +3,7 @@ Imports System.Security.Cryptography
 Imports System.Web.WebSockets
 Imports Microsoft.Win32
 Module modMaintenance
+    Private ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Dim dtUpdateUserAccount As New DataTable
     Dim strError As String
     Public strPassword As String
@@ -480,7 +481,7 @@ Module modMaintenance
     Public Sub InsertAttachment(ByVal ReportAttachment As String)
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         Dim sqlcmdReportAttachment As New SqlCommand
         With sqlcmdReportAttachment
             .Connection = SQLConnection

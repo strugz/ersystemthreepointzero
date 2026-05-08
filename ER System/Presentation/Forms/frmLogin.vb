@@ -8,10 +8,11 @@ Imports ER_System.Infrastructure.Data.Repositories
 Imports ER_System.Infrastructure.Data.Sql
 
 Public Class frmLogin
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Private Const MyKey As String = "crimsonmonastery2003"
     Private TripleDes As New clsEncryption(MyKey)
     Private Sub frmLogin_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
-        If e.KeyCode = Keys.Escape Then Application.Exit()
+        If e.KeyCode = Keys.Escape Then System.Windows.Forms.Application.Exit()
     End Sub
     Private Sub frmLogin_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Process.GetProcessesByName(Process.GetCurrentProcess.ProcessName)
@@ -32,9 +33,9 @@ Public Class frmLogin
         Dim NewVersion As String
         Dim MainExeCurrentVersion As String
         Dim MainExeNewVersion As String
-        CurrentVersion = GetFileVersionInfo(Application.StartupPath + "\ER.exe").ToString()
-        NewVersion = GetFileVersionInfo(Application.StartupPath + "\Executable\ER.exe").ToString()
-        MainExeCurrentVersion = GetFileVersionInfo(Application.StartupPath + "\ER System.exe").ToString()
+        CurrentVersion = GetFileVersionInfo(StartupPath + "\ER.exe").ToString()
+        NewVersion = GetFileVersionInfo(StartupPath + "\Executable\ER.exe").ToString()
+        MainExeCurrentVersion = GetFileVersionInfo(StartupPath + "\ER System.exe").ToString()
         MainExeNewVersion = modLoadingData.SearchVersion()
         If Pinging("192.168.4.96").Status <> IPStatus.Success Then
             If MainExeCurrentVersion <> MainExeNewVersion Then
@@ -42,17 +43,17 @@ Public Class frmLogin
             End If
         Else
             If CurrentVersion <> NewVersion Then
-                If (Not IO.File.Exists(Application.StartupPath + "\Executable")) Then
+                If (Not IO.File.Exists(StartupPath + "\Executable")) Then
                     Thread.Sleep(300)
-                    IO.File.Delete(Application.StartupPath + "\ER.exe")
-                    IO.File.Copy(Application.StartupPath + "\Executable\ER.exe", Application.StartupPath + "\ER.exe")
+                    IO.File.Delete(StartupPath + "\ER.exe")
+                    IO.File.Copy(StartupPath + "\Executable\ER.exe", StartupPath + "\ER.exe")
 
                     My.Computer.Registry.SetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "ERUpdater", "1")
-                    If (Not IO.Directory.Exists(Application.StartupPath + "\ERPDF")) Then
-                        IO.Directory.CreateDirectory(Application.StartupPath + "\ERPDF")
+                    If (Not IO.Directory.Exists(StartupPath + "\ERPDF")) Then
+                        IO.Directory.CreateDirectory(StartupPath + "\ERPDF")
                     End If
                     MsgBox("Application Updated. The Application will be close . . . .")
-                    Application.Exit()
+                    System.Windows.Forms.Application.Exit()
                 End If
             End If
         End If
@@ -132,6 +133,6 @@ Public Class frmLogin
         }
     End Function
     Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
-        Application.Exit()
+        System.Windows.Forms.Application.Exit()
     End Sub
 End Class

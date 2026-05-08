@@ -1,4 +1,5 @@
 ﻿Public Class FrmEReportDetails
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Private ReadOnly ClsData As New ClsLoadData
     Private Sub BtnSave_Click(sender As Object, e As EventArgs) Handles BtnSave.Click
         If Trim(LTrim(RTrim(txtPofExpense.Text)) = "") Then
@@ -51,9 +52,9 @@
     End Sub
 
     Private Sub btnUpdate_Click(sender As Object, e As EventArgs) Handles btnUpdate.Click
-        If ClsData.TempFileValidation(Application.StartupPath + "\settings.txt") = True Then
+        If ClsData.TempFileValidation(StartupPath + "\settings.txt") = True Then
             Dim myERData As String()
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+            myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
             UpdateReport(myERData(13), DtpReportFrom.Text, DtpReportTo.Text, txtPofExpense.Text, txtAmount.Text,
                 DtpReportDate.Text, txtRefDoc.Text, txtRefNum.Text, txtRevFund.Text,
                 IIf(CbCashAdvanceReceive.Checked, "1", "0"))
@@ -64,9 +65,9 @@
     End Sub
 
     Private Sub FrmEReportDetails_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        If IO.File.Exists(Application.StartupPath + "\settings.txt") Then
+        If IO.File.Exists(StartupPath + "\settings.txt") Then
             Dim myERData As String()
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+            myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
             If myERData(6) = "0" Then
                 txtPofExpense.Text = myERData(0)
                 DtpReportFrom.Value = myERData(1)
@@ -104,7 +105,7 @@
     End Sub
 
     Private Sub FrmEReportDetails_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
-        ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
+        ClsData.DeleteEReportDetails(StartupPath + "\settings.txt")
         txtPofExpense.Clear()
         DtpReportFrom.Value = DateTime.Now
         DtpReportTo.Value = DateTime.Now

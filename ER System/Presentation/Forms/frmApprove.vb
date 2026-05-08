@@ -1,4 +1,5 @@
 ﻿Public Class frmApprove
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Private Sub frmApprove_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
         Me.KeyPreview = True
         If e.KeyCode = Keys.Escape Then
@@ -89,7 +90,7 @@
             MsgBox("Please Double click on the row you are interested in")
             Exit Sub
         Else
-            ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
+            ClsData.DeleteEReportDetails(StartupPath + "\settings.txt")
             Me.Enabled = False
             Threading.Thread.Sleep(500)
             Me.Enabled = True
@@ -122,7 +123,7 @@
                 dgvUser.CurrentRow.Cells("UserID").Value,
                 GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0),
                 dgvUserReportDetails.Rows(e.RowIndex).Cells("ID").Value)
-            ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
+            ClsData.DeleteEReportDetails(StartupPath + "\settings.txt")
             Me.Enabled = False
             Threading.Thread.Sleep(500)
             Me.Enabled = True
@@ -145,7 +146,7 @@
         dgvUserReportDetails.DataSource = Nothing
     End Sub
     Private Sub frmApprove_MouseClick(sender As Object, e As MouseEventArgs) Handles Me.MouseClick
-        If Application.OpenForms().OfType(Of frmRpt).Any Then
+        If System.Windows.Forms.Application.OpenForms().OfType(Of frmRpt).Any Then
             frmRpt.BringToFront()
         End If
     End Sub

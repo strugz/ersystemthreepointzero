@@ -3,6 +3,7 @@ Imports CrystalDecisions.Shared
 Imports System.Security.Cryptography
 Imports Microsoft.Win32
 Public Class frmrptExpenseSummary
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Public Const MyKey As String = "crimsonmonastery2003"
     Public TripleDes As New clsEncryption(MyKey)
     Dim User As String
@@ -18,7 +19,7 @@ Public Class frmrptExpenseSummary
         password = TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "Password", ""))
         server = TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "ServerName", ""))
         database = TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "Database", ""))
-        rptER.Load(Application.StartupPath & "\ExpenseSummary.rpt")
+        rptER.Load(StartupPath & "\ExpenseSummary.rpt")
         rptER.SetDatabaseLogon(User, password)
         rptER.SetParameterValue("@ReportDateFrom", ExpenseSummaryDateFrom)
         rptER.SetParameterValue("@ReportDateTo", ExpenseSummaryDateTo)
@@ -40,7 +41,7 @@ Public Class frmrptExpenseSummary
         server = TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "ServerName", ""))
         database = TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "Database", ""))
 
-        ExportER.Load(Application.StartupPath & "\ExpenseSummary.rpt")
+        ExportER.Load(StartupPath & "\ExpenseSummary.rpt")
         ExportER.SetDatabaseLogon(User, password)
         ExportER.SetParameterValue("@ReportDateFrom", ExpenseSummaryDateFrom)
         ExportER.SetParameterValue("@ReportDateTo", ExpenseSummaryDateTo)

@@ -1,14 +1,15 @@
 ﻿Imports System.IO
 Module modReuse
+    Private ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Private Declare Function SetProcessWorkingSetSize Lib "kernel32.dll" (ByVal hProcess As IntPtr, ByVal dwMinimumWorkingSetSize As Int32, ByVal dwMaximumWorkingSetSize As Int32) As Int32
     Public Function SetTextFile(ByVal workwith As String, ByVal hospital As String,
                               ByVal instrument As String, ByVal serialnumber As String,
                                    ByVal servicenumber As String) As String
         Dim str2 As String = ""
         Dim str() As String = {workwith, hospital, instrument, serialnumber, servicenumber}
-        Dim objWriter As New StreamWriter(Application.StartupPath + "/ER.txt")
-        If File.Exists(Application.StartupPath + "/ER.txt") = False Then
-            Directory.CreateDirectory(Application.StartupPath + "/ER.txt")
+        Dim objWriter As New StreamWriter(StartupPath + "/ER.txt")
+        If File.Exists(StartupPath + "/ER.txt") = False Then
+            Directory.CreateDirectory(StartupPath + "/ER.txt")
             For i = 0 To str.Count - 1
                 If i = str.Count - 1 Then
                     objWriter.Write(str(i))
@@ -29,7 +30,7 @@ Module modReuse
         Return str2
     End Function
     Public Function GetTextFile() As String
-        GetTextFile = My.Computer.FileSystem.ReadAllText(Application.StartupPath + "/ER.txt")
+        GetTextFile = My.Computer.FileSystem.ReadAllText(StartupPath + "/ER.txt")
     End Function
     Public Sub ReleasMemory()
         Try

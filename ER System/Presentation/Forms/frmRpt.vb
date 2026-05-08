@@ -1,6 +1,7 @@
 ﻿Imports CrystalDecisions.Shared
 
 Public Class frmRpt
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Public Const MyKey As String = "crimsonmonastery2003"
     Public TripleDes As New clsEncryption(MyKey)
     Public strExportFile As String = Nothing
@@ -19,7 +20,7 @@ Public Class frmRpt
     Private Sub frmRpt_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         If GetRegistryValue("Software\\ER System\\UserAccount", {"UserLevel"})(0) = "Admin" And
             myERData(14) = GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0) Then
             Me.CrystalReportViewer1.DisplayToolbar = True
@@ -37,19 +38,19 @@ Public Class frmRpt
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
         Dim ExportER As New ReportDocument
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         User = TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "UserName", ""))
         password = TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "Password", ""))
 
-        ExportER.Load(Application.StartupPath & "\ER Report.rpt")
+        ExportER.Load(StartupPath & "\ER Report.rpt")
         ExportER.SetDatabaseLogon(User, password)
         ExportER.SetParameterValue("@UserID", ModDataStore.ReportUserID)
         ExportER.SetParameterValue("@reportID", myERData(13))
         Dim dtp As DateTime = Date.Now
         If modLoadingData.RBT = "0" Then
-            strExportFile = Application.StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & "ER" & modLoadingData.sDate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
+            strExportFile = StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & "ER" & modLoadingData.sDate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
         Else
-            strExportFile = Application.StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & modLoadingData.LocationCode & modLoadingData.sDate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
+            strExportFile = StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & modLoadingData.LocationCode & modLoadingData.sDate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
         End If
         Dim ErExportOptions As ExportOptions
         Dim ERDiskDestinationOptions As New DiskFileDestinationOptions()
@@ -68,7 +69,7 @@ Public Class frmRpt
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnSendPrint.Click
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         If myERData(13) = Nothing Then
             MsgBox("Select Report To Send")
         Else
@@ -92,9 +93,9 @@ Public Class frmRpt
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
         Dim rptER As New ReportDocument
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         rptER = ClsData.MyReportDocument(
-                Application.StartupPath & "\ER Report.rpt",
+                StartupPath & "\ER Report.rpt",
                 TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "UserName", "")),
                 TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "Password", "")),
                 {"@UserID", "@reportID"}, {myERData(14), myERData(13)})

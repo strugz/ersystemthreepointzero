@@ -3,6 +3,7 @@ Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 
 Module ModDataStore
+    Private ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Public GetUserFareID As String
     Public GetUserFareFrom As String
     Public GetUserFareTo As String
@@ -98,7 +99,7 @@ Module ModDataStore
     Friend Sub ClearExpenseDataDetails(ByVal transactionID As String, ByVal comboClick As String)
         With frmEReport
             Dim myERData As String()
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+            myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
             If (myERData(12) = "New" Or myERData(12) = "Returned") Or GetRegistryValue("Software\\ER System\\UserAccount", {"UserLevel"})(0) = "Admin" Then
                 If .GBMeals.Visible = True And .GBTransportation.Visible = False Then
                     .GBMeals.Visible = False
@@ -154,11 +155,11 @@ Module ModDataStore
                     .CBPerdiem.Enabled = True
                     Call ModDataStore.GetUserExpenseMeal()
                     Call ModDataStore.ClearExpenseData1()
-                    ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseSettings.txt")
-                    ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
-                    ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettingsTEMP.txt")
-                    ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseMealSettings.txt")
-                    ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseMealSettingsTEMP.txt")
+                    ClsData.DeleteEReportDetails(StartupPath + "\expenseSettings.txt")
+                    ClsData.DeleteEReportDetails(StartupPath + "\expenseTransSettings.txt")
+                    ClsData.DeleteEReportDetails(StartupPath + "\expenseTransSettingsTEMP.txt")
+                    ClsData.DeleteEReportDetails(StartupPath + "\expenseMealSettings.txt")
+                    ClsData.DeleteEReportDetails(StartupPath + "\expenseMealSettingsTEMP.txt")
                     .RTBNotification.Visible = False
                     .lblParticulars.Visible = True
                     .txtParticulars.Visible = True
@@ -303,12 +304,12 @@ Module ModDataStore
             .txtRemarks.Text = ModDataStore.UserPaidMeal
             Call ModDataStore.OnOffControl(True)
             Dim myERData As String() = {}
-            If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") Then
-                myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+            If ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") Then
+                myERData = ClsData.GetEReportDetails(StartupPath + "\expenseSettings.txt")
             End If
             Dim myExpenseData As String() = {}
-            If ClsData.TempFileValidation(Application.StartupPath + "\expenseMealSettingsTEMP.txt") Then
-                myExpenseData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseMealSettingsTEMP.txt")
+            If ClsData.TempFileValidation(StartupPath + "\expenseMealSettingsTEMP.txt") Then
+                myExpenseData = ClsData.GetEReportDetails(StartupPath + "\expenseMealSettingsTEMP.txt")
                 If myExpenseData(2) = 1 Then
                     .txtExpenseAmount.Clear()
                     .txtExpenseAmount.Enabled = True
@@ -350,8 +351,8 @@ Module ModDataStore
         Next
         ModDataStore.UserPaidMeal = UserPaidMeal
         Dim myERData As String()
-        If ClsData.TempFileValidation(Application.StartupPath + "\expenseMealSettings.txt") = True Then
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseMealSettings.txt")
+        If ClsData.TempFileValidation(StartupPath + "\expenseMealSettings.txt") = True Then
+            myERData = ClsData.GetEReportDetails(StartupPath + "\expenseMealSettings.txt")
         Else
             myERData = {0}
         End If
@@ -440,7 +441,7 @@ Module ModDataStore
     End Sub
     Friend Function EReportOpenValidation() As String
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         With frmEReport
             If myERData(12) = "New" Or myERData(12) = "Returned" Then
                 .btnFileReport.Enabled = True
@@ -487,7 +488,7 @@ Module ModDataStore
     End Function
     Friend Function EReportOpenValidatiionApprover() As String
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         With frmEReport
             .btnFileReport.Enabled = False
             .btnPrintPreview.Enabled = False

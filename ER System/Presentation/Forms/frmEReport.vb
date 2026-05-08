@@ -1,5 +1,6 @@
 ﻿Imports System.IO
 Public Class frmEReport
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Dim SortNumber As Integer
     Dim counter As String = ""
     Public Const MyKey As String = "crimsonmonastery2003"
@@ -101,12 +102,12 @@ Public Class frmEReport
         CBPerdiem.Enabled = True
         Call ModDataStore.GetUserExpenseMeal()
         Call ModDataStore.ClearExpenseData1()
-        ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
-        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseSettings.txt")
-        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
-        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettingsTEMP.txt")
-        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseMealSettings.txt")
-        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseMealSettingsTEMP.txt")
+        ClsData.DeleteEReportDetails(StartupPath + "\settings.txt")
+        ClsData.DeleteEReportDetails(StartupPath + "\expenseSettings.txt")
+        ClsData.DeleteEReportDetails(StartupPath + "\expenseTransSettings.txt")
+        ClsData.DeleteEReportDetails(StartupPath + "\expenseTransSettingsTEMP.txt")
+        ClsData.DeleteEReportDetails(StartupPath + "\expenseMealSettings.txt")
+        ClsData.DeleteEReportDetails(StartupPath + "\expenseMealSettingsTEMP.txt")
         GBTransportation.Visible = False
         GBMeals.Visible = False
         RTBNotification.Visible = False
@@ -139,7 +140,7 @@ Public Class frmEReport
         txtCategory.Items.Add("Parking")
         txtCategory.Items.Add("Others")
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         dtpExpenseDate.Value = myERData(1)
         If GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0) = 3 Then
             CBPerdiem.Visible = True
@@ -164,7 +165,7 @@ Public Class frmEReport
             ClsData.SetExpenseMealDetails(dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
             ClsData.SetExpenseTransDetails(dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
             Dim myERData As String()
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+            myERData = ClsData.GetEReportDetails(StartupPath + "\expenseSettings.txt")
             Dim myExpenseData As String() = {0, 0, 0}
             If myERData.Length <> 0 Then
                 If myERData.Length = 21 Then
@@ -253,7 +254,7 @@ Public Class frmEReport
     Private Sub btnExpenseSave_Click(sender As Object, e As EventArgs) Handles btnExpenseSave.Click
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         If txtParticulars.Text = Nothing Or txtExpenseAmount.Text = Nothing Or txtCategory.SelectedItem = "" Then
             MsgBox("Please fill in the Particulars/Expense Amount/Category")
         ElseIf RbLocal.Checked = False And RBForeign.Checked = False Then
@@ -289,7 +290,7 @@ Public Class frmEReport
     Private Sub AddExpenseReport()
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         Try
             AddExpense(dtpExpenseDate.Value, IIf(CBPerdiem.Checked, "1", "0"), txtParticulars.Text,
            txtInvoice.Text, txtMultiplier.Text, IIf(RbLocal.Checked = True,
@@ -320,8 +321,8 @@ Public Class frmEReport
         Else
             Dim myExpenseData As String()
             Dim myERData As String()
-            myExpenseData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+            myExpenseData = ClsData.GetEReportDetails(StartupPath + "\expenseSettings.txt")
+            myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
             UpdateExpense(
                 myExpenseData(16), dtpExpenseDate.Text, IIf(CBPerdiem.Checked, "1", "0"), txtParticulars.Text,
                 txtInvoice.Text, txtMultiplier.Text, IIf(RbLocal.Checked = True, "Local", "Foreign"), txtCategory.Text,
@@ -347,10 +348,10 @@ Public Class frmEReport
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) = DialogResult.Yes Then
                 ModDataStore.ClearAllExpenseData()
-                ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+                ClsData.DeleteEReportDetails(StartupPath + "\expenseSettings.txt")
             Else
                 ModDataStore.clearExpenseData()
-                ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+                ClsData.DeleteEReportDetails(StartupPath + "\expenseSettings.txt")
             End If
             Using dtLoadExpenseReport As DataTable = LoadingExpenseReport(myERData(13), myERData(14))
                 dgvExpense.DataSource = dtLoadExpenseReport
@@ -367,8 +368,8 @@ Public Class frmEReport
     Private Sub Button6_Click(sender As Object, e As EventArgs) Handles BTNUp.Click
         Dim ClsData As New ClsLoadData
         Dim myERData As String() = {}
-        If ClsData.TempFileValidation(Application.StartupPath + "\settings.txt") = True Then
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        If ClsData.TempFileValidation(StartupPath + "\settings.txt") = True Then
+            myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         End If
         If LoadingExpenseCount(myERData(13)) = 0 Then
         Else
@@ -389,8 +390,8 @@ Public Class frmEReport
     Private Sub Button7_Click(sender As Object, e As EventArgs) Handles BTNDown.Click
         Dim ClsData As New ClsLoadData
         Dim myERData As String() = {}
-        If ClsData.TempFileValidation(Application.StartupPath + "\settings.txt") = True Then
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        If ClsData.TempFileValidation(StartupPath + "\settings.txt") = True Then
+            myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         End If
         If LoadingExpenseCount(myERData(13)) = 0 Then
         Else
@@ -423,7 +424,7 @@ Public Class frmEReport
                         .ExecuteNonQuery()
                     Next
                     Dim myERData As String()
-                    myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+                    myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
                     Using LoadExpenseReport As DataTable = LoadingExpenseReport(myERData(13), GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
                         dgvExpense.DataSource = LoadExpenseReport
                     End Using
@@ -523,7 +524,7 @@ Public Class frmEReport
     End Sub
 
     Private Sub Button1_Click(sender As Object, e As EventArgs)
-        If File.Exists(Application.StartupPath + "/ER.txt") = False Then
+        If File.Exists(StartupPath + "/ER.txt") = False Then
             MsgBox("No Data Available")
         Else
             Dim str() As String = {""}
@@ -566,9 +567,9 @@ Public Class frmEReport
             If CBPerdiem.Checked = True Then
                 ComputationLead()
             Else
-                If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+                If ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") = True Then
                     Dim myERData As String()
-                    myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+                    myERData = ClsData.GetEReportDetails(StartupPath + "\expenseSettings.txt")
                     Call OpeningLead(myERData(14), myERData(16))
                     txtParticulars.Size = New Size(199, 68)
                     LBLComputation.Visible = False
@@ -599,7 +600,7 @@ Public Class frmEReport
             txtParticulars.Text = txtCategory.SelectedItem
             txtParticulars.Select()
         Else
-            If comboClick = 1 And ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = False Then
+            If comboClick = 1 And ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") = False Then
                 txtParticulars.Size = New Size(199, 40)
                 GBAllowance.Location = New Point(97, 410)
                 GBAllowance.Visible = True
@@ -617,7 +618,7 @@ Public Class frmEReport
                 ElseIf txtCategory.SelectedIndex = 1 Then
                     txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
                 End If
-            ElseIf comboClick = 1 And ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+            ElseIf comboClick = 1 And ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") = True Then
                 txtParticulars.Size = New Size(199, 40)
                 GBAllowance.Location = New Point(97, 410)
                 GBAllowance.Visible = True
@@ -629,7 +630,7 @@ Public Class frmEReport
                 ElseIf txtCategory.SelectedIndex = 1 Then
                     txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
                 End If
-            ElseIf ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+            ElseIf ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") = True Then
                 txtCategory.Enabled = False
                 BTNEditCategory.Enabled = True
                 txtMultiplier.Enabled = False
@@ -753,9 +754,9 @@ Public Class frmEReport
             Dim myERData As String()
             myERData = ClsData.GetEReportDetails(IIf(
                 ClsData.TempFileValidation(
-                Application.StartupPath + "\expenseTransSettingsTEMP.txt"),
-                Application.StartupPath + "\expenseTransSettingsTEMP.txt",
-                Application.StartupPath + "\expenseTransSettings.txt"))
+                StartupPath + "\expenseTransSettingsTEMP.txt"),
+                StartupPath + "\expenseTransSettingsTEMP.txt",
+                StartupPath + "\expenseTransSettings.txt"))
 
             If myERData.Length <> 0 Then
                 ModDataStore.MyFare()
@@ -785,8 +786,8 @@ Public Class frmEReport
             End If
         Else
             Dim myERData As String() = {}
-            If ClsData.TempFileValidation(Application.StartupPath + "\expenseTransSettingsTEMP.txt") = True Then
-                myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseTransSettingsTEMP.txt")
+            If ClsData.TempFileValidation(StartupPath + "\expenseTransSettingsTEMP.txt") = True Then
+                myERData = ClsData.GetEReportDetails(StartupPath + "\expenseTransSettingsTEMP.txt")
             End If
             If myERData.Length <> 0 Then
                 ModDataStore.MyFare()
@@ -812,9 +813,9 @@ Public Class frmEReport
                 Dim myERData As String()
                 myERData = ClsData.GetEReportDetails(IIf(
                 ClsData.TempFileValidation(
-                Application.StartupPath + "\expenseMealSettingsTEMP.txt") = True,
-                Application.StartupPath + "\expenseMealSettingsTEMP.txt",
-                Application.StartupPath + "\expenseMealSettings.txt"))
+                StartupPath + "\expenseMealSettingsTEMP.txt") = True,
+                StartupPath + "\expenseMealSettingsTEMP.txt",
+                StartupPath + "\expenseMealSettings.txt"))
                 If ExpenseID.Length <> 0 Then
                     SetUserMealExpenseItem(myERData)
                 Else
@@ -827,8 +828,8 @@ Public Class frmEReport
                 End If
             Else
                 Dim myERData As String() = {}
-                If ClsData.TempFileValidation(Application.StartupPath + "\expenseMealSettingsTEMP.txt") = True Then
-                    myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseMealSettingsTEMP.txt")
+                If ClsData.TempFileValidation(StartupPath + "\expenseMealSettingsTEMP.txt") = True Then
+                    myERData = ClsData.GetEReportDetails(StartupPath + "\expenseMealSettingsTEMP.txt")
                 End If
                 If myERData.Length <> 0 Then
                     SetUserMealExpenseItem(myERData)
@@ -849,9 +850,9 @@ Public Class frmEReport
                 Dim myERData As String()
                 myERData = ClsData.GetEReportDetails(IIf(
                 ClsData.TempFileValidation(
-                Application.StartupPath + "\expenseMealSettingsTEMP.txt") = True,
-                Application.StartupPath + "\expenseMealSettingsTEMP.txt",
-                Application.StartupPath + "\expenseMealSettings.txt"))
+                StartupPath + "\expenseMealSettingsTEMP.txt") = True,
+                StartupPath + "\expenseMealSettingsTEMP.txt",
+                StartupPath + "\expenseMealSettings.txt"))
                 If ExpenseID.Length <> 0 Then
                     SetUserMealExpenseItem(myERData)
                     Call SharedProcedure()
@@ -861,9 +862,9 @@ Public Class frmEReport
                     Call UserMealSettingsWithOutWorkWith()
                 End If
             Else
-                If ClsData.TempFileValidation(Application.StartupPath + "\expenseMealSettingsTEMP.txt") = True Then
+                If ClsData.TempFileValidation(StartupPath + "\expenseMealSettingsTEMP.txt") = True Then
                     Dim myERData As String()
-                    myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseMealSettingsTEMP.txt")
+                    myERData = ClsData.GetEReportDetails(StartupPath + "\expenseMealSettingsTEMP.txt")
                     SetUserMealExpenseItem(myERData)
                     Call SharedProcedure()
                     Call UserMealSettingsWithOutWorkWith()
@@ -962,9 +963,9 @@ Public Class frmEReport
             txtParticulars.Text = "Transportation"
             txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
             GBTransportation.Visible = False
-            If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+            If ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") = True Then
                 Dim myExpenseData As String()
-                myExpenseData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
+                myExpenseData = ClsData.GetEReportDetails(StartupPath + "\expenseTransSettings.txt")
                 ClsData.SetExpenseTransDetailsTemp({myExpenseData(0), CBBFare.SelectedValue, txtFrom.Text, txtTo.Text, CBBFare.SelectedValue.ToString() + "/" + txtFrom.Text + "/" + txtTo.Text})
                 txtExpenseAmount.Enabled = False
             Else
@@ -975,9 +976,9 @@ Public Class frmEReport
             GBTransportation.Visible = False
             txtParticulars.Text = txtFrom.Text + " To " + txtTo.Text + " (" + CBBFare.Text + ")"
             TPExpenseReport.Enabled = True
-            If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+            If ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") = True Then
                 Dim myExpenseData As String()
-                myExpenseData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
+                myExpenseData = ClsData.GetEReportDetails(StartupPath + "\expenseTransSettings.txt")
                 ClsData.SetExpenseTransDetailsTemp({myExpenseData(0), CBBFare.SelectedValue, txtFrom.Text, txtTo.Text, CBBFare.SelectedValue.ToString() + "/" + txtFrom.Text + "/" + txtTo.Text})
                 txtExpenseAmount.Enabled = True
             Else
@@ -987,8 +988,8 @@ Public Class frmEReport
         End If
         Call ModDataStore.OnOffControl(True)
         Dim myERData As String() = {}
-        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") Then
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+        If ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") Then
+            myERData = ClsData.GetEReportDetails(StartupPath + "\expenseSettings.txt")
         End If
         If myERData.Length <> 0 Then
             btnExpenseSave.Visible = False
@@ -1058,8 +1059,8 @@ Public Class frmEReport
         Dim ClsData As New ClsLoadData
         Call ModDataStore.OnOffControl(True)
         Dim myERData As String() = {}
-        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") Then
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+        If ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") Then
+            myERData = ClsData.GetEReportDetails(StartupPath + "\expenseSettings.txt")
         End If
         If myERData.Length <> 0 Then
             btnExpenseSave.Visible = False
@@ -1095,9 +1096,9 @@ Public Class frmEReport
             ComputationLead()
         Else
             txtParticulars.Size = New Size(199, 68)
-            If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+            If ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") = True Then
                 Dim myERData As String()
-                myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+                myERData = ClsData.GetEReportDetails(StartupPath + "\expenseSettings.txt")
                 Call OpeningLead(myERData(14), myERData(16))
             Else
                 Call OpeningLead(txtWorkWith.Text, "")
@@ -1182,8 +1183,8 @@ Public Class frmEReport
     Private Sub txtInvoice_TextChanged(sender As Object, e As EventArgs) Handles txtInvoice.TextChanged
         Dim ClsData As New ClsLoadData
         Dim myExpenseData As String()
-        If ClsData.TempFileValidation(Application.StartupPath + "\expenseMealSettings.txt") = True Then
-            myExpenseData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseMealSettings.txt")
+        If ClsData.TempFileValidation(StartupPath + "\expenseMealSettings.txt") = True Then
+            myExpenseData = ClsData.GetEReportDetails(StartupPath + "\expenseMealSettings.txt")
             If myExpenseData(2) = 1 Then
                 txtExpenseAmount.Enabled = True
             Else
@@ -1202,7 +1203,7 @@ Public Class frmEReport
     Private Sub btnFileReport_Click(sender As Object, e As EventArgs) Handles btnFileReport.Click
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
 
         LoadingExpenseCount(myERData(13))
         If LoadingOfficersToSign(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0)) = Nothing Then
@@ -1238,7 +1239,7 @@ Public Class frmEReport
     Private Sub btnPrintPreview_Click(sender As Object, e As EventArgs) Handles btnPrintPreview.Click
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         If LoadingOfficersToSign(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0)) = Nothing Then
             MsgBox("Please Insert Your Signatory " & vbNewLine & " Go to Account Settings > Signatory", TopMost = True)
         Else
@@ -1306,7 +1307,7 @@ Public Class frmEReport
     End Sub
     Private Sub BTNCloseComputation_Click(sender As Object, e As EventArgs) Handles BTNCloseComputation.Click
         Dim ClsData As New ClsLoadData
-        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+        If ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") = True Then
             GBAllowance.Visible = False
         Else
             txtCategory.SelectedItem = Nothing

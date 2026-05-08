@@ -1,6 +1,7 @@
 ﻿Imports JFramework
 Imports System.IO
 Public Class ClsLoadData : Inherits AppFramework
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Friend Function SetEReportDetails(ByVal ReportID As String) As String
         Dim EReportDetails As DataTable
         Dim str As String = ""
@@ -11,7 +12,7 @@ Public Class ClsLoadData : Inherits AppFramework
                 ifNull = IIf(IsDBNull(EReportDetails.Rows(0).Item(i)) = True, "", EReportDetails.Rows(0).Item(i))
                 str = IIf(str = "", "", str & vbCrLf) & IIf(IsDBNull(EReportDetails.Rows(0).Item(i)) = True, "", Replace(ifNull, vbLf, ""))
             Next
-            FileMakerWithData(Application.StartupPath + "\settings.txt", str) 'Replace(EReportDetails.Rows(0).Item(i), vbLf, "")
+            FileMakerWithData(StartupPath + "\settings.txt", str) 'Replace(EReportDetails.Rows(0).Item(i), vbLf, "")
         End If
         Return ""
     End Function
@@ -34,7 +35,7 @@ Public Class ClsLoadData : Inherits AppFramework
                         str = str & vbCrLf & ""
                     End If
                 Next
-                FileMakerWithData(Application.StartupPath + "\expenseSettings.txt", str)
+                FileMakerWithData(StartupPath + "\expenseSettings.txt", str)
             End If
         End Using
         Return ""
@@ -46,7 +47,7 @@ Public Class ClsLoadData : Inherits AppFramework
                 For i = 0 To ExpenseTransDetails.Columns.Count - 1
                     str = IIf(str = "", "", str & vbCrLf) & ExpenseTransDetails.Rows(0).Item(i)
                 Next
-                FileMakerWithData(Application.StartupPath + "\expenseTransSettings.txt", str)
+                FileMakerWithData(StartupPath + "\expenseTransSettings.txt", str)
             End If
             Return ""
         End Using
@@ -58,7 +59,7 @@ Public Class ClsLoadData : Inherits AppFramework
                 For i = 0 To ExpenseMealDetails.Columns.Count - 1
                     str = IIf(str = "", "", str & vbCrLf) & ExpenseMealDetails.Rows(0).Item(i)
                 Next
-                FileMakerWithData(Application.StartupPath + "\expenseMealSettings.txt", str)
+                FileMakerWithData(StartupPath + "\expenseMealSettings.txt", str)
             End If
         End Using
         Return ""
@@ -68,21 +69,21 @@ Public Class ClsLoadData : Inherits AppFramework
         For i = 0 To DataTemp.Length - 1
             str = IIf(str = "", "", str & vbCrLf) & DataTemp(i)
         Next
-        FileMakerWithData(Application.StartupPath + "\expenseTransSettingsTEMP.txt", str)
+        FileMakerWithData(StartupPath + "\expenseTransSettingsTEMP.txt", str)
     End Sub
     Friend Sub SetExpenseMealDetailsTemp(ByVal DataTemp As String())
         Dim str As String = ""
         For i = 0 To DataTemp.Length - 1
             str = IIf(str = "", "", str & vbCrLf) & DataTemp(i)
         Next
-        FileMakerWithData(Application.StartupPath + "\expenseMealSettingsTEMP.txt", str)
+        FileMakerWithData(StartupPath + "\expenseMealSettingsTEMP.txt", str)
     End Sub
     Friend Sub SetOfficerToSign(ByVal DataTemp As String())
         Dim str As String = ""
         For i = 0 To DataTemp.Length - 1
             str = IIf(str = "", "", str & vbCrLf) & DataTemp(i)
         Next
-        FileMakerWithData(Application.StartupPath + "\officerToSign.txt", str)
+        FileMakerWithData(StartupPath + "\officerToSign.txt", str)
     End Sub
     Friend Sub DeleteEReportDetails(ByVal path As String)
         DeleteFile(path)
@@ -95,8 +96,8 @@ Public Class ClsLoadData : Inherits AppFramework
     End Function
     Friend Function GetTranspo() As String
         Dim myERData As String() = {""}
-        If TempFileValidation(Application.StartupPath + "\expenseTransSettingsTEMP.txt") = True Then
-            myERData = GetEReportDetails(Application.StartupPath + "\expenseTransSettingsTEMP.txt")
+        If TempFileValidation(StartupPath + "\expenseTransSettingsTEMP.txt") = True Then
+            myERData = GetEReportDetails(StartupPath + "\expenseTransSettingsTEMP.txt")
             Return myERData(4)
         Else
             Return myERData(0)
@@ -104,24 +105,24 @@ Public Class ClsLoadData : Inherits AppFramework
     End Function
     Friend Function GetMeal() As String
         Dim myERData As String() = {""}
-        If TempFileValidation(Application.StartupPath + "\expenseMealSettingsTEMP.txt") = True Then
-            myERData = GetEReportDetails(Application.StartupPath + "\expenseMealSettingsTEMP.txt")
+        If TempFileValidation(StartupPath + "\expenseMealSettingsTEMP.txt") = True Then
+            myERData = GetEReportDetails(StartupPath + "\expenseMealSettingsTEMP.txt")
             Return myERData(4)
         Else
             Return myERData(0)
         End If
     End Function
     Friend Function PDFCreator(ByVal username As String, ByVal password As String, ByVal ReportID As String) As ReportDocument
-        Return ReportLoad(Application.StartupPath & "\ER Report.rpt", username, password, {"@UserID", "@reportID"}, {GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), ReportID})
+        Return ReportLoad(StartupPath & "\ER Report.rpt", username, password, {"@UserID", "@reportID"}, {GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), ReportID})
     End Function
     Friend Function PDFExport(ByVal username As String, ByVal password As String, ByVal reportID As String, ByVal path As String) As String
         Return PDF(PDFCreator(username, password, reportID), path)
     End Function
     Friend Function PDFLocation(ByVal rbt As Boolean, ByVal ERdate As DateTime, Optional ByVal LocationCode As String = "") As String
         If rbt = True Then
-            Return Application.StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & "ER" & ERdate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
+            Return StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & "ER" & ERdate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
         Else
-            Return Application.StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & LocationCode & ERdate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
+            Return StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & LocationCode & ERdate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
         End If
     End Function
     Friend Function SendExpenseEmail(ByVal EmailSender As String, ByVal Password As String,

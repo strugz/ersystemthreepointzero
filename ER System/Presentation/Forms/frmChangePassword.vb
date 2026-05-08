@@ -36,7 +36,7 @@ Public Class frmChangePassword
                              TripleDes.EncryptData(txtEmailAdd.Text), TripleDes.EncryptData(txtEmailPass.Text),
                              txtEmailTo.Text, txtBcc.Text)
             MsgBox("Successfully Update" + vbNewLine + "Application Need to close ....")
-            Application.Exit()
+            System.Windows.Forms.Application.Exit()
         Catch ex As Exception
         End Try
     End Sub

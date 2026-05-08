@@ -1,12 +1,13 @@
 ﻿Public Class frmMain
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Dim SearchButtonValidation As String = "0"
     Private Sub frmMain_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
-        Application.Exit()
+        System.Windows.Forms.Application.Exit()
     End Sub
     Private Sub UpdatePrintStatus()
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         DBConnection()
         Using sqlcmdPrintStatus As New SqlClient.SqlCommand
             Using SQLConnection As SqlClient.SqlConnection = mConn.SQLConnection
@@ -68,18 +69,18 @@
             frmLogin.txtPassword.Clear()
             Logout()
             Me.DgvReportDetails.DataSource = Nothing
-            ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
-            ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseSettings.txt")
-            ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
-            ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettingsTEMP.txt")
+            ClsData.DeleteEReportDetails(StartupPath + "\settings.txt")
+            ClsData.DeleteEReportDetails(StartupPath + "\expenseSettings.txt")
+            ClsData.DeleteEReportDetails(StartupPath + "\expenseTransSettings.txt")
+            ClsData.DeleteEReportDetails(StartupPath + "\expenseTransSettingsTEMP.txt")
         ElseIf (e.KeyValue = Keys.Escape) = True Then
             If ModDataStore.FormSettings <> "1" Then
                 modLoadingData.sDate = DateAndTime.Now
                 modLoadingData.eDate = DateAndTime.Now
-                ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
-                ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseSettings.txt")
-                ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
-                ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettingsTEMP.txt")
+                ClsData.DeleteEReportDetails(StartupPath + "\settings.txt")
+                ClsData.DeleteEReportDetails(StartupPath + "\expenseSettings.txt")
+                ClsData.DeleteEReportDetails(StartupPath + "\expenseTransSettings.txt")
+                ClsData.DeleteEReportDetails(StartupPath + "\expenseTransSettingsTEMP.txt")
             End If
         ElseIf (e.Control AndAlso e.KeyValue = Keys.F5) Then
             frmConnection.Show()
@@ -105,10 +106,10 @@
         frmLogin.txtPassword.Clear()
         Logout()
         Me.DgvReportDetails.DataSource = Nothing
-        ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
-        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseSettings.txt")
-        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
-        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettingsTEMP.txt")
+        ClsData.DeleteEReportDetails(StartupPath + "\settings.txt")
+        ClsData.DeleteEReportDetails(StartupPath + "\expenseSettings.txt")
+        ClsData.DeleteEReportDetails(StartupPath + "\expenseTransSettings.txt")
+        ClsData.DeleteEReportDetails(StartupPath + "\expenseTransSettingsTEMP.txt")
         frmEReport.Close()
     End Sub
     Private Sub PictureBox4_Click(sender As Object, e As EventArgs) Handles PictureBox4.Click
@@ -213,7 +214,7 @@
                 If e.RowIndex < 0 Then
                     Exit Sub
                 Else
-                    ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
+                    ClsData.DeleteEReportDetails(StartupPath + "\settings.txt")
                     ClsData.SetEReportDetails(DgvReportDetails.Rows(e.RowIndex).Cells("Report ID").Value)
                     DGVLoadExpenseReport(EReportOpenValidation(), GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
                     ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", "Settings", {"Approver"}, {"0"})
@@ -259,7 +260,7 @@
             If DgvReportDetails.Rows.IndexOf(DgvReportDetails.CurrentRow) < 0 Then
                 Exit Sub
             Else
-                ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
+                ClsData.DeleteEReportDetails(StartupPath + "\settings.txt")
                 ClsData.SetEReportDetails(DgvReportDetails.Rows(DgvReportDetails.Rows.IndexOf(DgvReportDetails.CurrentRow)).Cells("Report ID").Value)
                 DGVLoadExpenseReport(EReportOpenValidation(), GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
                 ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", "Settings", {"Approver"}, {"0"})

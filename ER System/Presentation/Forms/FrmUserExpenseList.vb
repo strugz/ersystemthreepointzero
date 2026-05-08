@@ -1,4 +1,5 @@
 ﻿Public Class FrmUserExpenseList
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Dim comboClick As Integer = 0
     Public perdiem As String
     Dim checkboxlistSelected As String
@@ -79,14 +80,14 @@
 #End Region
     Private Sub txtCategory_SelectedIndexChanged(sender As Object, e As EventArgs) Handles txtCategory.SelectedIndexChanged
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\expenseSettings.txt")
         Call OpeningLead(myERData(14), myERData(16))
     End Sub
     Private Sub TransportationDataValidation(ByVal ExpenseID As String)
         Call MyFare()
         If ExpenseID <> Nothing Then
             Dim myERData As String()
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
+            myERData = ClsData.GetEReportDetails(StartupPath + "\expenseTransSettings.txt")
             If myERData.Length <> 0 Then
                 CBBFare.SelectedValue = myERData(1)
                 txtFrom.Text = myERData(2)
@@ -100,7 +101,7 @@
             End If
         Else
             Dim myERData As String()
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
+            myERData = ClsData.GetEReportDetails(StartupPath + "\expenseTransSettings.txt")
             If myERData.Length <> 0 Then
                 CBBFare.SelectedValue = myERData(1)
                 txtFrom.Text = myERData(2)
@@ -609,7 +610,7 @@
     Private Sub BTNEditCategory_Click(sender As Object, e As EventArgs) Handles BTNEditCategory.Click
         comboClick = "1"
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\expenseSettings.txt")
         Call OpeningLead(myERData(14), myERData(16))
     End Sub
     Private Sub OnOffControl(ByVal TF As Boolean)

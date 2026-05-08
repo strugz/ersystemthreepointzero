@@ -2,6 +2,7 @@
 Imports System.Net
 Imports System.Net.Mail
 Public Class frmERType
+    Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Dim subject As String
     Dim dtp As DateTime = Date.Now
     Public Const MyKey As String = "crimsonmonastery2003"
@@ -32,7 +33,7 @@ Public Class frmERType
     Public Sub RBUTTON()
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         Dim myPDFLocation As String = ClsData.PDFLocation(IIf(rbtERF.Checked = True, True, False), myERData(1), txtLocationCode.Text)
         Dim myUsername As String = TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "UserName", ""))
         Dim myPassword As String = TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "Password", ""))

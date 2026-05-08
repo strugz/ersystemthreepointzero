@@ -811,4 +811,22 @@ Module modLoadingData
             End Using
         End Using
     End Function
+
+    Public Sub LoadReturnedER(ByVal userID As String, ByVal dt As DataTable)
+        DBConnection()
+        Using sqlcmdLoadReturnedER As New SqlCommand
+            Using SQLConnection As SqlConnection = mConn.SQLConnection
+                With sqlcmdLoadReturnedER
+                    .Connection = SQLConnection
+                    .CommandText = "sp2_LoadReturnedER"
+                    .CommandType = CommandType.StoredProcedure
+                    .Parameters.Clear()
+                    dt.Reset()
+                    .Parameters.Add("@userID", SqlDbType.VarChar).Value = userID
+                    dt.Load(.ExecuteReader)
+                End With
+            End Using
+        End Using
+    End Sub
+
 End Module
