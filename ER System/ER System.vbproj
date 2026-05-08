@@ -184,17 +184,21 @@
     <Compile Include="Application\Services\LoginAccessResult.vb" />
     <Compile Include="Application\Services\LoginAccessService.vb" />
     <Compile Include="Application\Services\UserAccountService.vb" />
+    <Compile Include="Config\ConnectionSettings.vb" />
+    <Compile Include="Config\RegistryConnectionSettingsProvider.vb" />
+    <Compile Include="Core\Constants\RegistryKeys.vb" />
+    <Compile Include="Database\Connection\SqlConnectionFactory.vb" />
     <Compile Include="Presentation\Presenters\ExpenseUpdatePresenter.vb" />
+    <Compile Include="Presentation\Presenters\ReportPrintPresenter.vb" />
     <Compile Include="Presentation\ViewModels\ExpenseUpdateViewModel.vb" />
+    <Compile Include="Presentation\ViewModels\ReportPrintViewModel.vb" />
+    <Compile Include="Services\FileServices\ReportExportService.vb" />
     <Compile Include="Shared\Utilities\Clipping.vb" />
     <Compile Include="Shared\Utilities\clsEncryption.vb" />
     <Compile Include="Infrastructure\Data\ClsLoadData.vb" />
     <Compile Include="Domain\Entities\UserAccount.vb" />
     <Compile Include="Domain\Enums\UserLevel.vb" />
-    <Compile Include="Infrastructure\Configuration\ConnectionSettings.vb" />
-    <Compile Include="Infrastructure\Configuration\RegistryConnectionSettingsProvider.vb" />
     <Compile Include="Infrastructure\Data\Repositories\SqlUserAccountRepository.vb" />
-    <Compile Include="Infrastructure\Data\Sql\SqlConnectionFactory.vb" />
     <Compile Include="Presentation\Forms\FrmEReportDetails.Designer.vb">
       <DependentUpon>FrmEReportDetails.vb</DependentUpon>
     </Compile>
@@ -388,7 +392,6 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <Compile Include="Shared\Utilities\MyFramework.vb" />
-    <Compile Include="Shared\Utilities\RegistryKeys.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Presentation\Forms\FrmEReportDetails.resx">
@@ -489,10 +492,15 @@
     </None>
     <None Include="Application\UseCases\README.md" />
     <None Include="Application\Validation\README.md" />
+    <None Include="Assets\README.md" />
+    <None Include="Core\README.md" />
+    <None Include="Database\README.md" />
+    <None Include="Documentation\README.md" />
     <None Include="Domain\ValueObjects\README.md" />
     <None Include="Infrastructure\Email\README.md" />
     <None Include="Infrastructure\Logging\README.md" />
     <None Include="Infrastructure\Reporting\README.md" />
+    <None Include="Models\README.md" />
     <None Include="My Project\app.manifest" />
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>
@@ -503,9 +511,14 @@
       <CustomToolNamespace>My</CustomToolNamespace>
       <LastGenOutput>Settings.Designer.vb</LastGenOutput>
     </None>
+    <None Include="Packages\README.md" />
     <None Include="Presentation\ViewModels\README.md" />
+    <None Include="Reports\README.md" />
+    <None Include="Services\README.md" />
     <None Include="Shared\Extensions\README.md" />
     <None Include="Shared\Utilities\README.md" />
+    <None Include="Tests\README.md" />
+    <None Include="UI\README.md" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -594,6 +607,9 @@
       <IncludeHash>True</IncludeHash>
       <FileType>File</FileType>
     </PublishFile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Infrastructure\Configuration\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

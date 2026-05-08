@@ -1,4 +1,6 @@
 ﻿Imports CrystalDecisions.Shared
+Imports ER_System.Presentation.Presenters
+Imports ER_System.Presentation.ViewModels
 
 Public Class frmRpt
     Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
@@ -7,6 +9,24 @@ Public Class frmRpt
     Public strExportFile As String = Nothing
     Dim User As String
     Dim password As String
+    Private ReadOnly _reportPresenter As New ReportPrintPresenter()
+
+    Private Function BuildReportPrintViewModel(ByVal myERData As String()) As ReportPrintViewModel
+        Return New ReportPrintViewModel With {
+            .UserLevel = Convert.ToString(GetRegistryValue("Software\\ER System\\UserAccount", {"UserLevel"})(0)),
+            .CurrentUserId = Convert.ToString(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0)),
+            .ReportOwnerUserId = myERData(14),
+            .ReportStatus = myERData(12),
+            .ReportType = myERData(3),
+            .ReportId = myERData(13),
+            .ReportUserId = ModDataStore.ReportUserID,
+            .Username = Convert.ToString(GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0)),
+            .Rbt = modLoadingData.RBT,
+            .LocationCode = modLoadingData.LocationCode,
+            .ReportDate = modLoadingData.sDate
+        }
+    End Function
+
     Private Sub frmRpt_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
         CrystalReportViewer1.ReportSource = Nothing
         frmApprove.dgvUser.Enabled = True
@@ -17,12 +37,15 @@ Public Class frmRpt
         frmApprove.btnApprove.Enabled = True
         Call ReleasMemory()
     End Sub
+
     Private Sub frmRpt_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
         myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
-        If GetRegistryValue("Software\\ER System\\UserAccount", {"UserLevel"})(0) = "Admin" And
-            myERData(14) = GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0) Then
+
+        Dim model As ReportPrintViewModel = BuildReportPrintViewModel(myERData)
+
+        If _reportPresenter.IsAdminOwner(model) Then
             Me.CrystalReportViewer1.DisplayToolbar = True
             Me.CrystalReportViewer1.ShowPrintButton = False
             Me.CrystalReportViewer1.ShowExportButton = False
@@ -30,48 +53,31 @@ Public Class frmRpt
             btnSendPrint.Enabled = True
             CreateUserDSN()
         Else
-            Call RPTValidation(myERData(12), myERData(3))
+            Call RPTValidation(model.ReportStatus, model.ReportType)
             CreateUserDSN()
         End If
     End Sub
+
     Public Sub export()
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
-        Dim ExportER As New ReportDocument
         myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
-        User = TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "UserName", ""))
-        password = TripleDes.DecryptData(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "Password", ""))
+        Dim model As ReportPrintViewModel = BuildReportPrintViewModel(myERData)
 
-        ExportER.Load(StartupPath & "\ER Report.rpt")
-        ExportER.SetDatabaseLogon(User, password)
-        ExportER.SetParameterValue("@UserID", ModDataStore.ReportUserID)
-        ExportER.SetParameterValue("@reportID", myERData(13))
-        Dim dtp As DateTime = Date.Now
-        If modLoadingData.RBT = "0" Then
-            strExportFile = StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & "ER" & modLoadingData.sDate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
-        Else
-            strExportFile = StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & modLoadingData.LocationCode & modLoadingData.sDate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
-        End If
-        Dim ErExportOptions As ExportOptions
-        Dim ERDiskDestinationOptions As New DiskFileDestinationOptions()
-        Dim ErFormatTypeOptions As New PdfRtfWordFormatOptions()
-        ERDiskDestinationOptions.DiskFileName = strExportFile
-        ErExportOptions = ExportER.ExportOptions
-        With ErExportOptions
-            .ExportDestinationType = ExportDestinationType.DiskFile
-            .ExportFormatType = ExportFormatType.PortableDocFormat
-            .ExportDestinationOptions = ERDiskDestinationOptions
-            .ExportFormatOptions = ErFormatTypeOptions
-        End With
-        ExportER.PrintOptions.PrinterDuplex = PrinterDuplex.Simplex
-        ExportER.Export()
+        strExportFile = _reportPresenter.BuildExportFilePath(model, StartupPath)
+
+        Dim exportService As New ER_System.Services.FileServices.ReportExportService()
+        exportService.ExportReport(StartupPath, strExportFile, model.ReportUserId, model.ReportId, TripleDes)
     End Sub
+
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnSendPrint.Click
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
         myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
-        If myERData(13) = Nothing Then
-            MsgBox("Select Report To Send")
+
+        Dim message As String = _reportPresenter.CanSendToPrint(myERData(13))
+        If message <> String.Empty Then
+            MsgBox(message)
         Else
             Try
                 If LoadReportSentStatus(myERData(13)).Rows(0).Item("ReportSentStatus").ToString() = "1" Then
