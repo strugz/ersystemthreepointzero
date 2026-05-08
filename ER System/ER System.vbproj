@@ -181,6 +181,9 @@
     <Compile Include="Clipping.vb" />
     <Compile Include="clsEncryption.vb" />
     <Compile Include="ClsLoadData.vb" />
+    <Compile Include="Infrastructure\Configuration\ConnectionSettings.vb" />
+    <Compile Include="Infrastructure\Configuration\RegistryConnectionSettingsProvider.vb" />
+    <Compile Include="Infrastructure\Data\Sql\SqlConnectionFactory.vb" />
     <Compile Include="FrmEReportDetails.Designer.vb">
       <DependentUpon>FrmEReportDetails.vb</DependentUpon>
     </Compile>

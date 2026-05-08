@@ -57,9 +57,16 @@ Shared -> no business workflow dependencies
 
 Practical rule: a form may call an application service or presenter, but new services should not depend on WinForms controls.
 
-## What this first implementation does
+## Implemented architecture seams
 
-This first implementation intentionally creates only documentation and tracked folder placeholders. It does **not** move form files, update designer nesting, change project compile items, alter SQL, or change behavior. That keeps the application stable while establishing the destination structure for future refactoring.
+The first real extraction is the database connection seam:
+
+- `Infrastructure/Configuration/ConnectionSettings.vb` models registry-backed database settings.
+- `Infrastructure/Configuration/RegistryConnectionSettingsProvider.vb` loads and decrypts existing registry settings.
+- `Infrastructure/Data/Sql/SqlConnectionFactory.vb` creates SQL Server connections from those settings.
+- `mConn.vb` remains as the legacy compatibility module, but now delegates connection-string creation to the infrastructure layer.
+
+This implementation does **not** move form files, update designer nesting, alter SQL commands, change installer projects, or change user workflows.
 
 ## Refactoring sequence
 
