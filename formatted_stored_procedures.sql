@@ -1,0 +1,690 @@
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp_InsertSendingStatus]  @ExportID varchar(50) 
+AS
+BEGIN      Update tbReportDetails set ReportSentStatus = '1' where ID = @ExportID    
+END
+
+    
+GO
+
+CREATE PROCEDURE [dbo].[sp_Notify]   @ReportID varchar(100),   @Status varchar(20) = 'APPROVE' 
+AS
+BEGIN  declare @StrValue varchar(2000)  declare @StrLocation varchar(2000)  Select @StrLocation = 'D:\ERSHARE\' + RIGHT(NEWID(),12) + '.txt'    Select @StrValue =(Select 'TSG|'+ @Status + '|'  + convert(varchar(17),GETDATE()) + '|' +  isnull(a.ReportDateFiled,'') + '||' +   --+ '|' +   isnull(CONVERT(VARCHAR(1),a.ReportNumberStatus),'') + '|' +   isnull(a.ReportPrintStatus,'') + '|' +   isnull(a.ReportFileStatus,'') + '|' +   isnull(a.ReportDescription,'') + '|' +   isnull(a.ReportCancelNote,'') + '|' +   isnull(b.username,'') + '|' +   isnull(b.approver1,'') + '|' +   isnull(b.approver2,'')  From   tbReportDetails  a left outer join  tbUserRegistration b on a.UserID = b.UserID   where a.ID = @ReportID)    SELECT @StrValue  Exec sp_WriteToFile  @StrLocation , @strValue  
+END
+  
+    -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp_rptER]   (       @userID int,    @reportID varchar(50)      ) 
+AS
+BEGIN     SET NOCOUNT ON;    DECLARE @mEndorseUser varchar(10)    DECLARE @mApproveUser varchar(10)    DECLARE @mEndorse varbinary(max)    DECLARE @mApprove varbinary(max)    DECLARE @mExpenseEditBy varchar(10)      SET @mEndorseUser = (Select (case when a.ReportNumberStatus = b.ReportNumberStatus then a.Approver1 else '' end) as Approver1 from tbUserRegistration as a           inner join tbReportDetails as b on a.userID = b.Userid             where a.UserID = @userID and b.ReportNumberStatus = a.ReportNumberStatus and b.id = @reportID)      SET @mApproveUser = (Select (case when a.ReportNumberStatus = b.ReportNumberStatus then a.Approver2 else '' end) as Approver2 from tbUserRegistration as a           inner join tbReportDetails as b on a.userID = b.Userid             where a.UserID = @userID and b.ReportNumberStatus = a.ReportNumberStatus and b.id = @reportID)        set @mEndorse = (Select a.[Signature] from tbUserRegistration as a where a.Username = @mEndorseUser)    set @mApprove = (Select a.[Signature] from tbUserRegistration as a where a.Username = @mApproveUser)       SELECT DISTINCT A.ExpenseTransDate,'0'AS [Perdiem],     A.ExpenseParticulars as 'ExpenseParticulars',    A.ExpenseInvoice,A.ExpenseMultiplier,A.ExpenseType,A.ExpenseCategory,A.ExpenseAmount,    A.ExpenseRemarks,A.ExpenseStatus,A.ExpenseTotalAmount,    (Case when a.Instrument = 'N/A' or a.Instrument = '' or a.SerialNumber = 'N/A' or     a.SerialNumber = '' or a.ServiceNumber = 'N/A' or a.ServiceNumber = ''     then a.ExpenseLocation      else a.ExpenseLocation + ' - ' + a.Instrument + ' - ' + a.SerialNumber       end) as 'ExpenseLocation',    B.ReportDescription,C.Fullname,    D.CashAmount,D.CashDate,D.CashRefDoc,D.CashRefNo,D.RevolvingFund,    E.emp_Approver,E.emp_Reviewer,E.emp_Endorser,@mEndorse as [SigEndorse],@mApprove as ReportReserveSignature,a.WorkWith,    A.Sort,c.Approver1,c.Approver2,f.username,e.emp_DeptID,a.Computation   FROM tbExpenseDetails AS A     INNER JOIN tbReportDetails AS B ON A.ReportID = B.ID     INNER JOIN tbUserRegistration AS C ON B.UserID = C.UserID     INNER JOIN tbCashAdvance AS D ON A.ReportID = D.ReportID     INNER JOIN tblDeptManager AS E ON C.DeptID = E.emp_DeptID and e.UserID = b.UserID     left outer join (select a.id,c.username,a.DateCreated from tbExpenseDetailsHistory AS A           INNER JOIN tbUserRegistration AS c ON A.EditedByUserID = c.UserID         where DateCreated = (         SELECT MAX(DateCreated) FROM tbExpenseDetailsHistory AS B          WHERE A.EditedByUserID = B.EditedByUserID)) as f on a.ID= f.id      WHERE A.ReportID = @reportID AND C.UserID = @userID and a.ExpenseStatus = 'True'   order by a.Sort 
+END
+    
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp_rptERSig]  @userID varchar(10) 
+AS
+BEGIN   select a.[Signature] from tbUserRegistration as a where a.UserID = @userID
+END
+
+  
+GO
+
+CREATE PROCEDURE [dbo].[sp_WriteToFile]     @File        VARCHAR(2000),  @Text        VARCHAR(2000)     AS      BEGIN     DECLARE @OLE            INT   DECLARE @FileID         INT   EXECUTE sp_OACreate 'Scripting.FileSystemObject', @OLE OUT   EXECUTE sp_OAMethod @OLE, 'OpenTextFile', @FileID OUT, @File, 8, 1      EXECUTE sp_OAMethod @FileID, 'WriteLine', Null, @Text  EXECUTE sp_OADestroy @FileID   EXECUTE sp_OADestroy @OLE    
+END
+         
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_AddDeptSign]  @deptID int,  @Review varchar(50),  @Endorse varchar(25),  @Approved varchar(25),  @UserID int 
+AS
+BEGIN     INSERT INTO tblDeptManager   (emp_DeptID,   emp_Reviewer,   emp_Endorser,   emp_Approver,   UserID)   VALUES   (@deptID,   @Review,   @Endorse,   @Approved,   @UserID)  
+END
+  
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_AddExpense]   -- Add the parameters for the stored procedure here   @Transdate   date   ,   @perdiem   varchar (1)  ,   @particulars   varchar (100)  ,   @Invoice   varchar (25)  ,   @multiplier   int   ,   @type   varchar (25)  ,   @category   varchar (50)  ,   @amount   float   ,   @remarks   varchar (max)  ,   @status   varchar (10)  ,   @totalAmount   float   ,   @location   varchar (50)  ,   @UserID   int   ,   @reportID varchar(50),   @WorkWith varchar(50),   @ServiceNumber nvarchar(50),   @Instrument nvarchar(50),   @SerialNumber nvarchar(50),   @MDays varchar(10),   @Computation varchar(100),   @TotDays varchar(10),   @Meal varchar(31),   @PaidFor varchar(1),   @PaidEmp varchar(100),   @FareID bigint,   @FareFrom varchar(50),   @FareTo varchar(50) 
+AS
+BEGIN   SET NOCOUNT ON;   DECLARE @ExpenseID int   DECLARE @Sort int   DECLARE @mCount int     set @ExpenseID =  (select(CASE WHEN RTRIM(ISNULL(MAX(tbExpenseDetails.ID),'')) = 0 THEN 1           ELSE MAX(tbExpenseDetails.ID) + 1
+END
+) from tbExpenseDetails)             set @Sort = (select count(tbExpenseDetails.ID) from tbExpenseDetails        where ReportID = @reportID and tbExpenseDetails.ExpenseStatus = 'True')     set @mCount = (SELECT COUNT(*) FROM SplitString(@Meal,'^'))     insert into tbExpenseDetails   (ID, ExpenseTransDate,ExpensePerdiem,ExpenseParticulars,ExpenseInvoice,ExpenseMultiplier,ExpenseType,   ExpenseCategory,ExpenseAmount,ExpenseRemarks,ExpenseStatus,ExpenseTotalAmount,ExpenseLocation,UserID,   reportid,WorkWith,ServiceNumber,Instrument,SerialNumber,MDays,Computation,TotDays,sort)     values (@ExpenseID,@Transdate,@perdiem,@particulars,@Invoice,@multiplier,@type,@category,@amount,   @remarks,'True',@totalAmount,'' + @location + '',@UserID,@reportID,@WorkWith,@ServiceNumber,@Instrument,   @SerialNumber,@MDays,@Computation,@TotDays,@Sort)     if ISNULL(@Meal,0) <> ''    begin     INSERT INTO tbExpenseMealItem (ExpenseID, Meal,PaidFor,PaidEmp)      VALUES(@ExpenseID,@Meal,@PaidFor,@PaidEmp)    end     if ISNULL(@FareID,0) <> ''    begin     INSERT INTO tbExpenseTransportationItem(expense_id,FareID,FareFrom,FareTo)     VALUES(@ExpenseID,@FareID,@FareFrom,@FareTo)     end     if @mCount <= 2    begin     exec sp2_InsertNotification @PaidEmp,@Transdate,@ExpenseID,@Meal,@UserID    end
+END
+      
+        -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_AddExpense2]   -- Add the parameters for the stored procedure here    @Transdate   date   ,    @perdiem   varchar (1)  ,    @particulars   varchar (100)  ,    @Invoice   varchar (25)  ,    @multiplier   int   ,    @type   varchar (25)  ,    @category   varchar (50)  ,    @amount   float   ,    @remarks   varchar (max)  ,    @status   varchar (10)  ,    @totalAmount   float   ,    @location   varchar (50)  ,    @UserID   int   ,    @reportID varchar(5),    @ServiceNumber nvarchar(50),    @Instrument nvarchar(50),    @SerialNumber nvarchar(50) 
+AS
+BEGIN   SET NOCOUNT ON;   DECLARE @ExpenseID int   DECLARE @Sort int   set @ExpenseID =  (select(CASE WHEN RTRIM(ISNULL(MAX(tbExpenseDetails.ID),'')) = 0 THEN 1           ELSE MAX(tbExpenseDetails.ID) + 1
+END
+) from tbExpenseDetails)             set @Sort = (select(CASE WHEN RTRIM(ISNULL(MAX(tbExpenseDetails.Sort),'')) = 0 THEN 1           ELSE MAX(tbExpenseDetails.Sort) + 1
+END
+) from tbExpenseDetails)     insert into tbExpenseDetails   (ID, ExpenseTransDate,ExpensePerdiem,    ExpenseParticulars,ExpenseInvoice,    ExpenseMultiplier,ExpenseType,    ExpenseCategory,ExpenseAmount,    ExpenseRemarks,ExpenseStatus,    ExpenseTotalAmount,    ExpenseLocation,UserID,    reportid,ServiceNumber,Instrument,SerialNumber,sort)    values   (@ExpenseID,@Transdate,    @perdiem,@particulars,    @Invoice,@multiplier,    @type,@category,    @amount,@remarks,    @status,@totalAmount,    @location,@UserID,    @reportID,@ServiceNumber,@Instrument,@SerialNumber,@Sort)
+END
+        
+      -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_AddExpenseHisto]   -- Add the parameters for the stored procedure here    @Transdate   date   ,    @perdiem   varchar (1)  ,    @particulars   varchar (100)  ,    @Invoice   varchar (25)  ,    @multiplier   int   ,    @type   varchar (25)  ,    @category   varchar (50)  ,    @amount   float   ,    @remarks   varchar (max)  ,    @status   varchar (10)  ,    @totalAmount   float   ,    @location   varchar (50)  ,    @UserID   int   ,    @reportID varchar(5),    @WorkWith varchar(50),    @TransID bigint,    @ServiceNumber nvarchar(50),    @Instrument nvarchar(50),    @SerialNumber nvarchar(50),    @MDays varchar(10),    @Computation varchar(100),    @TotDays varchar(10) 
+AS
+BEGIN   SET NOCOUNT ON;   DECLARE @Sort int             set @Sort = (select(CASE WHEN RTRIM(ISNULL(MAX(tbExpenseDetails2.Sort),'')) = 0 THEN 1           ELSE MAX(tbExpenseDetails2.Sort) + 1
+END
+) from tbExpenseDetails2)     insert into tbExpenseDetails2   (ExpenseTransDate,ExpensePerdiem,    ExpenseParticulars,ExpenseInvoice,    ExpenseMultiplier,ExpenseType,    ExpenseCategory,ExpenseAmount,    ExpenseRemarks,ExpenseStatus,    ExpenseTotalAmount,    ExpenseLocation,UserID,    reportid,sort,WorkWith,    ID,ServiceNumber,    Instrument,SerialNumber,    MDays,Computation,TotDays)    values   (@Transdate,@perdiem,    @particulars,@Invoice,    @multiplier,@type,    @category,@amount,    @remarks,@status,    @totalAmount,@location,    @UserID,@reportID,    @Sort,@WorkWith,    @TransID,@ServiceNumber,    @Instrument,@SerialNumber,    @MDays,@Computation,@TotDays)
+END
+      
+        -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_AddExpenseLogs]   -- Add the parameters for the stored procedure here    @Transdate   date   ,    @perdiem   varchar (1)  ,    @particulars   varchar (100)  ,    @Invoice   varchar (25)  ,    @multiplier   int   ,    @type   varchar (25)  ,    @category   varchar (50)  ,    @amount   float   ,    @remarks   varchar (max)  ,    @status   varchar (10)  ,    @totalAmount   float   ,    @location   varchar (50)  ,    @UserID   int   ,    @reportID varchar(5),    @WorkWith varchar(50),    @TransID bigint,    @ServiceNumber nvarchar(50),    @Instrument nvarchar(50),    @SerialNumber nvarchar(50),    @MDays varchar(10),    @Computation varchar(255),    @TotDays varchar(10),    @EditedBy varchar(10) 
+AS
+BEGIN   SET NOCOUNT ON;   DECLARE @Sort int             set @Sort = (select(CASE WHEN RTRIM(ISNULL(MAX(tbExpenseDetailsHistory.Sort),'')) = 0 THEN 1           ELSE MAX(tbExpenseDetailsHistory.Sort) + 1
+END
+) from tbExpenseDetailsHistory)     insert into tbExpenseDetailsHistory   (ExpenseTransDate,ExpensePerdiem,    ExpenseParticulars,ExpenseInvoice,    ExpenseMultiplier,ExpenseType,    ExpenseCategory,ExpenseAmount,    ExpenseRemarks,ExpenseStatus,    ExpenseTotalAmount,    ExpenseLocation,UserID,    reportid,sort,    WorkWith,ID,    ServiceNumber,Instrument,    SerialNumber,EditedByUserID,    MDays,Computation,TotDays)    values   (@Transdate,@perdiem,   @particulars,@Invoice,   @multiplier,@type,   @category,@amount,   @remarks,@status,   @totalAmount,@location,   @UserID,@reportID,   @Sort,@WorkWith,   @TransID,@ServiceNumber,   @Instrument,@SerialNumber,   @EditedBy,@MDays,@Computation,@TotDays)      UPDATE tbExpenseDetails SET NumberEdited =     (SELECT A.NumberEdited FROM tbExpenseDetails AS A where a.ID = @TransID) + 1     where ID = @TransID  
+END
+      
+    -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_AddReportData]  @datefrom varchar(25),  @dateto varchar(25),  @description varchar(max),  @cashAdvance float,  @cashDate varchar(25),  @cashrefDoc varchar(max),  @cashrefNumber varchar(25),  @balto varchar(25),  @revolvingfund float,  @cashCheck varchar(1),  @userID varchar(25),  @status varchar(1),  @Approved varchar(50),  @datefiled varchar(25),  @fileStatus char(1) 
+AS
+BEGIN  Declare @reportID varchar(50)  Declare @UserLevel varchar(10)  Declare @Approver1 varchar(5)  Declare @Approver2 varchar(5)    set @Approver1 = (SELECT Approver1 FROM tbUserRegistration where UserID = @userID)  set @Approver2 = (SELECT Approver2 FROM tbUserRegistration where UserID = @userID)    set @reportID = (SELECT NEWID())  --set @reportID = (select(CASE WHEN RTRIM(ISNULL(MAX(tbReportDetails.ID),'')) = 0 THEN 1   --        ELSE MAX(tbReportDetails.ID) + 1
+END
+) from tbReportDetails)  set @UserLevel = (select a.Userlevel from tbUserRegistration as a where UserID = @userID)     if @UserLevel = 'Admin' and (@Approver1 <> '' and @Approver2 <> '')    BEGIN     INSERT INTO  tbReportDetails(ID,ReportDateFrom,ReportDateTo,ReportDescription,      UserID,ReportStatus,ReportEndorseStatus,ReportDateFiled,ReportFileStatus,ReportPrintStatus)     VALUES(@reportID,@datefrom,@dateto,@description,@userID,@status,@Approved,@datefiled,@fileStatus,'0')       INSERT INTO tbCashAdvance(ReportID,CashAmount,CashDate,CashRefDoc,CashRefNo,RevolvingFund,CashCheck,emp_userID,BalanceTo)     VALUES(@reportID,@cashAdvance,@cashDate,@cashrefDoc,@cashrefNumber,@revolvingfund,@cashCheck,@userID,'EMPLOYEE')  
+END
+ ELSE    BEGIN     INSERT INTO tbReportDetails(ID,ReportDateFrom,ReportDateTo,ReportDescription,      UserID,ReportStatus,ReportEndorseStatus,ReportDateFiled,ReportFileStatus,ReportPrintStatus,ReportNumberStatus)     VALUES (@reportID,@datefrom,@dateto,@description,@userID,@status,@Approved,@datefiled,@fileStatus,'1','0')       INSERT INTO tbCashAdvance(ReportID,CashAmount,CashDate,CashRefDoc,      CashRefNo,RevolvingFund,CashCheck,emp_userID,BalanceTo)     VALUES(@reportID,@cashAdvance,@cashDate,@cashrefDoc,@cashrefNumber,      @revolvingfund,@cashCheck,@userID,'EMPLOYEE') 
+END
+END      
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_AddSignature]  @UserID int,  @SignID int,  @ReportID VARCHAR(50) 
+AS
+BEGIN   --DECLARE @ReportNumberStatus as int   DECLARE @SigEndorse as varbinary(max)   -- set @ReportNumberStatus = (Select b.ReportNumberStatus from tbUserRegistration as a   --       inner join tblDept as b on a.DeptID = b.ID where a.UserID =@UserID)   --set @SigEndorse = (Select a.SigEndorse from tblDeptManager as a where UserID = @UserID)    --UPDATE tblDeptManager SET SigEndorse = (select a.[Signature]    --from tbUserRegistration as a where a.UserID = @SignID) WHERE UserID = @UserID   set @SigEndorse = (Select a.ReportEndorseSignature from tbReportDetails as a where a.ID = @ReportID)  if isnull(@SigEndorse,0) = 0   begin    UPDATE tbReportDetails SET ReportEndorseSignature = (select a.[Signature]     from tbUserRegistration as a where a.UserID = @SignID) WHERE UserID = @UserID AND ID = @ReportID    end  else   begin    UPDATE tbReportDetails SET ReportReserveSignature = (select a.[Signature]     from tbUserRegistration as a where a.UserID = @SignID) WHERE UserID = @UserID AND ID = @ReportID    end  
+END
+  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_AddUserAccount]  @userID varchar(5),  @Fullname varchar(50),  @Position varchar(25),  @Department varchar(40),  @username varchar(25),  @Password varchar(max),  @EmailAdd varchar(max),  @EmailPassword varchar(max),  @EmailTo varchar(255),  @EmailBCC varchar(255),  @Signature varbinary(max),  @userLevel varchar(10) = '',  @Approver1 varchar(10) = '',  @Approver2 varchar(10) = '',  @TranspoRates varchar(10) = '',  @BreakFast varchar(10) = '',  @LunchRate varchar(10) = '',  @DinnerRate varchar(10) = '',  @OTMeal varchar(10) = '' 
+AS
+BEGIN  IF @Department = '7'   BEGIN    INSERT INTO tbUserRegistration    (UserID,Fullname,    Position,DeptID,    username,[Password],    EmailAdd,EmailPass,    Emailto,EmailBcc,Userlevel,[Status],Approver1,Approver2)    VALUES    (@userID,@Fullname,    @Position,@Department,    @username,@Password,    @EmailAdd,@EmailPassword,    @EmailTo,@EmailBCC,@userLevel,'0',@Approver1,@Approver2)    INSERT INTO tblEmpRate(UserID,TranspoRate,BreakFastRate,LunchRate,DinnerRate,OTMeal)     VALUES (@userID,@TranspoRates,@BreakFast,@LunchRate,@DinnerRate,@OTMeal)    if @Approver1 <> ''     begin      INSERT INTO tbUserAuthority(UserID,AuthorityID,AuthorityName,Sort)      Values (@userID,(select top 1 UserID from tbUserRegistration where tbUserRegistration.username = @Approver1),@Approver1,1)     end    if @Approver2 <> ''     begin      INSERT INTO tbUserAuthority(UserID,AuthorityID,AuthorityName,Sort)      Values (@userID,(select top 1 UserID from tbUserRegistration where tbUserRegistration.username = @Approver2),@Approver1,2)     end 
+END
+ELSE   BEGIN    INSERT INTO tbUserRegistration    (UserID,Fullname,    Position,DeptID,    username,[Password],    EmailAdd,EmailPass,    Emailto,EmailBcc,[Signature],Userlevel,[Status],Approver1,Approver2)    VALUES    (@userID,@Fullname,    @Position,@Department,    @username,@Password,    @EmailAdd,@EmailPassword,    @EmailTo,@EmailBCC,@Signature,@userLevel,'0',@Approver1,@Approver2)    INSERT INTO tblEmpRate(UserID,TranspoRate,BreakFastRate,LunchRate,DinnerRate,OTMeal)     VALUES (@userID,@TranspoRates,@BreakFast,@LunchRate,@DinnerRate,@OTMeal)      if @Approver1 <> ''     begin      INSERT INTO tbUserAuthority(UserID,AuthorityID,AuthorityName,Sort)      Values (@userID,(select top 1 UserID from tbUserRegistration where tbUserRegistration.username = @Approver1),@Approver1,1)     end    if @Approver2 <> ''     begin      INSERT INTO tbUserAuthority(UserID,AuthorityID,AuthorityName,Sort)      Values (@userID,(select top 1 UserID from tbUserRegistration where tbUserRegistration.username = @Approver2),@Approver2,2)     end 
+END
+ 
+END
+  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_ChangePassword]  @userID int,  @password varchar(max) 
+AS
+BEGIN      update tbUserRegistration set [Password] = @password where UserID = @userID  
+END
+  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_DeleteVar]  @userID int,  @Image varbinary(max),  @reportID VARCHAR(50) 
+AS
+BEGIN   UPDATE tbReportDetails set    ReportEndorseSignature = @Image, ReportReserveSignature = @Image,   ReportReserveStatus1 = null,ReportReserveStatus2 = null, ReportNumberStatus = 0,   ReportSentStatus = 0   where UserID = @userID and ID = @reportID     UPDATE tbReportDetails set ReportCancelNote =    'Cancelled by ' + (select top 1 a.Fullname from tbUserRegistration as a where UserID = @userID)   where UserID = @userID and ID = @reportID     exec sp_Notify @ReportID, 'CANCEL'     delete from tbReportAuthority where [ReportID] = @reportID
+END
+  
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_InsertAdminLogin]  @DeptID int,  @password varchar(max) 
+AS
+BEGIN      INSERT INTO tbUserRegistration   (UserID,   username,   Userlevel,   [Password],   DeptID,Fullname,EmailAdd,EmailBCC,EmailPass,EmailTo,[Status])   VALUES   ('12345',   'ADMIN',   'Admin',   @password,   @DeptID,'ADMIN','','','','','0')  
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_InsertApproveReport]  @ReportID bigint,  @SignID bigint,  @UserID bigint,  @AuthoritySignature varbinary(Max) 
+AS
+BEGIN   INSERT INTO tbReportAuthority(ReportID,SignID,UserID,AuthoritySignature)    values(@ReportID,@SignID,@UserID,@AuthoritySignature)
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_InsertAttachment]  @ReportAttachment varchar(max),  @ReportID VARCHAR(50) 
+AS
+BEGIN   UPDATE tbReportDetails SET ReportAttachment = @ReportAttachment    WHERE tbReportDetails.[ID] = @ReportID
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_InsertExeUpdater]  @FileName varchar(50),  @FileLocation varchar(Max),  @FileExe varbinary(max)   
+AS
+BEGIN   DECLARE @ctr bigint     set @ctr = (SELECT COUNT(*) FROM tbExeUpdater where ID = 1)       IF @ctr = 0    BEGIN      INSERT INTO tbExeUpdater(FileName,FileLocation,FileExe) Values(@FileName,@FileLocation,@FileExe)  
+END
+ ELSE    BEGIN     UPDATE tbExeUpdater SET FileExe = @FileExe, DateUpdated = GETDATE() WHERE ID = 1  
+END
+END  
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_InsertFare]  @FareName varchar(25) 
+AS
+BEGIN      INSERT INTO tbFare   (SortID,FareName)    VALUES   ((select top 1 SortID from tbFare where SortID <> 100 order by SortID desc),@FareName)  
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_InsertLookUp]  @Location varchar(50) 
+AS
+BEGIN   INSERT INTO tbLookUpTransportation ([Location]) VALUES(@Location)
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_InsertNotification]  @Username varchar(100),  @DateIncluded date,  @ExpenseID varchar(50),  @Category varchar(25),  @UsernameFiled varchar(10) 
+AS
+BEGIN   DECLARE @myID VARCHAR(50)   SET @myID = (SELECT NEWID())   INSERT INTO tbNotification(ID,ToNotify,DateIncluded,ExpenseID,Category,UsernameFiled)   VALUES(@myID,@Username, @DateIncluded,@ExpenseID,@Category,@UsernameFiled)
+END
+
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_InsertReportUpdater]  @FileName varchar(50),  @FileLocation varchar(Max),  @FileExe varbinary(max)   
+AS
+BEGIN   DECLARE @ctr bigint     set @ctr = (SELECT COUNT(*) FROM tbExeUpdater where ID = 2)       IF @ctr = 0    BEGIN      INSERT INTO tbExeUpdater(FileName,FileLocation,FileExe) Values(@FileName,@FileLocation,@FileExe)  
+END
+ ELSE    BEGIN     UPDATE tbExeUpdater SET FileExe = @FileExe, DateUpdated = GETDATE() WHERE ID = 2  
+END
+END    
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_InsertUpdater]  @FileName varchar(50),  @FileLocation varchar(Max),  @FileExe varbinary(max)   
+AS
+BEGIN   DECLARE @ctr bigint     set @ctr = (SELECT COUNT(*) FROM tbExeUpdater where ID = 3)       IF @ctr = 0    BEGIN      INSERT INTO tbExeUpdater(FileName,FileLocation,FileExe) Values(@FileName,@FileLocation,@FileExe)  
+END
+ ELSE    BEGIN     UPDATE tbExeUpdater SET FileLocation = @FileLocation, FileExe = @FileExe, DateUpdated = GETDATE() WHERE ID = 3  
+END
+END    
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_InsertUserExpenseMeal]  @ExpenseID bigint,  @Meal varchar(50),  @PaidFor varchar(1),  @PaidEmp varchar(100) 
+AS
+BEGIN   INSERT INTO tbExpenseMealItem (ExpenseID, Meal,PaidFor,PaidEmp)    VALUES(@ExpenseID,@Meal,@PaidFor,@PaidEmp)
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_InsertUserExpenseTrans]  @expense_id bigint,  @FareID bigint,  @FareFrom varchar(50),  @FareTo varchar(50) 
+AS
+BEGIN   INSERT INTO tbExpenseTransportationItem(expense_id,FareID,FareFrom,FareTo)   VALUES(@expense_id,@FareID,@FareFrom,@FareTo)
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_Load1stApprover]  @UserID int 
+AS
+BEGIN   SELECT Approver1,Approver2 FROM tbUserRegistration WHERE UserID = @UserID
+END
+
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_Load2ndApprover]  @UserID int 
+AS
+BEGIN   SELECT Approver2 FROM tbUserRegistration WHERE UserID = @UserID
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadClientData]  @ClientInstrumentSerialService varchar(50),  @ClientDataToLoad varchar(50) 
+AS
+BEGIN      IF @ClientDataToLoad = 'Instrument'   BEGIN    select distinct LTRIM(a.Instrument) as Instrument from tbExpenseDetails as a          where a.Instrument <> '' and a.Instrument <> 'N/A' and a.Instrument like '%' + @ClientInstrumentSerialService + '%' 
+END
+   ELSE IF @ClientDataToLoad = 'Serial Number'   BEGIN    select distinct LTRIM(a.SerialNumber) as 'Serial Number' from tbExpenseDetails as a          where a.SerialNumber <> '' and a.SerialNumber <> 'N/A' and a.SerialNumber like '%' + @ClientInstrumentSerialService + '%' 
+END
+   ELSE IF @ClientDataToLoad = 'Service Number'   BEGIN    select distinct LTRIM(a.ServiceNumber) as 'Service Number' from tbExpenseDetails as a          where a.ServiceNumber <> '' and a.ServiceNumber <> 'N/A' and a.ServiceNumber Like '%' + @ClientInstrumentSerialService + '%' 
+END
+END  
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadClientToGrid]  @ClientCodeName varchar(50) 
+AS
+BEGIN     SELECT a.ClientCode as 'Code', a.ClientName as 'Name' FROM tblClient1 AS A    WHERE a.clientCode like '%' + @ClientCodeName + '%' OR a.clientName like '%' + @ClientCodeName + '%'  
+END
+
+    -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadDataReport]  @userID varchar(10),  @sDate varchar(25),  @eDate varchar(25) 
+AS
+BEGIN  DECLARE @ReportNumberStatus as int  set @ReportNumberStatus =  (Select a.ReportNumberStatus from tbUserRegistration as a           where a.UserID = @userID)      SELECT a.ReportDateFrom as [Date From],a.ReportDateTo as [Date To],a.ReportDescription as [Description],      A.ID as [Report ID],B.CashAmount,B.CashDate,B.CashRefDoc,B.CashRefNo,     B.RevolvingFund,B.CashCheck,a.ReportPrintStatus,a.ReportFileStatus,    isnull((case when a.ReportNumberStatus = @ReportNumberStatus then 'Approved'      else(case when a.ReportPrintStatus = '0' and a.ReportFileStatus = '0' and a.ReportNumberStatus <> @ReportNumberStatus then 'For Approval'        else(case when a.ReportPrintStatus = '0' and a.ReportFileStatus = '1' then 'Unapproved'         else(case when a.ReportPrintStatus = '1' and a.ReportFileStatus = '1' then 'For Approval'         else(case when a.ReportPrintStatus = '1' and a.ReportFileStatus = '' then 'New'         else(case when a.ReportPrintStatus = '1' and a.ReportFileStatus = '0' then 'Returned'           else(case when a.ReportPrintStatus = '' and a.ReportFileStatus = '0' then 'Approved' end) end )end) end) end) end)end),'Approved') as 'Status',a.ReportSentStatus     from tbReportDetails as a     INNER JOIN tbCashAdvance AS B ON A.ID = B.ReportID      WHERE a.UserID = @userID and    (DATEDIFF(D,@sDate,a.ReportDateFiled) >=0 and DATEDIFF(D,@eDate,a.ReportDateFiled) <=0)    ORDER BY A.ReportDateFrom desc  
+END
+    
+    -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadDataReport_Three]  @userID varchar(10),  @sDate varchar(25),  @eDate varchar(25) 
+AS
+BEGIN  DECLARE @ReportNumberStatus as int  set @ReportNumberStatus =  (Select a.ReportNumberStatus from tbUserRegistration as a           where a.UserID = @userID)      SELECT a.ReportDateFrom as [Date From],a.ReportDateTo as [Date To],a.ReportDescription as [Description],      A.ID as [Report ID],(case when a.ReportEndorseStatus = 'APPROVED' then 'Approved' else      isnull((case when a.ReportNumberStatus = @ReportNumberStatus then 'Approved'       else(case when a.ReportPrintStatus = '0' and a.ReportFileStatus = '0' and a.ReportNumberStatus <> @ReportNumberStatus then 'For Approval'         else(case when a.ReportPrintStatus = '0' and a.ReportFileStatus = '1' then 'Unapproved'          else(case when a.ReportPrintStatus = '1' and a.ReportFileStatus = '1' then 'For Approval'          else(case when a.ReportPrintStatus = '1' and a.ReportFileStatus = '' then 'New'          else(case when a.ReportPrintStatus = '1' and a.ReportFileStatus = '0' then 'Returned'            else(case when a.ReportPrintStatus = '' and a.ReportFileStatus = '0' then 'Approved' end) end )end) end) end) end)end),'Approved') end) as 'Status'     from tbReportDetails as a     INNER JOIN tbCashAdvance AS B ON A.ID = B.ReportID      WHERE a.UserID = @userID and    (DATEDIFF(D,@sDate,a.ReportDateFiled) >=0 and DATEDIFF(D,@eDate,a.ReportDateFiled) <=0)    ORDER BY A.ReportDateFrom desc  
+END
+    
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadDeparmentManager]  @DeparmentManager varchar(20) 
+AS
+BEGIN  SELECT a.emp_Endorser,a.emp_Reviewer,a.emp_Approver FROM tblDeptManager AS A   INNER JOIN tblDept AS B ON A.emp_DeptID = B.ID  WHERE A.emp_DeptID = @DeparmentManager
+END
+  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadDepartment]   
+AS
+BEGIN  select * from tblDept as a
+END
+  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadDuplicateUser]  @username varchar(25) 
+AS
+BEGIN      SELECT A.username FROM tbUserRegistration AS A   WHERE A.username = @username
+END
+  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadDuplicateUserID]  @userid int 
+AS
+BEGIN     SELECT A.UserID FROM tbUserRegistration AS A WHERE A.UserID = @userid    
+END
+  
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadEReportDetails]  @ReportID VARCHAR(50),  @userID int 
+AS
+BEGIN  DECLARE @ReportNumberStatus as int  set @ReportNumberStatus =  (Select a.ReportNumberStatus from tbUserRegistration as a           where a.UserID = @userID)   SELECT  a.ReportDescription,a.ReportDateFrom,a.ReportDateTo,   A.ReportPrintStatus,a.ReportFileStatus,a.ReportSentStatuS,   b.CashCheck,B.CashDate,B.CashRefDoc,B.CashRefNo,B.CashAmount,B.RevolvingFund,     isnull((case when a.ReportNumberStatus = @ReportNumberStatus then 'Approved'      else(case when a.ReportPrintStatus = '0' and a.ReportFileStatus = '0' and a.ReportNumberStatus <> @ReportNumberStatus then 'For Approval'        else(case when a.ReportPrintStatus = '0' and a.ReportFileStatus = '1' then 'Unapproved'         else(case when a.ReportPrintStatus = '1' and a.ReportFileStatus = '1' then 'For Approval'         else(case when a.ReportPrintStatus = '1' and a.ReportFileStatus = '' then 'New'         else(case when a.ReportPrintStatus = '1' and a.ReportFileStatus = '0' then 'Returned'           else(case when a.ReportPrintStatus = '' and a.ReportFileStatus = '0' then 'Approved' end) end )end) end) end) end)end),'Approved') as 'Status',           a.ID as 'ReportID',a.UserID   FROM tbReportDetails AS A   INNER JOIN tbCashAdvance AS B ON A.ID = B.ReportID   WHERE A.ID = @ReportID
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadEReportExpenseDetails]  @ReportID varchar(50),  @ExpenseID int 
+AS
+BEGIN   SELECT CONVERT(date,A.ExpenseTransDate) AS [Date],a.ExpenseParticulars as [Particulars],       a.ExpenseType as [Type],a.ExpenseCategory as [Category],A.ExpensePerdiem,       A.ExpenseLocation as 'Location',a.ExpenseTotalAmount as 'Total Amount',       A.ExpenseMultiplier,A.ExpenseInvoice,       A.ExpenseStatus,A.ExpenseRemarks,a.ServiceNumber,       a.Instrument,a.SerialNumber as 'Serial Number', A.WorkWith,a.ExpenseAmount,a.ID,a.Sort,a.MDays,a.Computation,a.TotDays   FROM tbExpenseDetails AS A   where a.reportid =@reportID and a.ID = @ExpenseID and A.ExpenseStatus = 'true'   ORDER BY A.sort
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadExecutableFile]  @FileExe varbinary(max) 
+AS
+BEGIN     SELECT FileExe FROM tbExeUpdater where ID = 1  
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadExeUpdate] 
+AS
+BEGIN     SELECT FileExe FROM tbExeUpdater WHERE ID = 1  
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadExpenceDetails]  @Location nvarchar(50),  @DeptID nvarchar(10) 
+AS
+BEGIN       SELECT a.ExpenseTransDate as 'Date Service' ,c.Fullname as 'Employee', B.ReportDescription AS 'Description',a.ExpenseLocation as 'Location',a.ExpenseParticulars as 'Particulars',a.ExpenseTotalAmount as 'Total Amount',a.ServiceNumber as 'Service Number',a.WorkWith as 'Work With' FROM tbExpenseDetails AS A   INNER JOIN (SELECT ID,ReportDescription,ReportDateFrom FROM tbReportDetails) AS B ON A.ReportID = B.ID   INNER JOIN tbUserRegistration as c on a.UserID = c.UserID   INNER JOIN tblDept AS D ON C.DeptID = D.ID   WHERE d.ID = @DeptID and a.ExpenseLocation like '%' + @Location + '%'   order by a.UserID,a.Sort
+END
+
+    -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadExpense]  @reportID varchar(5),  @userID varchar(5) 
+AS
+BEGIN      SELECT A.ID,CONVERT(date,A.ExpenseTransDate) AS [Date],a.ExpenseParticulars as [Particulars],       a.ExpenseType as [Type],a.ExpenseCategory as [Category],A.ExpensePerdiem,       A.ExpenseLocation as 'Location',A.ExpenseAmount,a.ExpenseTotalAmount as 'Total Amount',A.ExpenseMultiplier,A.ExpenseInvoice,       A.ExpenseStatus,A.ExpenseRemarks,a.ServiceNumber,a.Instrument,a.SerialNumber as 'Serial Number',A.WorkWith,a.sort   FROM tbExpenseDetails AS A   where a.reportid =@reportID and a.UserID = @userID and A.ExpenseStatus = 'true'   ORDER BY A.sort
+END
+    
+    -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadExpense_Three]  @reportID varchar(50),  @userID varchar(5) 
+AS
+BEGIN      SELECT A.ID,CONVERT(date,A.ExpenseTransDate) AS [Date],a.ExpenseParticulars as [Particulars],       a.ExpenseCategory as [Category],A.ExpenseLocation as 'Location',       a.ExpenseTotalAmount as 'Total Amount',a.Instrument,a.reportid,a.sort   FROM tbExpenseDetails AS A   where a.reportid =@reportID and a.UserID = @userID and A.ExpenseStatus = 'true'   ORDER BY A.sort
+END
+    
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadFare]  @DeptID varchar(10) 
+AS
+BEGIN   if @DeptID = 3    BEGIN     SELECT * FROM tbFare where not tbFare.id = 4 order by SortID  
+END
+ ELSE    BEGIN     SELECT * FROM tbFare order by SortID  
+END
+END  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadingExpenseCount]  @reportID varchar(50) 
+AS
+BEGIN   SELECT count(A.ReportID) as 'ExpenseCount'    FROM tbExpenseDetails AS A    WHERE ReportID = @reportID and a.ExpenseStatus = 'True' 
+END
+  
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadLookUp]  @Location varchar(50) 
+AS
+BEGIN   Select * from tbLookUpTransportation as a where a.[Location] = @Location
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadNotification]  @DateIncluded date,  @Username varchar(10),  @Category varchar(10) 
+AS
+BEGIN      SELECT A.ToNotify,A.Category,B.username FROM tbNotification as a    INNER JOIN tbUserRegistration AS B ON A.UsernameFiled = B.UserID     WHERE DateIncluded = @DateIncluded AND        ToNotify LIKE '%' + @Username + '%' --AND Category LIKE '%' + @Category + '%'  
+END
+
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadOfficersToSign]  @userid int 
+AS
+BEGIN     SELECT * FROM tblDeptManager AS A WHERE A.UserID = @userid  
+END
+  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadreportID]  @reportID VARCHAR(50) 
+AS
+BEGIN     SELECT A.ReportFileStatus FROM tbReportDetails AS A WHERE ID= @reportID  
+END
+  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadReportUpdater] 
+AS
+BEGIN     SELECT FileExe FROM tbExeUpdater WHERE ID = 2  
+END
+  
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadReportViewer]  @ReportDate nvarchar(16),  @Check int,  @DeptID bigint,  @Username nvarchar(50) 
+AS
+BEGIN        IF @Check = 1   begin    SELECT CONVERT(NVARCHAR(16),B.ReportDateFrom,101) + ' to ' + CONVERT(NVARCHAR(16),B.ReportDateTo,101) AS [Date Range],b.ReportDescription as [Description],    CONVERT(NVARCHAR(16),a.ExpenseTransDate,101) as [Date],a.ExpenseLocation as [Location],a.ExpenseParticulars as [Particulars],    a.ExpenseType as [Type],a.ExpenseCategory as [Category],a.ExpenseAmount as [Amount],    a.ExpenseMultiplier as [Multiplier],a.ExpenseTotalAmount as [Total],a.ExpenseInvoice as [Invoice No.],    a.ExpenseRemarks as [Remarks],a.WorkWith    FROM tbExpenseDetails2 AS A    INNER JOIN tbReportDetails AS B ON A.ReportID = B.ID    INNER JOIN tbUserRegistration AS C ON A.UserID = C.UserID    INNER JOIN tblDept AS D ON C.DeptID = D.ID    WHERE (DATEDIFF(DAY,ReportDateFrom,@ReportDate) >=0 and DATEDIFF(DAY,ReportDateFrom,@ReportDate) <= 0)      and DeptID = @DeptID and c.Fullname like '%'+@Username+'%'   end     else if @Check = 0 and ISNULL(@Username,'') = ''   begin    SELECT CONVERT(NVARCHAR(16),B.ReportDateFrom,101) + ' to ' + CONVERT(NVARCHAR(16),B.ReportDateTo,101) AS [Date Range],b.ReportDescription as [Description],    CONVERT(NVARCHAR(16),a.ExpenseTransDate,101) as [Date],a.ExpenseLocation as [Location],a.ExpenseParticulars as [Particulars],    a.ExpenseType as [Type],a.ExpenseCategory as [Category],a.ExpenseAmount as [Amount],    a.ExpenseMultiplier as [Multiplier],a.ExpenseTotalAmount as [Total],a.ExpenseInvoice as [Invoice No.],    a.ExpenseRemarks as [Remarks],a.WorkWith    FROM tbExpenseDetails2 AS A    INNER JOIN tbReportDetails AS B ON A.ReportID = B.ID    INNER JOIN tbUserRegistration AS C ON A.UserID = C.UserID    INNER JOIN tblDept AS D ON C.DeptID = D.ID    WHERE DeptID = @DeptID   end  ELSE IF @Check = 0    SELECT CONVERT(NVARCHAR(16),B.ReportDateFrom,101) + ' to ' + CONVERT(NVARCHAR(16),B.ReportDateTo,101) AS [Date Range],b.ReportDescription as [Description],    CONVERT(NVARCHAR(16),a.ExpenseTransDate,101) as [Date],a.ExpenseLocation as [Location],a.ExpenseParticulars as [Particulars],    a.ExpenseType as [Type],a.ExpenseCategory as [Category],a.ExpenseAmount as [Amount],    a.ExpenseMultiplier as [Multiplier],a.ExpenseTotalAmount as [Total],a.ExpenseInvoice as [Invoice No.],    a.ExpenseRemarks as [Remarks],a.WorkWith    FROM tbExpenseDetails2 AS A    INNER JOIN tbReportDetails AS B ON A.ReportID = B.ID    INNER JOIN tbUserRegistration AS C ON A.UserID = C.UserID    INNER JOIN tblDept AS D ON C.DeptID = D.ID    WHERE DeptID = @DeptID and c.Fullname like '%'+ @Username +'%'
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE sp2_LoadSharedVerification  @ExpenseDate date,  @UserName varchar(10) 
+AS
+BEGIN      SELECT count(*) as 'Count' FROM tbNotification as a  
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadSignatorySigned]  @signID nvarchar(15),  @userID nvarchar(15),  @ReportID VARCHAR(50) 
+AS
+BEGIN     SELECT a.ID,a.ReportReserveStatus1 FROM tbReportDetails as a WHERE a.ReportReserveStatus1 = @signID and a.UserID = @userID and a.ID = @ReportID  
+END
+
+    -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUpdater] 
+AS
+BEGIN     SELECT FileExe FROM tbExeUpdater WHERE ID = 3  
+END
+    
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserAcc]  @DeptID int 
+AS
+BEGIN    if @DeptID = 3   begin    SELECT a.UserID, a.Fullname as [Fullname],a.username as [Username],a.Position as [Position],a.Userlevel as [User Level],    a.EmailAdd as [Email Address],a.EmailTo as [Email To],a.EmailBCC,a.[Signature],a.DeptID,a.EmailPass,a.[Password],    (Select COUNT(ReportFileStatus) from tbReportDetails where ReportFileStatus = '1' and a.UserID = UserID) as [Number of file],b.emp_Dept as [Department],    a.Approver1,a.Approver2    from  tbUserRegistration as a     left outer join tblDept as b on a.DeptID = b.ID    where (not a.username = 'Admin') --and (Select COUNT(ReportFileStatus) from tbReportDetails where ReportFileStatus = '1' and a.UserID = UserID) <> 0   end  else   begin    SELECT a.UserID, a.Fullname as [Fullname],a.username as [Username],a.Position as [Position],a.Userlevel as [User Level],    a.EmailAdd as [Email Address],a.EmailTo as [Email To],a.EmailBCC,a.[Signature],a.DeptID,b.emp_Dept as [Department],a.EmailPass,a.[Password],    (Select COUNT(ReportFileStatus) from tbReportDetails where ReportFileStatus = '1' and a.UserID = UserID) as [Number of file],    a.Approver1,a.Approver2    from  tbUserRegistration as a     left outer join tblDept as b on a.DeptID = b.ID    where a.DeptID = @DeptID and not (a.username = 'Admin') --and (Select COUNT(ReportFileStatus) from tbReportDetails where ReportFileStatus = '1' and a.UserID = UserID) <> 0   end
+END
+  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserAccEmail]  @userid int,  @deptID int 
+AS
+BEGIN      SELECT A.EmailAdd,A.EmailPass,A.EmailTo,A.EmailBCC FROM tbUserRegistration AS A WHERE A.UserID = @userid AND A.DeptID = @deptID  
+END
+  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserAccFiled]  @DeptID bigint,  @SignID bigint 
+AS
+BEGIN   select distinct  A.UserID,A.Fullname,COUNT(A.username) AS [Number of file]    from tbUserRegistration as a   inner join tbReportDetails as b on a.UserID = b.UserID   inner join tbUserAuthority as d on a.UserID = d.UserID   where d.AuthorityID = @SignID   AND (b.ID not in (select a.ReportID          from tbReportAuthority as a         where a.SignID = @SignID)) and ReportFileStatus = '1'   group by a.username,A.Fullname,A.UserID
+END
+    
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserAccountAdmin] 
+AS
+BEGIN      SELECT * FROM tbUserRegistration AS A  
+END
+
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserAccountByDept]  @UserID int 
+AS
+BEGIN   SELECT a.emp_DeptID,a.emp_Endorser,a.emp_Reviewer,a.emp_Approver FROM tblDeptManager AS A   WHERE A.UserID = @UserID
+END
+  
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserAccPending]  @DeptID int 
+AS
+BEGIN    if @DeptID = 3    SELECT a.UserID, a.Fullname as [Fullname],a.username as [Username],a.Position as [Position],a.Userlevel as [User Level],  a.EmailAdd as [Email Address],a.EmailTo as [Email To],a.EmailBCC,a.[Signature],a.DeptID,a.EmailPass,a.[Password],  (Select COUNT(ReportFileStatus) from tbReportDetails where ReportFileStatus = '0' and a.UserID = UserID) as [Number of file],b.emp_Dept as [Department]  from  tbUserRegistration as a   left outer join tblDept as b on a.DeptID = b.ID  where(not a.username = 'Admin')      else    SELECT a.UserID, a.Fullname as [Fullname],a.username as [Username],a.Position as [Position],a.Userlevel as [User Level],  a.EmailAdd as [Email Address],a.EmailTo as [Email To],a.EmailBCC,a.[Signature],a.DeptID,b.emp_Dept as [Department],a.EmailPass,a.[Password],  (Select COUNT(ReportFileStatus) from tbReportDetails where ReportFileStatus = '0' and a.UserID = UserID) as [Number of file]  from  tbUserRegistration as a   left outer join tblDept as b on a.DeptID = b.ID  where a.DeptID = @DeptID and not (a.username = 'Admin')   
+END
+  
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserExpenseMeal]  @ExpenseID bigint 
+AS
+BEGIN   SELECT * FROM tbExpenseMealItem where ExpenseID = @ExpenseID
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserExpenseTrans]  @ExpenseID bigint 
+AS
+BEGIN   SELECT a.id,a.FareID,a.FareFrom,a.FareTo FROM tbExpenseTransportationItem AS A WHERE expense_id = @ExpenseID
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserIDMax] 
+AS
+BEGIN      select TOP 1 a.UserID AS 'User ID' from tbUserRegistration as a ORDER BY CONVERT(INT,UserID) DESC  
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserRate] 
+AS
+BEGIN     SELECT b.TranspoRate,b.BreakFastRate AS 'MealRate' FROM tbUserRegistration AS A   INNER JOIN tblEmpRate as b on a.UserID = b.UserID  
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserRates]  @Username varchar(4) 
+AS
+BEGIN   select a.BreakFastRate as 'BreakFast',a.LunchRate as 'Lunch',a.DinnerRate as 'Dinner',a.OTMeal as 'OT Meal',a.TranspoRate from tblEmpRate as a   INNER JOIN tbUserRegistration as b on a.UserID = b.UserID   WHERE B.username = @Username
+END
+
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserReportDetails]  @userID varchar(5),  @FileStatus varchar(1),  @signID int 
+AS
+BEGIN  Declare @ReportNumberStatus as int  DECLARE @ReportReserveStatus1 as int  DECLARE @ReportReserveStatus2 as int  set @ReportNumberStatus = (Select c.ReportNumberStatus from tbUserRegistration as c         where c.UserID = @userID)            SELECT A.ReportDateFrom AS [Date From], a.ReportDateTo as [Date To],a.ReportDescription, a.ID    FROM tbReportDetails AS A   WHERE a.UserID = @userID and a.ReportFileStatus = @FileStatus and a.ReportNumberStatus <> @ReportNumberStatus   order by a.ReportDateFrom asc       
+END
+    
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserReportDetailsCancel]  @reportID VARCHAR(50)  ,@reportCancelNote varchar(255) 
+AS
+BEGIN    Update tbReportDetails set ReportFileStatus = '0',ReportPrintStatus ='1'  ,ReportCancelNote = @reportCancelNote, ReportReserveStatus1 = '', ReportNumberStatus = 0  ,ReportEndorseStatus = 'NOT APPROVED'  where ID = @reportID    exec sp_Notify @ReportID, 'CANCEL'
+END
+
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserReportDetailsDONE]  @userID varchar(5),  @FileStatus varchar(1),  @signID int 
+AS
+BEGIN  Declare @ReportNumberStatus as int  DECLARE @ReportReserveStatus1 as int  DECLARE @ReportReserveStatus2 as int  DECLARE @UserLevel nvarchar(10)  set @ReportNumberStatus = (Select c.ReportNumberStatus from tbUserRegistration as c         where c.UserID = @userID)  set @UserLevel = (SELECT A.Userlevel FROM tbUserRegistration AS A WHERE A.UserID = @userID)            IF @UserLevel = 'Admin'    begin     SELECT A.ReportDateFrom AS [Date From], a.ReportDateTo as [Date To],a.ReportDescription as 'Report Description', a.ID      FROM tbReportDetails AS A     INNER JOIN tbUserRegistration AS B ON A.UserID = B.UserID     WHERE a.UserID = @userID --and a.ReportFileStatus = @FileStatus and a.ReportNumberStatus = @ReportNumberStatus        and b.Userlevel = 'Admin'     order by a.ReportDateFrom asc     end   else    begin     SELECT A.ReportDateFrom AS [Date From], a.ReportDateTo as [Date To],a.ReportDescription as 'Report Description', a.ID      FROM tbReportDetails AS A     INNER JOIN tbUserRegistration AS B ON A.UserID = B.UserID     WHERE (a.UserID = @userID and a.ReportFileStatus = @FileStatus and a.ReportNumberStatus = @ReportNumberStatus)     order by a.ReportDateFrom asc     end 
+END
+    
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserReportDetailsFILED]  @userID varchar(5),  @FileStatus varchar(1),  @signID int 
+AS
+BEGIN  Declare @ReportNumberStatus as int  DECLARE @ReportReserveStatus1 as int  DECLARE @ReportReserveStatus2 as int  set @ReportNumberStatus = (Select c.ReportNumberStatus from tbUserRegistration as c         where c.UserID = @userID)            SELECT DISTINCT A.ReportDateFrom AS [Date From], a.ReportDateTo as [Date To],   a.ReportDescription as 'Report Description',a.ID    FROM tbReportDetails AS A   INNER JOIN tbUserAuthority AS B ON A.UserID = B.UserID   WHERE a.UserID = @userID and a.ReportFileStatus = '1' and    a.ReportNumberStatus <> @ReportNumberStatus AND  A.ID not in (select a.ReportID               from tbReportAuthority as a              where a.SignID = @signID)   order by a.ReportDateFrom asc
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoadUserWorkWIth]  @DeptID varchar(10),  @Username varchar(10) 
+AS
+BEGIN   SELECT A.username AS 'Initial',A.Fullname as 'Name' FROM tbUserRegistration AS A    where a.WorkWithStatus = 1 and a.DeptID = @DeptID and not a.username = 'ADMIN' and not a.username = @Username
+END
+
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_LoginUser]  @username varchar(20),  @password varchar(max) 
+AS
+BEGIN  SELECT a.UserID,a.username,a.Userlevel,a.DeptID,a.[Password],  a.Fullname,B.emp_Dept, C.BreakFastRate,C.LunchRate,C.DinnerRate,C.OTMeal,C.TranspoRate,a.Approver1,a.Approver2  FROM tbUserRegistration AS A  INNER JOIN tblDept AS B ON A.DeptID = B.ID  LEFT OUTER JOIN tblEmpRate AS C ON A.UserID = C.UserID  WHERE username = @username and [Password] = @password
+END
+  
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_RefileER]  @ReportID VARCHAR(50),  @status int 
+AS
+BEGIN     update tbReportDetails set ReportFileStatus = @status where ID = @reportID   update tbReportDetails set ReportPrintStatus = '1' ,ReportCancelNote = ''    where ID = @reportID   exec sp_Notify @ReportID, 'FILE'
+END
+  
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_rptExpenseSummary]  @ReportDateFrom date,  @ReportDateTo date 
+AS
+BEGIN   select b.Fullname,c.ExpenseParticulars,Ltrim(c.ExpenseCategory) as 'ExpenseCategory',CONVERT(varchar(20),c.ExpenseTransDate,101) AS 'ExpenseDate',     c.ExpenseAmount,CONVERT(VARCHAR(20),a.ReportDateFrom) + ' to ' + CONVERT(VARCHAR(20),A.ReportDateTo) AS 'Date',     c.ExpenseLocation    from tbReportDetails as a   left outer join tbUserRegistration as b on a.UserID = b.UserID   left outer join tbExpenseDetails as c on a.ID = c.ReportID   where (DATEDIFF(D,@ReportDateFrom,c.ExpenseTransDate) >= 0 AND DATEDIFF(D,@ReportDateTo,c.ExpenseTransDate) <= 0) and    ((ReportFileStatus = 1 and ReportPrintStatus = 1) or (ReportFileStatus = 0 and ReportPrintStatus = 0))   group by ExpenseCategory,Fullname,ExpenseParticulars,ExpenseTransDate,ExpenseAmount,ReportDateFrom,ReportDateTo,ExpenseLocation   order by ExpenseTransDate,Fullname
+END
+
+    -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_SearchDataReport]  @userID varchar(5),  @sDate varchar(25) 
+AS
+BEGIN    SELECT a.ReportDateFrom as [Date From],a.ReportDateTo as [Date To],a.ReportDescription as [Description],   A.ID as [Report ID],B.CashAmount,B.CashDate,B.CashRefDoc,B.CashRefNo,  B.RevolvingFund,B.CashCheck from tbReportDetails as a  INNER JOIN tbCashAdvance AS B ON A.ID = B.ReportID   WHERE a.UserID = @userID and (ReportDateFrom like '%' + @sDate + '%')     ORDER BY A.ReportDateFiled desc    
+END
+    
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_UpdateDeptSign]  @UserID int,  @deptID int,  @Review varchar(50),  @Endorse varchar(25),  @Approved varchar(25)   
+AS
+BEGIN    UPDATE tblDeptManager SET emp_DeptID =@deptID,emp_Reviewer =@Review,emp_Endorser=@Endorse,  emp_Approver=@Approved  WHERE UserID =@UserID  
+END
+  
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_UpdateEmailSetup]  @empID varchar(25),  @emailAdd varchar(max),  @emailPassword varchar(max),  @emailTo varchar(255),  @emailBcc varchar(255) 
+AS
+BEGIN     UPDATE tbUserRegistration set EmailAdd = @emailAdd,EmailPass = @emailPassword , EmailTo = @emailTo , EmailBCC = @emailBcc   where UserID = @empID  
+END
+
+      -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_updateExpense]    -- Add the parameters for the stored procedure here    @transid int,    @Transdate   date   ,    @perdiem   varchar (1)  ,    @particulars   varchar (100)  ,    @Invoice   varchar (25)  ,    @multiplier   int   ,    @type   varchar (25)  ,    @category   varchar (50)  ,    @amount   float   ,    @remarks   varchar (max)  ,    @status   varchar (25)  ,    --@employee   varchar (50)  ,    @totalAmount   float   ,    @location   varchar (50)  ,    @UserID   int,    @WorkWith varchar(50),    @ServiceNumber nvarchar(50),    @Instrument nvarchar(50),    @SerialNumber nvarchar(50),    @MDays varchar(10),    @Computation varchar(255),    @TotDays varchar(10),    @Meal varchar(50),    @PaidFor varchar(1),    @PaidEmp varchar(100),    @FareID varchar(1) = '',    @FareFrom varchar(50) = '',    @FareTo varchar(50) = '' 
+AS
+BEGIN   -- SET NOCOUNT ON added to prevent extra result sets from   -- interfering with SELECT statements.   SET NOCOUNT ON;   DECLARE @MyMealID int   DECLARE @MyTransID int   DECLARE @mCount int   set @MyMealID = (SELECT top 1 ExpenseID FROM tbExpenseMealItem where ExpenseID = @transid)     set @MyTransID = (SELECT top 1 expense_id from tbExpenseTransportationItem WHERE expense_id = @transid)     set @mCount = (SELECT COUNT(*) FROM SplitString(@Meal,'^'))        -- Insert statements for procedure here   update tbExpenseDetails set ExpenseTransDate = @Transdate,ExpensePerdiem = @perdiem, ExpenseParticulars= @particulars,     ExpenseInvoice = @Invoice, ExpenseMultiplier = @multiplier, ExpenseType = @type, ExpenseCategory = @category,     ExpenseAmount = @amount, ExpenseRemarks= @remarks, ExpenseStatus=@status, ExpenseTotalAmount = @totalAmount,     ExpenseLocation = @location, UserID = @UserID,WorkWith = @WorkWith,ServiceNumber = @ServiceNumber,     Instrument = @Instrument, SerialNumber = @SerialNumber, MDays = @MDays,Computation = @Computation,TotDays = @TotDays   where ID = @transid     if ISNULL(@Meal,'') <> ''    begin     if ISNULL(@MyMealID, '') = ''      begin       exec sp2_InsertUserExpenseMeal @transid,@Meal,@PaidFor,@PaidEmp      end     else      begin       update tbExpenseMealItem set Meal = @Meal, PaidFor = @PaidFor, PaidEmp = @PaidEmp WHERE ExpenseID = @transid      end    end   if ISNULL(@FareID,'') <> ''    begin     IF ISNULL(@MyTransID,'') = ''      BEGIN       EXEC sp2_InsertUserExpenseTrans @transid,@FareID,@FareFrom,@FareTo    
+END
+   ELSE      BEGIN       update tbExpenseTransportationItem set FareID = @FareID, FareFrom = @FareFrom, FareTo = @FareTo WHERE expense_id = @transid    
+END
+  end     IF @mCount <= 2    BEGIN     delete from tbNotification where ExpenseID = @transid     exec sp2_InsertNotification @PaidEmp,@Transdate,@transid,@Meal,@UserID  
+END
+END        
+    -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_UpdateReportData]  @reportID varchar(50),  @datefrom varchar(25),  @dateto varchar(25),  @description varchar(max),  @cashAdvance float,  @cashDate varchar(25),  @cashrefDoc varchar(max),  @cashrefNumber varchar(25),  @revolvingfund float,  @cashCheck varchar(1)         
+AS
+BEGIN  UPDATE tbReportDetails SET ReportDateFrom =@datefrom,ReportDateTo = @dateto,  ReportDescription = @description WHERE ID = @reportID    UPDATE tbCashAdvance SET CashAmount =@cashAdvance,CashDate =@cashDate,CashRefDoc=@cashrefDoc,  CashRefNo = @cashrefNumber,RevolvingFund = @revolvingfund,CashCheck =@cashCheck where ReportID = @reportID
+END
+    
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_UpdateReportNumberStatus]  @UserID int,  @ReportID VARCHAR(50),  @SignID int 
+AS
+BEGIN  DECLARE @ReportNumberStatus as int  DECLARE @ReportConfirmStatus as int  DECLARE @ReportConfirmSlot1 as int  DECLARE @ReportConfirmSlot2 as int  set @ReportConfirmSlot1 = (select a.ReportReserveStatus1 from tbReportDetails as a           where a.UserID = @UserID and a.id  = @ReportID)  set @ReportConfirmStatus = (select a.ReportNumberStatus from tbUserRegistration as a           where a.UserID = @UserID)  set @ReportNumberStatus = (Select a.ReportNumberStatus +1 from tbReportDetails as a           where a.UserID = @UserID and a.ID = @ReportID)    if @ReportConfirmStatus <> @ReportNumberStatus   begin                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          Update tbReportDetails Set ReportPrintStatus = '1',ReportFileStatus ='1',       ReportNumberStatus = @ReportNumberStatus,ReportReserveStatus1 = @SignID,       ReportEndorseStatus = 'APPROVED'     where UserID = @UserID and ID = @ReportID     INSERT INTO tbReportAuthority(ReportID,SignID,UserID,AuthoritySignature)     VALUES(@ReportID,@SignID,@UserID,(SELECT A.[Signature]      FROM tbUserRegistration AS A WHERE A.UserID = @SignID))     exec sp_Notify @ReportID, 'FILE'   end  else   begin     Update tbReportDetails Set ReportPrintStatus = '0',ReportFileStatus ='0',ReportNumberStatus = @ReportNumberStatus,ReportReserveStatus2 = @SignID     where UserID = @UserID and ID = @ReportID     exec sp_Notify @ReportID, 'DONE'   end
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_UpdateReportNumberStatus_ByPass]  @UserID int,  @ReportID VARCHAR(50),  @SignID int 
+AS
+BEGIN    DECLARE @ReportConfirmStatus as int  DECLARE @ReportByPassApprove varchar(5)    set @ReportConfirmStatus = (select a.ReportNumberStatus from tbUserRegistration as a           where a.UserID = @UserID)    set @ReportByPassApprove = (select a.SuperApprover from tbUserRegistration as a where UserID = @UserID)     Update tbReportDetails Set ReportPrintStatus = '0',ReportFileStatus ='0',ReportNumberStatus = @ReportConfirmStatus,ReportReserveStatus2 = @SignID   where UserID = @UserID and ID = @ReportID   exec sp_Notify @ReportID, 'DONE'  
+END
+
+-- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_UpdateReportStatus]  @UserID int,  @ReportID VARCHAR(50) 
+AS
+BEGIN  DECLARE @ReportNumberStatus as int  set @ReportNumberStatus = (Select a.ReportNumberStatus + 1 from tbReportDetails as a)  Update tbReportDetails Set ReportPrintStatus = '0',ReportFileStatus ='0' where UserID = @UserID and ID = @ReportID    
+END
+
+  -- =============================================  -- Author:  <Author,,Name>  -- Create date: <Create Date,,>  -- Description: <Description,,>  -- =============================================  
+GO
+
+CREATE PROCEDURE [dbo].[sp2_UpdateUserAcc]  @userID varchar(5),  @Fullname varchar(50),  @Position varchar(25),  @Department varchar(40),  @username varchar(25),  @Password varchar(max),  @EmailTo varchar(255),  @EmailBCC varchar(255),  @Signature varbinary(max),  @userLevel varchar(10),  @Approver1 varchar(10),  @Approver2 varchar(10),  @TranspoRates varchar(10),  @BreakFast varchar(10),  @LunchRate varchar(10),  @DinnerRate varchar(10),  @OTMeal varchar(10) 
+AS
+BEGIN  DECLARE @NotFoundID varchar(10)  set @NotFoundID  = (SELECT a.UserID FROM tblEmpRate as a where UserID = 12373)      UPDATE tbUserRegistration SET Fullname =@Fullname,Position = @Position,DeptID = @Department,          username=@username,[Password] = @Password,          EmailTo = @EmailTo,EmailBCC =@EmailBCC,[Signature]=@Signature,Userlevel =@userLevel,          Approver1 = @Approver1, Approver2 = @Approver2 WHERE UserID = @userID     if @NotFoundID <> ''    BEGIN     UPDATE tblEmpRate SET TranspoRate = @TranspoRates,      BreakFastRate = @BreakFast,LunchRate = @LunchRate,DinnerRate = @DinnerRate,OTMeal = @OTMeal      where UserID = @userID  
+END
+ ELSE    BEGIN     INSERT INTO tblEmpRate(UserID,TranspoRate,BreakFastRate,LunchRate,DinnerRate,OTMeal)      VALUES (@userID,@TranspoRates,@BreakFast,@LunchRate,@DinnerRate,@OTMeal)  
+END
+END    

@@ -184,6 +184,8 @@
     <Compile Include="Application\Services\LoginAccessResult.vb" />
     <Compile Include="Application\Services\LoginAccessService.vb" />
     <Compile Include="Application\Services\UserAccountService.vb" />
+    <Compile Include="Presentation\Presenters\ExpenseUpdatePresenter.vb" />
+    <Compile Include="Presentation\ViewModels\ExpenseUpdateViewModel.vb" />
     <Compile Include="Shared\Utilities\Clipping.vb" />
     <Compile Include="Shared\Utilities\clsEncryption.vb" />
     <Compile Include="Infrastructure\Data\ClsLoadData.vb" />
@@ -386,6 +388,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <Compile Include="Shared\Utilities\MyFramework.vb" />
+    <Compile Include="Shared\Utilities\RegistryKeys.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Presentation\Forms\FrmEReportDetails.resx">
@@ -601,4 +604,3 @@
   </Target>
   -->
 </Project>
-

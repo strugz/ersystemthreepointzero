@@ -28,6 +28,7 @@ Public Class frmLogin
             End If
             LoadUserAccountAdmin()
         Catch ex As Exception
+            MessageBox.Show("Failed to initialize connection: " & ex.Message, "Startup Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
         Dim CurrentVersion As String
         Dim NewVersion As String
@@ -109,14 +110,14 @@ Public Class frmLogin
         End If
     End Sub
     Private Sub SearchDup()
-        CreateUserAccountService().GetByUserId(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+        CreateUserAccountService().GetByUserId(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
     End Sub
 
     Private Sub DUpAcct(ByVal loginStatus As String)
-        CreateUserAccountService().UpdateLoginStatus(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), loginStatus)
+        CreateUserAccountService().UpdateLoginStatus(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0), loginStatus)
     End Sub
 
-    Private Function CreateUserAccountService() As UserAccountService
+    Friend Function CreateUserAccountService() As UserAccountService
         Dim settingsProvider As New RegistryConnectionSettingsProvider(TripleDes)
         Dim connectionFactory As New SqlConnectionFactory(settingsProvider)
         Dim userAccountRepository As IUserAccountRepository = New SqlUserAccountRepository(connectionFactory)
@@ -126,10 +127,10 @@ Public Class frmLogin
 
     Private Function CreateRegisteredUserAccount() As UserAccount
         Return New UserAccount With {
-            .UserName = GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0),
-            .UserLevel = GetRegistryValue("Software\\ER System\\UserAccount", {"Userlevel"})(0),
-            .FullName = GetRegistryValue("Software\\ER System\\UserAccount", {"Fullname"})(0),
-            .DepartmentName = GetRegistryValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0)
+            .UserName = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UsernameKey})(0),
+            .UserLevel = GetRegistryValue(RegistryKeys.UserAccountPath, {"Userlevel"})(0),
+            .FullName = GetRegistryValue(RegistryKeys.UserAccountPath, {"Fullname"})(0),
+            .DepartmentName = GetRegistryValue(RegistryKeys.UserAccountPath, {"emp_Dept"})(0)
         }
     End Function
     Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click

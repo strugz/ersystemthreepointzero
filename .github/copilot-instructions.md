@@ -23,31 +23,18 @@ Recommended target architecture for the VB.NET application:
 
 ```text
 ER System/
-  Presentation/
-    Forms/                 WinForms screens, designers, and UI-only logic
-    Presenters/            UI orchestration that can be tested without controls when practical
-    ViewModels/            Simple display/input models for forms and grids
-  Application/
-    UseCases/              Expense report workflows: create, file, approve, return, cancel, export
-    Services/              Application services coordinating repositories and infrastructure
-    Validation/            Business validation rules and user-facing validation messages
-  Domain/
-    Entities/              ExpenseReport, ExpenseLine, UserAccount, Department, Signature, Client
-    Enums/                 File status, approval status, role/signatory IDs, report type values
-    ValueObjects/          Money/rates, date ranges, registry connection settings, email addresses
-  Infrastructure/
-    Data/
-      Repositories/        SQL Server repository implementations
-      Sql/                 SQL command builders, stored procedure names, parameter helpers
-    Configuration/         Registry/app.config settings adapters
-    Email/                 SMTP/email sending adapters
-    Reporting/             Crystal Reports and PDF/export adapters
-    Logging/               log4net integration and error reporting adapters
-  Shared/
-    Extensions/            Small extension methods
-    Utilities/             File/path helpers, encryption wrappers, common constants
-  Resources/               Existing image/icon resources
-  My Project/              Visual Studio-generated VB project files
+  Config/                Configuration settings and adapters
+  Core/                  Business logic and domain models
+  Database/              SQL Server repository implementations and data access
+  Models/                Simple display/input models for forms and grids
+  Services/              Application services coordinating repositories and infrastructure
+  UI/                    WinForms screens, designers, and UI-only logic
+  Reports/               Reporting adapters and logic
+  Logs/                  Logging and error reporting
+  Tests/                 Unit and integration tests
+  Documentation/         Project documentation and architecture guidelines
+  Assets/                Existing image/icon resources
+  Packages/              NuGet packages and dependencies
 ```
 
 Do **not** do a big-bang folder move. The initial layer folders now exist as placeholders, but legacy files should move only when each move is small, buildable, and focused on one feature or one seam.
@@ -60,16 +47,16 @@ Do **not** do a big-bang folder move. The initial layer folders now exist as pla
    - Existing forms can be improved incrementally by extracting one method/workflow at a time.
 
 2. **Separate business workflows from infrastructure**
-   - Put report filing, approval, return/cancel, expense validation, user account, signature, and export workflows under `Application/`.
-   - Put SQL Server, registry, email, Crystal Reports, PDF, logging, and file-system integration under `Infrastructure/`.
-   - Put plain business models and status concepts under `Domain/`.
+   - Put report filing, approval, return/cancel, expense validation, user account, signature, and export workflows under `Services/`.
+   - Put SQL Server, registry, email, Crystal Reports, PDF, logging, and file-system integration under `Database/`.
+   - Put plain business models and status concepts under `Core/`.
 
 3. **Use repositories for database access**
    - New database code should go through repository classes instead of global modules.
    - Use `SqlCommand.Parameters` for all values. Do not concatenate user input or IDs into SQL strings.
    - Prefer stored procedure calls with `CommandType.StoredProcedure` where the database already exposes procedures.
    - Wrap `SqlConnection`, `SqlCommand`, `SqlDataReader`, `DataTable`, and other disposable objects in `Using` blocks.
-   - Keep stored procedure names and table/column constants centralized under `Infrastructure/Data/Sql/` when practical.
+   - Keep stored procedure names and table/column constants centralized under `Database/` when practical.
 
 4. **Treat global modules as legacy compatibility seams**
    - Existing modules such as `mConn.vb`, `modLoadingData.vb`, `modMaintenance.vb`, `modReport.vb`, `modReuse.vb`, and `ModDataStore.vb` are legacy areas.
@@ -103,7 +90,7 @@ Use this sequence when the user asks to restructure folders or modernize archite
    - Add smoke-test/build instructions for a Windows developer environment.
 
 2. **Use the new folders without moving every file**
-   - The `Domain/`, `Application/`, `Infrastructure/`, `Presentation/`, and `Shared/` folders exist inside `ER System/`.
+   - The `Core/`, `Services/`, `Database/`, `UI/`, and `Assets/` folders exist inside `ER System/`.
    - Add new code into the target folders first.
    - Move legacy files only when there is a direct reason and a build can verify the move.
 
@@ -126,7 +113,7 @@ Use this sequence when the user asks to restructure folders or modernize archite
    - Avoid changing visual layout unless requested.
 
 7. **Add tests around extracted logic**
-   - Prefer testing `Domain/` and `Application/` classes first because they should not require WinForms, SQL Server, registry, or Crystal Reports.
+   - Prefer testing `Core/` and `Services/` classes first because they should not require WinForms, SQL Server, registry, or Crystal Reports.
    - Use repository interfaces/mocks for workflow tests.
 
 ## Naming conventions

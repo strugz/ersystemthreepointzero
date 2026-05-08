@@ -5,28 +5,24 @@ Module modReuse
     Public Function SetTextFile(ByVal workwith As String, ByVal hospital As String,
                               ByVal instrument As String, ByVal serialnumber As String,
                                    ByVal servicenumber As String) As String
+        Dim str As String = ""
         Dim str2 As String = ""
-        Dim str() As String = {workwith, hospital, instrument, serialnumber, servicenumber}
-        Dim objWriter As New StreamWriter(StartupPath + "/ER.txt")
-        If File.Exists(StartupPath + "/ER.txt") = False Then
-            Directory.CreateDirectory(StartupPath + "/ER.txt")
-            For i = 0 To str.Count - 1
-                If i = str.Count - 1 Then
-                    objWriter.Write(str(i))
-                Else
-                    objWriter.Write(str(i) + "/")
-                End If
-            Next
-        Else
-            For i = 0 To str.Count - 1
-                If i = str.Count - 1 Then
-                    objWriter.Write(str(i))
-                Else
-                    objWriter.Write(str(i) + "/")
-                End If
-            Next
-            objWriter.Close()
+        Dim strItems() As String = {workwith, hospital, instrument, serialnumber, servicenumber}
+
+        If Not File.Exists(StartupPath + "/ER.txt") Then
+            Directory.CreateDirectory(StartupPath)
         End If
+
+        Using objWriter As New StreamWriter(StartupPath + "/ER.txt")
+            For i = 0 To strItems.Length - 1
+                If i = strItems.Length - 1 Then
+                    objWriter.Write(strItems(i))
+                Else
+                    objWriter.Write(strItems(i) + "/")
+                End If
+            Next
+        End Using
+
         Return str2
     End Function
     Public Function GetTextFile() As String

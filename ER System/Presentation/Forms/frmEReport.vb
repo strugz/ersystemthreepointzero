@@ -1,4 +1,6 @@
-﻿Imports System.IO
+Imports System.IO
+Imports ER_System.Presentation.Presenters
+Imports ER_System.Presentation.ViewModels
 Public Class frmEReport
     Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Dim SortNumber As Integer
@@ -133,20 +135,11 @@ Public Class frmEReport
         Dim ClsData As New ClsLoadData
         Call DgExpenseVisibility({"ID", "reportid", "sort"})
         Call myFrmEReportLoad(True)
-        txtCategory.Items.Clear()
-        txtCategory.Items.Add("Transportation")
-        txtCategory.Items.Add("Meals")
-        txtCategory.Items.Add("Toll")
-        txtCategory.Items.Add("Parking")
-        txtCategory.Items.Add("Others")
+        PopulateCategoryItems()
         Dim myERData As String()
         myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
         dtpExpenseDate.Value = myERData(1)
-        If GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0) = 3 Then
-            CBPerdiem.Visible = True
-        Else
-            CBPerdiem.Visible = False
-        End If
+        CBPerdiem.Visible = (GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0) = 3)
         Me.dtpExpenseDate.Value = DateTime.Now.ToString("MM/dd/yyyy")
         txtWorkWith.Text = "NONE"
     End Sub
@@ -275,7 +268,7 @@ Public Class frmEReport
                 ModDataStore.clearExpenseData()
             End If
 
-            Using dtLoadExpenseReport As DataTable = LoadingExpenseReport(myERData(13), GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+            Using dtLoadExpenseReport As DataTable = LoadingExpenseReport(myERData(13), GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
                 dgvExpense.DataSource = dtLoadExpenseReport
             End Using
             txtParticulars.Focus()
@@ -316,32 +309,47 @@ Public Class frmEReport
 
     Private Sub btnExpenseUpdate_Click(sender As Object, e As EventArgs) Handles btnExpenseUpdate.Click
         Dim ClsData As New ClsLoadData
-        If txtParticulars.Text = Nothing Or txtExpenseAmount.Text = Nothing Or txtCategory.SelectedItem = "" Then
-            MsgBox("Please fill in the Particulars/Expense Amount/Category")
-        Else
-            Dim myExpenseData As String()
-            Dim myERData As String()
-            myExpenseData = ClsData.GetEReportDetails(StartupPath + "\expenseSettings.txt")
-            myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
-            UpdateExpense(
-                myExpenseData(16), dtpExpenseDate.Text, IIf(CBPerdiem.Checked, "1", "0"), txtParticulars.Text,
-                txtInvoice.Text, txtMultiplier.Text, IIf(RbLocal.Checked = True, "Local", "Foreign"), txtCategory.Text,
-                txtExpenseAmount.Text, txtRemarks.Text, txtStatus.SelectedItem, txtTotal.Text,
-                IIf(Trim(txtLocation.Text) = "", "Allowance", Trim(txtLocation.Text)),
-                myERData(14), txtServiceNumber.Text, txtInstrument.Text,
-                txtSerialNumber.Text, txtWorkWith.Text, ClsData.GetMeal(),
-                ClsData.GetTranspo(), txtMDays.Text, txtComputation.Text, txtTotalNumberOfDays.Text)
+        Dim myExpenseData As String()
+        Dim myERData As String()
 
-            AddExpenseHisto(dtpExpenseDate.Text, IIf(CBPerdiem.Checked, "1", "0"),
-                            txtParticulars.Text, txtInvoice.Text,
-                            txtMultiplier.Text, IIf(RbLocal.Checked = True, "Local",
-                                                    "Foreign"), txtCategory.Text,
-                            txtExpenseAmount.Text, txtRemarks.Text, txtStatus.Text,
-                            txtTotal.Text, IIf(Trim(txtLocation.Text) = "", "Allowance",
-                                               Trim(txtLocation.Text)),
-                            myERData(14), myERData(13), myExpenseData(16),
-                            txtServiceNumber.Text, txtInstrument.Text, txtSerialNumber.Text,
-                            GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), txtMDays.Text, txtComputation.Text, txtTotalNumberOfDays.Text)
+        myExpenseData = ClsData.GetEReportDetails(StartupPath + "\expenseSettings.txt")
+        myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
+
+        Dim presenter As New ExpenseUpdatePresenter()
+        Dim model As New ExpenseUpdateViewModel With {
+            .TransactionId = myExpenseData(16),
+            .ExpenseDateText = dtpExpenseDate.Text,
+            .IsPerdiem = CBPerdiem.Checked,
+            .Particulars = txtParticulars.Text,
+            .Invoice = txtInvoice.Text,
+            .Multiplier = txtMultiplier.Text,
+            .ExpenseType = If(RbLocal.Checked = True, "Local", "Foreign"),
+            .Category = txtCategory.Text,
+            .Amount = txtExpenseAmount.Text,
+            .Remarks = txtRemarks.Text,
+            .Status = Convert.ToString(txtStatus.SelectedItem),
+            .Total = txtTotal.Text,
+            .Location = If(Trim(txtLocation.Text) = "", "Allowance", Trim(txtLocation.Text)),
+            .UserId = myERData(14),
+            .ReportId = myERData(13),
+            .ServiceNumber = txtServiceNumber.Text,
+            .Instrument = txtInstrument.Text,
+            .SerialNumber = txtSerialNumber.Text,
+            .WorkWith = txtWorkWith.Text,
+            .MealValue = ClsData.GetMeal(),
+            .TransportationValue = ClsData.GetTranspo(),
+            .MDays = txtMDays.Text,
+            .Computation = txtComputation.Text,
+            .TotalDays = txtTotalNumberOfDays.Text,
+            .EditedByUserId = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0)
+        }
+
+        Dim validationMessage As String = presenter.Validate(model)
+        If validationMessage <> String.Empty Then
+            MsgBox(validationMessage)
+        Else
+            presenter.UpdateExpense(model)
+
             If MessageBox.Show(
                     "Data Saved. Do you Want to Clear the WorkWith, Hospital Name, Instrument and Serial Number above?",
                     "Clear Details",
@@ -425,7 +433,7 @@ Public Class frmEReport
                     Next
                     Dim myERData As String()
                     myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
-                    Using LoadExpenseReport As DataTable = LoadingExpenseReport(myERData(13), GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+                    Using LoadExpenseReport As DataTable = LoadingExpenseReport(myERData(13), GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
                         dgvExpense.DataSource = LoadExpenseReport
                     End Using
                 End With
@@ -435,21 +443,19 @@ Public Class frmEReport
     Private Sub CBPerdiem_CheckedChanged(sender As Object, e As EventArgs) Handles CBPerdiem.CheckedChanged
         If CBPerdiem.Checked = True Then
             Call ModDataStore.CBPerdiemStatusTrue(transactionID)
-            txtCategory.Items.Clear()
-            txtCategory.Items.Add("Transportation")
-            txtCategory.Items.Add("Meals")
-            txtCategory.Items.Add("Toll")
-            txtCategory.Items.Add("Parking")
-            txtCategory.Items.Add("Others")
         Else
             Call ModDataStore.CBPerdiemStatusFalse(transactionID)
-            txtCategory.Items.Clear()
-            txtCategory.Items.Add("Transportation")
-            txtCategory.Items.Add("Meals")
-            txtCategory.Items.Add("Toll")
-            txtCategory.Items.Add("Parking")
-            txtCategory.Items.Add("Others")
         End If
+        PopulateCategoryItems()
+    End Sub
+
+    Private Sub PopulateCategoryItems()
+        txtCategory.Items.Clear()
+        txtCategory.Items.Add("Transportation")
+        txtCategory.Items.Add("Meals")
+        txtCategory.Items.Add("Toll")
+        txtCategory.Items.Add("Parking")
+        txtCategory.Items.Add("Others")
     End Sub
     Private Sub txtInstrument_KeyUp(sender As Object, e As KeyEventArgs) Handles txtInstrument.KeyUp
         If e.KeyCode = Keys.Enter Then
@@ -610,25 +616,25 @@ Public Class frmEReport
                 txtMultiplier.Enabled = False
                 txtMDays.Text = 0
                 txtComputation.Visible = True
-                If IsDBNull(GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)) = False Then
-                    txtTotalNumberOfDays.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)
+                If IsDBNull(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.TotalDays})(0)) = False Then
+                    txtTotalNumberOfDays.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.TotalDays})(0)
                 End If
                 If txtCategory.SelectedIndex = 0 Then
-                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
+                    txtExpenseAmount.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.TranspoRate})(0)
                 ElseIf txtCategory.SelectedIndex = 1 Then
-                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
+                    txtExpenseAmount.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.LunchRate})(0)
                 End If
             ElseIf comboClick = 1 And ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") = True Then
                 txtParticulars.Size = New Size(199, 40)
                 GBAllowance.Location = New Point(97, 410)
                 GBAllowance.Visible = True
-                If IsDBNull(GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)) = False Then
-                    txtTotalNumberOfDays.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)
+                If IsDBNull(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.TotalDays})(0)) = False Then
+                    txtTotalNumberOfDays.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.TotalDays})(0)
                 End If
                 If txtCategory.SelectedIndex = 0 Then
-                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
+                    txtExpenseAmount.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.TranspoRate})(0)
                 ElseIf txtCategory.SelectedIndex = 1 Then
-                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
+                    txtExpenseAmount.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.LunchRate})(0)
                 End If
             ElseIf ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") = True Then
                 txtCategory.Enabled = False
@@ -637,13 +643,13 @@ Public Class frmEReport
                 txtParticulars.Size = New Size(199, 40)
                 txtComputation.Visible = True
                 LBLComputation.Visible = True
-                If IsDBNull(GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)) = False Then
-                    txtTotalNumberOfDays.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)
+                If IsDBNull(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.TotalDays})(0)) = False Then
+                    txtTotalNumberOfDays.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.TotalDays})(0)
                 End If
                 If txtCategory.SelectedIndex = 0 Then
-                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
+                    txtExpenseAmount.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.TranspoRate})(0)
                 ElseIf txtCategory.SelectedIndex = 1 Then
-                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
+                    txtExpenseAmount.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.LunchRate})(0)
                 End If
             End If
         End If
@@ -732,7 +738,7 @@ Public Class frmEReport
                     MsgBox("Please fill WorkWith to Proceed")
                 Else
                     txtParticulars.Text = txtCategory.SelectedItem
-                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
+                    txtExpenseAmount.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.TranspoRate})(0)
                     txtExpenseAmount.Enabled = False
                     BTNEditCategory.Enabled = False
                 End If
@@ -741,7 +747,7 @@ Public Class frmEReport
                     MsgBox("Please fill WorkWith to Proceed")
                 Else
                     txtParticulars.Text = txtCategory.SelectedItem
-                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
+                    txtExpenseAmount.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.LunchRate})(0)
                     txtExpenseAmount.Enabled = False
                     BTNEditCategory.Enabled = False
                 End If
@@ -961,7 +967,7 @@ Public Class frmEReport
             MsgBox("Please fill all Fields")
         ElseIf CBBFare.SelectedValue = 4 Then
             txtParticulars.Text = "Transportation"
-            txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
+            txtExpenseAmount.Text = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.TranspoRate})(0)
             GBTransportation.Visible = False
             If ClsData.TempFileValidation(StartupPath + "\expenseSettings.txt") = True Then
                 Dim myExpenseData As String()
@@ -1134,18 +1140,18 @@ Public Class frmEReport
     End Sub
     Private Sub RBDinnerOTMeal_CheckedChanged(sender As Object, e As EventArgs) Handles CBDinnerOTMeal.CheckedChanged
         Dim str As String = modLoadingData.LoadNotification(dtpExpenseDate.Text,
-                GetRegistryValue("Software\\ER System\\UserAccount", {"Username"})(0),
+                GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UsernameKey})(0),
                 "")
 
         If str <> "" Then
             Dim strSplit As String() = str.Split("/")
+
             For x = 0 To UBound(strSplit)
                 If strSplit(x).Split("^")(2) = "Dinner" Or strSplit(x).Split("^")(2) = "OT Meal" Then
                     If counter = "" Then
                         counter = "1"
                         MsgBox(strSplit(x).Split("^")(2) + " Meal is Already Filed by " & strSplit(x).Split("^")(1))
                         CBDinnerOTMeal.Checked = False
-
                     Else
                         counter = ""
                         CBDinnerOTMeal.Checked = False
@@ -1206,7 +1212,7 @@ Public Class frmEReport
         myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
 
         LoadingExpenseCount(myERData(13))
-        If LoadingOfficersToSign(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0)) = Nothing Then
+        If LoadingOfficersToSign(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0)) = Nothing Then
             MsgBox("Please Insert Your Signatory " & vbNewLine & " Go to Account Settings > Signatory", TopMost = True)
         ElseIf LoadingExpenseCount(myERData(13)) = 0 Then
             MsgBox("No Expense Data to File", TopMost = True)
@@ -1226,7 +1232,7 @@ Public Class frmEReport
             y = MessageBox.Show("Are you sure you want to Update your Expense Report?", "Update", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2)
             If y = MsgBoxResult.Yes Then
                 Call UpdatePrintStatus(myERData(13))
-                DeleteImage(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), myERData(13))
+                DeleteImage(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0), myERData(13))
                 ClsData.SetEReportDetails(myERData(13))
                 Call UpdateEReportData()
                 Call EReportOpenValidation()
@@ -1240,7 +1246,7 @@ Public Class frmEReport
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
         myERData = ClsData.GetEReportDetails(StartupPath + "\settings.txt")
-        If LoadingOfficersToSign(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0)) = Nothing Then
+        If LoadingOfficersToSign(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0)) = Nothing Then
             MsgBox("Please Insert Your Signatory " & vbNewLine & " Go to Account Settings > Signatory", TopMost = True)
         Else
             If myERData(13) = Nothing Then
@@ -1317,7 +1323,7 @@ Public Class frmEReport
     End Sub
     Private Sub CLBMeals_SelectedValueChanged(sender As Object, e As EventArgs) Handles CLBMeals.SelectedValueChanged
         Dim str As String = modLoadingData.LoadNotification(dtpExpenseDate.Text,
-            GetRegistryValue("Software\\ER System\\UserAccount", {"Username"})(0),
+            GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UsernameKey})(0),
             "")
         If str <> "" Then
             Dim strSplit As String() = Split(str, "/")

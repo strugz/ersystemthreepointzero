@@ -1,4 +1,6 @@
-﻿Public Class frmMain
+﻿Imports ER_System.Domain.Entities
+
+Public Class frmMain
     Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Dim SearchButtonValidation As String = "0"
     Private Sub frmMain_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
@@ -21,14 +23,14 @@
         End Using
     End Sub
     Private Sub ActiveFormsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ActiveFormsToolStripMenuItem.Click
-        SetRegistry("Settings", {"ChangeLoading"}, {"1"})
+        SetRegistry("Settings", {RegistryKeys.ChangeLoading}, {"1"})
         frmApprove.ShowDialog()
     End Sub
     Private Sub PreviousFormsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles PreviousFormsToolStripMenuItem.Click
-        LoadingUserAccountPending(GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0))
+        LoadingUserAccountPending(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0))
         With frmApprove
             .ShowDialog()
-            SetRegistry("Settings", {"ChangeLoading"}, {"0"})
+            SetRegistry("Settings", {RegistryKeys.ChangeLoading}, {"0"})
             .BringToFront()
             .btnApprove.Enabled = False
             .btnReject.Enabled = False
@@ -47,20 +49,10 @@
         frmUserRegistration.Close()
     End Sub
     Private Sub LogoutdupAcc()
-        DBConnection()
-        Using dt As New DataTable
-            Using sqlcmdDupAcc As New SqlClient.SqlCommand
-                Using SQLConnection As SqlClient.SqlConnection = mConn.SQLConnection
-                    With sqlcmdDupAcc
-                        .Connection = SQLConnection
-                        .CommandText = "update tbUserRegistration set [Status] = '0' where UserID = '" & GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0) & "'"
-                        .ExecuteNonQuery()
-                        Timer2.Enabled = False
-                        Timer2.Stop()
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim userId As String = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0)
+        frmLogin.CreateUserAccountService().UpdateLoginStatus(userId, "0")
+        Timer2.Enabled = False
+        Timer2.Stop()
     End Sub
     Private Sub frmMain_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
         Dim ClsData As New ClsLoadData
@@ -131,7 +123,7 @@
     End Sub
     Private Sub UserAccountToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles UserAccountToolStripMenuItem.Click
         Try
-            LoadingUserAccount(GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0))
+            LoadingUserAccount(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0))
             frmUserRegistration.Show()
             frmUserRegistration.dgvUserAccount.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
             frmUserRegistration.dgvUserAccount.Columns("Signature").Visible = False
@@ -142,6 +134,7 @@
             frmUserRegistration.dgvUserAccount.Columns("Password").Visible = False
             frmUserRegistration.dgvUserAccount.Columns("Number of file").Visible = False
         Catch ex As Exception
+            MsgBox(ex.Message)
         End Try
     End Sub
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
@@ -156,19 +149,12 @@
         MsgBox("On-Going")
     End Sub
     Private Sub Timer2_Tick(sender As Object, e As EventArgs) Handles Timer2.Tick
-        DBConnection()
-        Using dt As New DataTable
-            Using sqlcmdLoadLogin As New SqlClient.SqlCommand
-                Using SQLConnection As SqlClient.SqlConnection = mConn.SQLConnection
-                    With sqlcmdLoadLogin
-                        .Connection = SQLConnection
-                        .CommandText = "select a.[Status],a.UserID from tbUserRegistration as a where UserID ='" & GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0) & "'"
-                        .CommandType = CommandType.Text
-                        dt.Load(.ExecuteReader)
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim userId As String = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0)
+        Dim account As UserAccount = frmLogin.CreateUserAccountService().GetByUserId(userId)
+
+        If account IsNot Nothing AndAlso account.Status = "0" Then
+            Logout()
+        End If
     End Sub
     Private Sub HelpToolStripMenuItem1_Click(sender As Object, e As EventArgs) Handles HelpToolStripMenuItem1.Click
         frmHelp.Show()
@@ -193,13 +179,13 @@
 
     Private Sub DgvReportDetails_CellDoubleClick(sender As Object, e As DataGridViewCellEventArgs) Handles DgvReportDetails.CellDoubleClick
 
-        If GetRegistryValue("Software\\ER System\\UserAccount", {"BreakFastRate"})(0) = "" And
-            GetRegistryValue("Software\\ER System\\UserAccount", {"DinnerRate"})(0) = "" And
-            GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0) = "" And
-            GetRegistryValue("Software\\ER System\\UserAccount", {"OTMeal"})(0) = "" Then
+        If GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.BreakFastRate})(0) = "" And
+            GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DinnerRate})(0) = "" And
+            GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.LunchRate})(0) = "" And
+            GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.OTMeal})(0) = "" Then
             MsgBox("Please Contact IMS Administrator to verify your Meal Rates.", Title:="Help")
-        ElseIf GetRegistryValue("Software\\ER System\\UserAccount", {"BreakFastRate"})(0) = "" Then
-            Dim datatb As DataTable = LoadingUserAccDept(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+        ElseIf GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.BreakFastRate})(0) = "" Then
+            Dim datatb As DataTable = LoadingUserAccDept(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
 
             If datatb.Rows.Count <> 0 Then
                 If datatb.Rows(0).Item("emp_Endorser") = "" And
@@ -208,20 +194,20 @@
                     MsgBox("Please Add your Signatory. Go to Account Settings > Signatory", MsgBoxStyle.MsgBoxHelp)
                 End If
             End If
-            Else
-                Dim ClsData As New ClsLoadData
+        Else
+            Dim ClsData As New ClsLoadData
             Try
                 If e.RowIndex < 0 Then
                     Exit Sub
                 Else
                     ClsData.DeleteEReportDetails(StartupPath + "\settings.txt")
                     ClsData.SetEReportDetails(DgvReportDetails.Rows(e.RowIndex).Cells("Report ID").Value)
-                    DGVLoadExpenseReport(EReportOpenValidation(), GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
-                    ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", "Settings", {"Approver"}, {"0"})
+                    DGVLoadExpenseReport(EReportOpenValidation(), GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
+                    ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", "Settings", {RegistryKeys.Approver}, {"0"})
                     frmEReport.ShowDialog()
                 End If
             Catch ex As Exception
-                MsgBox(ex.ToString)
+                MsgBox(ex.Message)
             End Try
         End If
     End Sub
@@ -262,8 +248,8 @@
             Else
                 ClsData.DeleteEReportDetails(StartupPath + "\settings.txt")
                 ClsData.SetEReportDetails(DgvReportDetails.Rows(DgvReportDetails.Rows.IndexOf(DgvReportDetails.CurrentRow)).Cells("Report ID").Value)
-                DGVLoadExpenseReport(EReportOpenValidation(), GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
-                ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", "Settings", {"Approver"}, {"0"})
+                DGVLoadExpenseReport(EReportOpenValidation(), GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
+                ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", "Settings", {RegistryKeys.Approver}, {"0"})
                 frmEReport.ShowDialog()
             End If
         Catch ex As Exception

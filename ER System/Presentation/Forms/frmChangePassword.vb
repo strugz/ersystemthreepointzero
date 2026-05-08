@@ -1,11 +1,10 @@
-﻿Imports System.Security.Cryptography
-Imports Microsoft.Win32
+﻿Imports Microsoft.Win32
 Public Class frmChangePassword
-    Public Const MyKey As String = "crimsonmonastery2003"
-    Public TripleDes As New clsEncryption(MyKey)
+    Private Const MyKey As String = "crimsonmonastery2003"
+    Private ReadOnly TripleDes As New clsEncryption(MyKey)
     Private Sub btnChange_Click(sender As Object, e As EventArgs) Handles btnChange.Click
         If txtNew.Text = txtCon.Text Then
-            ChangePassword(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0),
+            ChangePassword(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0),
                            TripleDes.EncryptData(txtNew.Text))
             MsgBox("Change Successfully")
             Me.Close()
@@ -21,7 +20,9 @@ Public Class frmChangePassword
         End If
     End Sub
     Private Sub frmChangePassword_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Using dtLoadUserAccountEmail As DataTable = LoadingUserAccountEmail(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0))
+        Using dtLoadUserAccountEmail As DataTable = LoadingUserAccountEmail(
+                GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0),
+                GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0))
             If dtLoadUserAccountEmail.Rows.Count <> 0 Then
                 txtEmailAdd.Text = TripleDes.DecryptData(dtLoadUserAccountEmail.Rows(0).Item("EmailAdd"))
                 txtEmailPass.Text = TripleDes.DecryptData(dtLoadUserAccountEmail.Rows(0).Item("EmailPass"))
@@ -32,12 +33,13 @@ Public Class frmChangePassword
     End Sub
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnUpdate.Click
         Try
-            UpdateEmailSetup(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0),
+            UpdateEmailSetup(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0),
                              TripleDes.EncryptData(txtEmailAdd.Text), TripleDes.EncryptData(txtEmailPass.Text),
                              txtEmailTo.Text, txtBcc.Text)
             MsgBox("Successfully Update" + vbNewLine + "Application Need to close ....")
             System.Windows.Forms.Application.Exit()
         Catch ex As Exception
+            MessageBox.Show("Failed to update email settings: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
     End Sub
 End Class

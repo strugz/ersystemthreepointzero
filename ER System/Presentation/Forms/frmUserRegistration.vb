@@ -1,9 +1,8 @@
 ﻿Imports System.IO
-Imports System.Security.Cryptography
 Imports Microsoft.Win32
 Public Class frmUserRegistration
-    Public Const MyKey As String = "crimsonmonastery2003"
-    Public TripleDes As New clsEncryption(MyKey)
+    Private Const MyKey As String = "crimsonmonastery2003"
+    Private ReadOnly TripleDes As New clsEncryption(MyKey)
     Public dtdepartment As New DataTable
     Dim dtdepartmentManager As New DataTable
     Public DeptID As String
@@ -17,7 +16,7 @@ Public Class frmUserRegistration
             UCase(txtUser.Text), TripleDes.EncryptData(txtPassword.Text), txtEmailTo.Text, txtEmailBcc.Text,
             txtUserlevel.Text, txtApprover1.Text, txtApprover2.Text, txtTransportationRate.Text, txtBreakFastRate.Text,
             txtLunchRate.Text, txtDinnerRate.Text, txtOTMeal.Text)
-        LoadingUserAccount(GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0))
+        LoadingUserAccount(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0))
         MsgBox("Save Successfully")
         btnSave.Visible = True
         btnUpdate.Visible = False
@@ -27,29 +26,10 @@ Public Class frmUserRegistration
     End Sub
     Private Sub Button2_Click(sender As Object, e As EventArgs) Handles btnSave.Click
         LoadDuplicateUserID(txtUserID.Text)
-        If txtUser.Text = username And txtUserID.Text = modLoadingData.DuplicateUserID Then
+        If txtUser.Text = username OrElse txtUserID.Text = modLoadingData.DuplicateUserID Then
             LoadDupUser()
             MsgBox("Username/UserID is Already Use/Exist")
-        ElseIf txtUser.Text = username Or txtUserID.Text = modLoadingData.DuplicateUserID Then
-            LoadDupUser()
-            MsgBox("Username/UserID is Already Use/Exist")
-        ElseIf txtUser.Text = username Then
-            LoadDupUser()
-            MsgBox("Username/UserID is Already Use/Exist")
-        ElseIf txtUserID.Text = modLoadingData.DuplicateUserID Then
-            LoadDupUser()
-            MsgBox("Username/UserID is Already Use/Exist")
-        ElseIf Trim(picName) = "" And cbDepartment.SelectedValue.ToString = "7" Then
-            AdduserAccount(txtUserID.Text, txtFullname.Text, txtPosition.Text, cbDepartment.SelectedValue.ToString,
-                UCase(txtUser.Text), TripleDes.EncryptData(txtPassword.Text),
-                TripleDes.EncryptData("ereports.mdmpi@marsmandrysdale.com").ToString,
-                TripleDes.EncryptData("JayAb@0ag").ToString, txtEmailTo.Text, txtEmailBcc.Text, txtUserlevel.Text,
-                txtApprover1.Text, txtApprover2.Text, txtTransportationRate.Text, txtBreakFastRate.Text,
-                txtLunchRate.Text, txtDinnerRate.Text, txtOTMeal.Text)
-            MsgBox("Successfully Save")
-            LoadingUserAccount(GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0))
-            Clear()
-        ElseIf Trim(picName) = "" Then
+        ElseIf Trim(picName) = "" AndAlso cbDepartment.SelectedValue.ToString <> "7" Then
             MsgBox("Please Insert Signature")
         Else
             AdduserAccount(txtUserID.Text, txtFullname.Text, txtPosition.Text, cbDepartment.SelectedValue.ToString,
@@ -59,7 +39,7 @@ Public Class frmUserRegistration
                 txtApprover1.Text, txtApprover2.Text, txtTransportationRate.Text, txtBreakFastRate.Text,
                 txtLunchRate.Text, txtDinnerRate.Text, txtOTMeal.Text)
             MsgBox("Successfully Save")
-            LoadingUserAccount(GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0))
+            LoadingUserAccount(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0))
             Clear()
         End If
         LoadMaxUserID()
@@ -100,6 +80,7 @@ Public Class frmUserRegistration
             End With
             txtUserlevel.SelectedIndex = 2
         Catch ex As Exception
+            MessageBox.Show("Failed to load registration form data: " & ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
         LoadMaxUserID()
         txtUserID.Text = modLoadingData.MaxUserID + 1
@@ -204,8 +185,6 @@ Public Class frmUserRegistration
             End If
         End Using
     End Sub
-
-
 
     Private Sub frmUserRegistration_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
         Call ReleasMemory()

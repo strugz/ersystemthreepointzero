@@ -12,13 +12,13 @@
 
     Private Sub UserAccount()
         Using dtLoadUserAccountFiled As DataTable = LoadingUserAccountFiled(
-        GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0),
-        GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+        GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0),
+        GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
             dgvUser.DataSource = dtLoadUserAccountFiled
         End Using
         DgUserDataVisibility({"UserID"})
 
-        If GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0) = 0 Then
+        If GetRegistryValue(RegistryKeys.SettingsPath, {RegistryKeys.ChangeLoading})(0) = 0 Then
             Me.dgvUser.Columns("Number of File").Visible = False
             Me.dgvUser.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
         Else
@@ -30,16 +30,16 @@
             MsgBox("Please Double click on the row you are interested in")
             Exit Sub
         Else
-            If GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0) = "1" Then
+            If GetRegistryValue(RegistryKeys.SettingsPath, {RegistryKeys.ChangeLoading})(0) = "1" Then
                 Using dtLoadUserReportDetailsFiled As DataTable = LoadingUserReportDetailsFILED(dgvUser.Rows(e.RowIndex).Cells("UserID").Value,
-                                              GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0),
-                                              GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+                                              GetRegistryValue(RegistryKeys.SettingsPath, {RegistryKeys.ChangeLoading})(0),
+                                              GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
                     dgvUserReportDetails.DataSource = dtLoadUserReportDetailsFiled
                 End Using
             Else
                 Using dtLoadUserReportDetailsDONE As DataTable = LoadingUserReportDetailsDONE(dgvUser.Rows(e.RowIndex).Cells("UserID").Value,
-                                             GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0),
-                                             GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+                                             GetRegistryValue(RegistryKeys.SettingsPath, {RegistryKeys.ChangeLoading})(0),
+                                             GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
                     dgvUserReportDetails.DataSource = dtLoadUserReportDetailsDONE
                 End Using
             End If
@@ -64,17 +64,17 @@
         Dim ClsData As New ClsLoadData
         Dim ApproverValidate As String = ClsData.ApproverValidation(
             dgvUser.CurrentRow.Cells("UserID").Value,
-            GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0),
+            GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0),
             dgvUserReportDetails.CurrentRow.Cells("ID").Value)
         If ApproverValidate = "True" Then
             Call UpdateFileStatus(
                 dgvUser.CurrentRow.Cells("UserID").Value,
                 dgvUserReportDetails.CurrentRow.Cells("ID").Value,
-               GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+               GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
             MsgBox("Expense Report Verified")
             Using dtLoadUserReportDetailsFiled As DataTable = LoadingUserReportDetailsFILED(dgvUser.CurrentRow.Cells("UserID").Value,
-                              GetRegistryValue("Software\\ER System\\Settings", {"ChangeLoading"})(0),
-                              GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+                              GetRegistryValue(RegistryKeys.SettingsPath, {RegistryKeys.ChangeLoading})(0),
+                              GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
                 dgvUserReportDetails.DataSource = dtLoadUserReportDetailsFiled
             End Using
             Call UserAccount()

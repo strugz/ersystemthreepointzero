@@ -297,9 +297,9 @@ Module modLoadingData
         Using sqlcmdLoadUserAccByDept As New SqlCommand
             Using dtLoadUserAccByDept As New DataTable
                 Using SQLConnection As SqlConnection = mConn.SQLConnection
+                    dtLoadUserAccByDept.Reset()
                     With sqlcmdLoadUserAccByDept
                         .Connection = SQLConnection
-                        dtLoadUserAccByDept.Reset()
                         .CommandText = "[sp2_LoadUserAccountByDept]"
                         .Parameters.Clear()
                         .Parameters.Add("@UserID", SqlDbType.VarChar).Value = UserID
@@ -341,7 +341,6 @@ Module modLoadingData
                         .Parameters.Add("@username", SqlDbType.VarChar).Value = Username
                         .Parameters.Add("@password", SqlDbType.VarChar).Value = Password
                         .CommandType = CommandType.StoredProcedure
-                        .ExecuteNonQuery()
                         dtLoginUser.Load(.ExecuteReader)
                         Return dtLoginUser
                     End With
@@ -511,8 +510,8 @@ Module modLoadingData
                         .Connection = SQLConnection
                         .CommandText = "sp2_LoadUserWorkWIth"
                         .Parameters.Clear()
-                        .Parameters.Add("@DeptID", SqlDbType.VarChar).Value = GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0)
-                        .Parameters.Add("@Username", SqlDbType.VarChar).Value = GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0)
+                        .Parameters.Add("@DeptID", SqlDbType.VarChar).Value = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0)
+                        .Parameters.Add("@Username", SqlDbType.VarChar).Value = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UsernameKey})(0)
                         .CommandType = CommandType.StoredProcedure
                         dtLoadUserWorkWith.Load(.ExecuteReader)
                         frmAdditionalInput.dgvUser.DataSource = dtLoadUserWorkWith
@@ -591,7 +590,7 @@ Module modLoadingData
                     With sqlcmdLoadFare
                         .Connection = SQLConnection
                         .CommandText = "sp2_LoadFare"
-                        .Parameters.Add("@DeptID", SqlDbType.VarChar).Value = GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0)
+                        .Parameters.Add("@DeptID", SqlDbType.VarChar).Value = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0)
                         .CommandType = CommandType.StoredProcedure
                         dtLoadFare.Load(.ExecuteReader)
                         Return dtLoadFare
@@ -628,7 +627,7 @@ Module modLoadingData
                         .Parameters.AddWithValue("@UserID", UserID).SqlDbType = SqlDbType.Int
                         .CommandType = CommandType.StoredProcedure
                         dtLoadApproverAuthentication.Load(.ExecuteReader)
-                        If dtLoadApproverAuthentication.Rows(0).Item("Approver1") = GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) Then
+                        If dtLoadApproverAuthentication.Rows(0).Item("Approver1") = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UsernameKey})(0) Then
                             Return 1
                         Else
                             Return 0
@@ -649,7 +648,7 @@ Module modLoadingData
                         .Parameters.AddWithValue("@UserID", UserID).SqlDbType = SqlDbType.Int
                         .CommandType = CommandType.StoredProcedure
                         dtLoadApproverAuthentication.Load(.ExecuteReader)
-                        If dtLoadApproverAuthentication.Rows(0).Item("Approver2").ToString() = GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) Then
+                        If dtLoadApproverAuthentication.Rows(0).Item("Approver2").ToString() = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UsernameKey})(0) Then
                             Return 1
                         Else
                             Return 0

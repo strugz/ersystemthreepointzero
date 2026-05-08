@@ -486,7 +486,7 @@ Partial Class frmEReport
         Me.lblTotalExpenseAmount.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.lblTotalExpenseAmount.Location = New System.Drawing.Point(11, 316)
         Me.lblTotalExpenseAmount.Name = "lblTotalExpenseAmount"
-        Me.lblTotalExpenseAmount.Size = New System.Drawing.Size(32, 13)
+        Me.lblTotalExpenseAmount.Size = New System.Drawing.Size(31, 13)
         Me.lblTotalExpenseAmount.TabIndex = 38
         Me.lblTotalExpenseAmount.Text = "Total"
         '
@@ -516,7 +516,7 @@ Partial Class frmEReport
         Me.Label13.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.Label13.Location = New System.Drawing.Point(12, 163)
         Me.Label13.Name = "Label13"
-        Me.Label13.Size = New System.Drawing.Size(30, 13)
+        Me.Label13.Size = New System.Drawing.Size(29, 13)
         Me.Label13.TabIndex = 33
         Me.Label13.Text = "Type"
         '
@@ -654,7 +654,7 @@ Partial Class frmEReport
         Me.Label25.AutoSize = True
         Me.Label25.Location = New System.Drawing.Point(6, 93)
         Me.Label25.Name = "Label25"
-        Me.Label25.Size = New System.Drawing.Size(19, 13)
+        Me.Label25.Size = New System.Drawing.Size(18, 13)
         Me.Label25.TabIndex = 83
         Me.Label25.Text = "To"
         '
@@ -727,7 +727,7 @@ Partial Class frmEReport
         Me.RBOTMeal.Enabled = False
         Me.RBOTMeal.Location = New System.Drawing.Point(6, 123)
         Me.RBOTMeal.Name = "RBOTMeal"
-        Me.RBOTMeal.Size = New System.Drawing.Size(68, 17)
+        Me.RBOTMeal.Size = New System.Drawing.Size(67, 17)
         Me.RBOTMeal.TabIndex = 82
         Me.RBOTMeal.TabStop = True
         Me.RBOTMeal.Text = "OT Meal"

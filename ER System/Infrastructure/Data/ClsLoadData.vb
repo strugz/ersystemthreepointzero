@@ -69,14 +69,14 @@ Public Class ClsLoadData : Inherits AppFramework
         For i = 0 To DataTemp.Length - 1
             str = IIf(str = "", "", str & vbCrLf) & DataTemp(i)
         Next
-        FileMakerWithData(StartupPath + "\expenseTransSettingsTEMP.txt", str)
+        FileMakerWithData(StartupPath + "\expenseTransSettings.txt", str)
     End Sub
     Friend Sub SetExpenseMealDetailsTemp(ByVal DataTemp As String())
         Dim str As String = ""
         For i = 0 To DataTemp.Length - 1
             str = IIf(str = "", "", str & vbCrLf) & DataTemp(i)
         Next
-        FileMakerWithData(StartupPath + "\expenseMealSettingsTEMP.txt", str)
+        FileMakerWithData(StartupPath + "\expenseMealSettings.txt", str)
     End Sub
     Friend Sub SetOfficerToSign(ByVal DataTemp As String())
         Dim str As String = ""
@@ -96,8 +96,8 @@ Public Class ClsLoadData : Inherits AppFramework
     End Function
     Friend Function GetTranspo() As String
         Dim myERData As String() = {""}
-        If TempFileValidation(StartupPath + "\expenseTransSettingsTEMP.txt") = True Then
-            myERData = GetEReportDetails(StartupPath + "\expenseTransSettingsTEMP.txt")
+        If TempFileValidation(StartupPath + "\expenseTransSettings.txt") = True Then
+            myERData = GetEReportDetails(StartupPath + "\expenseTransSettings.txt")
             Return myERData(4)
         Else
             Return myERData(0)
@@ -105,8 +105,8 @@ Public Class ClsLoadData : Inherits AppFramework
     End Function
     Friend Function GetMeal() As String
         Dim myERData As String() = {""}
-        If TempFileValidation(StartupPath + "\expenseMealSettingsTEMP.txt") = True Then
-            myERData = GetEReportDetails(StartupPath + "\expenseMealSettingsTEMP.txt")
+        If TempFileValidation(StartupPath + "\expenseMealSettings.txt") = True Then
+            myERData = GetEReportDetails(StartupPath + "\expenseMealSettings.txt")
             Return myERData(4)
         Else
             Return myERData(0)
