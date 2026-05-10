@@ -24,8 +24,9 @@ Public Class frmChangePassword
                 GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0),
                 GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0))
             If dtLoadUserAccountEmail.Rows.Count <> 0 Then
-                txtEmailAdd.Text = TripleDes.DecryptData(dtLoadUserAccountEmail.Rows(0).Item("EmailAdd"))
-                txtEmailPass.Text = TripleDes.DecryptData(dtLoadUserAccountEmail.Rows(0).Item("EmailPass"))
+                Dim encryptionService = New ERSystem.Common.Utilities.TripleDesEncryptionService("crimsonmonastery2003")
+                txtEmailAdd.Text = encryptionService.DecryptData(dtLoadUserAccountEmail.Rows(0).Item("EmailAdd"))
+                txtEmailPass.Text = encryptionService.DecryptData(dtLoadUserAccountEmail.Rows(0).Item("EmailPass"))
                 txtEmailTo.Text = dtLoadUserAccountEmail.Rows(0).Item("EmailTo")
                 txtBcc.Text = dtLoadUserAccountEmail.Rows(0).Item("EmailBCC")
             End If
@@ -33,8 +34,9 @@ Public Class frmChangePassword
     End Sub
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnUpdate.Click
         Try
+            Dim encryptionService = New ERSystem.Common.Utilities.TripleDesEncryptionService("crimsonmonastery2003")
             UpdateEmailSetup(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0),
-                             TripleDes.EncryptData(txtEmailAdd.Text), TripleDes.EncryptData(txtEmailPass.Text),
+                             encryptionService.EncryptData(txtEmailAdd.Text), encryptionService.EncryptData(txtEmailPass.Text),
                              txtEmailTo.Text, txtBcc.Text)
             MsgBox("Successfully Update" + vbNewLine + "Application Need to close ....")
             System.Windows.Forms.Application.Exit()

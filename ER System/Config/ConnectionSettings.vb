@@ -40,7 +40,7 @@ Namespace Infrastructure.Configuration
             If UsesWindowsAuthentication AndAlso Not forceSqlAuthentication Then
                 builder.IntegratedSecurity = True
             Else
-                builder.IntegratedSecurity = False
+                builder.TrustServerCertificate = True
                 builder.UserID = UserName
                 builder.Password = Password
             End If

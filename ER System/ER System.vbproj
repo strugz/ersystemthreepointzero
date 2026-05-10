@@ -180,14 +180,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ApplicationEvents.vb" />
-    <Compile Include="Application\Repositories\IUserAccountRepository.vb" />
     <Compile Include="Application\Services\LoginAccessResult.vb" />
     <Compile Include="Application\Services\LoginAccessService.vb" />
-    <Compile Include="Application\Services\UserAccountService.vb" />
     <Compile Include="Config\ConnectionSettings.vb" />
     <Compile Include="Config\RegistryConnectionSettingsProvider.vb" />
     <Compile Include="Core\Constants\RegistryKeys.vb" />
     <Compile Include="Database\Connection\SqlConnectionFactory.vb" />
+    <Compile Include="frmLogin.vb" />
+    <Compile Include="modMaintenance.vb" />
     <Compile Include="Presentation\Presenters\ExpenseUpdatePresenter.vb" />
     <Compile Include="Presentation\Presenters\ReportPrintPresenter.vb" />
     <Compile Include="Presentation\ViewModels\ExpenseUpdateViewModel.vb" />
@@ -198,7 +198,6 @@
     <Compile Include="Infrastructure\Data\ClsLoadData.vb" />
     <Compile Include="Domain\Entities\UserAccount.vb" />
     <Compile Include="Domain\Enums\UserLevel.vb" />
-    <Compile Include="Infrastructure\Data\Repositories\SqlUserAccountRepository.vb" />
     <Compile Include="Presentation\Forms\FrmEReportDetails.Designer.vb">
       <DependentUpon>FrmEReportDetails.vb</DependentUpon>
     </Compile>
@@ -609,7 +608,14 @@
     </PublishFile>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Application\Repositories\" />
     <Folder Include="Infrastructure\Configuration\" />
+    <Folder Include="Infrastructure\Data\Repositories\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ERSystem.Core\ERSystem.Core.vbproj" />
+    <ProjectReference Include="..\ERSystem.Data\ERSystem.Data.vbproj" />
+    <ProjectReference Include="..\ERSystem.Common\ERSystem.Common.vbproj" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -12,8 +12,9 @@ Public Class frmUserRegistration
     Dim username As String
 
     Private Sub Button2_Click_1(sender As Object, e As EventArgs) Handles btnUpdate.Click
+        Dim encryptionService = New ERSystem.Common.Utilities.TripleDesEncryptionService("crimsonmonastery2003")
         UpdateUserAccount(txtUserID.Text, txtFullname.Text, txtPosition.Text, cbDepartment.SelectedValue.ToString,
-            UCase(txtUser.Text), TripleDes.EncryptData(txtPassword.Text), txtEmailTo.Text, txtEmailBcc.Text,
+            UCase(txtUser.Text), encryptionService.EncryptData(txtPassword.Text), txtEmailTo.Text, txtEmailBcc.Text,
             txtUserlevel.Text, txtApprover1.Text, txtApprover2.Text, txtTransportationRate.Text, txtBreakFastRate.Text,
             txtLunchRate.Text, txtDinnerRate.Text, txtOTMeal.Text)
         LoadingUserAccount(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0))
@@ -24,6 +25,18 @@ Public Class frmUserRegistration
         picName = Nothing
         txtUserID.Enabled = True
     End Sub
+    Private ReadOnly _userService As ERSystem.Core.Application.Interfaces.IUserService
+
+    Public Sub New()
+        InitializeComponent()
+        ' Manual DI setup for now. We fetch the connection string mConn generated inside the app UI
+        DBConnection()
+        Dim connectionString As String = mConn.SQLConnection.ConnectionString
+        Dim userRepository = New ERSystem.Data.Repositories.SqlUserRepository(connectionString)
+        Dim encryptionService = New ERSystem.Common.Utilities.TripleDesEncryptionService("crimsonmonastery2003")
+        _userService = New ERSystem.Core.Application.Services.UserService(userRepository, encryptionService)
+    End Sub
+
     Private Sub Button2_Click(sender As Object, e As EventArgs) Handles btnSave.Click
         LoadDuplicateUserID(txtUserID.Text)
         If txtUser.Text = username OrElse txtUserID.Text = modLoadingData.DuplicateUserID Then
@@ -32,12 +45,29 @@ Public Class frmUserRegistration
         ElseIf Trim(picName) = "" AndAlso cbDepartment.SelectedValue.ToString <> "7" Then
             MsgBox("Please Insert Signature")
         Else
-            AdduserAccount(txtUserID.Text, txtFullname.Text, txtPosition.Text, cbDepartment.SelectedValue.ToString,
-                UCase(txtUser.Text), TripleDes.EncryptData(txtPassword.Text),
-                TripleDes.EncryptData("ereports.mdmpi@marsmandrysdale.com").ToString,
-                TripleDes.EncryptData("JayAb@0ag").ToString, txtEmailTo.Text, txtEmailBcc.Text, txtUserlevel.Text,
-                txtApprover1.Text, txtApprover2.Text, txtTransportationRate.Text, txtBreakFastRate.Text,
-                txtLunchRate.Text, txtDinnerRate.Text, txtOTMeal.Text)
+            Dim encryptionService = New ERSystem.Common.Utilities.TripleDesEncryptionService("crimsonmonastery2003")
+            Dim newUser = New ERSystem.Core.Domain.Entities.UserAccount With {
+                .UserID = txtUserID.Text,
+                .Fullname = txtFullname.Text,
+                .Position = txtPosition.Text,
+                .DepartmentID = cbDepartment.SelectedValue.ToString,
+                .Username = UCase(txtUser.Text),
+                .EmailAddress = encryptionService.EncryptData("ereports.mdmpi@marsmandrysdale.com").ToString(),
+                .EmailPassword = encryptionService.EncryptData("JayAb@0ag").ToString(),
+                .EmailTo = txtEmailTo.Text,
+                .EmailBcc = txtEmailBcc.Text,
+                .UserLevel = txtUserlevel.Text,
+                .Approver1Id = txtApprover1.Text,
+                .Approver2Id = txtApprover2.Text,
+                .TransportationRate = Decimal.Parse(txtTransportationRate.Text),
+                .BreakfastRate = Decimal.Parse(txtBreakFastRate.Text),
+                .LunchRate = Decimal.Parse(txtLunchRate.Text),
+                .DinnerRate = Decimal.Parse(txtDinnerRate.Text),
+                .OTMealRate = Decimal.Parse(txtOTMeal.Text),
+                .Signature = ConvertImageToByteArray() ' Needs new helper
+            }
+
+            _userService.RegisterUser(newUser, txtPassword.Text)
             MsgBox("Successfully Save")
             LoadingUserAccount(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.DeptID})(0))
             Clear()
@@ -52,6 +82,16 @@ Public Class frmUserRegistration
             End If
         End Using
     End Sub
+    Private Function ConvertImageToByteArray() As Byte()
+        Using ms As New IO.MemoryStream()
+            If Trim(picName) <> "" AndAlso picSignature.Image IsNot Nothing Then
+                picSignature.Image.Save(ms, picSignature.Image.RawFormat)
+                Return ms.GetBuffer()
+            End If
+            Return New Byte() {}
+        End Using
+    End Function
+
     Private Sub Clear()
         txtEmailBcc.Clear()
         txtEmailTo.Clear()

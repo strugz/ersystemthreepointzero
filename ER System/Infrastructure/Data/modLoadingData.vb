@@ -40,257 +40,77 @@ Module modLoadingData
     Public GetUserPaidEmp As String
     Public Function LoadDuplicateUser(ByVal username As String) As DataTable
         DBConnection()
-        Using dtLoadDupUser As New DataTable
-            Using sqlcmdLoadDupUser As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlcmdLoadDupUser
-                        .Connection = SQLConnection
-                        .CommandText = "sp2_LoadDuplicateUser"
-                        .CommandType = CommandType.StoredProcedure
-                        .Parameters.Clear()
-                        dtLoadDupUser.Reset()
-                        .Parameters.Add("@username", SqlDbType.VarChar).Value = username
-                        dtLoadDupUser.Load(.ExecuteReader)
-                        Return dtLoadDupUser
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlUserQueryRepository(mConn.SQLConnection.ConnectionString)
+        Return repo.LoadDuplicateUser(username)
     End Function
     Public Sub LoadDuplicateUserID(ByVal userid As String)
         DBConnection()
-        Using dtLoadUserID As New DataTable
-            Using sqlcmdLoadUserID As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlcmdLoadUserID
-                        .Connection = SQLConnection
-                        .CommandText = "sp2_LoadDuplicateUserID"
-                        .CommandType = CommandType.StoredProcedure
-                        .Parameters.Clear()
-                        dtLoadUserID.Reset()
-                        .Parameters.Add("@userid", SqlDbType.VarChar).Value = userid
-                        dtLoadUserID.Load(.ExecuteReader)
-                        If dtLoadUserID.Rows.Count <> 0 Then
-                            DuplicateUserID = dtLoadUserID.Rows(0).Item("UserID")
-                        End If
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlUserQueryRepository(mConn.SQLConnection.ConnectionString)
+        DuplicateUserID = repo.LoadDuplicateUserID(userid)
     End Sub
     Public Function LoadingDataReport(ByVal userID As String, ByVal sDate As String, ByVal eDate As String) As DataTable
         DBConnection()
-        Using dtLoadingER As New DataTable
-            Using sqlLoaddata As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlLoaddata
-                        .Connection = SQLConnection
-                        .Parameters.Clear()
-                        dtLoadingER.Reset()
-                        .CommandText = "sp2_LoadDataReport_Three '" & userID & "','" & sDate & "','" & eDate & "'"
-                        .Parameters.Add("@userID", SqlDbType.VarChar).Value = userID
-                        .Parameters.Add("@sDate", SqlDbType.VarChar).Value = sDate
-                        .Parameters.Add("@eDate", SqlDbType.VarChar).Value = eDate
-                        .CommandType = CommandType.Text
-                        dtLoadingER.Load(.ExecuteReader)
-                        Return dtLoadingER
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString)
+        Return repo.LoadingDataReport(userID, sDate, eDate)
     End Function
     Public Function LoadingExpenseReport(ByVal reportID As String, ByVal userID As String) As DataTable
         DBConnection()
-        Using dt As New DataTable
-            Using sqlLoadExpense As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlLoadExpense
-                        .Connection = SQLConnection
-                        .CommandText = "EXEC sp2_LoadExpense_Three'" & reportID & "','" & userID & "'"
-                        .CommandType = CommandType.Text
-                        dt.Load(.ExecuteReader)
-                        Return dt
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString)
+        Return repo.LoadingExpenseReport(reportID, userID)
     End Function
     Public Function LoadingExpenseCount(ByVal reportID As String) As Integer
         DBConnection()
-        ExpenseCount = ""
-        Using sqlcmdLoadExpenseCount As New SqlCommand
-            Using dtLoadExpenseCount As New DataTable
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlcmdLoadExpenseCount
-                        .Connection = SQLConnection
-                        .CommandText = "sp2_LoadingExpenseCount"
-                        .CommandType = CommandType.StoredProcedure
-                        .Parameters.Clear()
-                        dtLoadExpenseCount.Reset()
-                        .Parameters.Add("@reportID", SqlDbType.VarChar).Value = reportID
-                        dtLoadExpenseCount.Load(.ExecuteReader)
-                        SQLConnection.Dispose()
-                        Return dtLoadExpenseCount.Rows(0).Item("ExpenseCount")
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString)
+        ExpenseCount = repo.LoadingExpenseCount(reportID).ToString()
+        Return Convert.ToInt32(ExpenseCount)
     End Function
     Public Function LoadingOfficersToSign(ByVal userid As String) As String
         DBConnection()
-        Using dtLoadOfficersToSign As New DataTable
-            Using sqlcmdLoadOfficersToSign As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlcmdLoadOfficersToSign
-                        .Connection = SQLConnection
-                        .CommandText = "sp2_LoadOfficersToSign"
-                        .CommandType = CommandType.StoredProcedure
-                        .Parameters.Clear()
-                        dtLoadOfficersToSign.Reset()
-                        .Parameters.Add("@userid", SqlDbType.VarChar).Value = userid
-                        dtLoadOfficersToSign.Load(.ExecuteReader)
-                        SQLConnection.Dispose()
-                        Return dtLoadOfficersToSign.Rows(0).Item("UserID")
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlUserQueryRepository(mConn.SQLConnection.ConnectionString)
+        Return repo.LoadingOfficersToSign(userid)
     End Function
     Public Function LoadingUserAccountEmail(ByVal userid As String, ByVal deptID As String) As DataTable
         DBConnection()
-        Using dt As New DataTable
-            Using sqlLoadUserAccEmail As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlLoadUserAccEmail
-                        .Connection = SQLConnection
-                        .CommandText = "sp2_LoadUserAccEmail"
-                        .CommandType = CommandType.StoredProcedure
-                        dt.Reset()
-                        .Parameters.Clear()
-                        .Parameters.Add("@userid", SqlDbType.Int).Value = userid
-                        .Parameters.Add("@deptID", SqlDbType.Int).Value = deptID
-                        dt.Load(.ExecuteReader)
-                        Return dt
-                        'If dt.Rows.Count <> 0 Then
-                        '    EmailAdd = dt.Rows(0).Item("EmailAdd")
-                        '    EmailPass = dt.Rows(0).Item("EmailPass")
-                        '    EmailTo = dt.Rows(0).Item("EmailTo")
-                        '    EmailBCC = dt.Rows(0).Item("EmailBCC")
-                        'End If
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlUserQueryRepository(mConn.SQLConnection.ConnectionString)
+        Return repo.LoadingUserAccountEmail(userid, deptID)
     End Function
     Public Function LoadingUserAccountFiled(ByVal deptID As String, ByVal SignID As String) As DataTable
         DBConnection()
-        Using dtLoadUserAccountFiled As New DataTable
-            Using sqlLoadUserAccount As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlLoadUserAccount
-                        .Connection = SQLConnection
-                        .CommandText = "[sp2_LoadUserAccFiled]"
-                        .CommandType = CommandType.StoredProcedure
-                        .Parameters.Add("@DeptID", SqlDbType.BigInt).Value = deptID
-                        .Parameters.Add("@SignID", SqlDbType.BigInt).Value = SignID
-                        dtLoadUserAccountFiled.Load(.ExecuteReader)
-                        Return dtLoadUserAccountFiled
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlUserQueryRepository(mConn.SQLConnection.ConnectionString)
+        Return repo.LoadingUserAccountFiled(deptID, SignID)
     End Function
     Public Sub LoadingUserAccount(ByVal deptID As String)
         DBConnection()
-        Using dt As New DataTable
-            Using sqlLoadUserAccount As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlLoadUserAccount
-                        .Connection = SQLConnection
-                        .CommandText = "[sp2_LoadUserAcc]"
-                        .CommandType = CommandType.StoredProcedure
-                        dt.Reset()
-                        .Parameters.Clear()
-                        .Parameters.Add("@DeptID", SqlDbType.Int).Value = deptID
-                        dt.Load(.ExecuteReader)
-                        frmApprove.dgvUser.DataSource = dt
-                        frmUserRegistration.dgvUserAccount.DataSource = dt
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlUserQueryRepository(mConn.SQLConnection.ConnectionString)
+        Dim dt = repo.LoadingUserAccount(deptID)
+        frmApprove.dgvUser.DataSource = dt
+        frmUserRegistration.dgvUserAccount.DataSource = dt
     End Sub
     Public Sub LoadingUserAccountPending(ByVal deptID As String)
         DBConnection()
-        Using dt As New DataTable
-            Using sqlLoadUserAccount As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlLoadUserAccount
-                        .Connection = SQLConnection
-                        .CommandText = "[sp2_LoadUserAccPending]"
-                        .CommandType = CommandType.StoredProcedure
-                        dt.Reset()
-                        .Parameters.Clear()
-                        .Parameters.Add("@DeptID", SqlDbType.Int).Value = deptID
-                        dt.Load(.ExecuteReader)
-                        frmApprove.dgvUser.DataSource = dt
-                        frmUserRegistration.dgvUserAccount.DataSource = dt
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlUserQueryRepository(mConn.SQLConnection.ConnectionString)
+        Dim dt = repo.LoadingUserAccountPending(deptID)
+        frmApprove.dgvUser.DataSource = dt
+        frmUserRegistration.dgvUserAccount.DataSource = dt
     End Sub
     Public Sub LoadUserAccountAdmin()
         DBConnection()
-        Using dt As New DataTable
-            Using sqlcmdLoad As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlcmdLoad
-                        .Connection = SQLConnection
-                        .CommandText = "sp2_LoadUserAccountAdmin"
-                        .CommandType = CommandType.StoredProcedure
-                        dt.Load(.ExecuteReader)
-                        If dt.Rows.Count = 0 Then
-                            frmSelectDept.ShowDialog()
-                            Exit Sub
-                        End If
-                    End With
-                End Using
-            End Using
-            dt.Reset()
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlUserQueryRepository(mConn.SQLConnection.ConnectionString)
+        Dim dt = repo.LoadUserAccountAdmin()
+        If dt.Rows.Count = 0 Then
+            frmSelectDept.ShowDialog()
+            Exit Sub
+        End If
     End Sub
     Public Function LoadingUserReportDetailsDONE(ByVal userID As String, ByVal FileStatus As String, ByVal signID As String) As DataTable
         DBConnection()
-        Using dt As New DataTable
-            Using sqlLoadUserReport As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlLoadUserReport
-                        .Connection = SQLConnection
-                        .CommandText = "[sp2_LoadUserReportDetailsDONE] '" & userID & "', '" & FileStatus & "','" & signID & "'"
-                        .CommandType = CommandType.Text
-                        dt.Load(.ExecuteReader)
-                        Return dt
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString)
+        Return repo.LoadingUserReportDetailsDONE(userID, FileStatus, signID)
     End Function
     Public Function LoadingUserReportDetailsFILED(ByVal userID As String, ByVal FileStatus As String, ByVal signID As String) As DataTable
         DBConnection()
-        Using dt As New DataTable
-            Using sqlLoadUserReport As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlLoadUserReport
-                        .Connection = SQLConnection
-                        .CommandText = "[sp2_LoadUserReportDetailsFILED] '" & userID & "', '" & FileStatus & "','" & signID & "'"
-                        .CommandType = CommandType.Text
-                        dt.Load(.ExecuteReader)
-                        Return dt
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString)
+        Return repo.LoadingUserReportDetailsFILED(userID, FileStatus, signID)
     End Function
     Public Function LoadingUserAccDept(ByVal UserID As String) As DataTable
         DBConnection()
@@ -313,20 +133,8 @@ Module modLoadingData
     End Function
     Public Function LoadingDepartment() As DataTable
         DBConnection()
-        Using dt As New DataTable
-            Using sqlLoadDepartment As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlLoadDepartment
-                        .Parameters.Clear()
-                        .Connection = SQLConnection
-                        .CommandText = "sp2_LoadDepartment"
-                        .CommandType = CommandType.StoredProcedure
-                        dt.Load(.ExecuteReader)
-                        Return dt
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlDepartmentRepository(mConn.SQLConnection.ConnectionString)
+        Return repo.LoadingDepartment()
     End Function
     Public Function LoginUserAccount(ByVal Username As String, ByVal Password As String) As DataTable
         DBConnection()
@@ -351,22 +159,9 @@ Module modLoadingData
     Public Sub loadingPreviousER(ByVal userID As String, ByVal sdate As String, ByVal edate As String)
         Try
             ConnectionPreviousER()
-            Using dt As New DataTable
-                Using sqlcmdLoadPrevious As New SqlCommand
-                    Using conn As SqlConnection = mConn.conn
-                        With sqlcmdLoadPrevious
-                            .Connection = conn
-                            .CommandText = "[sp2_LoadDataReport]"
-                            .Parameters.Add("@userID", SqlDbType.VarChar).Value = userID
-                            .Parameters.Add("@sDate", SqlDbType.VarChar).Value = sdate
-                            .Parameters.Add("@eDate", SqlDbType.VarChar).Value = edate
-                            .CommandType = CommandType.StoredProcedure
-                            dt.Load(.ExecuteReader)
-                            frmPreviousER.DataGridView1.DataSource = dt
-                        End With
-                    End Using
-                End Using
-            End Using
+            Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString, mConn.conn.ConnectionString)
+            Dim dt = repo.LoadingPreviousER(userID, sdate, edate)
+            frmPreviousER.DataGridView1.DataSource = dt
         Catch ex As Exception
             MsgBox(ex.Message)
         End Try
@@ -374,131 +169,50 @@ Module modLoadingData
     Public Sub LoadingExpenseER(ByVal userID As String, ByVal reportID As String, ByVal sdate As String, ByVal edate As String)
         Try
             ConnectionPreviousER()
-            Using dt As New DataTable
-                Using sqlcmdLoadExpenseER As New SqlCommand
-                    Using conn As SqlConnection = mConn.conn
-                        With sqlcmdLoadExpenseER
-                            .Connection = conn
-                            .CommandText = "sp_LoadExpense"
-                            .CommandType = CommandType.StoredProcedure
-                            .Parameters.Add("@ReportID", SqlDbType.VarChar).Value = reportID
-                            .Parameters.Add("@userID", SqlDbType.VarChar).Value = userID
-                            .Parameters.Add("@sDate", SqlDbType.VarChar).Value = sdate
-                            .Parameters.Add("@eDate", SqlDbType.VarChar).Value = edate
-                            dt.Load(.ExecuteReader)
-                            frmPreviousERExpense.DataGridView1.DataSource = dt
-                        End With
-                    End Using
-                End Using
-            End Using
+            Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString, mConn.conn.ConnectionString)
+            Dim dt = repo.LoadingExpenseER(userID, reportID, sdate, edate)
+            frmPreviousERExpense.DataGridView1.DataSource = dt
         Catch ex As Exception
             MsgBox(ex.Message)
         End Try
     End Sub
     Public Sub LoadMaxUserID()
         DBConnection()
-        Using dtLoadMaxUserID As New DataTable
-            Using sqlcmdLoadMaxUserID As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlcmdLoadMaxUserID
-                        .Connection = SQLConnection
-                        .CommandText = "sp2_LoadUserIDMax"
-                        .CommandType = CommandType.StoredProcedure
-                        dtLoadMaxUserID.Load(.ExecuteReader)
-                        If dtLoadMaxUserID.Rows.Count <> 0 Then
-                            MaxUserID = dtLoadMaxUserID.Rows(0).Item("User ID")
-                        End If
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlUserQueryRepository(mConn.SQLConnection.ConnectionString)
+        MaxUserID = repo.LoadMaxUserID()
     End Sub
     Public Sub LoadExpenseDetails(ByVal Location As String, ByVal DeptID As String)
         DBConnection()
-        Using dtLoadExpenseDetails As New DataTable
-            Using sqlcmdLoadExpenseDetails As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlcmdLoadExpenseDetails
-                        .Connection = SQLConnection
-                        .CommandText = "[sp2_LoadExpenceDetails]"
-                        .Parameters.Add("@Location", SqlDbType.NVarChar).Value = Location
-                        .Parameters.Add("@DeptID", SqlDbType.NVarChar).Value = DeptID
-                        .CommandType = CommandType.StoredProcedure
-                        dtLoadExpenseDetails.Load(.ExecuteReader)
-                        frmExpenseDetails.dgvViewingExpenseDetails.DataSource = dtLoadExpenseDetails
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString)
+        Dim dt = repo.LoadExpenseDetails(Location, DeptID)
+        frmExpenseDetails.dgvViewingExpenseDetails.DataSource = dt
     End Sub
     Public Sub LoadClient()
-        Dim dtLoadClient As New DataTable
-        Dim sqlcmdLoadClient As New SqlCommand
-        With sqlcmdLoadClient
-            .Connection = SQLConnection
-            dtLoadClient.Reset()
-            .Parameters.Clear()
-            .CommandText = "Select a.ID,a.clientName from tblClient as a order by a.clientName"
-            .CommandType = CommandType.Text
-            dtLoadClient.Load(.ExecuteReader)
-            frmExpenseDetails.cbbClientName.DataSource = dtLoadClient
-            frmExpenseDetails.cbbClientName.ValueMember = "ID"
-            frmExpenseDetails.cbbClientName.DisplayMember = "clientName"
-        End With
+        DBConnection()
+        Dim repo As New ERSystem.Data.Repositories.SqlClientRepository(mConn.SQLConnection.ConnectionString)
+        Dim dt = repo.LoadClient()
+        frmExpenseDetails.cbbClientName.DataSource = dt
+        frmExpenseDetails.cbbClientName.ValueMember = "ID"
+        frmExpenseDetails.cbbClientName.DisplayMember = "clientName"
     End Sub
 
     Public Sub LoadClientToGrid(ByVal ClientCodeName As String)
         DBConnection()
-        Using dtLoadClient As New DataTable
-            Using sqlcmdLoadClient As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlcmdLoadClient
-                        .Connection = SQLConnection
-                        .CommandText = "sp2_LoadClientToGrid"
-                        .Parameters.Add("@ClientCodeName", SqlDbType.VarChar).Value = ClientCodeName
-                        .CommandType = CommandType.StoredProcedure
-                        dtLoadClient.Load(.ExecuteReader)
-                        frmHistory.dgvHistory.DataSource = dtLoadClient
-                    End With
-                End Using
-            End Using
-        End Using
+        Dim repo As New ERSystem.Data.Repositories.SqlClientRepository(mConn.SQLConnection.ConnectionString)
+        Dim dt = repo.LoadClientToGrid(ClientCodeName)
+        frmHistory.dgvHistory.DataSource = dt
     End Sub
+
     Public Function LoadSearchClient(ByVal ClientName As String)
         DBConnection()
-        Using dtLoadSearchClient As New DataTable
-            Using sqlcmdLoadSearchClient As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlcmdLoadSearchClient
-                        .Connection = SQLConnection
-                        .CommandText = "Select * from tblClient as a where a.clientName = '" & ClientName & "'"
-                        .CommandType = CommandType.Text
-                        dtLoadSearchClient.Load(.ExecuteReader)
-                    End With
-                    LoadSearchClient = dtLoadSearchClient.Rows.Count.ToString
-                End Using
-            End Using
-        End Using
-
+        Dim repo As New ERSystem.Data.Repositories.SqlClientRepository(mConn.SQLConnection.ConnectionString)
+        LoadSearchClient = repo.LoadSearchClient(ClientName)
     End Function
     Public Sub LoadHistory(ByVal Details As String, ByVal DataToLoad As String)
         DBConnection()
-        Using dtLoadHistory As New DataTable
-            Using sqlcmdLoadHistory As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlcmdLoadHistory
-                        .Connection = SQLConnection
-                        .CommandText = "sp2_LoadClientData"
-                        .Parameters.Add("@ClientInstrumentSerialService", SqlDbType.VarChar).Value = Details
-                        .Parameters.Add("@ClientDataToLoad", SqlDbType.VarChar).Value = DataToLoad
-                        .CommandType = CommandType.StoredProcedure
-                        dtLoadHistory.Load(.ExecuteReader)
-                        frmHistory.dgvHistory.DataSource = dtLoadHistory
-                    End With
-                End Using
-            End Using
-        End Using
-
+        Dim repo As New ERSystem.Data.Repositories.SqlClientRepository(mConn.SQLConnection.ConnectionString)
+        Dim dt = repo.LoadHistory(Details, DataToLoad)
+        frmHistory.dgvHistory.DataSource = dt
     End Sub
 
     Public Sub LoadUserWorkWith()

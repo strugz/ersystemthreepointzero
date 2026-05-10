@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ERSystem.Core\ERSystem.Core.vbproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <RootNamespace>ERSystem.Data</RootNamespace>
+    <TargetFramework>net48</TargetFramework>
+  </PropertyGroup>
+
+</Project>

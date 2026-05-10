@@ -1,11 +1,7 @@
 ﻿Imports System.Net.NetworkInformation
 Imports System.Threading
-Imports ER_System.Application.Repositories
 Imports ER_System.Application.Services
 Imports ER_System.Domain.Entities
-Imports ER_System.Infrastructure.Configuration
-Imports ER_System.Infrastructure.Data.Repositories
-Imports ER_System.Infrastructure.Data.Sql
 
 Public Class frmLogin
     Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
@@ -26,6 +22,7 @@ Public Class frmLogin
                     End
                 End If
             End If
+
             LoadUserAccountAdmin()
         Catch ex As Exception
             MessageBox.Show("Failed to initialize connection: " & ex.Message, "Startup Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
@@ -73,66 +70,91 @@ Public Class frmLogin
         GetFileVersionInfo = FileVersionInfo.GetVersionInfo(filename).FileVersion
         Return GetFileVersionInfo
     End Function
+    Private _userService As ERSystem.Core.Application.Interfaces.IUserService
+
+    Public Sub New()
+        InitializeComponent()
+    End Sub
+
+    Private Sub InitializeServices()
+        If _userService Is Nothing AndAlso mConn.SQLConnection IsNot Nothing Then
+            Dim connectionString As String = mConn.SQLConnection.ConnectionString
+            Dim userRepository = New ERSystem.Data.Repositories.SqlUserRepository(connectionString)
+            Dim encryptionService = New ERSystem.Common.Utilities.TripleDesEncryptionService("crimsonmonastery2003")
+            _userService = New ERSystem.Core.Application.Services.UserService(userRepository, encryptionService)
+        End If
+    End Sub
+
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnLogin.Click
+        InitializeServices()
         If txtUsername.Text.Length <> 0 Or txtPassword.Text.Length <> 0 Then
-            Using dtLoginUserAccount As DataTable = CreateUserAccountService().Authenticate(UCase(txtUsername.Text), TripleDes.EncryptData(txtPassword.Text))
-                If dtLoginUserAccount.Rows.Count <> 0 Then
-                    SetRegistryValue(dtLoginUserAccount)
-                    LoadUserAccount()
-                    Call ReleasMemory()
-                Else
-                    MsgBox("Username " & txtUsername.Text & " Not Detected")
-                End If
-            End Using
+
+            ' Delegate authentication to Application layer service
+            Dim userAccount = _userService.Authenticate(UCase(txtUsername.Text), txtPassword.Text)
+
+            If userAccount IsNot Nothing Then
+                ' Migrate setting registries to use the Domain entity instead of DataTable
+                SetRegistryValueFromDomain(userAccount)
+                LoadUserAccount()
+                Call ReleasMemory()
+            Else
+                MsgBox("Username " & txtUsername.Text & " Not Detected or Invalid Password")
+            End If
         Else
             MsgBox("Please Fill Your Username/Password")
             txtUsername.Focus()
         End If
     End Sub
-    Private Sub LoadUserAccount()
-        Dim loginAccess As LoginAccessResult = New LoginAccessService().Resolve(CreateRegisteredUserAccount(), UCase(txtUsername.Text))
 
-        If loginAccess.IsAllowed Then
-            Me.Hide()
-            frmMain.ttuser.Text = loginAccess.DisplayName
-            frmMain.tsslUserDept.Text = loginAccess.DepartmentName
-            LoginSettingsControl(
-                loginAccess.MenuFormsVisible,
-                loginAccess.MenuFileVisible,
-                loginAccess.MainFormEnabled,
-                loginAccess.PreviousReportsVisible,
-                loginAccess.UserAccountVisible,
-                loginAccess.ExpenseSummaryVisible)
-        Else
-            MsgBox("Invalid Username/Password")
-            txtPassword.Clear()
-            txtPassword.Focus()
+    Private Sub SetRegistryValueFromDomain(ByVal user As ERSystem.Core.Domain.Entities.UserAccount)
+        ' Backward compatibility wrapper so we don't have to change all the forms that read this registry right away
+        Dim ValueName As String() = {"UserID", "username", "Userlevel", "DeptID", "Fullname", "emp_Dept", "BreakFastRate",
+            "LunchRate", "DinnerRate", "OTMeal", "TranspoRate", "Password", "Approver1", "Approver2"}
+        Dim Value As String() = {user.UserID, user.Username, user.UserLevel, user.DepartmentID, user.Fullname, user.DepartmentName, user.BreakfastRate.ToString(), user.LunchRate.ToString(), user.DinnerRate.ToString(), user.OTMealRate.ToString(), user.TransportationRate.ToString(), user.Password, user.Approver1Id, user.Approver2Id}
+
+        For a As Integer = 0 To ValueName.Length - 1
+            My.Computer.Registry.SetValue("HKEY_CURRENT_USER\Software\ER System\UserAccount", ValueName(a), Value(a))
+        Next
+    End Sub
+    Private Sub LoadUserAccount()
+        Dim account = _userService.GetUserDetails(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
+        If account IsNot Nothing Then
+            ' Map to the existing logic access pipeline (if you intend to migrate LoginAccessService, you can do it here) 
+            ' As an adapter step, map our new Domain.Entities.UserAccount to the old schema.
+            Dim oldAcc = New UserAccount With {
+                .UserName = account.Username,
+                .UserLevel = account.UserLevel,
+                .FullName = account.Fullname,
+                .DepartmentName = account.DepartmentName
+            }
+            Dim loginAccess As LoginAccessResult = New LoginAccessService().Resolve(oldAcc, UCase(txtUsername.Text))
+
+            If loginAccess.IsAllowed Then
+                Me.Hide()
+                frmMain.ttuser.Text = loginAccess.DisplayName
+                frmMain.tsslUserDept.Text = loginAccess.DepartmentName
+                LoginSettingsControl(
+                    loginAccess.MenuFormsVisible,
+                    loginAccess.MenuFileVisible,
+                    loginAccess.MainFormEnabled,
+                    loginAccess.PreviousReportsVisible,
+                    loginAccess.UserAccountVisible,
+                    loginAccess.ExpenseSummaryVisible)
+            Else
+                MsgBox("Invalid Username/Password")
+                txtPassword.Clear()
+                txtPassword.Focus()
+            End If
         End If
     End Sub
     Private Sub SearchDup()
-        CreateUserAccountService().GetByUserId(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
+        _userService.GetUserDetails(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
     End Sub
 
     Private Sub DUpAcct(ByVal loginStatus As String)
-        CreateUserAccountService().UpdateLoginStatus(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0), loginStatus)
+        _userService.UpdateLoginStatus(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0), loginStatus)
     End Sub
 
-    Friend Function CreateUserAccountService() As UserAccountService
-        Dim settingsProvider As New RegistryConnectionSettingsProvider(TripleDes)
-        Dim connectionFactory As New SqlConnectionFactory(settingsProvider)
-        Dim userAccountRepository As IUserAccountRepository = New SqlUserAccountRepository(connectionFactory)
-
-        Return New UserAccountService(userAccountRepository)
-    End Function
-
-    Private Function CreateRegisteredUserAccount() As UserAccount
-        Return New UserAccount With {
-            .UserName = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UsernameKey})(0),
-            .UserLevel = GetRegistryValue(RegistryKeys.UserAccountPath, {"Userlevel"})(0),
-            .FullName = GetRegistryValue(RegistryKeys.UserAccountPath, {"Fullname"})(0),
-            .DepartmentName = GetRegistryValue(RegistryKeys.UserAccountPath, {"emp_Dept"})(0)
-        }
-    End Function
     Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
         System.Windows.Forms.Application.Exit()
     End Sub

@@ -544,13 +544,17 @@ Module ModDataStore
             dtLoginUser.Rows(0).Item(ValueName(7)).ToString(), dtLoginUser.Rows(0).Item(ValueName(8)).ToString(), dtLoginUser.Rows(0).Item(ValueName(9)).ToString(),
             dtLoginUser.Rows(0).Item(ValueName(10)).ToString(), dtLoginUser.Rows(0).Item(ValueName(11)).ToString(), dtLoginUser.Rows(0).Item(ValueName(12)).ToString(),
             dtLoginUser.Rows(0).Item(ValueName(13)).ToString()}
-        ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", "UserAccount", ValueName, Value)
+
+        Dim settingsRepo = New ERSystem.Data.Repositories.RegistrySettingsRepository("HKEY_CURRENT_USER\Software\ER System")
+        settingsRepo.SetValues("UserAccount", ValueName, Value)
     End Sub
     Friend Function GetRegistryValue(ByVal subKey As String, ByVal valueName As String()) As List(Of String)
-        Return ClsData.RegistryGetValue(subKey, valueName)
+        Dim settingsRepo = New ERSystem.Data.Repositories.RegistrySettingsRepository("HKEY_CURRENT_USER\Software\ER System")
+        Return settingsRepo.GetValues(subKey, valueName)
     End Function
     Friend Sub SetRegistry(ByVal subkey As String, ByVal ValueName As String(), ByVal Value As String())
-        ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", subkey, ValueName, Value)
+        Dim settingsRepo = New ERSystem.Data.Repositories.RegistrySettingsRepository("HKEY_CURRENT_USER\Software\ER System")
+        settingsRepo.SetValues(subkey, ValueName, Value)
     End Sub
     Friend Sub LoginSettingsControl(ByVal MenuForms As Boolean, ByVal MenuFile As Boolean, ByVal Enabled As Boolean,
                                     ByVal tsmiPrev As Boolean, ByVal UserAccountToolStripMenuItem As Boolean, ByVal fmsExpenseSummary As Boolean)

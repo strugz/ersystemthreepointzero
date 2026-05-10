@@ -15,73 +15,56 @@ Module modMaintenance
                          ByVal Approved As String, ByVal dateFiled As String,
                          ByVal fileStatus As String)
         DBConnection()
-        Using sqlAddReport As New SqlCommand
-            Using SQLConnection As SqlConnection = mConn.SQLConnection
-                With sqlAddReport
-                    .Connection = SQLConnection
-                    .CommandText = "EXEC sp2_AddReportData @dateFrom,@dateTo,@description,@cashAdvance,@cashDate,@cashrefdoc,@cashrefNumber,@balto,@revolvingfund,@cashCheck,@userID,@status,@approved,@dateFiled,@fileStatus"
-                    .CommandType = CommandType.Text
-                    .Parameters.Add("@dateFrom", SqlDbType.VarChar).Value = dateFrom
-                    .Parameters.Add("@dateTo", SqlDbType.VarChar).Value = dateto
-                    .Parameters.Add("@description", SqlDbType.VarChar).Value = Replace(LTrim(RTrim(Description)), vbLf, "")
-                    .Parameters.Add("@cashAdvance", SqlDbType.VarChar).Value = CashAdvance
-                    .Parameters.Add("@cashDate", SqlDbType.VarChar).Value = cashDate
-                    .Parameters.Add("@cashrefdoc", SqlDbType.VarChar).Value = cashrefdoc
-                    .Parameters.Add("@cashrefNumber", SqlDbType.VarChar).Value = cashrefNumber
-                    .Parameters.Add("@balto", SqlDbType.VarChar).Value = balto
-                    .Parameters.Add("@revolvingfund", SqlDbType.VarChar).Value = revolvingfund
-                    .Parameters.Add("@cashCheck", SqlDbType.VarChar).Value = cashCheck
-                    .Parameters.Add("@userID", SqlDbType.VarChar).Value = userID
-                    .Parameters.Add("@status", SqlDbType.VarChar).Value = status
-                    .Parameters.Add("@approved", SqlDbType.VarChar).Value = Approved
-                    .Parameters.Add("@dateFiled", SqlDbType.VarChar).Value = dateFiled
-                    .Parameters.Add("@fileStatus", SqlDbType.VarChar).Value = fileStatus
-                    .ExecuteNonQuery()
-                End With
-            End Using
-        End Using
+        Dim rep As New ERSystem.Core.Domain.Entities.Report With {
+            .DateFrom = dateFrom,
+            .DateTo = dateto,
+            .Description = Description,
+            .CashAdvance = CashAdvance,
+            .CashDate = cashDate,
+            .CashRefDoc = cashrefdoc,
+            .CashRefNumber = cashrefNumber,
+            .BalTo = balto,
+            .RevolvingFund = revolvingfund,
+            .CashCheck = cashCheck,
+            .UserID = userID,
+            .Status = status,
+            .Approved = Approved,
+            .DateFiled = dateFiled,
+            .FileStatus = fileStatus
+        }
+        Dim repository As New ERSystem.Data.Repositories.SqlReportRepository(mConn.SQLConnection.ConnectionString)
+        Dim service As New ERSystem.Core.Application.Services.ReportService(repository)
+        service.AddReport(rep)
     End Sub
+
     Public Sub UpdateReport(ByVal reportID As String, ByVal dateFrom As String, ByVal dateto As String,
                          ByVal Description As String, ByVal CashAdvance As String,
                          ByVal cashDate As String, ByVal cashrefdoc As String,
                          ByVal cashrefNumber As String, ByVal revolvingfund As String,
                          ByVal cashCheck As String)
         DBConnection()
-        Using sqlUpdateReport As New SqlCommand
-            Using SQLConnection As SqlConnection = mConn.SQLConnection
-                With sqlUpdateReport
-                    .Connection = SQLConnection
-                    .CommandText = "EXEC sp2_UpdateReportData @reportID,@dateFrom,@dateTo,@description,@cashAdvance,@cashDate,@cashrefdoc,@cashrefNumber,@revolvingfund,@cashCheck"
-                    .CommandType = CommandType.Text
-                    .Parameters.Add("@reportID", SqlDbType.VarChar).Value = reportID
-                    .Parameters.Add("@dateFrom", SqlDbType.VarChar).Value = dateFrom
-                    .Parameters.Add("@dateTo", SqlDbType.VarChar).Value = dateto
-                    .Parameters.Add("@description", SqlDbType.VarChar).Value = Replace(LTrim(RTrim(Description)), vbLf, "")
-                    .Parameters.Add("@cashAdvance", SqlDbType.VarChar).Value = CashAdvance
-                    .Parameters.Add("@cashDate", SqlDbType.VarChar).Value = cashDate
-                    .Parameters.Add("@cashrefdoc", SqlDbType.VarChar).Value = cashrefdoc
-                    .Parameters.Add("@cashrefNumber", SqlDbType.VarChar).Value = cashrefNumber
-                    .Parameters.Add("@revolvingfund", SqlDbType.VarChar).Value = revolvingfund
-                    .Parameters.Add("@cashCheck", SqlDbType.VarChar).Value = cashCheck
-                    .ExecuteNonQuery()
-                End With
-            End Using
-        End Using
+        Dim rep As New ERSystem.Core.Domain.Entities.Report With {
+            .ReportID = reportID,
+            .DateFrom = dateFrom,
+            .DateTo = dateto,
+            .Description = Description,
+            .CashAdvance = CashAdvance,
+            .CashDate = cashDate,
+            .CashRefDoc = cashrefdoc,
+            .CashRefNumber = cashrefNumber,
+            .RevolvingFund = revolvingfund,
+            .CashCheck = cashCheck
+        }
+        Dim repository As New ERSystem.Data.Repositories.SqlReportRepository(mConn.SQLConnection.ConnectionString)
+        Dim service As New ERSystem.Core.Application.Services.ReportService(repository)
+        service.UpdateReport(rep)
     End Sub
+
     Public Sub RefileER(ByVal reportID As String, ByVal status As String)
         DBConnection()
-        Using sqlcmdRefileER As New SqlCommand
-            Using SQLConnection As SqlConnection = mConn.SQLConnection
-                With sqlcmdRefileER
-                    .Connection = SQLConnection
-                    .CommandText = "EXEC sp2_RefileER @reportID,@status"
-                    .CommandType = CommandType.Text
-                    .Parameters.Add("@reportID", SqlDbType.VarChar).Value = reportID
-                    .Parameters.Add("@status", SqlDbType.VarChar).Value = status
-                    .ExecuteNonQuery()
-                End With
-            End Using
-        End Using
+        Dim repository As New ERSystem.Data.Repositories.SqlReportRepository(mConn.SQLConnection.ConnectionString)
+        Dim service As New ERSystem.Core.Application.Services.ReportService(repository)
+        service.RefileReport(reportID, status)
     End Sub
     Private Sub ExtractUserExpenseMeal(ByVal UserExpenseMeal As String)
         UserExpenseMeal.Split("/")
@@ -99,47 +82,35 @@ Module modMaintenance
                           ByVal UserExpenseMeal As String, ByVal UserExpenseTransportation As String,
                           Optional ByVal mdays As String = "", Optional ByVal computation As String = "", Optional ByVal totdays As String = "")
         DBConnection()
-        Dim workWithValue As String = If(String.IsNullOrEmpty(WorkWith), "NONE", WorkWith)
-        Dim mealValues() As String = GetExpenseParts(UserExpenseMeal)
-        Dim transValues() As String = GetExpenseParts(UserExpenseTransportation)
+        Dim expense As New ERSystem.Core.Domain.Entities.Expense With {
+            .TransDate = transdate,
+            .PerDiem = perdiem,
+            .Particulars = particulars,
+            .Invoice = invoice,
+            .Multiplier = multiplier,
+            .ExtType = type,
+            .Category = category,
+            .Amount = amount,
+            .Remarks = remarks,
+            .Status = status,
+            .TotalAmount = totalamount,
+            .Location = location,
+            .UserID = userid,
+            .ReportID = reportID,
+            .ServiceNumber = ServiceNumber,
+            .Instrument = Instrument,
+            .SerialNumber = SerialNumber,
+            .WorkWith = WorkWith,
+            .UserExpenseMeal = UserExpenseMeal,
+            .UserExpenseTransportation = UserExpenseTransportation,
+            .MDays = mdays,
+            .Computation = computation,
+            .TotDays = totdays
+        }
 
-        Using sqlAddExpense As New SqlCommand
-            Using SQLConnection As SqlConnection = mConn.SQLConnection
-                With sqlAddExpense
-                    .Connection = SQLConnection
-                    .CommandText = "EXEC [sp2_AddExpense] @transdate,@perdiem,@particulars,@invoice,@multiplier,@type,@category,@amount,@remarks,@status,@totalamount,@location,@userid,@reportID,@workWith,@serviceNumber,@instrument,@serialNumber,@mdays,@computation,@totdays,@meal1,@meal2,@meal3,@trans1,@trans2,@trans3"
-                    .CommandType = CommandType.Text
-                    .Parameters.Add("@transdate", SqlDbType.VarChar).Value = transdate
-                    .Parameters.Add("@perdiem", SqlDbType.VarChar).Value = perdiem
-                    .Parameters.Add("@particulars", SqlDbType.VarChar).Value = particulars
-                    .Parameters.Add("@invoice", SqlDbType.VarChar).Value = invoice
-                    .Parameters.Add("@multiplier", SqlDbType.VarChar).Value = multiplier
-                    .Parameters.Add("@type", SqlDbType.VarChar).Value = type
-                    .Parameters.Add("@category", SqlDbType.VarChar).Value = category
-                    .Parameters.Add("@amount", SqlDbType.VarChar).Value = amount
-                    .Parameters.Add("@remarks", SqlDbType.VarChar).Value = remarks
-                    .Parameters.Add("@status", SqlDbType.VarChar).Value = status
-                    .Parameters.Add("@totalamount", SqlDbType.VarChar).Value = totalamount
-                    .Parameters.Add("@location", SqlDbType.VarChar).Value = location
-                    .Parameters.Add("@userid", SqlDbType.VarChar).Value = userid
-                    .Parameters.Add("@reportID", SqlDbType.VarChar).Value = reportID
-                    .Parameters.Add("@workWith", SqlDbType.VarChar).Value = workWithValue
-                    .Parameters.Add("@serviceNumber", SqlDbType.VarChar).Value = ServiceNumber
-                    .Parameters.Add("@instrument", SqlDbType.VarChar).Value = Instrument
-                    .Parameters.Add("@serialNumber", SqlDbType.VarChar).Value = SerialNumber
-                    .Parameters.Add("@mdays", SqlDbType.VarChar).Value = mdays
-                    .Parameters.Add("@computation", SqlDbType.VarChar).Value = computation
-                    .Parameters.Add("@totdays", SqlDbType.VarChar).Value = totdays
-                    .Parameters.Add("@meal1", SqlDbType.VarChar).Value = mealValues(0)
-                    .Parameters.Add("@meal2", SqlDbType.VarChar).Value = mealValues(1)
-                    .Parameters.Add("@meal3", SqlDbType.VarChar).Value = mealValues(2)
-                    .Parameters.Add("@trans1", SqlDbType.VarChar).Value = transValues(0)
-                    .Parameters.Add("@trans2", SqlDbType.VarChar).Value = transValues(1)
-                    .Parameters.Add("@trans3", SqlDbType.VarChar).Value = transValues(2)
-                    .ExecuteNonQuery()
-                End With
-            End Using
-        End Using
+        Dim repository As New ERSystem.Data.Repositories.SqlExpenseRepository(mConn.SQLConnection.ConnectionString)
+        Dim service As New ERSystem.Core.Application.Services.ExpenseService(repository)
+        service.AddExpense(expense)
     End Sub
     Public Sub AddExpenseHisto(ByVal transdate As String, ByVal perdiem As String,
                       ByVal particulars As String, ByVal invoice As String,
@@ -224,47 +195,35 @@ Module modMaintenance
                            ByVal UserExpenseMeal As String, ByVal UserExpenseTransportation As String,
                            Optional ByVal mdays As String = "", Optional ByVal computation As String = "", Optional ByVal totdays As String = "")
         DBConnection()
-        Dim workWithValue As String = If(String.IsNullOrEmpty(WorkWith), "NONE", WorkWith)
-        Dim mealValues() As String = GetExpenseParts(UserExpenseMeal)
-        Dim transValues() As String = GetExpenseParts(UserExpenseTransportation)
+        Dim expense As New ERSystem.Core.Domain.Entities.Expense With {
+            .TransID = transID,
+            .TransDate = transdate,
+            .PerDiem = perdiem,
+            .Particulars = particulars,
+            .Invoice = invoice,
+            .Multiplier = multiplier,
+            .ExtType = type,
+            .Category = category,
+            .Amount = amount,
+            .Remarks = remarks,
+            .Status = status,
+            .TotalAmount = totalamount,
+            .Location = location,
+            .UserID = userid,
+            .ServiceNumber = ServiceNumber,
+            .Instrument = Instrument,
+            .SerialNumber = SerialNumber,
+            .WorkWith = WorkWith,
+            .UserExpenseMeal = UserExpenseMeal,
+            .UserExpenseTransportation = UserExpenseTransportation,
+            .MDays = mdays,
+            .Computation = computation,
+            .TotDays = totdays
+        }
 
-        Using sqlUpdateExpense As New SqlCommand
-            Using SQLConnection As SqlConnection = mConn.SQLConnection
-                With sqlUpdateExpense
-                    .Connection = SQLConnection
-                    .CommandText = "EXEC [sp2_updateExpense] @transID,@transdate,@perdiem,@particulars,@invoice,@multiplier,@type,@category,@amount,@remarks,@status,@totalamount,@location,@userid,@workWith,@serviceNumber,@instrument,@serialNumber,@mdays,@computation,@totdays,@meal1,@meal2,@meal3,@trans1,@trans2,@trans3"
-                    .CommandType = CommandType.Text
-                    .Parameters.Add("@transID", SqlDbType.VarChar).Value = transID
-                    .Parameters.Add("@transdate", SqlDbType.VarChar).Value = transdate
-                    .Parameters.Add("@perdiem", SqlDbType.VarChar).Value = perdiem
-                    .Parameters.Add("@particulars", SqlDbType.VarChar).Value = particulars
-                    .Parameters.Add("@invoice", SqlDbType.VarChar).Value = invoice
-                    .Parameters.Add("@multiplier", SqlDbType.VarChar).Value = multiplier
-                    .Parameters.Add("@type", SqlDbType.VarChar).Value = type
-                    .Parameters.Add("@category", SqlDbType.VarChar).Value = category
-                    .Parameters.Add("@amount", SqlDbType.VarChar).Value = amount
-                    .Parameters.Add("@remarks", SqlDbType.VarChar).Value = remarks
-                    .Parameters.Add("@status", SqlDbType.VarChar).Value = status
-                    .Parameters.Add("@totalamount", SqlDbType.VarChar).Value = totalamount
-                    .Parameters.Add("@location", SqlDbType.VarChar).Value = location
-                    .Parameters.Add("@userid", SqlDbType.VarChar).Value = userid
-                    .Parameters.Add("@workWith", SqlDbType.VarChar).Value = workWithValue
-                    .Parameters.Add("@serviceNumber", SqlDbType.VarChar).Value = ServiceNumber
-                    .Parameters.Add("@instrument", SqlDbType.VarChar).Value = Instrument
-                    .Parameters.Add("@serialNumber", SqlDbType.VarChar).Value = SerialNumber
-                    .Parameters.Add("@mdays", SqlDbType.VarChar).Value = mdays
-                    .Parameters.Add("@computation", SqlDbType.VarChar).Value = computation
-                    .Parameters.Add("@totdays", SqlDbType.VarChar).Value = totdays
-                    .Parameters.Add("@meal1", SqlDbType.VarChar).Value = mealValues(0)
-                    .Parameters.Add("@meal2", SqlDbType.VarChar).Value = mealValues(1)
-                    .Parameters.Add("@meal3", SqlDbType.VarChar).Value = mealValues(2)
-                    .Parameters.Add("@trans1", SqlDbType.VarChar).Value = transValues(0)
-                    .Parameters.Add("@trans2", SqlDbType.VarChar).Value = transValues(1)
-                    .Parameters.Add("@trans3", SqlDbType.VarChar).Value = transValues(2)
-                    .ExecuteNonQuery()
-                End With
-            End Using
-        End Using
+        Dim repository As New ERSystem.Data.Repositories.SqlExpenseRepository(mConn.SQLConnection.ConnectionString)
+        Dim service As New ERSystem.Core.Application.Services.ExpenseService(repository)
+        service.UpdateExpense(expense)
     End Sub
 
     Private Function GetExpenseParts(ByVal rawValue As String) As String()
@@ -304,37 +263,33 @@ Module modMaintenance
                               ByVal Approver2 As String, ByVal TransportationRate As String,
                               ByVal BreakFastRate As String, ByVal LunchRate As String, ByVal DinnerRate As String,
                               ByVal OTMeal As String)
-        DBConnection()
         Try
-            Using sqlAddUserAccount As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlAddUserAccount
-                        .Connection = SQLConnection
-                        .CommandType = CommandType.Text
-                        .CommandText = "EXEC sp2_AddUserAccount @UserID,@Fullname,@Position,@Department,@username,@Password,@emailAdd,@EmailPassword,@EmailTo,@EmailBcc,@Signature,@userlevel,@Approver1,@Approver2,@TransportationRate,@BreakFastRate,@LunchRate,@DinnerRate,@OTMeal"
-                        .Parameters.Add("@UserID", SqlDbType.VarChar).Value = UserID
-                        .Parameters.Add("@Fullname", SqlDbType.VarChar).Value = Fullname
-                        .Parameters.Add("@Position", SqlDbType.VarChar).Value = Position
-                        .Parameters.Add("@Department", SqlDbType.VarChar).Value = Department
-                        .Parameters.Add("@username", SqlDbType.VarChar).Value = username
-                        .Parameters.Add("@Password", SqlDbType.VarChar).Value = Password
-                        .Parameters.Add("@emailAdd", SqlDbType.VarChar).Value = emailAdd
-                        .Parameters.Add("@EmailPassword", SqlDbType.VarChar).Value = EmailPassword
-                        .Parameters.Add("@EmailTo", SqlDbType.VarChar).Value = EmailTo
-                        .Parameters.Add("@EmailBcc", SqlDbType.VarChar).Value = EmailBcc
-                        .Parameters.Add("@Signature", SqlDbType.VarBinary).Value = GetSignatureBytes()
-                        .Parameters.Add("@userlevel", SqlDbType.VarChar).Value = userlevel
-                        .Parameters.Add("@Approver1", SqlDbType.VarChar).Value = Approver1
-                        .Parameters.Add("@Approver2", SqlDbType.VarChar).Value = Approver2
-                        .Parameters.Add("@TransportationRate", SqlDbType.VarChar).Value = TransportationRate
-                        .Parameters.Add("@BreakFastRate", SqlDbType.VarChar).Value = BreakFastRate
-                        .Parameters.Add("@LunchRate", SqlDbType.VarChar).Value = LunchRate
-                        .Parameters.Add("@DinnerRate", SqlDbType.VarChar).Value = DinnerRate
-                        .Parameters.Add("@OTMeal", SqlDbType.VarChar).Value = OTMeal
-                        .ExecuteNonQuery()
-                    End With
-                End Using
-            End Using
+            DBConnection()
+            Dim user As New ERSystem.Core.Domain.Entities.UserAccount With {
+                .UserID = UserID,
+                .Fullname = Fullname,
+                .Position = Position,
+                .DepartmentID = Department,
+                .Username = username,
+                .EmailAddress = emailAdd,
+                .EmailPassword = EmailPassword,
+                .EmailTo = EmailTo,
+                .EmailBcc = EmailBcc,
+                .UserLevel = userlevel,
+                .Approver1Id = Approver1,
+                .Approver2Id = Approver2,
+                .TransportationRate = If(Decimal.TryParse(TransportationRate, Nothing), Decimal.Parse(TransportationRate), 0),
+                .BreakfastRate = If(Decimal.TryParse(BreakFastRate, Nothing), Decimal.Parse(BreakFastRate), 0),
+                .LunchRate = If(Decimal.TryParse(LunchRate, Nothing), Decimal.Parse(LunchRate), 0),
+                .DinnerRate = If(Decimal.TryParse(DinnerRate, Nothing), Decimal.Parse(DinnerRate), 0),
+                .OTMealRate = If(Decimal.TryParse(OTMeal, Nothing), Decimal.Parse(OTMeal), 0),
+                .Signature = GetSignatureBytes()
+            }
+
+            Dim repository As New ERSystem.Data.Repositories.SqlUserRepository(mConn.SQLConnection.ConnectionString)
+            Dim encryptionService = New ERSystem.Common.Utilities.TripleDesEncryptionService("crimsonmonastery2003")
+            Dim service As New ERSystem.Core.Application.Services.UserService(repository, encryptionService)
+            service.RegisterUser(user, Password)
         Catch ex As Exception
             MsgBox(ex.Message)
         End Try
@@ -348,36 +303,31 @@ Module modMaintenance
                               ByVal Approver2 As String, ByVal TransportationRate As String,
                               ByVal BreakFastRate As String, ByVal LunchRate As String, ByVal DinnerRate As String,
                               ByVal OTMeal As String)
-        DBConnection()
         Try
-            Using sqlUpdateUserAccount As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlUpdateUserAccount
-                        .Connection = SQLConnection
-                        .CommandType = CommandType.Text
-                        .Parameters.Clear()
-                        .CommandText = "EXEC sp2_UpdateUserAcc @UserID,@Fullname,@Position,@Department,@username,@Password,@EmailTo,@EmailBcc,@Signature,@userlevel,@Approver1,@Approver2,@TransportationRate,@BreakFastRate,@LunchRate,@DinnerRate,@OTMeal"
-                        .Parameters.Add("@UserID", SqlDbType.VarChar).Value = UserID
-                        .Parameters.Add("@Fullname", SqlDbType.VarChar).Value = Fullname
-                        .Parameters.Add("@Position", SqlDbType.VarChar).Value = Position
-                        .Parameters.Add("@Department", SqlDbType.VarChar).Value = Department
-                        .Parameters.Add("@username", SqlDbType.VarChar).Value = username
-                        .Parameters.Add("@Password", SqlDbType.VarChar).Value = Password
-                        .Parameters.Add("@EmailTo", SqlDbType.VarChar).Value = EmailTo
-                        .Parameters.Add("@EmailBcc", SqlDbType.VarChar).Value = EmailBcc
-                        .Parameters.Add("@Signature", SqlDbType.VarBinary).Value = GetSignatureBytes()
-                        .Parameters.Add("@userlevel", SqlDbType.VarChar).Value = userlevel
-                        .Parameters.Add("@Approver1", SqlDbType.VarChar).Value = Approver1
-                        .Parameters.Add("@Approver2", SqlDbType.VarChar).Value = Approver2
-                        .Parameters.Add("@TransportationRate", SqlDbType.VarChar).Value = TransportationRate
-                        .Parameters.Add("@BreakFastRate", SqlDbType.VarChar).Value = BreakFastRate
-                        .Parameters.Add("@LunchRate", SqlDbType.VarChar).Value = LunchRate
-                        .Parameters.Add("@DinnerRate", SqlDbType.VarChar).Value = DinnerRate
-                        .Parameters.Add("@OTMeal", SqlDbType.VarChar).Value = OTMeal
-                        .ExecuteNonQuery()
-                    End With
-                End Using
-            End Using
+            DBConnection()
+             Dim user As New ERSystem.Core.Domain.Entities.UserAccount With {
+                .UserID = UserID,
+                .Fullname = Fullname,
+                .Position = Position,
+                .DepartmentID = Department,
+                .Username = username,
+                .Password = Password,
+                .EmailTo = EmailTo,
+                .EmailBcc = EmailBcc,
+                .UserLevel = userlevel,
+                .Approver1Id = Approver1,
+                .Approver2Id = Approver2,
+                .TransportationRate = If(Decimal.TryParse(TransportationRate, Nothing), Decimal.Parse(TransportationRate), 0),
+                .BreakfastRate = If(Decimal.TryParse(BreakFastRate, Nothing), Decimal.Parse(BreakFastRate), 0),
+                .LunchRate = If(Decimal.TryParse(LunchRate, Nothing), Decimal.Parse(LunchRate), 0),
+                .DinnerRate = If(Decimal.TryParse(DinnerRate, Nothing), Decimal.Parse(DinnerRate), 0),
+                .OTMealRate = If(Decimal.TryParse(OTMeal, Nothing), Decimal.Parse(OTMeal), 0),
+                .Signature = GetSignatureBytes()
+            }
+            Dim repository As New ERSystem.Data.Repositories.SqlUserRepository(mConn.SQLConnection.ConnectionString)
+            Dim encryptionService = New ERSystem.Common.Utilities.TripleDesEncryptionService("crimsonmonastery2003")
+            Dim service As New ERSystem.Core.Application.Services.UserService(repository, encryptionService)
+            service.UpdateUser(user)
         Catch ex As Exception
             MsgBox(ex.Message)
         End Try
@@ -387,21 +337,16 @@ Module modMaintenance
                            ByVal approve As String, ByVal UserID As String)
         Try
             DBConnection()
-            Using sqlAddDeptSign As New SqlCommand
-                Using SqlConnection As SqlConnection = mConn.SQLConnection
-                    With sqlAddDeptSign
-                        .Connection = SqlConnection
-                        .CommandText = "EXEC sp2_AddDeptSign @deptID,@review,@endorse,@approve,@UserID"
-                        .CommandType = CommandType.Text
-                        .Parameters.Add("@deptID", SqlDbType.VarChar).Value = deptID
-                        .Parameters.Add("@review", SqlDbType.VarChar).Value = review
-                        .Parameters.Add("@endorse", SqlDbType.VarChar).Value = endorse
-                        .Parameters.Add("@approve", SqlDbType.VarChar).Value = approve
-                        .Parameters.Add("@UserID", SqlDbType.VarChar).Value = UserID
-                        .ExecuteNonQuery()
-                    End With
-                End Using
-            End Using
+            Dim ds As New ERSystem.Core.Domain.Entities.DepartmentSignature With {
+                .DepartmentID = deptID,
+                .Reviewer = review,
+                .Endorser = endorse,
+                .Approver = approve,
+                .UserID = UserID
+            }
+            Dim repository As New ERSystem.Data.Repositories.SqlDepartmentSignatureRepository(mConn.SQLConnection.ConnectionString)
+            Dim service As New ERSystem.Core.Application.Services.DepartmentSignatureService(repository)
+            service.AddDepartmentSignature(ds)
         Catch ex As Exception
             strError = ex.Message
         End Try
@@ -411,21 +356,16 @@ Module modMaintenance
                           ByVal approve As String)
         Try
             DBConnection()
-            Using sqlAddDeptSign As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlAddDeptSign
-                        .Connection = SQLConnection
-                        .CommandText = "EXEC [sp2_UpdateDeptSign] @UserID,@deptID,@review,@endorse,@approve"
-                        .CommandType = CommandType.Text
-                        .Parameters.Add("@UserID", SqlDbType.VarChar).Value = UserID
-                        .Parameters.Add("@deptID", SqlDbType.VarChar).Value = deptID
-                        .Parameters.Add("@review", SqlDbType.VarChar).Value = review
-                        .Parameters.Add("@endorse", SqlDbType.VarChar).Value = endorse
-                        .Parameters.Add("@approve", SqlDbType.VarChar).Value = approve
-                        .ExecuteNonQuery()
-                    End With
-                End Using
-            End Using
+            Dim ds As New ERSystem.Core.Domain.Entities.DepartmentSignature With {
+                .DepartmentID = deptID,
+                .Reviewer = review,
+                .Endorser = endorse,
+                .Approver = approve,
+                .UserID = UserID
+            }
+            Dim repository As New ERSystem.Data.Repositories.SqlDepartmentSignatureRepository(mConn.SQLConnection.ConnectionString)
+            Dim service As New ERSystem.Core.Application.Services.DepartmentSignatureService(repository)
+            service.UpdateDepartmentSignature(ds)
         Catch ex As Exception
             strError = ex.Message
         End Try

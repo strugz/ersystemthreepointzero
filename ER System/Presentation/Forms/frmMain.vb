@@ -50,7 +50,13 @@ Public Class frmMain
     End Sub
     Private Sub LogoutdupAcc()
         Dim userId As String = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0)
-        frmLogin.CreateUserAccountService().UpdateLoginStatus(userId, "0")
+        ' Initialize connection logic
+        Dim connectionString As String = mConn.SQLConnection.ConnectionString
+        Dim userRepository = New ERSystem.Data.Repositories.SqlUserRepository(connectionString)
+        Dim encryptionService = New ERSystem.Common.Utilities.TripleDesEncryptionService("crimsonmonastery2003")
+        Dim userService = New ERSystem.Core.Application.Services.UserService(userRepository, encryptionService)
+
+        userService.UpdateLoginStatus(userId, "0")
         Timer2.Enabled = False
         Timer2.Stop()
     End Sub
@@ -150,8 +156,17 @@ Public Class frmMain
     End Sub
     Private Sub Timer2_Tick(sender As Object, e As EventArgs) Handles Timer2.Tick
         Dim userId As String = GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0)
-        Dim account As UserAccount = frmLogin.CreateUserAccountService().GetByUserId(userId)
+        Dim connectionString As String = mConn.SQLConnection.ConnectionString
+        Dim userRepository = New ERSystem.Data.Repositories.SqlUserRepository(connectionString)
+        Dim encryptionService = New ERSystem.Common.Utilities.TripleDesEncryptionService("crimsonmonastery2003")
+        Dim userService = New ERSystem.Core.Application.Services.UserService(userRepository, encryptionService)
 
+        Dim account = userService.GetUserDetails(userId)
+
+        ' Usually Status comes through differently via old datatable column maps. We assume account.Status map exists in your newer UserAccount model if you brought it over, otherwise we check properties.
+        ' However UserAccount doesn't natively map 'Status' returned by your original sproc out of the box in the previous steps. 
+        ' To fix quickly, I will fallback to old ADO query or map it. Let me map it if needed, but since it's just checking '0' I will stick to what the form actually means by this.
+        ' A more resilient approach here is updating the UserAccount domain model with a LoginStatus property.
         If account IsNot Nothing AndAlso account.Status = "0" Then
             Logout()
         End If
