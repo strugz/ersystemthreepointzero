@@ -57,6 +57,7 @@ Do **not** do a big-bang folder move. The initial layer folders now exist as pla
    - Prefer stored procedure calls with `CommandType.StoredProcedure` where the database already exposes procedures.
    - Wrap `SqlConnection`, `SqlCommand`, `SqlDataReader`, `DataTable`, and other disposable objects in `Using` blocks.
    - Keep stored procedure names and table/column constants centralized under `Database/` when practical.
+   - Standardize on SQL Server Authentication connection strings across the application.
 
 4. **Treat global modules as legacy compatibility seams**
    - Existing modules such as `mConn.vb`, `modLoadingData.vb`, `modMaintenance.vb`, `modReport.vb`, `modReuse.vb`, and `ModDataStore.vb` are legacy areas.

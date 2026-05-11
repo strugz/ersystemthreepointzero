@@ -7,34 +7,58 @@ Public Class frmLogin
     Private Shared ReadOnly StartupPath As String = System.Windows.Forms.Application.StartupPath
     Private Const MyKey As String = "crimsonmonastery2003"
     Private TripleDes As New clsEncryption(MyKey)
+
     Private Sub frmLogin_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
         If e.KeyCode = Keys.Escape Then System.Windows.Forms.Application.Exit()
     End Sub
+
     Private Sub frmLogin_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Process.GetProcessesByName(Process.GetCurrentProcess.ProcessName)
-        Try
-            DBConnection()
-            If Not IsConnected Then
-                Me.Visible = False
-                frmConnection.ShowDialog()
-                DBConnection()
-                If Not IsConnected Then
-                    End
-                End If
-            End If
 
-            LoadUserAccountAdmin()
+        Try
+            EnsureDatabaseConnection()
+            LoadStartupData()
         Catch ex As Exception
             MessageBox.Show("Failed to initialize connection: " & ex.Message, "Startup Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Return
         End Try
+
+        CheckApplicationVersion()
+    End Sub
+
+    Private Sub EnsureDatabaseConnection()
+        DBConnection()
+
+        If IsConnected Then
+            Return
+        End If
+
+        Me.Visible = False
+        frmConnection.ShowDialog()
+        DBConnection()
+
+        If Not IsConnected Then
+            End
+        End If
+
+        Me.Visible = True
+    End Sub
+
+    Private Sub LoadStartupData()
+        LoadUserAccountAdmin()
+    End Sub
+
+    Private Sub CheckApplicationVersion()
         Dim CurrentVersion As String
         Dim NewVersion As String
         Dim MainExeCurrentVersion As String
         Dim MainExeNewVersion As String
+
         CurrentVersion = GetFileVersionInfo(StartupPath + "\ER.exe").ToString()
         NewVersion = GetFileVersionInfo(StartupPath + "\Executable\ER.exe").ToString()
         MainExeCurrentVersion = GetFileVersionInfo(StartupPath + "\ER System.exe").ToString()
         MainExeNewVersion = modLoadingData.SearchVersion()
+
         If Pinging("192.168.4.96").Status <> IPStatus.Success Then
             If MainExeCurrentVersion <> MainExeNewVersion Then
                 MsgBox("Please Update your Expense Report System.")
@@ -56,16 +80,20 @@ Public Class frmLogin
             End If
         End If
     End Sub
+
     Public Function Pinging(ByVal path) As PingReply
         Dim ping As New Ping
         Dim pingreply As PingReply = Nothing
+
         Try
             pingreply = ping.Send(path)
         Catch ex As Exception
             MessageBox.Show("Contact Jay")
         End Try
+
         Return pingreply
     End Function
+
     Private Function GetFileVersionInfo(ByVal filename As String) As String
         GetFileVersionInfo = FileVersionInfo.GetVersionInfo(filename).FileVersion
         Return GetFileVersionInfo
@@ -77,8 +105,8 @@ Public Class frmLogin
     End Sub
 
     Private Sub InitializeServices()
-        If _userService Is Nothing AndAlso mConn.SQLConnection IsNot Nothing Then
-            Dim connectionString As String = mConn.SQLConnection.ConnectionString
+        If _userService Is Nothing Then
+            Dim connectionString As String = mConn.GetOpenSqlConnection().ConnectionString
             Dim userRepository = New ERSystem.Data.Repositories.SqlUserRepository(connectionString)
             Dim encryptionService = New ERSystem.Common.Utilities.TripleDesEncryptionService("crimsonmonastery2003")
             _userService = New ERSystem.Core.Application.Services.UserService(userRepository, encryptionService)
@@ -95,7 +123,7 @@ Public Class frmLogin
             If userAccount IsNot Nothing Then
                 ' Migrate setting registries to use the Domain entity instead of DataTable
                 SetRegistryValueFromDomain(userAccount)
-                LoadUserAccount()
+                LoadUserAccount(userAccount)
                 Call ReleasMemory()
             Else
                 MsgBox("Username " & txtUsername.Text & " Not Detected or Invalid Password")
@@ -116,8 +144,7 @@ Public Class frmLogin
             My.Computer.Registry.SetValue("HKEY_CURRENT_USER\Software\ER System\UserAccount", ValueName(a), Value(a))
         Next
     End Sub
-    Private Sub LoadUserAccount()
-        Dim account = _userService.GetUserDetails(GetRegistryValue(RegistryKeys.UserAccountPath, {RegistryKeys.UserID})(0))
+    Private Sub LoadUserAccount(account As ERSystem.Core.Domain.Entities.UserAccount)
         If account IsNot Nothing Then
             ' Map to the existing logic access pipeline (if you intend to migrate LoginAccessService, you can do it here) 
             ' As an adapter step, map our new Domain.Entities.UserAccount to the old schema.

@@ -7,7 +7,6 @@
     Private Sub frmPreviousER_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
         Me.TopMost = False
         frmMain.TopMost = True
-        conn.Close()
     End Sub
 
     Private Sub frmPreviousER_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
@@ -21,7 +20,6 @@
 
     End Sub
     Private Sub frmPreviousER_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        ConnectionPreviousER()
         Me.TopMost = True
         frmMain.TopMost = False
     End Sub

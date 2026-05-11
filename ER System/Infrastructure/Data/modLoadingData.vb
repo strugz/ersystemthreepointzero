@@ -158,8 +158,8 @@ Module modLoadingData
     End Function
     Public Sub loadingPreviousER(ByVal userID As String, ByVal sdate As String, ByVal edate As String)
         Try
-            ConnectionPreviousER()
-            Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString, mConn.conn.ConnectionString)
+            DBConnection()
+            Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString, mConn.SQLConnection.ConnectionString)
             Dim dt = repo.LoadingPreviousER(userID, sdate, edate)
             frmPreviousER.DataGridView1.DataSource = dt
         Catch ex As Exception
@@ -168,8 +168,8 @@ Module modLoadingData
     End Sub
     Public Sub LoadingExpenseER(ByVal userID As String, ByVal reportID As String, ByVal sdate As String, ByVal edate As String)
         Try
-            ConnectionPreviousER()
-            Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString, mConn.conn.ConnectionString)
+            DBConnection()
+            Dim repo As New ERSystem.Data.Repositories.SqlReportQueryRepository(mConn.SQLConnection.ConnectionString, mConn.SQLConnection.ConnectionString)
             Dim dt = repo.LoadingExpenseER(userID, reportID, sdate, edate)
             frmPreviousERExpense.DataGridView1.DataSource = dt
         Catch ex As Exception

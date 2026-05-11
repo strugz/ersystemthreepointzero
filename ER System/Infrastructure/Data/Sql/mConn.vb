@@ -18,13 +18,41 @@ Module mConn
     Public objRatesSettings As Object
     Public isConnectedPrevious As Boolean
     Public conn As New SqlClient.SqlConnection
+
+    Public Function GetOpenSqlConnection() As SqlClient.SqlConnection
+        If SQLConnection Is Nothing OrElse String.IsNullOrWhiteSpace(SQLConnection.ConnectionString) Then
+            DBConnection()
+        End If
+
+        If SQLConnection Is Nothing Then
+            Throw New InvalidOperationException("SQL connection could not be initialized.")
+        End If
+
+        If SQLConnection.State <> ConnectionState.Open Then
+            SQLConnection.Open()
+        End If
+
+        Return SQLConnection
+    End Function
+
     Public Sub DBConnection()
         Dim settingsProvider As New RegistryConnectionSettingsProvider(TripleDes)
         Dim settings As ConnectionSettings = settingsProvider.Load()
 
+        SQLConnection = Nothing
+        cnString = String.Empty
+        IsConnected = False
+
         Select Case settings.DatabaseType
             Case ConnectionSettings.MicrosoftAccessDatabaseType
             Case ConnectionSettings.LegacySqlServerDatabaseType, ConnectionSettings.SqlServerDatabaseType
+                If String.IsNullOrWhiteSpace(settings.ServerName) OrElse
+                    String.IsNullOrWhiteSpace(settings.DatabaseName) OrElse
+                    String.IsNullOrWhiteSpace(settings.UserName) OrElse
+                    String.IsNullOrWhiteSpace(settings.Password) Then
+                    Exit Sub
+                End If
+
                 Dim connectionFactory As New SqlConnectionFactory(settingsProvider)
 
                 SQLConnection = connectionFactory.CreateCurrentConnection()
@@ -32,7 +60,9 @@ Module mConn
                 cnString = SQLConnection.ConnectionString
 
                 Try
-                    SQLConnection.Open()
+                    If SQLConnection.State <> ConnectionState.Open Then
+                        SQLConnection.Open()
+                    End If
                     IsConnected = True
                 Catch ex As Exception
                     IsConnected = False
@@ -43,11 +73,7 @@ Module mConn
     End Sub
 
     Public Sub ConnectionPreviousER()
-        Dim settingsProvider As New RegistryConnectionSettingsProvider(TripleDes)
-        Dim connectionFactory As New SqlConnectionFactory(settingsProvider)
-
-        conn = connectionFactory.CreatePreviousExpenseReportConnection()
+        conn = GetOpenSqlConnection()
         connectString = conn.ConnectionString
-        conn.Open()
     End Sub
 End Module

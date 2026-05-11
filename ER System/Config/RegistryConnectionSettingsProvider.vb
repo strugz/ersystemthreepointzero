@@ -10,8 +10,8 @@ Namespace Infrastructure.Configuration
 
         Public Function Load() As ConnectionSettings
             Return New ConnectionSettings With {
-                .DatabaseType = ReadRegistryValue("DBType", ConnectionSettings.MicrosoftAccessDatabaseType),
-                .Authentication = ReadRegistryValue("Authentication", ConnectionSettings.WindowsAuthentication),
+                .DatabaseType = ConnectionSettings.SqlServerDatabaseType,
+                .Authentication = ConnectionSettings.SqlServerAuthentication,
                 .ServerName = ReadEncryptedRegistryValue("ServerName"),
                 .DatabaseName = ReadEncryptedRegistryValue("Database"),
                 .UserName = ReadEncryptedRegistryValue("UserName"),

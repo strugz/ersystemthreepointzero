@@ -15,7 +15,7 @@ Namespace Repositories
 
         Public Function GetByUsernameAndPassword(username As String, encodedPassword As String) As UserAccount Implements IUserRepository.GetByUsernameAndPassword
             Using conn As New SqlConnection(_connectionString)
-                Using cmd As New SqlCommand("sp_Login", conn)
+                Using cmd As New SqlCommand("sp2_LoginUser", conn)
                     cmd.CommandType = CommandType.StoredProcedure
                     cmd.Parameters.Add("@username", SqlDbType.VarChar).Value = username
                     cmd.Parameters.Add("@password", SqlDbType.VarChar).Value = encodedPassword

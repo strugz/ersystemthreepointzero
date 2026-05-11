@@ -187,6 +187,7 @@
     <Compile Include="Core\Constants\RegistryKeys.vb" />
     <Compile Include="Database\Connection\SqlConnectionFactory.vb" />
     <Compile Include="frmLogin.vb" />
+    <Compile Include="Infrastructure\Configuration\RegistryConnectionSettingsProvider.vb" />
     <Compile Include="modMaintenance.vb" />
     <Compile Include="Presentation\Presenters\ExpenseUpdatePresenter.vb" />
     <Compile Include="Presentation\Presenters\ReportPrintPresenter.vb" />
@@ -609,7 +610,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Application\Repositories\" />
-    <Folder Include="Infrastructure\Configuration\" />
     <Folder Include="Infrastructure\Data\Repositories\" />
   </ItemGroup>
   <ItemGroup>

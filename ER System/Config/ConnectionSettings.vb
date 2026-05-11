@@ -6,6 +6,7 @@ Namespace Infrastructure.Configuration
         Public Const LegacySqlServerDatabaseType As String = "Miscrosoft SQL Server"
         Public Const SqlServerDatabaseType As String = "Microsoft SQL Server"
         Public Const WindowsAuthentication As String = "Windows Authentication"
+        Public Const SqlServerAuthentication As String = "SQL Server Authentication"
 
         Public Property DatabaseType As String
         Public Property Authentication As String
@@ -37,13 +38,11 @@ Namespace Infrastructure.Configuration
             builder.DataSource = ServerName
             builder.InitialCatalog = databaseOverride
 
-            If UsesWindowsAuthentication AndAlso Not forceSqlAuthentication Then
-                builder.IntegratedSecurity = True
-            Else
-                builder.TrustServerCertificate = True
-                builder.UserID = UserName
-                builder.Password = Password
-            End If
+            builder.IntegratedSecurity = False
+            builder.TrustServerCertificate = True
+            builder.UserID = UserName
+            builder.Password = Password
+            builder.PersistSecurityInfo = True
 
             Return builder.ConnectionString
         End Function

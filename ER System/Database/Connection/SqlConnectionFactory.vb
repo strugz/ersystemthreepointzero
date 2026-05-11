@@ -15,8 +15,7 @@ Namespace Infrastructure.Data.Sql
         End Function
 
         Public Function CreatePreviousExpenseReportConnection() As SqlConnection
-            Dim settings As ConnectionSettings = _settingsProvider.Load()
-            Return New SqlConnection(settings.BuildSqlConnectionString("ExpenseReportDB", True))
+            Return CreateCurrentConnection()
         End Function
     End Class
 End Namespace
