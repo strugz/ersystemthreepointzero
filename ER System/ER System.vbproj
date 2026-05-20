@@ -139,12 +139,6 @@
     <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <HintPath>..\packages\EntityFramework.6.5.2\lib\net45\EntityFramework.SqlServer.dll</HintPath>
     </Reference>
-    <Reference Include="ERSystem.Domain">
-      <HintPath>..\ERSystem.Domain\bin\Debug\ERSystem.Domain.dll</HintPath>
-    </Reference>
-    <Reference Include="ERSystem.Infrastructure">
-      <HintPath>..\ERSystem.Infrastructure\bin\Debug\ERSystem.Infrastructure.dll</HintPath>
-    </Reference>
     <Reference Include="JFrameworkWannabe">
       <HintPath>..\..\..\FrameworkWannabe\FrameworkWannabe\bin\Debug\JFrameworkWannabe.dll</HintPath>
     </Reference>
@@ -164,6 +158,16 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ERSystem.Domain\ERSystem.Domain.vbproj">
+      <Project>{EEFD82B5-EDDA-4F66-9533-03BAAF8E1A06}</Project>
+      <Name>ERSystem.Domain</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ERSystem.Infrastructure\ERSystem.Infrastructure.vbproj">
+      <Project>{CE87CB0C-4DDD-4B1A-BB3A-E2D61E4EFDF2}</Project>
+      <Name>ERSystem.Infrastructure</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Import Include="CrystalDecisions.CrystalReports.Engine" />
@@ -370,6 +374,7 @@
     <Compile Include="Infrastructure\Data\Repositories\ApproveRepository.vb" />
     <Compile Include="Infrastructure\Data\Repositories\RejectActionRepository.vb" />
     <Compile Include="Infrastructure\Data\Repositories\UserAccountRepository.vb" />
+    <Compile Include="Infrastructure\Data\AppDbContextProvider.vb" />
     <Compile Include="Infrastructure\Data\Sql\SqlConnectionFactory.vb" />
     <Compile Include="Infrastructure\Data\Legacy\mConn.vb" />
     <Compile Include="Legacy\Modules\ModDataStore.vb" />

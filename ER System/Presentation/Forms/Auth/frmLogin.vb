@@ -1,5 +1,6 @@
 ﻿Imports System.Net.NetworkInformation
 Imports System.Threading
+Imports ERSystem.Infrastructure.Data
 Public Class frmLogin
     Private ReadOnly _userAccountService As New AppServices.UserAccountService()
     Private Sub frmLogin_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
@@ -7,6 +8,7 @@ Public Class frmLogin
     End Sub
     Private Sub frmLogin_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Process.GetProcessesByName(Process.GetCurrentProcess.ProcessName)
+        Dim dbContext = AppDbContextProvider.Current
         Try
             Dim connectionResult As AppServices.StartupConnectionResult = _userAccountService.EnsureConnection()
 
