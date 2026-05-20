@@ -1,4 +1,4 @@
-﻿Imports System.Data.Entity
+Imports System.Data.Entity
 Imports ERSystem.Domain
 
 Public Class AppDbContext
@@ -10,10 +10,11 @@ Public Class AppDbContext
 
     Public Property ReportsDetails As DbSet(Of ReportDetailModel)
     Public Property CashAdvances As DbSet(Of CashAdvanceModel)
+
     Protected Overrides Sub OnModelCreating(modelBuilder As DbModelBuilder)
         MyBase.OnModelCreating(modelBuilder)
 
-        modelBuilder.Entity(Of ReportDetailModel)().ToTable("ReportDetails")
-        modelBuilder.Entity(Of CashAdvanceModel)().ToTable("CashAdvances")
+        modelBuilder.Entity(Of ReportDetailModel)().ToTable("tbReportDetails")
+        modelBuilder.Entity(Of CashAdvanceModel)().ToTable("tbCashAdvance")
     End Sub
 End Class

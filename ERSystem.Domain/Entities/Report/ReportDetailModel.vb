@@ -42,6 +42,4 @@ Public Class ReportDetailModel
     Public Property ReportAttachment As String
 
     Public Property ReportSentStatus As String
-    <ForeignKey("ID")>
-    Public Property CashAdvanceID As CashAdvanceModel
 End Class
