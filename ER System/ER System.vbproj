@@ -374,9 +374,6 @@
     <Compile Include="Infrastructure\Data\Repositories\ApproveRepository.vb" />
     <Compile Include="Infrastructure\Data\Repositories\RejectActionRepository.vb" />
     <Compile Include="Infrastructure\Data\Repositories\UserAccountRepository.vb" />
-    <Compile Include="Infrastructure\Data\AppDbOptimisticPreloader.vb" />
-    <Compile Include="Infrastructure\Data\AppDbContextProvider.vb" />
-    <Compile Include="Infrastructure\Data\AppDbSessionCache.vb" />
     <Compile Include="Infrastructure\Data\Sql\SqlConnectionFactory.vb" />
     <Compile Include="Infrastructure\Data\Legacy\mConn.vb" />
     <Compile Include="Legacy\Modules\ModDataStore.vb" />

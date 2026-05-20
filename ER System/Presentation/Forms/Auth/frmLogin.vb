@@ -3,6 +3,7 @@ Imports System.Threading
 Imports ERSystem.Infrastructure.Data
 Public Class frmLogin
     Private ReadOnly _userAccountService As New AppServices.UserAccountService()
+    Private ReadOnly _appDbSessionService As IAppDbSessionService = New AppDbSessionService()
     Private Sub frmLogin_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
         If e.KeyCode = Keys.Escape Then Application.Exit()
     End Sub
@@ -80,7 +81,7 @@ Public Class frmLogin
 
         If result.IsSuccess Then
             ApplyLoginResult(result)
-            AppDbOptimisticPreloader.Start()
+            _appDbSessionService.StartAfterLoginSuccess()
             Call ReleasMemory()
         Else
             MsgBox(result.Message)

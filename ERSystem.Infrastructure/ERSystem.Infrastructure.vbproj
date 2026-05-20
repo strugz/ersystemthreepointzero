@@ -75,6 +75,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data\AppDbContext.vb" />
+    <Compile Include="Data\AppDbContextProvider.vb" />
+    <Compile Include="Data\AppDbOptimisticPreloader.vb" />
+    <Compile Include="Data\AppDbSessionCache.vb" />
+    <Compile Include="Data\AppDbSessionService.vb" />
+    <Compile Include="Data\IAppDbSessionService.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
