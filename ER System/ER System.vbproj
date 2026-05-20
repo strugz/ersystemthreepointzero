@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -118,6 +118,12 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\..\..\..\Windows\assembly\GAC_MSIL\CrystalDecisions.CrystalReports.Engine\13.0.3500.0__692fbea5521e1304\CrystalDecisions.CrystalReports.Engine.dll</HintPath>
     </Reference>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.5.1\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.5.1\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
     <Reference Include="CrystalDecisions.ReportSource, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\..\..\..\Windows\assembly\GAC_MSIL\CrystalDecisions.ReportSource\13.0.3500.0__692fbea5521e1304\CrystalDecisions.ReportSource.dll</HintPath>
@@ -130,19 +136,17 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\..\..\..\Windows\assembly\GAC_MSIL\CrystalDecisions.Windows.Forms\13.0.3500.0__692fbea5521e1304\CrystalDecisions.Windows.Forms.dll</HintPath>
     </Reference>
+    <Reference Include="ERSystem.Domain">
+      <HintPath>..\ERSystem.Domain\bin\Debug\ERSystem.Domain.dll</HintPath>
+    </Reference>
+    <Reference Include="ERSystem.Infrastructure">
+      <HintPath>..\ERSystem.Infrastructure\bin\Debug\ERSystem.Infrastructure.dll</HintPath>
+    </Reference>
     <Reference Include="JFrameworkWannabe">
       <HintPath>..\..\..\FrameworkWannabe\FrameworkWannabe\bin\Debug\JFrameworkWannabe.dll</HintPath>
     </Reference>
     <Reference Include="log4net, Version=3.2.0.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <HintPath>..\packages\log4net.3.2.0\lib\net462\log4net.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.ReportViewer.Common, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Debug\Microsoft.ReportViewer.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.ReportViewer.WinForms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Debug\Microsoft.ReportViewer.WinForms.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -194,6 +198,7 @@
     <Compile Include="AppServices\StartupAdminCheckResult.vb" />
     <Compile Include="AppServices\StartupConnectionResult.vb" />
     <Compile Include="AppServices\UserAccountService.vb" />
+    <Compile Include="Legacy\Modules\ModFrmUserExpenseListDetails.vb" />
     <Compile Include="Shared\Utilities\Clipping.vb" />
     <Compile Include="Infrastructure\Security\clsEncryption.vb" />
     <Compile Include="Infrastructure\Data\Legacy\ClsLoadData.vb" />
@@ -367,7 +372,6 @@
     <Compile Include="Infrastructure\Data\Sql\SqlConnectionFactory.vb" />
     <Compile Include="Infrastructure\Data\Legacy\mConn.vb" />
     <Compile Include="Legacy\Modules\ModDataStore.vb" />
-    <Compile Include="Presentation\Forms\Expense\ModFrmUserExpenseListDetails.vb" />
     <Compile Include="Legacy\Modules\modLoadingData.vb" />
     <Compile Include="Legacy\Modules\modMaintenance.vb" />
     <Compile Include="Legacy\Modules\modReport.vb" />
@@ -423,6 +427,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Presentation\Forms\Expense\frmERType.resx">
       <DependentUpon>frmERType.vb</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Presentation\Forms\Expense\frmExpenseDetails.resx">
       <DependentUpon>frmExpenseDetails.vb</DependentUpon>
@@ -506,25 +511,6 @@
     <None Include="Resources\search.PNG" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="bin\Debug\Help\AccountSettings-ChangePassword.png" />
-    <None Include="bin\Debug\Help\AccountSettings-Signatory.png" />
-    <None Include="bin\Debug\Help\Add ER-Reimbursment Title.png" />
-    <None Include="bin\Debug\Help\Add Signatory.png" />
-    <None Include="bin\Debug\Help\Adding Expense.png" />
-    <None Include="bin\Debug\Help\AddReport-Expense.png" />
-    <None Include="bin\Debug\Help\Approve report.png" />
-    <None Include="bin\Debug\Help\Approved the FileER.png" />
-    <None Include="bin\Debug\Help\ChangeEmailSettings.png" />
-    <None Include="bin\Debug\Help\ChangePassword.png" />
-    <None Include="bin\Debug\Help\ER-Reimbursment added.png" />
-    <None Include="bin\Debug\Help\File the report.png" />
-    <None Include="bin\Debug\Help\FiledReportDisplay.png" />
-    <None Include="bin\Debug\Help\PendingER.png" />
-    <None Include="bin\Debug\Help\PendingFiledER.png" />
-    <None Include="bin\Debug\Help\PreviousER.png" />
-    <None Include="bin\Debug\Help\SearchAllER-Reimbursment.png" />
-    <None Include="bin\Debug\Help\Sending your ER.png" />
-    <None Include="bin\Debug\Help\updateExpenseData.png" />
     <Content Include="Resources\HP-Explorer-Blue-Dock-512.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -558,6 +544,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Application\Services\" />
+    <Folder Include="bin\Debug\Help\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

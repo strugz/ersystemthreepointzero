@@ -1,4 +1,4 @@
-﻿Module ModFrmUserExpenseListDetails
+Module ModFrmUserExpenseListDetails
     Friend Sub BTNMealClickExpenseListDetails()
         Dim checkboxlistSelected As String
         With FrmUserExpenseList
@@ -198,7 +198,36 @@
     End Sub
     Friend Sub GetUserExpenseMeal()
         With FrmUserExpenseList
-            If modLoadingData.UserExpenseMeal = "" Then
+            If modLoadingData.UserExpenseMeal <> "" Then
+                For Each item In modLoadingData.UserExpenseMeal.Split("/")(0).Split("&")
+                    .CLBMeals.SetItemChecked(CInt(item.Split("^")(0)), True)
+                Next
+                If modLoadingData.UserExpenseMeal.Split("/")(1) = 1 Then
+                    .CBBPaidFor.Checked = True
+                    .CBBPaidFor.Enabled = True
+                Else
+                    .CBBPaidFor.Checked = False
+                    .CBBPaidFor.Enabled = False
+                End If
+                If modLoadingData.UserExpenseMeal.Split("/")(2) <> "" Then
+                    For Each item In modLoadingData.UserExpenseMeal.Split("/")(2).Split("&")
+                        .CLBPaidBill.SetItemChecked(CInt(item.Split("^")(0)), True)
+                    Next
+                End If
+                If modLoadingData.UserExpenseMeal.Split("/")(0).Contains("Dinner") Then
+                    .CBDinnerOTMeal.Checked = True
+                    .RBDinner.Checked = True
+                    .RBOTMeal.Checked = False
+                ElseIf modLoadingData.UserExpenseMeal.Split("/")(0).Contains("OT Meal") Then
+                    .CBDinnerOTMeal.Checked = True
+                    .RBDinner.Checked = False
+                    .RBOTMeal.Checked = True
+                Else
+                    .CBDinnerOTMeal.Checked = False
+                    .RBDinner.Checked = False
+                    .RBOTMeal.Checked = False
+                End If
+            Else
                 .CLBMeals.SetItemChecked(0, False)
                 .CLBMeals.SetItemChecked(1, True)
             End If
