@@ -80,6 +80,14 @@
     <Compile Include="Data\AppDbSessionCache.vb" />
     <Compile Include="Data\AppDbSessionService.vb" />
     <Compile Include="Data\IAppDbSessionService.vb" />
+    <Compile Include="Data\CashAdvanceRepository.vb" />
+    <Compile Include="Data\CashAdvanceService.vb" />
+    <Compile Include="Data\ICashAdvanceRepository.vb" />
+    <Compile Include="Data\ICashAdvanceService.vb" />
+    <Compile Include="Data\IReportDetailRepository.vb" />
+    <Compile Include="Data\IReportDetailService.vb" />
+    <Compile Include="Data\ReportDetailRepository.vb" />
+    <Compile Include="Data\ReportDetailService.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
