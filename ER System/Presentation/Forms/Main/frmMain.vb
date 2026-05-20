@@ -1,8 +1,10 @@
 ﻿Public Class frmMain
     Dim SearchButtonValidation As String = "0"
     Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
+    Private ReadOnly _appDbSessionService As ERSystem.Infrastructure.Data.IAppDbSessionService = New ERSystem.Infrastructure.Data.AppDbSessionService()
 
     Private Sub frmMain_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
+        _appDbSessionService.ClearOnLogoutOrExit()
         Application.Exit()
     End Sub
     Private Sub UpdatePrintStatus()
@@ -39,6 +41,7 @@
         MsgBox("IMS")
     End Sub
     Private Sub Logout()
+        _appDbSessionService.ClearOnLogoutOrExit()
         Me.Hide()
         frmLogin.Show()
         Me.Enabled = False

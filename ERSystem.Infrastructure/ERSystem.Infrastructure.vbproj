@@ -75,6 +75,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Data\AppDbContext.vb" />
+    <Compile Include="Data\AppDbContextProvider.vb" />
+    <Compile Include="Data\AppDbOptimisticPreloader.vb" />
+    <Compile Include="Data\AppDbSessionCache.vb" />
+    <Compile Include="Data\Services\AppDbSessionService.vb" />
+    <Compile Include="Data\Interfaces\IAppDbSessionService.vb" />
+    <Compile Include="Data\Repositories\CashAdvanceRepository.vb" />
+    <Compile Include="Data\Services\CashAdvanceService.vb" />
+    <Compile Include="Data\Interfaces\ICashAdvanceRepository.vb" />
+    <Compile Include="Data\Interfaces\ICashAdvanceService.vb" />
+    <Compile Include="Data\Interfaces\IReportDetailRepository.vb" />
+    <Compile Include="Data\Interfaces\IReportDetailService.vb" />
+    <Compile Include="Data\Repositories\ReportDetailRepository.vb" />
+    <Compile Include="Data\Services\ReportDetailService.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
