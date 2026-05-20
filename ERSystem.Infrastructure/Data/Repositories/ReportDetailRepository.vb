@@ -1,7 +1,6 @@
 Imports System.Data.Entity
 Imports System.Linq
 Imports ERSystem.Domain
-Imports ERSystem.Domain.Dtos.Report
 
 Namespace Global.ERSystem.Infrastructure.Data
     Public NotInheritable Class ReportDetailRepository

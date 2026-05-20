@@ -1,4 +1,4 @@
-Imports ERSystem.Domain.Dtos.Report
+Imports ERSystem.Domain
 
 Namespace Global.ERSystem.Infrastructure.Data
     Public Interface IReportDetailRepository
