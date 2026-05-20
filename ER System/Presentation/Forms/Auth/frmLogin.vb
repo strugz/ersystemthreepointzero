@@ -8,7 +8,6 @@ Public Class frmLogin
     End Sub
     Private Sub frmLogin_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Process.GetProcessesByName(Process.GetCurrentProcess.ProcessName)
-        Dim dbContext = AppDbContextProvider.Current
         Try
             Dim connectionResult As AppServices.StartupConnectionResult = _userAccountService.EnsureConnection()
 
@@ -81,6 +80,7 @@ Public Class frmLogin
 
         If result.IsSuccess Then
             ApplyLoginResult(result)
+            AppDbOptimisticPreloader.Start()
             Call ReleasMemory()
         Else
             MsgBox(result.Message)

@@ -3,6 +3,7 @@
     Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
 
     Private Sub frmMain_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
+        ERSystem.Infrastructure.Data.AppDbSessionCache.Clear()
         Application.Exit()
     End Sub
     Private Sub UpdatePrintStatus()
@@ -39,6 +40,7 @@
         MsgBox("IMS")
     End Sub
     Private Sub Logout()
+        ERSystem.Infrastructure.Data.AppDbSessionCache.Clear()
         Me.Hide()
         frmLogin.Show()
         Me.Enabled = False
