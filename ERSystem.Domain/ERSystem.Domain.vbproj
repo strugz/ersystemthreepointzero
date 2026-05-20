@@ -45,6 +45,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
@@ -64,6 +65,16 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Dtos\CashAdvance\CashAdvanceDto.vb" />
+    <Compile Include="Dtos\CashAdvance\CashAdvanceResponseDto.vb" />
+    <Compile Include="Dtos\CashAdvance\CreateCashAdvanceDto.vb" />
+    <Compile Include="Dtos\CashAdvance\UpdateCashAdvanceDto.vb" />
+    <Compile Include="Dtos\Report\CreateReportDetailDto.vb" />
+    <Compile Include="Dtos\Report\ReportDetailDto.vb" />
+    <Compile Include="Dtos\Report\ReportDetailResponseDto.vb" />
+    <Compile Include="Dtos\Report\UpdateReportDetailDto.vb" />
+    <Compile Include="Entities\CashAdvance\CashAdvanceModel.vb" />
+    <Compile Include="Entities\Report\ReportDetailModel.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -98,6 +109,10 @@
       <CustomToolNamespace>My</CustomToolNamespace>
       <LastGenOutput>Settings.Designer.vb</LastGenOutput>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Dtos\ExpenseReport\" />
+    <Folder Include="Entities\ExpenseReport\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>
