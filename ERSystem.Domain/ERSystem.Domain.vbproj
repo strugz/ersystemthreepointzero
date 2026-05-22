@@ -69,11 +69,17 @@
     <Compile Include="Dtos\CashAdvance\CashAdvanceResponseDto.vb" />
     <Compile Include="Dtos\CashAdvance\CreateCashAdvanceDto.vb" />
     <Compile Include="Dtos\CashAdvance\UpdateCashAdvanceDto.vb" />
+    <Compile Include="Dtos\Finance\CompleteFinanceReviewDto.vb" />
+    <Compile Include="Dtos\Finance\FinanceErfDetailDto.vb" />
+    <Compile Include="Dtos\Finance\FinanceErfQueueDto.vb" />
+    <Compile Include="Dtos\Finance\MarkPhysicalReceiptsReceivedDto.vb" />
+    <Compile Include="Dtos\Finance\MissingPhysicalReceiptDto.vb" />
     <Compile Include="Dtos\Report\CreateReportDetailDto.vb" />
     <Compile Include="Dtos\Report\ReportDetailDto.vb" />
     <Compile Include="Dtos\Report\ReportDetailResponseDto.vb" />
     <Compile Include="Dtos\Report\UpdateReportDetailDto.vb" />
     <Compile Include="Entities\CashAdvance\CashAdvanceModel.vb" />
+    <Compile Include="Entities\Finance\ReportFinanceTrackingModel.vb" />
     <Compile Include="Entities\Report\ReportDetailModel.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">

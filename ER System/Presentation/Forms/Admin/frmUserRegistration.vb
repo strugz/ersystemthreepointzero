@@ -98,7 +98,7 @@ Public Class frmUserRegistration
                 .DisplayMember = "emp_Dept"
                 .ValueMember = "ID"
             End With
-            txtUserlevel.SelectedIndex = 2
+            txtUserlevel.SelectedIndex = 1
         Catch ex As Exception
         End Try
         LoadMaxUserID()

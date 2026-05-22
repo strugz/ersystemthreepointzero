@@ -116,6 +116,10 @@ Namespace AppServices
                 Return CreateSuccessfulLoginResult(fullName.TrimStart(), department.TrimStart(), False, True, True, False, False, False)
             End If
 
+            If String.Equals(userLevel, "Finance", StringComparison.OrdinalIgnoreCase) Then
+                Return CreateSuccessfulLoginResult(fullName.TrimStart(), department.TrimStart(), True, True, True, True, False, False)
+            End If
+
             Return New LoginResult With {
                 .IsSuccess = False,
                 .Message = "Invalid Username/Password"

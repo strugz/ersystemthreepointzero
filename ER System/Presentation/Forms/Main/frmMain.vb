@@ -1,6 +1,8 @@
 ﻿Public Class frmMain
     Dim SearchButtonValidation As String = "0"
     Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
+    Private ReadOnly _financeReviewService As ERSystem.Infrastructure.Data.IFinanceReviewService = New ERSystem.Infrastructure.Data.FinanceReviewService()
+    Private ReadOnly _financeMenuItem As New ToolStripMenuItem("Finance Review")
 
     Private Sub frmMain_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
         Application.Exit()
@@ -283,9 +285,59 @@
 
     Private Sub frmMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         CBBFilter.SelectedIndex = 0
+        ConfigureFinanceMenu()
+        ShowMissingPhysicalReceiptsPrompt()
     End Sub
 
     Private Sub ResendingEmailToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ResendingEmailToolStripMenuItem.Click
         frmERType.ShowDialog()
+    End Sub
+
+    Private Sub ConfigureFinanceMenu()
+        If Not MenuForms.DropDownItems.Contains(_financeMenuItem) Then
+            AddHandler _financeMenuItem.Click, AddressOf FinanceMenuItem_Click
+            MenuForms.DropDownItems.Add(_financeMenuItem)
+        End If
+
+        Dim userLevel As String = GetRegistryValue("Software\\ER System\\UserAccount", {"Userlevel"})(0)
+        _financeMenuItem.Visible =
+            String.Equals(userLevel, "Finance", StringComparison.OrdinalIgnoreCase) OrElse
+            String.Equals(userLevel, "Admin", StringComparison.OrdinalIgnoreCase)
+    End Sub
+
+    Private Sub FinanceMenuItem_Click(sender As Object, e As EventArgs)
+        Using financeForm As New frmFinanceErfReview()
+            financeForm.ShowDialog(Me)
+        End Using
+    End Sub
+
+    Private Sub ShowMissingPhysicalReceiptsPrompt()
+        Try
+            Dim userLevel As String = GetRegistryValue("Software\\ER System\\UserAccount", {"Userlevel"})(0)
+            If Not String.Equals(userLevel, "User", StringComparison.OrdinalIgnoreCase) Then
+                Return
+            End If
+
+            Dim userIdValue As String = GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0)
+            Dim userId As Integer
+            If Not Integer.TryParse(userIdValue, userId) Then
+                Return
+            End If
+
+            Dim missingReceipts = _financeReviewService.GetMissingPhysicalReceiptsForUser(userId)
+            If missingReceipts Is Nothing OrElse missingReceipts.Count = 0 Then
+                Return
+            End If
+
+            MessageBox.Show(
+                "You still need to submit physical receipts to Finance for " &
+                missingReceipts.Count.ToString() &
+                " approved ERF(s).",
+                "Physical Receipts Required",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information)
+        Catch ex As Exception
+            Debug.WriteLine("Unable to load physical receipt reminder: " & ex.Message)
+        End Try
     End Sub
 End Class

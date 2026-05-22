@@ -115,7 +115,7 @@ Partial Class frmUserRegistration
         '
         Me.txtUserlevel.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
         Me.txtUserlevel.FormattingEnabled = True
-        Me.txtUserlevel.Items.AddRange(New Object() {"Admin", "User"})
+        Me.txtUserlevel.Items.AddRange(New Object() {"Admin", "User", "Finance"})
         Me.txtUserlevel.Location = New System.Drawing.Point(185, 98)
         Me.txtUserlevel.Name = "txtUserlevel"
         Me.txtUserlevel.Size = New System.Drawing.Size(174, 21)

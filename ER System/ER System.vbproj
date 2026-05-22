@@ -199,6 +199,7 @@
     <Compile Include="AppServices\RejectActionService.vb" />
     <Compile Include="AppServices\ReportViewerContextResult.vb" />
     <Compile Include="AppServices\ReportViewerContextService.vb" />
+    <Compile Include="AppServices\ScannedReceiptCleanupService.vb" />
     <Compile Include="AppServices\SelectedReportContextService.vb" />
     <Compile Include="AppServices\StartupAdminCheckResult.vb" />
     <Compile Include="AppServices\StartupConnectionResult.vb" />
@@ -218,6 +219,9 @@
       <DependentUpon>FrmEReportDetailsV2.vb</DependentUpon>
     </Compile>
     <Compile Include="Presentation\Forms\Expense\FrmEReportDetailsV2.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Presentation\Forms\Finance\frmFinanceErfReview.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Presentation\Forms\Expense\frmExpenseSummary.Designer.vb">
@@ -445,6 +449,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Presentation\Forms\Expense\frmExpenseDetails.resx">
       <DependentUpon>frmExpenseDetails.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Presentation\Forms\Finance\frmFinanceErfReview.resx">
+      <DependentUpon>frmFinanceErfReview.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Presentation\Forms\Help\frmHelp.resx">
       <DependentUpon>frmHelp.vb</DependentUpon>

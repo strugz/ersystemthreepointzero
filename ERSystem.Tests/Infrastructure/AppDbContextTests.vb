@@ -9,6 +9,7 @@ Namespace Infrastructure
             Using dbContext As New AppDbContext()
                 Assert.IsNotNull(dbContext.ReportsDetails)
                 Assert.IsNotNull(dbContext.CashAdvances)
+                Assert.IsNotNull(dbContext.ReportFinanceTrackings)
             End Using
         End Sub
     End Class

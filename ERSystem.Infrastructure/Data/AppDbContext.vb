@@ -10,11 +10,13 @@ Public Class AppDbContext
 
     Public Property ReportsDetails As DbSet(Of ReportDetailModel)
     Public Property CashAdvances As DbSet(Of CashAdvanceModel)
+    Public Property ReportFinanceTrackings As DbSet(Of ReportFinanceTrackingModel)
 
     Protected Overrides Sub OnModelCreating(modelBuilder As DbModelBuilder)
         MyBase.OnModelCreating(modelBuilder)
 
         modelBuilder.Entity(Of ReportDetailModel)().ToTable("tbReportDetails")
         modelBuilder.Entity(Of CashAdvanceModel)().ToTable("tbCashAdvance")
+        modelBuilder.Entity(Of ReportFinanceTrackingModel)().ToTable("tbReportFinanceTracking")
     End Sub
 End Class
