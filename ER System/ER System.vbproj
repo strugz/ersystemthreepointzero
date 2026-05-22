@@ -160,6 +160,10 @@
     <Reference Include="System.Data.DataSetExtensions" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ERSystem.AppServices\ERSystem.AppServices.vbproj">
+      <Project>{3352A82B-7FB8-4DA5-99B8-67FA6966CEE8}</Project>
+      <Name>ERSystem.AppServices</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ERSystem.Domain\ERSystem.Domain.vbproj">
       <Project>{EEFD82B5-EDDA-4F66-9533-03BAAF8E1A06}</Project>
       <Name>ERSystem.Domain</Name>
@@ -193,7 +197,6 @@
     <Compile Include="AppServices\ApproveSelectionContextService.vb" />
     <Compile Include="AppServices\ApproveService.vb" />
     <Compile Include="AppServices\ApproveUserAccountLoadResult.vb" />
-    <Compile Include="AppServices\ISmsNotificationService.vb" />
     <Compile Include="AppServices\LoginRequest.vb" />
     <Compile Include="AppServices\LoginResult.vb" />
     <Compile Include="AppServices\RejectActionResult.vb" />
@@ -202,8 +205,6 @@
     <Compile Include="AppServices\ReportViewerContextService.vb" />
     <Compile Include="AppServices\ScannedReceiptCleanupService.vb" />
     <Compile Include="AppServices\SelectedReportContextService.vb" />
-    <Compile Include="AppServices\SmsNotificationResult.vb" />
-    <Compile Include="AppServices\SmsNotificationService.vb" />
     <Compile Include="AppServices\StartupAdminCheckResult.vb" />
     <Compile Include="AppServices\StartupConnectionResult.vb" />
     <Compile Include="AppServices\UserAccountService.vb" />

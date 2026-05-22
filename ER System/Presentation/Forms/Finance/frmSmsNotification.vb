@@ -6,7 +6,7 @@ Public Class frmSmsNotification
     Inherits Form
 
     Private ReadOnly _queueItem As FinanceErfQueueDto
-    Private ReadOnly _smsNotificationService As AppServices.ISmsNotificationService
+    Private ReadOnly _smsNotificationService As Global.ERSystem.AppServices.ISmsNotificationService
     Private ReadOnly _userRegistrationService As IUserRegistrationService
     Private ReadOnly _userAccountRegistryProvider As New Infrastructure.Configuration.UserAccountRegistryProvider()
     Private ReadOnly _recipients As New List(Of SmsRecipientDto)()
@@ -17,12 +17,12 @@ Public Class frmSmsNotification
     Private ReadOnly _btnSend As New Button()
     Private ReadOnly _btnCancel As New Button()
 
-    Friend Sub New(queueItem As FinanceErfQueueDto, smsNotificationService As AppServices.ISmsNotificationService)
+    Friend Sub New(queueItem As FinanceErfQueueDto, smsNotificationService As Global.ERSystem.AppServices.ISmsNotificationService)
         Me.New(queueItem, smsNotificationService, New UserRegistrationService())
     End Sub
 
     Friend Sub New(queueItem As FinanceErfQueueDto,
-                   smsNotificationService As AppServices.ISmsNotificationService,
+                   smsNotificationService As Global.ERSystem.AppServices.ISmsNotificationService,
                    userRegistrationService As IUserRegistrationService)
         _queueItem = queueItem
         _smsNotificationService = smsNotificationService
@@ -137,7 +137,7 @@ Public Class frmSmsNotification
     End Sub
 
     Private Sub btnSend_Click(sender As Object, e As EventArgs)
-        Dim result As AppServices.SmsNotificationResult = _smsNotificationService.Send(New SmsNotificationRequestDto With {
+        Dim result As Global.ERSystem.AppServices.SmsNotificationResult = _smsNotificationService.Send(New SmsNotificationRequestDto With {
             .Recipients = New List(Of SmsRecipientDto)(_recipients),
             .Sender = GetCurrentSenderIdentifier(),
             .UserInitial = GetCurrentSenderIdentifier(),

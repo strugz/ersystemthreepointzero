@@ -7,7 +7,7 @@ Public Class frmFinanceErfReview
     Private Const SmsColumnName As String = "SendSms"
 
     Private ReadOnly _financeReviewService As IFinanceReviewService
-    Private ReadOnly _smsNotificationService As AppServices.ISmsNotificationService
+    Private ReadOnly _smsNotificationService As Global.ERSystem.AppServices.ISmsNotificationService
     Private ReadOnly _userAccountRegistryProvider As New Infrastructure.Configuration.UserAccountRegistryProvider()
     Private ReadOnly _grid As New DataGridView()
     Private ReadOnly _txtEmployee As New TextBox()
@@ -25,14 +25,14 @@ Public Class frmFinanceErfReview
     Private _selectedReportId As String = String.Empty
 
     Public Sub New()
-        Me.New(New FinanceReviewService(), New AppServices.SmsNotificationService())
+        Me.New(New FinanceReviewService(), New Global.ERSystem.AppServices.SmsNotificationService())
     End Sub
 
     Public Sub New(financeReviewService As IFinanceReviewService)
-        Me.New(financeReviewService, New AppServices.SmsNotificationService())
+        Me.New(financeReviewService, New Global.ERSystem.AppServices.SmsNotificationService())
     End Sub
 
-    Friend Sub New(financeReviewService As IFinanceReviewService, smsNotificationService As AppServices.ISmsNotificationService)
+    Friend Sub New(financeReviewService As IFinanceReviewService, smsNotificationService As Global.ERSystem.AppServices.ISmsNotificationService)
         _financeReviewService = financeReviewService
         _smsNotificationService = smsNotificationService
         InitializeFinanceReviewForm()
