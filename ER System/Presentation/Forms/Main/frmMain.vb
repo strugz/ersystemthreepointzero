@@ -89,7 +89,10 @@
         End If
     End Sub
     Private Sub btnReportData_Click_1(sender As Object, e As EventArgs) Handles btnReportData.Click
-        FrmEReportDetails.ShowDialog()
+        _selectedReportContextService.Clear()
+        If FrmEReportDetailsV2.ShowDialog() = DialogResult.OK Then
+            RefreshEReportData()
+        End If
     End Sub
     Private Sub ToolStripButton1_Click_1(sender As Object, e As EventArgs) Handles btnSearchOpen.Click
         'If SearchButtonValidation = "0" Then
@@ -241,7 +244,14 @@
     End Sub
 
     Private Sub EditReportDetailsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles EditReportDetailsToolStripMenuItem.Click
-        FrmEReportDetails.ShowDialog()
+        If DgvReportDetails.CurrentRow Is Nothing Then
+            Return
+        End If
+
+        _selectedReportContextService.Save(DgvReportDetails.CurrentRow.Cells("Report ID").Value.ToString())
+        If FrmEReportDetailsV2.ShowDialog() = DialogResult.OK Then
+            RefreshEReportData()
+        End If
     End Sub
 
     Private Sub BtnSearch_Click(sender As Object, e As EventArgs) Handles BtnSearch.Click

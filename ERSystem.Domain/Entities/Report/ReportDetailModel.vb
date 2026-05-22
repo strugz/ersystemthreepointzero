@@ -42,4 +42,8 @@ Public Class ReportDetailModel
     Public Property ReportAttachment As String
 
     Public Property ReportSentStatus As String
+
+    Public Property ReportType As String
+
+    Public Overridable Property CashAdvances As ICollection(Of CashAdvanceModel)
 End Class

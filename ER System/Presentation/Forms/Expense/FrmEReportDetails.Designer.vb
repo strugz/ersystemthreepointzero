@@ -43,8 +43,8 @@ Partial Class FrmEReportDetails
         Me.DtpReportFrom = New System.Windows.Forms.DateTimePicker()
         Me.Label3 = New System.Windows.Forms.Label()
         Me.txtPofExpense = New System.Windows.Forms.RichTextBox()
-        Me.BtnSave = New System.Windows.Forms.Button()
         Me.btnUpdate = New System.Windows.Forms.Button()
+        Me.BtnSave = New System.Windows.Forms.Button()
         Me.TabControl1.SuspendLayout()
         Me.TabPage2.SuspendLayout()
         Me.GroupBox3.SuspendLayout()
@@ -72,8 +72,8 @@ Partial Class FrmEReportDetails
         Me.TabPage2.Controls.Add(Me.DtpReportFrom)
         Me.TabPage2.Controls.Add(Me.Label3)
         Me.TabPage2.Controls.Add(Me.txtPofExpense)
-        Me.TabPage2.Controls.Add(Me.btnUpdate)
         Me.TabPage2.Controls.Add(Me.BtnSave)
+        Me.TabPage2.Controls.Add(Me.btnUpdate)
         Me.TabPage2.Location = New System.Drawing.Point(4, 22)
         Me.TabPage2.Name = "TabPage2"
         Me.TabPage2.Padding = New System.Windows.Forms.Padding(3)
@@ -271,16 +271,6 @@ Partial Class FrmEReportDetails
         Me.txtPofExpense.TabIndex = 1
         Me.txtPofExpense.Text = ""
         '
-        'BtnSave
-        '
-        Me.BtnSave.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.BtnSave.Location = New System.Drawing.Point(237, 159)
-        Me.BtnSave.Name = "BtnSave"
-        Me.BtnSave.Size = New System.Drawing.Size(86, 28)
-        Me.BtnSave.TabIndex = 20
-        Me.BtnSave.Text = "Save"
-        Me.BtnSave.UseVisualStyleBackColor = True
-        '
         'btnUpdate
         '
         Me.btnUpdate.Location = New System.Drawing.Point(237, 159)
@@ -290,6 +280,16 @@ Partial Class FrmEReportDetails
         Me.btnUpdate.Text = "Update"
         Me.btnUpdate.UseVisualStyleBackColor = True
         Me.btnUpdate.Visible = False
+        '
+        'BtnSave
+        '
+        Me.BtnSave.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.BtnSave.Location = New System.Drawing.Point(237, 159)
+        Me.BtnSave.Name = "BtnSave"
+        Me.BtnSave.Size = New System.Drawing.Size(86, 28)
+        Me.BtnSave.TabIndex = 20
+        Me.BtnSave.Text = "Save"
+        Me.BtnSave.UseVisualStyleBackColor = True
         '
         'FrmEReportDetails
         '

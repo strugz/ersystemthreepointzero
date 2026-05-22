@@ -42,4 +42,6 @@ Public Class UpdateReportDetailDto
 
     Public Property ReportSentStatus As String
 
+    Public Property ReportType As String
+
 End Class

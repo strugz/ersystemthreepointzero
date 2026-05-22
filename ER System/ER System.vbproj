@@ -214,6 +214,12 @@
     <Compile Include="Presentation\Forms\Expense\FrmEReportDetails.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Presentation\Forms\Expense\FrmEReportDetailsV2.Designer.vb">
+      <DependentUpon>FrmEReportDetailsV2.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Presentation\Forms\Expense\FrmEReportDetailsV2.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Presentation\Forms\Expense\frmExpenseSummary.Designer.vb">
       <DependentUpon>frmExpenseSummary.vb</DependentUpon>
     </Compile>
@@ -402,6 +408,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Presentation\Forms\Expense\FrmEReportDetails.resx">
       <DependentUpon>FrmEReportDetails.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Presentation\Forms\Expense\FrmEReportDetailsV2.resx">
+      <DependentUpon>FrmEReportDetailsV2.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Presentation\Forms\Expense\frmExpenseSummary.resx">
       <DependentUpon>frmExpenseSummary.vb</DependentUpon>

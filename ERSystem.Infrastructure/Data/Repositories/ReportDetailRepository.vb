@@ -33,6 +33,56 @@ Namespace Global.ERSystem.Infrastructure.Data
             End Using
         End Function
 
+        Public Function Create(report As CreateReportDetailDto) As ReportDetailDto Implements IReportDetailRepository.Create
+            Using dbContext As New AppDbContext()
+                Return Create(report, dbContext)
+            End Using
+        End Function
+
+        Public Function Create(report As CreateReportDetailDto, dbContext As AppDbContext) As ReportDetailDto Implements IReportDetailRepository.Create
+            If report Is Nothing Then
+                Throw New ArgumentNullException("report")
+            End If
+
+            If String.IsNullOrWhiteSpace(report.ID) Then
+                Throw New ArgumentException("Report ID is required.", "report")
+            End If
+
+            If dbContext Is Nothing Then
+                Throw New ArgumentNullException("dbContext")
+            End If
+
+            Dim model As ReportDetailModel = ToModel(report)
+            dbContext.ReportsDetails.Add(model)
+            dbContext.SaveChanges()
+            Return ToDto(model)
+        End Function
+
+        Public Sub Update(report As UpdateReportDetailDto) Implements IReportDetailRepository.Update
+            If report Is Nothing Then
+                Throw New ArgumentNullException("report")
+            End If
+
+            If String.IsNullOrWhiteSpace(report.ID) Then
+                Throw New ArgumentException("Report ID is required.", "report")
+            End If
+
+            Using dbContext As New AppDbContext()
+                Dim existing = dbContext.ReportsDetails.FirstOrDefault(Function(item) item.ID = report.ID)
+
+                If existing Is Nothing Then
+                    Throw New InvalidOperationException("Report details were not found.")
+                End If
+
+                existing.ReportDateFrom = report.ReportDateFrom
+                existing.ReportDateTo = report.ReportDateTo
+                existing.ReportDescription = report.ReportDescription
+                existing.ReportAttachment = report.ReportAttachment
+                existing.ReportType = report.ReportType
+                dbContext.SaveChanges()
+            End Using
+        End Sub
+
         Private Shared Function ToDto(report As ReportDetailModel) As ReportDetailDto
             Return New ReportDetailDto With {
                 .ID = report.ID,
@@ -41,20 +91,31 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .ReportDescription = report.ReportDescription,
                 .UserID = report.UserID,
                 .ReportStatus = report.ReportStatus,
-                .ReportEndorseSignature = report.ReportEndorseSignature,
                 .ReportEndorseStatus = report.ReportEndorseStatus,
                 .ReportDateFiled = report.ReportDateFiled,
                 .ReportFileStatus = report.ReportFileStatus,
-                .ExpenseID = report.ExpenseID,
                 .ReportPrintStatus = report.ReportPrintStatus,
-                .ReportReturnedForModi = report.ReportReturnedForModi,
                 .ReportNumberStatus = report.ReportNumberStatus,
-                .ReportReserveSignature = report.ReportReserveSignature,
-                .ReportReserveStatus1 = report.ReportReserveStatus1,
-                .ReportReserveStatus2 = report.ReportReserveStatus2,
-                .ReportCancelNote = report.ReportCancelNote,
                 .ReportAttachment = report.ReportAttachment,
-                .ReportSentStatus = report.ReportSentStatus
+                .ReportType = report.ReportType
+            }
+        End Function
+
+        Private Shared Function ToModel(report As CreateReportDetailDto) As ReportDetailModel
+            Return New ReportDetailModel With {
+                .ID = report.ID,
+                .ReportDateFrom = report.ReportDateFrom,
+                .ReportDateTo = report.ReportDateTo,
+                .ReportDescription = report.ReportDescription,
+                .UserID = report.UserID,
+                .ReportStatus = report.ReportStatus,
+                .ReportEndorseStatus = report.ReportEndorseStatus,
+                .ReportDateFiled = report.ReportDateFiled,
+                .ReportFileStatus = report.ReportFileStatus,
+                .ReportPrintStatus = report.ReportPrintStatus,
+                .ReportNumberStatus = report.ReportNumberStatus,
+                .ReportAttachment = report.ReportAttachment,
+                .ReportType = report.ReportType
             }
         End Function
     End Class

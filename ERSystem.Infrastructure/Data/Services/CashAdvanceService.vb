@@ -21,5 +21,13 @@ Namespace Global.ERSystem.Infrastructure.Data
         Public Function GetByReportId(reportId As String) As List(Of CashAdvanceDto) Implements ICashAdvanceService.GetByReportId
             Return _repository.GetByReportId(reportId)
         End Function
+
+        Public Function Create(cashAdvance As CreateCashAdvanceDto) As CashAdvanceDto Implements ICashAdvanceService.Create
+            Return _repository.Create(cashAdvance)
+        End Function
+
+        Public Sub UpdateByReportId(reportId As String, cashAdvance As UpdateCashAdvanceDto) Implements ICashAdvanceService.UpdateByReportId
+            _repository.UpdateByReportId(reportId, cashAdvance)
+        End Sub
     End Class
 End Namespace

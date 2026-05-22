@@ -26,4 +26,7 @@ Public Class CashAdvanceModel
 
     Public Property CashCheck As String
 
+    <ForeignKey("ReportID")>
+    Public Overridable Property ReportDetail As ReportDetailModel
+
 End Class

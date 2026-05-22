@@ -38,4 +38,6 @@ Public Class ReportDetailResponseDto
 
     Public Property ReportSentStatus As String
 
+    Public Property ReportType As String
+
 End Class
