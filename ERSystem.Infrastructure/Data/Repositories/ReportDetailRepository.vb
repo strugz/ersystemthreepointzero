@@ -8,10 +8,11 @@ Namespace Global.ERSystem.Infrastructure.Data
 
         Public Function GetAll() As List(Of ReportDetailDto) Implements IReportDetailRepository.GetAll
             Using dbContext As New AppDbContext()
-                Return dbContext.ReportsDetails.
+                Dim reports = dbContext.ReportsDetails.
                     AsNoTracking().
-                    Select(Function(report) ToDto(report)).
                     ToList()
+
+                Return reports.Select(Function(report) ToDto(report)).ToList()
             End Using
         End Function
 

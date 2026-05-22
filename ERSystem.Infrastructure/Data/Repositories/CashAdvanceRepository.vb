@@ -8,10 +8,11 @@ Namespace Global.ERSystem.Infrastructure.Data
 
         Public Function GetAll() As List(Of CashAdvanceDto) Implements ICashAdvanceRepository.GetAll
             Using dbContext As New AppDbContext()
-                Return dbContext.CashAdvances.
+                Dim cashAdvances = dbContext.CashAdvances.
                     AsNoTracking().
-                    Select(Function(cashAdvance) ToDto(cashAdvance)).
                     ToList()
+
+                Return cashAdvances.Select(Function(cashAdvance) ToDto(cashAdvance)).ToList()
             End Using
         End Function
 
@@ -21,11 +22,12 @@ Namespace Global.ERSystem.Infrastructure.Data
             End If
 
             Using dbContext As New AppDbContext()
-                Return dbContext.CashAdvances.
+                Dim cashAdvances = dbContext.CashAdvances.
                     AsNoTracking().
                     Where(Function(item) item.ReportID = reportId).
-                    Select(Function(cashAdvance) ToDto(cashAdvance)).
                     ToList()
+
+                Return cashAdvances.Select(Function(cashAdvance) ToDto(cashAdvance)).ToList()
             End Using
         End Function
 

@@ -103,7 +103,7 @@ Public Class FrmEReportDetailsV2
         DtpReportFrom.Value = If(report.ReportDateFrom.HasValue, report.ReportDateFrom.Value, DateTime.Now)
         DtpReportTo.Value = If(report.ReportDateTo.HasValue, report.ReportDateTo.Value, DateTime.Now)
         TxtAttachment.Text = If(report.ReportAttachment, String.Empty)
-        CboReportType.SelectedItem = If(String.IsNullOrWhiteSpace(report.ReportType), ReportTypeLiquidation, report.ReportType)
+        SelectReportType(ResolveReportType(report, cashAdvance))
         TxtPurpose.Text = report.ReportDescription
         _lastAutoPurpose = If(CboReportType.SelectedItem Is Nothing, String.Empty, CboReportType.SelectedItem.ToString())
 
@@ -278,6 +278,69 @@ Public Class FrmEReportDetailsV2
 
         _lastAutoPurpose = selectedPurpose
     End Sub
+
+    Private Sub SelectReportType(reportType As String)
+        Dim normalizedReportType As String = NormalizeReportType(reportType)
+
+        For Each item In CboReportType.Items
+            If String.Equals(Convert.ToString(item), normalizedReportType, StringComparison.OrdinalIgnoreCase) Then
+                CboReportType.SelectedItem = item
+                Return
+            End If
+        Next
+
+        CboReportType.SelectedItem = ReportTypeLiquidation
+    End Sub
+
+    Private Function ResolveReportType(report As ReportDetailDto, cashAdvance As CashAdvanceDto) As String
+        Dim reportType As String = NormalizeReportType(report.ReportType)
+        If Not String.IsNullOrWhiteSpace(reportType) Then
+            Return reportType
+        End If
+
+        reportType = NormalizeReportType(report.ReportDescription)
+        If Not String.IsNullOrWhiteSpace(reportType) Then
+            Return reportType
+        End If
+
+        If cashAdvance IsNot Nothing Then
+            If String.Equals(cashAdvance.CashCheck, "1", StringComparison.OrdinalIgnoreCase) Then
+                Return ReportTypeLiquidation
+            End If
+
+            If Not String.IsNullOrWhiteSpace(cashAdvance.RevolvingFund) Then
+                Return ReportTypeReplenishment
+            End If
+        End If
+
+        Return ReportTypeLiquidation
+    End Function
+
+    Private Function NormalizeReportType(value As String) As String
+        If String.IsNullOrWhiteSpace(value) Then
+            Return String.Empty
+        End If
+
+        Dim normalizedValue As String = value.Trim()
+
+        If normalizedValue.IndexOf("reimburs", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+            normalizedValue.IndexOf("reimburse", StringComparison.OrdinalIgnoreCase) >= 0 Then
+            Return ReportTypeReimbursement
+        End If
+
+        If normalizedValue.IndexOf("replen", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+            normalizedValue.IndexOf("replesh", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+            normalizedValue.IndexOf("revolving", StringComparison.OrdinalIgnoreCase) >= 0 Then
+            Return ReportTypeReplenishment
+        End If
+
+        If normalizedValue.IndexOf("liquid", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+            normalizedValue.IndexOf("cash advance", StringComparison.OrdinalIgnoreCase) >= 0 Then
+            Return ReportTypeLiquidation
+        End If
+
+        Return String.Empty
+    End Function
 
     Private Function NormalizeAttachmentPaths(reportId As String) As String
         If String.IsNullOrWhiteSpace(TxtAttachment.Text) Then
