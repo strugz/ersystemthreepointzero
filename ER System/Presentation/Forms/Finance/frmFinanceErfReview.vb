@@ -18,7 +18,6 @@ Public Class frmFinanceErfReview
     Private ReadOnly _txtRemarks As New TextBox()
     Private ReadOnly _btnRefresh As New Button()
     Private ReadOnly _btnMarkReceived As New Button()
-    Private ReadOnly _btnComplete As New Button()
 
     Private _selectedReportId As String = String.Empty
 
@@ -36,6 +35,7 @@ Public Class frmFinanceErfReview
         StartPosition = FormStartPosition.CenterParent
         Size = New Size(1100, 700)
         MinimumSize = New Size(900, 560)
+        WindowState = FormWindowState.Maximized
         KeyPreview = True
 
         Dim filtersPanel As New FlowLayoutPanel() With {
@@ -48,7 +48,7 @@ Public Class frmFinanceErfReview
 
         _txtEmployee.Width = 160
 
-        ConfigureCombo(_cboStatus, {"Pending", "Completed", "All"})
+        ConfigureCombo(_cboStatus, {"Pending", "Receipts Received", "All"})
         ConfigureCombo(_cboReceipt, {"Missing", "Received", "All"})
         ConfigureCombo(_cboReportType, {"All", "Replenishment of Revolving fund", "Liquidation for Cash Advance", "Reimbursement"})
 
@@ -96,15 +96,10 @@ Public Class frmFinanceErfReview
         _txtRemarks.Multiline = True
         _txtRemarks.ScrollBars = ScrollBars.Vertical
 
-        _btnMarkReceived.Text = "Mark Physical Receipts Received"
+        _btnMarkReceived.Text = "Receipts Received"
         _btnMarkReceived.Dock = DockStyle.Top
         _btnMarkReceived.Height = 40
 
-        _btnComplete.Text = "Complete Finance Review"
-        _btnComplete.Dock = DockStyle.Top
-        _btnComplete.Height = 40
-
-        rightPanel.Controls.Add(_btnComplete)
         rightPanel.Controls.Add(_btnMarkReceived)
         rightPanel.Controls.Add(_txtRemarks)
         rightPanel.Controls.Add(New Label() With {.Text = "Finance Remarks", .Dock = DockStyle.Top, .Height = 22})
@@ -120,7 +115,6 @@ Public Class frmFinanceErfReview
         AddHandler _btnRefresh.Click, AddressOf btnRefresh_Click
         AddHandler _grid.SelectionChanged, AddressOf grid_SelectionChanged
         AddHandler _btnMarkReceived.Click, AddressOf btnMarkReceived_Click
-        AddHandler _btnComplete.Click, AddressOf btnComplete_Click
     End Sub
 
     Private Shared Sub ConfigureCombo(combo As ComboBox, values As Object())
@@ -182,26 +176,7 @@ Public Class frmFinanceErfReview
                 .ReviewerUserID = GetCurrentUserId(),
                 .Remarks = _txtRemarks.Text
             })
-            MessageBox.Show("Physical receipts marked as received.")
-            LoadQueue()
-        Catch ex As Exception
-            MessageBox.Show(ex.Message)
-        End Try
-    End Sub
-
-    Private Sub btnComplete_Click(sender As Object, e As EventArgs)
-        If String.IsNullOrWhiteSpace(_selectedReportId) Then
-            MessageBox.Show("Please select an ERF.")
-            Return
-        End If
-
-        Try
-            _financeReviewService.CompleteFinanceReview(New CompleteFinanceReviewDto With {
-                .ReportID = _selectedReportId,
-                .ReviewerUserID = GetCurrentUserId(),
-                .Remarks = _txtRemarks.Text
-            })
-            MessageBox.Show("Finance review completed.")
+            MessageBox.Show("Physical receipts received.")
             LoadQueue()
         Catch ex As Exception
             MessageBox.Show(ex.Message)
@@ -226,12 +201,53 @@ Public Class frmFinanceErfReview
                 Convert.ToString(_cboReportType.SelectedItem))
 
             _grid.DataSource = rows
-            If _grid.Columns.Contains("ReportID") Then
-                _grid.Columns("ReportID").Visible = False
-            End If
+            ConfigureGridColumns()
         Catch ex As Exception
             MessageBox.Show("Unable to load Finance ERFs. Please make sure the finance tracking database script has been applied. " & ex.Message)
         End Try
+    End Sub
+
+    Private Sub ConfigureGridColumns()
+        If _grid.Columns.Contains("ReportID") Then
+            _grid.Columns("ReportID").Visible = False
+        End If
+
+        SetColumnHeader("UserID", "User ID")
+        SetColumnHeader("EmployeeName", "Employee")
+        SetColumnHeader("ReportDateFrom", "From")
+        SetColumnHeader("ReportDateTo", "To")
+        SetColumnHeader("ReportDescription", "Description")
+        SetColumnHeader("ReportType", "ERF Type")
+        SetColumnHeader("CashRefNo", "Ref No.")
+        SetColumnHeader("FinanceStatus", "Status")
+        SetColumnHeader("PhysicalReceiptsReceived", "Receipts")
+        SetColumnHeader("PhysicalReceiptsReceivedDate", "Received Date")
+        SetColumnHeader("FinanceRemarks", "Remarks")
+
+        SetColumnWidth("UserID", 70)
+        SetColumnWidth("ReportDateFrom", 90)
+        SetColumnWidth("ReportDateTo", 90)
+        SetColumnWidth("CashRefNo", 110)
+        SetColumnWidth("FinanceStatus", 130)
+        SetColumnWidth("PhysicalReceiptsReceived", 80)
+        SetColumnWidth("PhysicalReceiptsReceivedDate", 120)
+
+        If _grid.Columns.Contains("ReportDescription") Then
+            _grid.Columns("ReportDescription").AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
+        End If
+    End Sub
+
+    Private Sub SetColumnHeader(columnName As String, headerText As String)
+        If _grid.Columns.Contains(columnName) Then
+            _grid.Columns(columnName).HeaderText = headerText
+        End If
+    End Sub
+
+    Private Sub SetColumnWidth(columnName As String, width As Integer)
+        If _grid.Columns.Contains(columnName) Then
+            _grid.Columns(columnName).AutoSizeMode = DataGridViewAutoSizeColumnMode.None
+            _grid.Columns(columnName).Width = width
+        End If
     End Sub
 
     Private Sub LoadDetail(reportId As String)
@@ -255,7 +271,6 @@ Public Class frmFinanceErfReview
                 "Finance Status: " & detail.FinanceStatus & Environment.NewLine &
                 "Physical Receipts: " & If(detail.PhysicalReceiptsReceived, "Received", "Missing") & Environment.NewLine &
                 "Received Date: " & FormatDateTime(detail.PhysicalReceiptsReceivedDate) & Environment.NewLine &
-                "Completed Date: " & FormatDateTime(detail.FinanceCompletedDate) & Environment.NewLine &
                 "Scanned Receipts Deleted: " & FormatDateTime(detail.ScannedReceiptsDeletedDate) & Environment.NewLine &
                 "Remarks: " & detail.FinanceRemarks
 
@@ -268,10 +283,7 @@ Public Class frmFinanceErfReview
 
     Private Sub UpdateActionButtons(detail As FinanceErfDetailDto)
         Dim hasSelection As Boolean = detail IsNot Nothing
-        Dim completed As Boolean = hasSelection AndAlso String.Equals(detail.FinanceStatus, "Completed", StringComparison.OrdinalIgnoreCase)
-
-        _btnMarkReceived.Enabled = hasSelection AndAlso Not detail.PhysicalReceiptsReceived AndAlso Not completed
-        _btnComplete.Enabled = hasSelection AndAlso detail.PhysicalReceiptsReceived AndAlso Not completed
+        _btnMarkReceived.Enabled = hasSelection AndAlso Not detail.PhysicalReceiptsReceived
     End Sub
 
     Private Function GetCurrentUserId() As Integer

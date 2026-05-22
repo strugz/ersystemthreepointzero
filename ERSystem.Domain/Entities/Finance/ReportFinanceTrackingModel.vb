@@ -16,10 +16,6 @@ Public Class ReportFinanceTrackingModel
 
     Public Property PhysicalReceiptsReceivedDate As Nullable(Of DateTime)
 
-    Public Property FinanceCompletedBy As Nullable(Of Integer)
-
-    Public Property FinanceCompletedDate As Nullable(Of DateTime)
-
     Public Property FinanceRemarks As String
 
     Public Property ScannedReceiptsDeletedDate As Nullable(Of DateTime)

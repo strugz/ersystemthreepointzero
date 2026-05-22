@@ -12,6 +12,5 @@ Public Class FinanceErfQueueDto
     Public Property FinanceStatus As String
     Public Property PhysicalReceiptsReceived As Boolean
     Public Property PhysicalReceiptsReceivedDate As Nullable(Of DateTime)
-    Public Property FinanceCompletedDate As Nullable(Of DateTime)
     Public Property FinanceRemarks As String
 End Class

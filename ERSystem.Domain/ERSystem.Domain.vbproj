@@ -69,7 +69,6 @@
     <Compile Include="Dtos\CashAdvance\CashAdvanceResponseDto.vb" />
     <Compile Include="Dtos\CashAdvance\CreateCashAdvanceDto.vb" />
     <Compile Include="Dtos\CashAdvance\UpdateCashAdvanceDto.vb" />
-    <Compile Include="Dtos\Finance\CompleteFinanceReviewDto.vb" />
     <Compile Include="Dtos\Finance\FinanceErfDetailDto.vb" />
     <Compile Include="Dtos\Finance\FinanceErfQueueDto.vb" />
     <Compile Include="Dtos\Finance\MarkPhysicalReceiptsReceivedDto.vb" />

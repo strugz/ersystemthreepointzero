@@ -7,40 +7,9 @@ Namespace Global.ERSystem.Infrastructure.Data
         Implements IFinanceReviewRepository
 
         Private Const PendingStatus As String = "Pending"
-        Private Const CompletedStatus As String = "Completed"
+        Private Const ReceiptsReceivedStatus As String = "Receipts Received"
         Private Const ApprovedFileStatus As String = "0"
         Private Const ApprovedPrintStatus As String = "0"
-
-        Public Sub EnsureTrackingRowsForApprovedReports() Implements IFinanceReviewRepository.EnsureTrackingRowsForApprovedReports
-            Using dbContext As New AppDbContext()
-                Dim approvedReportIds As List(Of String) = dbContext.ReportsDetails.
-                    AsNoTracking().
-                    Where(Function(report) report.ReportFileStatus = ApprovedFileStatus AndAlso report.ReportPrintStatus = ApprovedPrintStatus).
-                    Select(Function(report) report.ID).
-                    ToList()
-
-                Dim trackedReportIds As List(Of String) = dbContext.ReportFinanceTrackings.
-                    AsNoTracking().
-                    Select(Function(finance) finance.ReportID).
-                    ToList()
-
-                Dim missingReportIds = approvedReportIds.
-                    Where(Function(reportId) Not trackedReportIds.Contains(reportId)).
-                    ToList()
-
-                For Each reportId As String In missingReportIds
-                    dbContext.ReportFinanceTrackings.Add(New ReportFinanceTrackingModel With {
-                        .ReportID = reportId,
-                        .FinanceStatus = PendingStatus,
-                        .PhysicalReceiptsReceived = False
-                    })
-                Next
-
-                If missingReportIds.Count > 0 Then
-                    dbContext.SaveChanges()
-                End If
-            End Using
-        End Sub
 
         Public Sub EnsureTrackingRowForApprovedReport(reportId As String) Implements IFinanceReviewRepository.EnsureTrackingRowForApprovedReport
             If String.IsNullOrWhiteSpace(reportId) Then
@@ -79,8 +48,6 @@ Namespace Global.ERSystem.Infrastructure.Data
                                  dateFrom As Nullable(Of Date),
                                  dateTo As Nullable(Of Date),
                                  reportType As String) As List(Of FinanceErfQueueDto) Implements IFinanceReviewRepository.GetQueue
-            EnsureTrackingRowsForApprovedReports()
-
             Using dbContext As New AppDbContext()
                 Dim reports As List(Of ReportDetailModel) = dbContext.ReportsDetails.
                     AsNoTracking().
@@ -205,32 +172,7 @@ Namespace Global.ERSystem.Infrastructure.Data
                 existing.PhysicalReceiptsReceived = True
                 existing.PhysicalReceiptsReceivedBy = request.ReviewerUserID
                 existing.PhysicalReceiptsReceivedDate = DateTime.Now
-                existing.FinanceRemarks = NormalizeRemarks(request.Remarks)
-                dbContext.SaveChanges()
-            End Using
-        End Sub
-
-        Public Sub CompleteFinanceReview(request As CompleteFinanceReviewDto) Implements IFinanceReviewRepository.CompleteFinanceReview
-            If request Is Nothing Then
-                Throw New ArgumentNullException("request")
-            End If
-
-            EnsureTrackingRowForApprovedReport(request.ReportID)
-
-            Using dbContext As New AppDbContext()
-                Dim existing = dbContext.ReportFinanceTrackings.FirstOrDefault(Function(item) item.ReportID = request.ReportID)
-
-                If existing Is Nothing Then
-                    Throw New InvalidOperationException("Finance tracking details were not found.")
-                End If
-
-                If Not existing.PhysicalReceiptsReceived Then
-                    Return
-                End If
-
-                existing.FinanceStatus = CompletedStatus
-                existing.FinanceCompletedBy = request.ReviewerUserID
-                existing.FinanceCompletedDate = DateTime.Now
+                existing.FinanceStatus = ReceiptsReceivedStatus
                 existing.FinanceRemarks = NormalizeRemarks(request.Remarks)
                 dbContext.SaveChanges()
             End Using
@@ -275,8 +217,6 @@ Namespace Global.ERSystem.Infrastructure.Data
         End Sub
 
         Public Function GetMissingPhysicalReceiptsForUser(userId As Integer) As List(Of MissingPhysicalReceiptDto) Implements IFinanceReviewRepository.GetMissingPhysicalReceiptsForUser
-            EnsureTrackingRowsForApprovedReports()
-
             Using dbContext As New AppDbContext()
                 Dim reports As List(Of ReportDetailModel) = dbContext.ReportsDetails.
                     AsNoTracking().
@@ -288,7 +228,7 @@ Namespace Global.ERSystem.Infrastructure.Data
 
                 Dim finances As List(Of ReportFinanceTrackingModel) = dbContext.ReportFinanceTrackings.
                     AsNoTracking().
-                    Where(Function(finance) Not finance.PhysicalReceiptsReceived AndAlso finance.FinanceStatus <> CompletedStatus).
+                    Where(Function(finance) Not finance.PhysicalReceiptsReceived).
                     ToList()
 
                 Return (From report In reports
@@ -321,7 +261,6 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .FinanceStatus = finance.FinanceStatus,
                 .PhysicalReceiptsReceived = finance.PhysicalReceiptsReceived,
                 .PhysicalReceiptsReceivedDate = finance.PhysicalReceiptsReceivedDate,
-                .FinanceCompletedDate = finance.FinanceCompletedDate,
                 .FinanceRemarks = finance.FinanceRemarks
             }
         End Function
@@ -348,8 +287,6 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .PhysicalReceiptsReceived = finance.PhysicalReceiptsReceived,
                 .PhysicalReceiptsReceivedBy = finance.PhysicalReceiptsReceivedBy,
                 .PhysicalReceiptsReceivedDate = finance.PhysicalReceiptsReceivedDate,
-                .FinanceCompletedBy = finance.FinanceCompletedBy,
-                .FinanceCompletedDate = finance.FinanceCompletedDate,
                 .FinanceRemarks = finance.FinanceRemarks,
                 .ScannedReceiptsDeletedDate = finance.ScannedReceiptsDeletedDate
             }

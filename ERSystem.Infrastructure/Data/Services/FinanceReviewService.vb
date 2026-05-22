@@ -4,8 +4,6 @@ Namespace Global.ERSystem.Infrastructure.Data
     Public NotInheritable Class FinanceReviewService
         Implements IFinanceReviewService
 
-        Private Const CompletedStatus As String = "Completed"
-
         Private ReadOnly _repository As IFinanceReviewRepository
 
         Public Sub New()
@@ -43,32 +41,6 @@ Namespace Global.ERSystem.Infrastructure.Data
             End If
 
             _repository.MarkPhysicalReceiptsReceived(request)
-        End Sub
-
-        Public Sub CompleteFinanceReview(request As CompleteFinanceReviewDto) Implements IFinanceReviewService.CompleteFinanceReview
-            If request Is Nothing Then
-                Throw New ArgumentNullException("request")
-            End If
-
-            If String.IsNullOrWhiteSpace(request.ReportID) Then
-                Throw New ArgumentException("Report ID is required.", "request")
-            End If
-
-            Dim detail As FinanceErfDetailDto = _repository.GetDetail(request.ReportID)
-
-            If detail Is Nothing Then
-                Throw New InvalidOperationException("Finance tracking details were not found.")
-            End If
-
-            If String.Equals(detail.FinanceStatus, CompletedStatus, StringComparison.OrdinalIgnoreCase) Then
-                Throw New InvalidOperationException("This ERF is already completed by Finance.")
-            End If
-
-            If Not detail.PhysicalReceiptsReceived Then
-                Throw New InvalidOperationException("Physical receipts must be received before Finance can complete this ERF.")
-            End If
-
-            _repository.CompleteFinanceReview(request)
         End Sub
 
         Public Sub EnsureTrackingRowForApprovedReport(reportId As String) Implements IFinanceReviewService.EnsureTrackingRowForApprovedReport

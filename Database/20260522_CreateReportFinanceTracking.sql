@@ -11,8 +11,6 @@ BEGIN
             CONSTRAINT DF_tbReportFinanceTracking_PhysicalReceiptsReceived DEFAULT (0),
         PhysicalReceiptsReceivedBy int NULL,
         PhysicalReceiptsReceivedDate datetime NULL,
-        FinanceCompletedBy int NULL,
-        FinanceCompletedDate datetime NULL,
         FinanceRemarks varchar(255) NULL,
         ScannedReceiptsDeletedDate datetime NULL,
         CONSTRAINT FK_tbReportFinanceTracking_tbReportDetails
@@ -22,15 +20,16 @@ BEGIN
 END;
 GO
 
-INSERT INTO dbo.tbReportFinanceTracking (ReportID)
-SELECT report.ID
-FROM dbo.tbReportDetails report
-WHERE report.ReportFileStatus = '0'
-  AND report.ReportPrintStatus = '0'
-  AND NOT EXISTS
-  (
-      SELECT 1
-      FROM dbo.tbReportFinanceTracking finance
-      WHERE finance.ReportID = report.ID
-  );
+IF COL_LENGTH('dbo.tbReportFinanceTracking', 'FinanceCompletedBy') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.tbReportFinanceTracking
+        DROP COLUMN FinanceCompletedBy;
+END;
+GO
+
+IF COL_LENGTH('dbo.tbReportFinanceTracking', 'FinanceCompletedDate') IS NOT NULL
+BEGIN
+    ALTER TABLE dbo.tbReportFinanceTracking
+        DROP COLUMN FinanceCompletedDate;
+END;
 GO

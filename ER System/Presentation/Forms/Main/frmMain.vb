@@ -300,9 +300,7 @@
         End If
 
         Dim userLevel As String = GetRegistryValue("Software\\ER System\\UserAccount", {"Userlevel"})(0)
-        _financeMenuItem.Visible =
-            String.Equals(userLevel, "Finance", StringComparison.OrdinalIgnoreCase) OrElse
-            String.Equals(userLevel, "Admin", StringComparison.OrdinalIgnoreCase)
+        _financeMenuItem.Visible = String.Equals(userLevel, "Finance", StringComparison.OrdinalIgnoreCase)
     End Sub
 
     Private Sub FinanceMenuItem_Click(sender As Object, e As EventArgs)
