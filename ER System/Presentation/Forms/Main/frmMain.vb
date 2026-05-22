@@ -3,6 +3,7 @@
     Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
     Private ReadOnly _financeReviewService As ERSystem.Infrastructure.Data.IFinanceReviewService = New ERSystem.Infrastructure.Data.FinanceReviewService()
     Private ReadOnly _financeMenuItem As New ToolStripMenuItem("Finance Review")
+    Private ReadOnly _accountSettingsMenuItem As New ToolStripMenuItem("My Account Settings")
 
     Private Sub frmMain_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
         Application.Exit()
@@ -285,6 +286,7 @@
 
     Private Sub frmMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         CBBFilter.SelectedIndex = 0
+        ConfigureAccountSettingsMenu()
         ConfigureFinanceMenu()
         ShowMissingPhysicalReceiptsPrompt()
     End Sub
@@ -308,6 +310,50 @@
             financeForm.ShowDialog(Me)
         End Using
     End Sub
+
+    Private Sub ConfigureAccountSettingsMenu()
+        If Not MenuFile.DropDownItems.Contains(_accountSettingsMenuItem) Then
+            _accountSettingsMenuItem.Image = CreateAccountSettingsIcon()
+            AddHandler _accountSettingsMenuItem.Click, AddressOf AccountSettingsMenuItem_Click
+            MenuFile.DropDownItems.Insert(0, _accountSettingsMenuItem)
+        End If
+
+        _accountSettingsMenuItem.Visible = Not String.IsNullOrWhiteSpace(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+    End Sub
+
+    Private Sub AccountSettingsMenuItem_Click(sender As Object, e As EventArgs)
+        Using accountSettingsForm As New frmAccountSettings()
+            accountSettingsForm.ShowDialog(Me)
+        End Using
+    End Sub
+
+    Private Function CreateAccountSettingsIcon() As Image
+        Dim icon As New Bitmap(18, 16)
+
+        Using graphics As Graphics = Graphics.FromImage(icon)
+            graphics.Clear(Color.Transparent)
+            graphics.SmoothingMode = Drawing2D.SmoothingMode.AntiAlias
+
+            Using userBrush As New SolidBrush(Color.FromArgb(72, 128, 190))
+            Using bodyBrush As New SolidBrush(Color.FromArgb(93, 156, 221))
+            Using gearBrush As New SolidBrush(Color.FromArgb(95, 95, 95))
+            Using highlightPen As New Pen(Color.White, 1.0F)
+                graphics.FillEllipse(userBrush, 3, 2, 6, 6)
+                graphics.FillPie(bodyBrush, 1, 8, 10, 8, 180, 180)
+                graphics.DrawArc(highlightPen, 2, 8, 8, 6, 200, 140)
+
+                graphics.FillEllipse(gearBrush, 11, 7, 6, 6)
+                graphics.FillRectangle(gearBrush, 13, 5, 2, 10)
+                graphics.FillRectangle(gearBrush, 9, 9, 10, 2)
+                graphics.FillEllipse(Brushes.White, 13, 9, 2, 2)
+            End Using
+            End Using
+            End Using
+            End Using
+        End Using
+
+        Return icon
+    End Function
 
     Private Sub ShowMissingPhysicalReceiptsPrompt()
         Try

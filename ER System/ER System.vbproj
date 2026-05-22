@@ -279,6 +279,9 @@
     <Compile Include="Presentation\Forms\Admin\frmEmailSetup.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Presentation\Forms\Admin\frmAccountSettings.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Presentation\Forms\Expense\frmEReport.Designer.vb">
       <DependentUpon>frmEReport.vb</DependentUpon>
     </Compile>

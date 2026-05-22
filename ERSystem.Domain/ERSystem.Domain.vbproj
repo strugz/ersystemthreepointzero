@@ -79,9 +79,16 @@
     <Compile Include="Dtos\Report\ReportDetailDto.vb" />
     <Compile Include="Dtos\Report\ReportDetailResponseDto.vb" />
     <Compile Include="Dtos\Report\UpdateReportDetailDto.vb" />
+    <Compile Include="Dtos\User\AccountSettingsDto.vb" />
+    <Compile Include="Dtos\User\AuthorityUserDto.vb" />
+    <Compile Include="Dtos\User\DepartmentDto.vb" />
+    <Compile Include="Dtos\User\UserAuthorityDto.vb" />
     <Compile Include="Entities\CashAdvance\CashAdvanceModel.vb" />
     <Compile Include="Entities\Finance\ReportFinanceTrackingModel.vb" />
+    <Compile Include="Entities\Organization\DepartmentModel.vb" />
     <Compile Include="Entities\Report\ReportDetailModel.vb" />
+    <Compile Include="Entities\User\EmployeeRateModel.vb" />
+    <Compile Include="Entities\User\UserAuthorityModel.vb" />
     <Compile Include="Entities\User\UserRegistrationModel.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">

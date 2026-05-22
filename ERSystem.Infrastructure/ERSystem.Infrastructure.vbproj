@@ -77,6 +77,7 @@
     <Compile Include="Data\AppDbContext.vb" />
     <Compile Include="Data\Repositories\CashAdvanceRepository.vb" />
     <Compile Include="Data\Services\CashAdvanceService.vb" />
+    <Compile Include="Data\Interfaces\IAccountSettingsRepository.vb" />
     <Compile Include="Data\Interfaces\ICashAdvanceRepository.vb" />
     <Compile Include="Data\Interfaces\ICashAdvanceService.vb" />
     <Compile Include="Data\Interfaces\IFinanceReviewRepository.vb" />
@@ -85,6 +86,7 @@
     <Compile Include="Data\Interfaces\IReportDetailService.vb" />
     <Compile Include="Data\Interfaces\IUserRegistrationRepository.vb" />
     <Compile Include="Data\Interfaces\IUserRegistrationService.vb" />
+    <Compile Include="Data\Repositories\AccountSettingsRepository.vb" />
     <Compile Include="Data\Repositories\ReportDetailRepository.vb" />
     <Compile Include="Data\Repositories\FinanceReviewRepository.vb" />
     <Compile Include="Data\Repositories\UserRegistrationRepository.vb" />

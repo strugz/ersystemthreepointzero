@@ -12,6 +12,9 @@ Public Class AppDbContext
     Public Property CashAdvances As DbSet(Of CashAdvanceModel)
     Public Property ReportFinanceTrackings As DbSet(Of ReportFinanceTrackingModel)
     Public Property UserRegistrations As DbSet(Of UserRegistrationModel)
+    Public Property EmployeeRates As DbSet(Of EmployeeRateModel)
+    Public Property UserAuthorities As DbSet(Of UserAuthorityModel)
+    Public Property Departments As DbSet(Of DepartmentModel)
 
     Protected Overrides Sub OnModelCreating(modelBuilder As DbModelBuilder)
         MyBase.OnModelCreating(modelBuilder)
@@ -20,5 +23,8 @@ Public Class AppDbContext
         modelBuilder.Entity(Of CashAdvanceModel)().ToTable("tbCashAdvance")
         modelBuilder.Entity(Of ReportFinanceTrackingModel)().ToTable("tbReportFinanceTracking")
         modelBuilder.Entity(Of UserRegistrationModel)().ToTable("tbUserRegistration")
+        modelBuilder.Entity(Of EmployeeRateModel)().ToTable("tblEmpRate")
+        modelBuilder.Entity(Of UserAuthorityModel)().ToTable("tbUserAuthority")
+        modelBuilder.Entity(Of DepartmentModel)().ToTable("tblDept")
     End Sub
 End Class
