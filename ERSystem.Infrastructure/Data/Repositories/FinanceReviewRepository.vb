@@ -1,4 +1,5 @@
-Imports System.Data.SqlClient
+Imports System.Data.Entity
+Imports System.Linq
 Imports ERSystem.Domain
 
 Namespace Global.ERSystem.Infrastructure.Data
@@ -7,16 +8,37 @@ Namespace Global.ERSystem.Infrastructure.Data
 
         Private Const PendingStatus As String = "Pending"
         Private Const CompletedStatus As String = "Completed"
+        Private Const ApprovedFileStatus As String = "0"
+        Private Const ApprovedPrintStatus As String = "0"
 
         Public Sub EnsureTrackingRowsForApprovedReports() Implements IFinanceReviewRepository.EnsureTrackingRowsForApprovedReports
             Using dbContext As New AppDbContext()
-                dbContext.Database.ExecuteSqlCommand(
-                    "INSERT INTO dbo.tbReportFinanceTracking (ReportID) " &
-                    "SELECT report.ID " &
-                    "FROM dbo.tbReportDetails report " &
-                    "WHERE report.ReportFileStatus = '0' " &
-                    "AND report.ReportPrintStatus = '0' " &
-                    "AND NOT EXISTS (SELECT 1 FROM dbo.tbReportFinanceTracking finance WHERE finance.ReportID = report.ID)")
+                Dim approvedReportIds As List(Of String) = dbContext.ReportsDetails.
+                    AsNoTracking().
+                    Where(Function(report) report.ReportFileStatus = ApprovedFileStatus AndAlso report.ReportPrintStatus = ApprovedPrintStatus).
+                    Select(Function(report) report.ID).
+                    ToList()
+
+                Dim trackedReportIds As List(Of String) = dbContext.ReportFinanceTrackings.
+                    AsNoTracking().
+                    Select(Function(finance) finance.ReportID).
+                    ToList()
+
+                Dim missingReportIds = approvedReportIds.
+                    Where(Function(reportId) Not trackedReportIds.Contains(reportId)).
+                    ToList()
+
+                For Each reportId As String In missingReportIds
+                    dbContext.ReportFinanceTrackings.Add(New ReportFinanceTrackingModel With {
+                        .ReportID = reportId,
+                        .FinanceStatus = PendingStatus,
+                        .PhysicalReceiptsReceived = False
+                    })
+                Next
+
+                If missingReportIds.Count > 0 Then
+                    dbContext.SaveChanges()
+                End If
             End Using
         End Sub
 
@@ -26,15 +48,28 @@ Namespace Global.ERSystem.Infrastructure.Data
             End If
 
             Using dbContext As New AppDbContext()
-                dbContext.Database.ExecuteSqlCommand(
-                    "INSERT INTO dbo.tbReportFinanceTracking (ReportID) " &
-                    "SELECT report.ID " &
-                    "FROM dbo.tbReportDetails report " &
-                    "WHERE report.ID = @ReportID " &
-                    "AND report.ReportFileStatus = '0' " &
-                    "AND report.ReportPrintStatus = '0' " &
-                    "AND NOT EXISTS (SELECT 1 FROM dbo.tbReportFinanceTracking finance WHERE finance.ReportID = report.ID)",
-                    New SqlParameter("@ReportID", reportId))
+                Dim report = dbContext.ReportsDetails.
+                    AsNoTracking().
+                    FirstOrDefault(Function(item) item.ID = reportId)
+
+                If report Is Nothing OrElse Not IsApprovedDone(report) Then
+                    Return
+                End If
+
+                Dim hasTrackingRow As Boolean = dbContext.ReportFinanceTrackings.
+                    AsNoTracking().
+                    Any(Function(finance) finance.ReportID = reportId)
+
+                If hasTrackingRow Then
+                    Return
+                End If
+
+                dbContext.ReportFinanceTrackings.Add(New ReportFinanceTrackingModel With {
+                    .ReportID = reportId,
+                    .FinanceStatus = PendingStatus,
+                    .PhysicalReceiptsReceived = False
+                })
+                dbContext.SaveChanges()
             End Using
         End Sub
 
@@ -46,53 +81,70 @@ Namespace Global.ERSystem.Infrastructure.Data
                                  reportType As String) As List(Of FinanceErfQueueDto) Implements IFinanceReviewRepository.GetQueue
             EnsureTrackingRowsForApprovedReports()
 
-            Dim parameters As New List(Of SqlParameter)()
-            Dim sql As String =
-                "SELECT report.ID AS ReportID, report.UserID, users.Fullname AS EmployeeName, " &
-                "report.ReportDateFrom, report.ReportDateTo, report.ReportDescription, report.ReportType, " &
-                "cash.CashRefNo, finance.FinanceStatus, finance.PhysicalReceiptsReceived, " &
-                "finance.PhysicalReceiptsReceivedDate, finance.FinanceCompletedDate, finance.FinanceRemarks " &
-                "FROM dbo.tbReportDetails report " &
-                "INNER JOIN dbo.tbReportFinanceTracking finance ON report.ID = finance.ReportID " &
-                "LEFT JOIN dbo.tbUserRegistration users ON report.UserID = users.UserID " &
-                "LEFT JOIN dbo.tbCashAdvance cash ON report.ID = cash.ReportID " &
-                "WHERE report.ReportFileStatus = '0' AND report.ReportPrintStatus = '0' "
-
-            If Not String.IsNullOrWhiteSpace(statusFilter) AndAlso Not String.Equals(statusFilter, "All", StringComparison.OrdinalIgnoreCase) Then
-                sql &= "AND finance.FinanceStatus = @StatusFilter "
-                parameters.Add(New SqlParameter("@StatusFilter", statusFilter))
-            End If
-
-            If String.Equals(receiptFilter, "Missing", StringComparison.OrdinalIgnoreCase) Then
-                sql &= "AND finance.PhysicalReceiptsReceived = 0 "
-            ElseIf String.Equals(receiptFilter, "Received", StringComparison.OrdinalIgnoreCase) Then
-                sql &= "AND finance.PhysicalReceiptsReceived = 1 "
-            End If
-
-            If Not String.IsNullOrWhiteSpace(employeeFilter) Then
-                sql &= "AND users.Fullname LIKE @EmployeeFilter "
-                parameters.Add(New SqlParameter("@EmployeeFilter", "%" & employeeFilter.Trim() & "%"))
-            End If
-
-            If dateFrom.HasValue Then
-                sql &= "AND report.ReportDateFrom >= @DateFrom "
-                parameters.Add(New SqlParameter("@DateFrom", dateFrom.Value.Date))
-            End If
-
-            If dateTo.HasValue Then
-                sql &= "AND report.ReportDateTo <= @DateTo "
-                parameters.Add(New SqlParameter("@DateTo", dateTo.Value.Date))
-            End If
-
-            If Not String.IsNullOrWhiteSpace(reportType) AndAlso Not String.Equals(reportType, "All", StringComparison.OrdinalIgnoreCase) Then
-                sql &= "AND report.ReportType = @ReportType "
-                parameters.Add(New SqlParameter("@ReportType", reportType))
-            End If
-
-            sql &= "ORDER BY report.ReportDateFrom DESC, users.Fullname ASC"
-
             Using dbContext As New AppDbContext()
-                Return dbContext.Database.SqlQuery(Of FinanceErfQueueDto)(sql, parameters.ToArray()).ToList()
+                Dim reports As List(Of ReportDetailModel) = dbContext.ReportsDetails.
+                    AsNoTracking().
+                    Where(Function(report) report.ReportFileStatus = ApprovedFileStatus AndAlso report.ReportPrintStatus = ApprovedPrintStatus).
+                    ToList()
+
+                Dim finances As List(Of ReportFinanceTrackingModel) = dbContext.ReportFinanceTrackings.
+                    AsNoTracking().
+                    ToList()
+
+                Dim cashAdvances As List(Of CashAdvanceModel) = dbContext.CashAdvances.
+                    AsNoTracking().
+                    ToList()
+
+                Dim users As List(Of UserRegistrationModel) = dbContext.UserRegistrations.
+                    AsNoTracking().
+                    ToList()
+
+                Dim query = From report In reports
+                            Join finance In finances On report.ID Equals finance.ReportID
+                            Group Join cashAdvance In cashAdvances On report.ID Equals cashAdvance.ReportID Into cashAdvanceGroup = Group
+                            From cashAdvance In cashAdvanceGroup.DefaultIfEmpty()
+                            Group Join user In users On report.UserID.GetValueOrDefault() Equals user.UserID Into userGroup = Group
+                            From user In userGroup.DefaultIfEmpty()
+                            Select New With {
+                                .Report = report,
+                                .Finance = finance,
+                                .CashAdvance = cashAdvance,
+                                .User = user
+                            }
+
+                If Not String.IsNullOrWhiteSpace(statusFilter) AndAlso Not String.Equals(statusFilter, "All", StringComparison.OrdinalIgnoreCase) Then
+                    query = query.Where(Function(item) String.Equals(item.Finance.FinanceStatus, statusFilter, StringComparison.OrdinalIgnoreCase))
+                End If
+
+                If String.Equals(receiptFilter, "Missing", StringComparison.OrdinalIgnoreCase) Then
+                    query = query.Where(Function(item) Not item.Finance.PhysicalReceiptsReceived)
+                ElseIf String.Equals(receiptFilter, "Received", StringComparison.OrdinalIgnoreCase) Then
+                    query = query.Where(Function(item) item.Finance.PhysicalReceiptsReceived)
+                End If
+
+                If Not String.IsNullOrWhiteSpace(employeeFilter) Then
+                    query = query.Where(Function(item) item.User IsNot Nothing AndAlso
+                        item.User.Fullname IsNot Nothing AndAlso
+                        item.User.Fullname.IndexOf(employeeFilter.Trim(), StringComparison.OrdinalIgnoreCase) >= 0)
+                End If
+
+                If dateFrom.HasValue Then
+                    query = query.Where(Function(item) item.Report.ReportDateFrom.HasValue AndAlso item.Report.ReportDateFrom.Value.Date >= dateFrom.Value.Date)
+                End If
+
+                If dateTo.HasValue Then
+                    query = query.Where(Function(item) item.Report.ReportDateTo.HasValue AndAlso item.Report.ReportDateTo.Value.Date <= dateTo.Value.Date)
+                End If
+
+                If Not String.IsNullOrWhiteSpace(reportType) AndAlso Not String.Equals(reportType, "All", StringComparison.OrdinalIgnoreCase) Then
+                    query = query.Where(Function(item) String.Equals(item.Report.ReportType, reportType, StringComparison.OrdinalIgnoreCase))
+                End If
+
+                Return query.
+                    OrderByDescending(Function(item) item.Report.ReportDateFrom).
+                    ThenBy(Function(item) If(item.User Is Nothing, String.Empty, item.User.Fullname)).
+                    Select(Function(item) ToQueueDto(item.Report, item.Finance, item.CashAdvance, item.User)).
+                    ToList()
             End Using
         End Function
 
@@ -104,21 +156,35 @@ Namespace Global.ERSystem.Infrastructure.Data
             EnsureTrackingRowForApprovedReport(reportId)
 
             Using dbContext As New AppDbContext()
-                Return dbContext.Database.SqlQuery(Of FinanceErfDetailDto)(
-                    "SELECT report.ID AS ReportID, report.UserID, users.Fullname AS EmployeeName, " &
-                    "report.ReportDateFrom, report.ReportDateTo, report.ReportDescription, report.ReportType, " &
-                    "cash.CashAmount, cash.CashDate, cash.CashRefDoc, cash.CashRefNo, cash.RevolvingFund, " &
-                    "report.ReportAttachment, finance.FinanceStatus, finance.PhysicalReceiptsReceived, " &
-                    "finance.PhysicalReceiptsReceivedBy, finance.PhysicalReceiptsReceivedDate, " &
-                    "finance.FinanceCompletedBy, finance.FinanceCompletedDate, finance.FinanceRemarks, " &
-                    "finance.ScannedReceiptsDeletedDate " &
-                    "FROM dbo.tbReportDetails report " &
-                    "INNER JOIN dbo.tbReportFinanceTracking finance ON report.ID = finance.ReportID " &
-                    "LEFT JOIN dbo.tbUserRegistration users ON report.UserID = users.UserID " &
-                    "LEFT JOIN dbo.tbCashAdvance cash ON report.ID = cash.ReportID " &
-                    "WHERE report.ID = @ReportID",
-                    New SqlParameter("@ReportID", reportId)).
-                    FirstOrDefault()
+                Dim report = dbContext.ReportsDetails.
+                    AsNoTracking().
+                    FirstOrDefault(Function(item) item.ID = reportId)
+
+                If report Is Nothing Then
+                    Return Nothing
+                End If
+
+                Dim finance = dbContext.ReportFinanceTrackings.
+                    AsNoTracking().
+                    FirstOrDefault(Function(item) item.ReportID = reportId)
+
+                If finance Is Nothing Then
+                    Return Nothing
+                End If
+
+                Dim cashAdvance = dbContext.CashAdvances.
+                    AsNoTracking().
+                    FirstOrDefault(Function(item) item.ReportID = reportId)
+
+                Dim user As UserRegistrationModel = Nothing
+                If report.UserID.HasValue Then
+                    Dim userId As Integer = report.UserID.Value
+                    user = dbContext.UserRegistrations.
+                        AsNoTracking().
+                        FirstOrDefault(Function(item) item.UserID = userId)
+                End If
+
+                Return ToDetailDto(report, finance, cashAdvance, user)
             End Using
         End Function
 
@@ -130,16 +196,17 @@ Namespace Global.ERSystem.Infrastructure.Data
             EnsureTrackingRowForApprovedReport(request.ReportID)
 
             Using dbContext As New AppDbContext()
-                dbContext.Database.ExecuteSqlCommand(
-                    "UPDATE dbo.tbReportFinanceTracking " &
-                    "SET PhysicalReceiptsReceived = 1, " &
-                    "PhysicalReceiptsReceivedBy = @ReviewerUserID, " &
-                    "PhysicalReceiptsReceivedDate = GETDATE(), " &
-                    "FinanceRemarks = @Remarks " &
-                    "WHERE ReportID = @ReportID",
-                    New SqlParameter("@ReviewerUserID", request.ReviewerUserID),
-                    New SqlParameter("@Remarks", ToDbNullable(request.Remarks)),
-                    New SqlParameter("@ReportID", request.ReportID))
+                Dim existing = dbContext.ReportFinanceTrackings.FirstOrDefault(Function(item) item.ReportID = request.ReportID)
+
+                If existing Is Nothing Then
+                    Throw New InvalidOperationException("Finance tracking details were not found.")
+                End If
+
+                existing.PhysicalReceiptsReceived = True
+                existing.PhysicalReceiptsReceivedBy = request.ReviewerUserID
+                existing.PhysicalReceiptsReceivedDate = DateTime.Now
+                existing.FinanceRemarks = NormalizeRemarks(request.Remarks)
+                dbContext.SaveChanges()
             End Using
         End Sub
 
@@ -151,17 +218,21 @@ Namespace Global.ERSystem.Infrastructure.Data
             EnsureTrackingRowForApprovedReport(request.ReportID)
 
             Using dbContext As New AppDbContext()
-                dbContext.Database.ExecuteSqlCommand(
-                    "UPDATE dbo.tbReportFinanceTracking " &
-                    "SET FinanceStatus = @CompletedStatus, " &
-                    "FinanceCompletedBy = @ReviewerUserID, " &
-                    "FinanceCompletedDate = GETDATE(), " &
-                    "FinanceRemarks = @Remarks " &
-                    "WHERE ReportID = @ReportID AND PhysicalReceiptsReceived = 1",
-                    New SqlParameter("@CompletedStatus", CompletedStatus),
-                    New SqlParameter("@ReviewerUserID", request.ReviewerUserID),
-                    New SqlParameter("@Remarks", ToDbNullable(request.Remarks)),
-                    New SqlParameter("@ReportID", request.ReportID))
+                Dim existing = dbContext.ReportFinanceTrackings.FirstOrDefault(Function(item) item.ReportID = request.ReportID)
+
+                If existing Is Nothing Then
+                    Throw New InvalidOperationException("Finance tracking details were not found.")
+                End If
+
+                If Not existing.PhysicalReceiptsReceived Then
+                    Return
+                End If
+
+                existing.FinanceStatus = CompletedStatus
+                existing.FinanceCompletedBy = request.ReviewerUserID
+                existing.FinanceCompletedDate = DateTime.Now
+                existing.FinanceRemarks = NormalizeRemarks(request.Remarks)
+                dbContext.SaveChanges()
             End Using
         End Sub
 
@@ -173,11 +244,16 @@ Namespace Global.ERSystem.Infrastructure.Data
             EnsureTrackingRowForApprovedReport(reportId)
 
             Using dbContext As New AppDbContext()
-                dbContext.Database.ExecuteSqlCommand(
-                    "UPDATE dbo.tbReportFinanceTracking " &
-                    "SET ScannedReceiptsDeletedDate = GETDATE() " &
-                    "WHERE ReportID = @ReportID AND ScannedReceiptsDeletedDate IS NULL",
-                    New SqlParameter("@ReportID", reportId))
+                Dim existing = dbContext.ReportFinanceTrackings.FirstOrDefault(Function(item) item.ReportID = reportId)
+
+                If existing Is Nothing Then
+                    Return
+                End If
+
+                If Not existing.ScannedReceiptsDeletedDate.HasValue Then
+                    existing.ScannedReceiptsDeletedDate = DateTime.Now
+                    dbContext.SaveChanges()
+                End If
             End Using
         End Sub
 
@@ -187,9 +263,14 @@ Namespace Global.ERSystem.Infrastructure.Data
             End If
 
             Using dbContext As New AppDbContext()
-                dbContext.Database.ExecuteSqlCommand(
-                    "UPDATE dbo.tbReportDetails SET ReportAttachment = '' WHERE ID = @ReportID",
-                    New SqlParameter("@ReportID", reportId))
+                Dim existing = dbContext.ReportsDetails.FirstOrDefault(Function(item) item.ID = reportId)
+
+                If existing Is Nothing Then
+                    Return
+                End If
+
+                existing.ReportAttachment = String.Empty
+                dbContext.SaveChanges()
             End Using
         End Sub
 
@@ -197,25 +278,96 @@ Namespace Global.ERSystem.Infrastructure.Data
             EnsureTrackingRowsForApprovedReports()
 
             Using dbContext As New AppDbContext()
-                Return dbContext.Database.SqlQuery(Of MissingPhysicalReceiptDto)(
-                    "SELECT report.ID AS ReportID, report.ReportDescription, report.ReportDateFrom, report.ReportDateTo, finance.FinanceStatus " &
-                    "FROM dbo.tbReportDetails report " &
-                    "INNER JOIN dbo.tbReportFinanceTracking finance ON report.ID = finance.ReportID " &
-                    "WHERE report.UserID = @UserID " &
-                    "AND report.ReportFileStatus = '0' " &
-                    "AND report.ReportPrintStatus = '0' " &
-                    "AND finance.PhysicalReceiptsReceived = 0 " &
-                    "AND finance.FinanceStatus <> @CompletedStatus " &
-                    "ORDER BY report.ReportDateFrom DESC",
-                    New SqlParameter("@UserID", userId),
-                    New SqlParameter("@CompletedStatus", CompletedStatus)).
+                Dim reports As List(Of ReportDetailModel) = dbContext.ReportsDetails.
+                    AsNoTracking().
+                    Where(Function(report) report.UserID.HasValue AndAlso
+                        report.UserID.Value = userId AndAlso
+                        report.ReportFileStatus = ApprovedFileStatus AndAlso
+                        report.ReportPrintStatus = ApprovedPrintStatus).
+                    ToList()
+
+                Dim finances As List(Of ReportFinanceTrackingModel) = dbContext.ReportFinanceTrackings.
+                    AsNoTracking().
+                    Where(Function(finance) Not finance.PhysicalReceiptsReceived AndAlso finance.FinanceStatus <> CompletedStatus).
+                    ToList()
+
+                Return (From report In reports
+                        Join finance In finances On report.ID Equals finance.ReportID
+                        Order By report.ReportDateFrom Descending
+                        Select ToMissingReceiptDto(report, finance)).
                     ToList()
             End Using
         End Function
 
-        Private Shared Function ToDbNullable(value As String) As Object
+        Private Shared Function IsApprovedDone(report As ReportDetailModel) As Boolean
+            Return report IsNot Nothing AndAlso
+                String.Equals(report.ReportFileStatus, ApprovedFileStatus, StringComparison.Ordinal) AndAlso
+                String.Equals(report.ReportPrintStatus, ApprovedPrintStatus, StringComparison.Ordinal)
+        End Function
+
+        Private Shared Function ToQueueDto(report As ReportDetailModel,
+                                           finance As ReportFinanceTrackingModel,
+                                           cashAdvance As CashAdvanceModel,
+                                           user As UserRegistrationModel) As FinanceErfQueueDto
+            Return New FinanceErfQueueDto With {
+                .ReportID = report.ID,
+                .UserID = report.UserID,
+                .EmployeeName = If(user Is Nothing, String.Empty, user.Fullname),
+                .ReportDateFrom = report.ReportDateFrom,
+                .ReportDateTo = report.ReportDateTo,
+                .ReportDescription = report.ReportDescription,
+                .ReportType = report.ReportType,
+                .CashRefNo = If(cashAdvance Is Nothing, String.Empty, cashAdvance.CashRefNo),
+                .FinanceStatus = finance.FinanceStatus,
+                .PhysicalReceiptsReceived = finance.PhysicalReceiptsReceived,
+                .PhysicalReceiptsReceivedDate = finance.PhysicalReceiptsReceivedDate,
+                .FinanceCompletedDate = finance.FinanceCompletedDate,
+                .FinanceRemarks = finance.FinanceRemarks
+            }
+        End Function
+
+        Private Shared Function ToDetailDto(report As ReportDetailModel,
+                                            finance As ReportFinanceTrackingModel,
+                                            cashAdvance As CashAdvanceModel,
+                                            user As UserRegistrationModel) As FinanceErfDetailDto
+            Return New FinanceErfDetailDto With {
+                .ReportID = report.ID,
+                .UserID = report.UserID,
+                .EmployeeName = If(user Is Nothing, String.Empty, user.Fullname),
+                .ReportDateFrom = report.ReportDateFrom,
+                .ReportDateTo = report.ReportDateTo,
+                .ReportDescription = report.ReportDescription,
+                .ReportType = report.ReportType,
+                .CashAmount = If(cashAdvance Is Nothing, Nothing, cashAdvance.CashAmount),
+                .CashDate = If(cashAdvance Is Nothing, String.Empty, cashAdvance.CashDate),
+                .CashRefDoc = If(cashAdvance Is Nothing, String.Empty, cashAdvance.CashRefDoc),
+                .CashRefNo = If(cashAdvance Is Nothing, String.Empty, cashAdvance.CashRefNo),
+                .RevolvingFund = If(cashAdvance Is Nothing, String.Empty, cashAdvance.RevolvingFund),
+                .ReportAttachment = report.ReportAttachment,
+                .FinanceStatus = finance.FinanceStatus,
+                .PhysicalReceiptsReceived = finance.PhysicalReceiptsReceived,
+                .PhysicalReceiptsReceivedBy = finance.PhysicalReceiptsReceivedBy,
+                .PhysicalReceiptsReceivedDate = finance.PhysicalReceiptsReceivedDate,
+                .FinanceCompletedBy = finance.FinanceCompletedBy,
+                .FinanceCompletedDate = finance.FinanceCompletedDate,
+                .FinanceRemarks = finance.FinanceRemarks,
+                .ScannedReceiptsDeletedDate = finance.ScannedReceiptsDeletedDate
+            }
+        End Function
+
+        Private Shared Function ToMissingReceiptDto(report As ReportDetailModel, finance As ReportFinanceTrackingModel) As MissingPhysicalReceiptDto
+            Return New MissingPhysicalReceiptDto With {
+                .ReportID = report.ID,
+                .ReportDescription = report.ReportDescription,
+                .ReportDateFrom = report.ReportDateFrom,
+                .ReportDateTo = report.ReportDateTo,
+                .FinanceStatus = finance.FinanceStatus
+            }
+        End Function
+
+        Private Shared Function NormalizeRemarks(value As String) As String
             If String.IsNullOrWhiteSpace(value) Then
-                Return DBNull.Value
+                Return Nothing
             End If
 
             Return value.Trim()

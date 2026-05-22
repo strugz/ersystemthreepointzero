@@ -81,6 +81,7 @@
     <Compile Include="Entities\CashAdvance\CashAdvanceModel.vb" />
     <Compile Include="Entities\Finance\ReportFinanceTrackingModel.vb" />
     <Compile Include="Entities\Report\ReportDetailModel.vb" />
+    <Compile Include="Entities\User\UserRegistrationModel.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
