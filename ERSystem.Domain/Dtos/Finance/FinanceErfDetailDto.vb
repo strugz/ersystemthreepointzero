@@ -3,6 +3,7 @@ Imports System
 Public Class FinanceErfDetailDto
     Public Property ReportID As String
     Public Property UserID As Nullable(Of Integer)
+    Public Property Username As String
     Public Property EmployeeName As String
     Public Property ReportDateFrom As Nullable(Of Date)
     Public Property ReportDateTo As Nullable(Of Date)

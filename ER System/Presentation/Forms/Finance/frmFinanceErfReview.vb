@@ -4,7 +4,10 @@ Imports ERSystem.Infrastructure.Data
 Public Class frmFinanceErfReview
     Inherits Form
 
+    Private Const SmsColumnName As String = "SendSms"
+
     Private ReadOnly _financeReviewService As IFinanceReviewService
+    Private ReadOnly _smsNotificationService As AppServices.ISmsNotificationService
     Private ReadOnly _userAccountRegistryProvider As New Infrastructure.Configuration.UserAccountRegistryProvider()
     Private ReadOnly _grid As New DataGridView()
     Private ReadOnly _txtEmployee As New TextBox()
@@ -22,11 +25,16 @@ Public Class frmFinanceErfReview
     Private _selectedReportId As String = String.Empty
 
     Public Sub New()
-        Me.New(New FinanceReviewService())
+        Me.New(New FinanceReviewService(), New AppServices.SmsNotificationService())
     End Sub
 
     Public Sub New(financeReviewService As IFinanceReviewService)
+        Me.New(financeReviewService, New AppServices.SmsNotificationService())
+    End Sub
+
+    Friend Sub New(financeReviewService As IFinanceReviewService, smsNotificationService As AppServices.ISmsNotificationService)
         _financeReviewService = financeReviewService
+        _smsNotificationService = smsNotificationService
         InitializeFinanceReviewForm()
     End Sub
 
@@ -48,9 +56,9 @@ Public Class frmFinanceErfReview
 
         _txtEmployee.Width = 160
 
-        ConfigureCombo(_cboStatus, {"Pending", "Receipts Received", "All"})
-        ConfigureCombo(_cboReceipt, {"Missing", "Received", "All"})
-        ConfigureCombo(_cboReportType, {"All", "Replenishment of Revolving fund", "Liquidation for Cash Advance", "Reimbursement"})
+        ConfigureCombo(_cboStatus, {"Pending", "Receipts Received", "All"}, "All")
+        ConfigureCombo(_cboReceipt, {"Missing", "Received", "All"}, "All")
+        ConfigureCombo(_cboReportType, {"All", "Replenishment of Revolving fund", "Liquidation for Cash Advance", "Reimbursement"}, "All")
 
         _chkUseDate.Text = "Date filter"
         _chkUseDate.AutoSize = True
@@ -109,19 +117,27 @@ Public Class frmFinanceErfReview
         Controls.Add(_grid)
         Controls.Add(rightPanel)
         Controls.Add(filtersPanel)
+        AcceptButton = _btnRefresh
 
         AddHandler Load, AddressOf frmFinanceErfReview_Load
         AddHandler KeyDown, AddressOf frmFinanceErfReview_KeyDown
         AddHandler _btnRefresh.Click, AddressOf btnRefresh_Click
         AddHandler _grid.SelectionChanged, AddressOf grid_SelectionChanged
+        AddHandler _grid.CellContentClick, AddressOf grid_CellContentClick
         AddHandler _btnMarkReceived.Click, AddressOf btnMarkReceived_Click
     End Sub
 
-    Private Shared Sub ConfigureCombo(combo As ComboBox, values As Object())
+    Private Shared Sub ConfigureCombo(combo As ComboBox, values As Object(), defaultValue As String)
         combo.DropDownStyle = ComboBoxStyle.DropDownList
         combo.Width = 170
         combo.Items.AddRange(values)
-        combo.SelectedIndex = 0
+
+        Dim defaultIndex As Integer = combo.Items.IndexOf(defaultValue)
+        If defaultIndex >= 0 Then
+            combo.SelectedIndex = defaultIndex
+        Else
+            combo.SelectedIndex = 0
+        End If
     End Sub
 
     Private Shared Function BuildLabeledControl(labelText As String, control As Control) As Control
@@ -162,6 +178,25 @@ Public Class frmFinanceErfReview
 
         _selectedReportId = row.ReportID
         LoadDetail(_selectedReportId)
+    End Sub
+
+    Private Sub grid_CellContentClick(sender As Object, e As DataGridViewCellEventArgs)
+        If e.RowIndex < 0 OrElse e.ColumnIndex < 0 Then
+            Return
+        End If
+
+        If Not String.Equals(_grid.Columns(e.ColumnIndex).Name, SmsColumnName, StringComparison.OrdinalIgnoreCase) Then
+            Return
+        End If
+
+        Dim row As FinanceErfQueueDto = TryCast(_grid.Rows(e.RowIndex).DataBoundItem, FinanceErfQueueDto)
+        If row Is Nothing Then
+            Return
+        End If
+
+        Using smsDialog As New frmSmsNotification(row, _smsNotificationService)
+            smsDialog.ShowDialog(Me)
+        End Using
     End Sub
 
     Private Sub btnMarkReceived_Click(sender As Object, e As EventArgs)
@@ -211,6 +246,9 @@ Public Class frmFinanceErfReview
         If _grid.Columns.Contains("ReportID") Then
             _grid.Columns("ReportID").Visible = False
         End If
+        If _grid.Columns.Contains("Username") Then
+            _grid.Columns("Username").Visible = False
+        End If
 
         SetColumnHeader("UserID", "User ID")
         SetColumnHeader("EmployeeName", "Employee")
@@ -235,6 +273,24 @@ Public Class frmFinanceErfReview
         If _grid.Columns.Contains("ReportDescription") Then
             _grid.Columns("ReportDescription").AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
         End If
+
+        EnsureSmsColumn()
+    End Sub
+
+    Private Sub EnsureSmsColumn()
+        If Not _grid.Columns.Contains(SmsColumnName) Then
+            Dim smsColumn As New DataGridViewButtonColumn() With {
+                .Name = SmsColumnName,
+                .HeaderText = "SMS",
+                .Text = "Send",
+                .UseColumnTextForButtonValue = True,
+                .AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                .Width = 70
+            }
+            _grid.Columns.Add(smsColumn)
+        End If
+
+        _grid.Columns(SmsColumnName).DisplayIndex = _grid.Columns.Count - 1
     End Sub
 
     Private Sub SetColumnHeader(columnName As String, headerText As String)

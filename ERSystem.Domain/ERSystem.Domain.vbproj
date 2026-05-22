@@ -73,6 +73,8 @@
     <Compile Include="Dtos\Finance\FinanceErfQueueDto.vb" />
     <Compile Include="Dtos\Finance\MarkPhysicalReceiptsReceivedDto.vb" />
     <Compile Include="Dtos\Finance\MissingPhysicalReceiptDto.vb" />
+    <Compile Include="Dtos\Sms\SmsNotificationRequestDto.vb" />
+    <Compile Include="Dtos\Sms\SmsRecipientDto.vb" />
     <Compile Include="Dtos\Report\CreateReportDetailDto.vb" />
     <Compile Include="Dtos\Report\ReportDetailDto.vb" />
     <Compile Include="Dtos\Report\ReportDetailResponseDto.vb" />

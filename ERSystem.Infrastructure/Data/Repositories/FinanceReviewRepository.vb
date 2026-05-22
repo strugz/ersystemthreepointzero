@@ -70,7 +70,7 @@ Namespace Global.ERSystem.Infrastructure.Data
                             Join finance In finances On report.ID Equals finance.ReportID
                             Group Join cashAdvance In cashAdvances On report.ID Equals cashAdvance.ReportID Into cashAdvanceGroup = Group
                             From cashAdvance In cashAdvanceGroup.DefaultIfEmpty()
-                            Group Join user In users On report.UserID.GetValueOrDefault() Equals user.UserID Into userGroup = Group
+                            Group Join user In users On report.UserID.GetValueOrDefault() Equals user.UserID.GetValueOrDefault() Into userGroup = Group
                             From user In userGroup.DefaultIfEmpty()
                             Select New With {
                                 .Report = report,
@@ -148,7 +148,7 @@ Namespace Global.ERSystem.Infrastructure.Data
                     Dim userId As Integer = report.UserID.Value
                     user = dbContext.UserRegistrations.
                         AsNoTracking().
-                        FirstOrDefault(Function(item) item.UserID = userId)
+                        FirstOrDefault(Function(item) item.UserID.HasValue AndAlso item.UserID.Value = userId)
                 End If
 
                 Return ToDetailDto(report, finance, cashAdvance, user)
@@ -252,6 +252,7 @@ Namespace Global.ERSystem.Infrastructure.Data
             Return New FinanceErfQueueDto With {
                 .ReportID = report.ID,
                 .UserID = report.UserID,
+                .Username = If(user Is Nothing, String.Empty, user.Username),
                 .EmployeeName = If(user Is Nothing, String.Empty, user.Fullname),
                 .ReportDateFrom = report.ReportDateFrom,
                 .ReportDateTo = report.ReportDateTo,
@@ -272,6 +273,7 @@ Namespace Global.ERSystem.Infrastructure.Data
             Return New FinanceErfDetailDto With {
                 .ReportID = report.ID,
                 .UserID = report.UserID,
+                .Username = If(user Is Nothing, String.Empty, user.Username),
                 .EmployeeName = If(user Is Nothing, String.Empty, user.Fullname),
                 .ReportDateFrom = report.ReportDateFrom,
                 .ReportDateTo = report.ReportDateTo,

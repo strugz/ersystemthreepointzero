@@ -83,10 +83,14 @@
     <Compile Include="Data\Interfaces\IFinanceReviewService.vb" />
     <Compile Include="Data\Interfaces\IReportDetailRepository.vb" />
     <Compile Include="Data\Interfaces\IReportDetailService.vb" />
+    <Compile Include="Data\Interfaces\IUserRegistrationRepository.vb" />
+    <Compile Include="Data\Interfaces\IUserRegistrationService.vb" />
     <Compile Include="Data\Repositories\ReportDetailRepository.vb" />
     <Compile Include="Data\Repositories\FinanceReviewRepository.vb" />
+    <Compile Include="Data\Repositories\UserRegistrationRepository.vb" />
     <Compile Include="Data\Services\FinanceReviewService.vb" />
     <Compile Include="Data\Services\ReportDetailService.vb" />
+    <Compile Include="Data\Services\UserRegistrationService.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
