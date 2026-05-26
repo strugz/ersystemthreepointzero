@@ -74,7 +74,15 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Configuration\ConnectionSettings.vb" />
+    <Compile Include="Configuration\LegacyValueProtector.vb" />
+    <Compile Include="Configuration\RegistryConnectionSettingsProvider.vb" />
+    <Compile Include="Configuration\RegistryKeys.vb" />
+    <Compile Include="Configuration\SettingsRegistryProvider.vb" />
+    <Compile Include="Configuration\UserAccountRegistryProvider.vb" />
     <Compile Include="Data\AppDbContext.vb" />
+    <Compile Include="Data\Interfaces\IApproveActionRepository.vb" />
+    <Compile Include="Data\Interfaces\IApproveRepository.vb" />
     <Compile Include="Data\Repositories\CashAdvanceRepository.vb" />
     <Compile Include="Data\Services\CashAdvanceService.vb" />
     <Compile Include="Data\Interfaces\IAccountSettingsRepository.vb" />
@@ -84,12 +92,17 @@
     <Compile Include="Data\Interfaces\IFinanceReviewService.vb" />
     <Compile Include="Data\Interfaces\IReportDetailRepository.vb" />
     <Compile Include="Data\Interfaces\IReportDetailService.vb" />
+    <Compile Include="Data\Interfaces\IRejectActionRepository.vb" />
     <Compile Include="Data\Interfaces\IUserRegistrationRepository.vb" />
     <Compile Include="Data\Interfaces\IUserRegistrationService.vb" />
     <Compile Include="Data\Repositories\AccountSettingsRepository.vb" />
+    <Compile Include="Data\Repositories\ApproveActionRepository.vb" />
+    <Compile Include="Data\Repositories\ApproveRepository.vb" />
     <Compile Include="Data\Repositories\ReportDetailRepository.vb" />
     <Compile Include="Data\Repositories\FinanceReviewRepository.vb" />
+    <Compile Include="Data\Repositories\RejectActionRepository.vb" />
     <Compile Include="Data\Repositories\UserRegistrationRepository.vb" />
+    <Compile Include="Data\Sql\SqlConnectionFactory.vb" />
     <Compile Include="Data\Services\FinanceReviewService.vb" />
     <Compile Include="Data\Services\ReportDetailService.vb" />
     <Compile Include="Data\Services\UserRegistrationService.vb" />

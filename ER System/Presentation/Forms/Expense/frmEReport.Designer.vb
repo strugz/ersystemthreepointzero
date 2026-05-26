@@ -101,29 +101,48 @@ Partial Class frmEReport
         Me.txtTotalNumberOfDays = New System.Windows.Forms.TextBox()
         Me.BTNCloseComputation = New System.Windows.Forms.Button()
         Me.BTNComputation = New System.Windows.Forms.Button()
+        Me.mainLayout = New System.Windows.Forms.TableLayoutPanel()
+        Me.headerPanel = New System.Windows.Forms.Panel()
+        Me.actionPanel = New System.Windows.Forms.FlowLayoutPanel()
+        Me.lblSubtitle = New System.Windows.Forms.Label()
+        Me.lblTitle = New System.Windows.Forms.Label()
+        Me.contentLayout = New System.Windows.Forms.TableLayoutPanel()
+        Me.leftPanel = New System.Windows.Forms.Panel()
+        Me.gridPanel = New System.Windows.Forms.Panel()
+        Me.gridHeaderPanel = New System.Windows.Forms.Panel()
+        Me.sortPanel = New System.Windows.Forms.FlowLayoutPanel()
+        Me.lblExpenseList = New System.Windows.Forms.Label()
         Me.TabControl1.SuspendLayout()
         Me.TPExpenseReport.SuspendLayout()
         Me.GBTransportation.SuspendLayout()
         Me.GBMeals.SuspendLayout()
         CType(Me.dgvExpense, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.GBAllowance.SuspendLayout()
+        Me.mainLayout.SuspendLayout()
+        Me.headerPanel.SuspendLayout()
+        Me.actionPanel.SuspendLayout()
+        Me.contentLayout.SuspendLayout()
+        Me.leftPanel.SuspendLayout()
+        Me.gridPanel.SuspendLayout()
+        Me.gridHeaderPanel.SuspendLayout()
+        Me.sortPanel.SuspendLayout()
         Me.SuspendLayout()
         '
         'TabControl1
         '
-        Me.TabControl1.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
-            Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
         Me.TabControl1.Controls.Add(Me.TPExpenseReport)
+        Me.TabControl1.Dock = System.Windows.Forms.DockStyle.Fill
         Me.TabControl1.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.TabControl1.Location = New System.Drawing.Point(-3, 105)
+        Me.TabControl1.Location = New System.Drawing.Point(8, 8)
         Me.TabControl1.Name = "TabControl1"
         Me.TabControl1.SelectedIndex = 0
-        Me.TabControl1.Size = New System.Drawing.Size(336, 521)
+        Me.TabControl1.Size = New System.Drawing.Size(360, 596)
         Me.TabControl1.TabIndex = 23
         '
         'TPExpenseReport
         '
-        Me.TPExpenseReport.BackColor = System.Drawing.SystemColors.Control
+        Me.TPExpenseReport.AutoScroll = True
+        Me.TPExpenseReport.BackColor = System.Drawing.Color.White
         Me.TPExpenseReport.Controls.Add(Me.txtParticulars)
         Me.TPExpenseReport.Controls.Add(Me.txtComputation)
         Me.TPExpenseReport.Controls.Add(Me.lblParticulars)
@@ -170,7 +189,7 @@ Partial Class frmEReport
         Me.TPExpenseReport.Location = New System.Drawing.Point(4, 22)
         Me.TPExpenseReport.Name = "TPExpenseReport"
         Me.TPExpenseReport.Padding = New System.Windows.Forms.Padding(3)
-        Me.TPExpenseReport.Size = New System.Drawing.Size(328, 495)
+        Me.TPExpenseReport.Size = New System.Drawing.Size(352, 570)
         Me.TPExpenseReport.TabIndex = 1
         Me.TPExpenseReport.Text = "Expense Report"
         '
@@ -486,7 +505,7 @@ Partial Class frmEReport
         Me.lblTotalExpenseAmount.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.lblTotalExpenseAmount.Location = New System.Drawing.Point(11, 316)
         Me.lblTotalExpenseAmount.Name = "lblTotalExpenseAmount"
-        Me.lblTotalExpenseAmount.Size = New System.Drawing.Size(32, 13)
+        Me.lblTotalExpenseAmount.Size = New System.Drawing.Size(31, 13)
         Me.lblTotalExpenseAmount.TabIndex = 38
         Me.lblTotalExpenseAmount.Text = "Total"
         '
@@ -516,7 +535,7 @@ Partial Class frmEReport
         Me.Label13.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.Label13.Location = New System.Drawing.Point(12, 163)
         Me.Label13.Name = "Label13"
-        Me.Label13.Size = New System.Drawing.Size(30, 13)
+        Me.Label13.Size = New System.Drawing.Size(29, 13)
         Me.Label13.TabIndex = 33
         Me.Label13.Text = "Type"
         '
@@ -593,7 +612,7 @@ Partial Class frmEReport
         '
         'GBTransportation
         '
-        Me.GBTransportation.BackColor = System.Drawing.SystemColors.Control
+        Me.GBTransportation.BackColor = System.Drawing.Color.White
         Me.GBTransportation.Controls.Add(Me.BTNFareClose)
         Me.GBTransportation.Controls.Add(Me.BTNAddFare)
         Me.GBTransportation.Controls.Add(Me.Label26)
@@ -604,7 +623,7 @@ Partial Class frmEReport
         Me.GBTransportation.Controls.Add(Me.txtTo)
         Me.GBTransportation.Controls.Add(Me.BTNTransportation)
         Me.GBTransportation.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.GBTransportation.Location = New System.Drawing.Point(339, 312)
+        Me.GBTransportation.Location = New System.Drawing.Point(110, 320)
         Me.GBTransportation.Name = "GBTransportation"
         Me.GBTransportation.Size = New System.Drawing.Size(200, 174)
         Me.GBTransportation.TabIndex = 77
@@ -654,7 +673,7 @@ Partial Class frmEReport
         Me.Label25.AutoSize = True
         Me.Label25.Location = New System.Drawing.Point(6, 93)
         Me.Label25.Name = "Label25"
-        Me.Label25.Size = New System.Drawing.Size(19, 13)
+        Me.Label25.Size = New System.Drawing.Size(18, 13)
         Me.Label25.TabIndex = 83
         Me.Label25.Text = "To"
         '
@@ -694,7 +713,7 @@ Partial Class frmEReport
         '
         'GBMeals
         '
-        Me.GBMeals.BackColor = System.Drawing.SystemColors.Control
+        Me.GBMeals.BackColor = System.Drawing.Color.White
         Me.GBMeals.Controls.Add(Me.CBDinnerOTMeal)
         Me.GBMeals.Controls.Add(Me.RBOTMeal)
         Me.GBMeals.Controls.Add(Me.RBDinner)
@@ -704,7 +723,7 @@ Partial Class frmEReport
         Me.GBMeals.Controls.Add(Me.CLBMeals)
         Me.GBMeals.Controls.Add(Me.BTNMeals)
         Me.GBMeals.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.GBMeals.Location = New System.Drawing.Point(339, 135)
+        Me.GBMeals.Location = New System.Drawing.Point(110, 320)
         Me.GBMeals.Name = "GBMeals"
         Me.GBMeals.Size = New System.Drawing.Size(200, 174)
         Me.GBMeals.TabIndex = 76
@@ -727,7 +746,7 @@ Partial Class frmEReport
         Me.RBOTMeal.Enabled = False
         Me.RBOTMeal.Location = New System.Drawing.Point(6, 123)
         Me.RBOTMeal.Name = "RBOTMeal"
-        Me.RBOTMeal.Size = New System.Drawing.Size(68, 17)
+        Me.RBOTMeal.Size = New System.Drawing.Size(67, 17)
         Me.RBOTMeal.TabIndex = 82
         Me.RBOTMeal.TabStop = True
         Me.RBOTMeal.Text = "OT Meal"
@@ -755,7 +774,7 @@ Partial Class frmEReport
         '
         'CLBPaidBill
         '
-        Me.CLBPaidBill.BackColor = System.Drawing.SystemColors.Control
+        Me.CLBPaidBill.BackColor = System.Drawing.Color.White
         Me.CLBPaidBill.CheckOnClick = True
         Me.CLBPaidBill.Enabled = False
         Me.CLBPaidBill.FormattingEnabled = True
@@ -779,7 +798,7 @@ Partial Class frmEReport
         '
         'CLBMeals
         '
-        Me.CLBMeals.BackColor = System.Drawing.SystemColors.Control
+        Me.CLBMeals.BackColor = System.Drawing.Color.White
         Me.CLBMeals.BorderStyle = System.Windows.Forms.BorderStyle.None
         Me.CLBMeals.CheckOnClick = True
         Me.CLBMeals.FormattingEnabled = True
@@ -804,83 +823,86 @@ Partial Class frmEReport
         Me.dgvExpense.AllowUserToDeleteRows = False
         Me.dgvExpense.AllowUserToResizeColumns = False
         Me.dgvExpense.AllowUserToResizeRows = False
-        Me.dgvExpense.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
-            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.dgvExpense.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill
+        Me.dgvExpense.BackgroundColor = System.Drawing.Color.White
+        Me.dgvExpense.BorderStyle = System.Windows.Forms.BorderStyle.None
         Me.dgvExpense.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize
-        Me.dgvExpense.Location = New System.Drawing.Point(335, 0)
+        Me.dgvExpense.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.dgvExpense.Location = New System.Drawing.Point(0, 42)
+        Me.dgvExpense.MultiSelect = False
         Me.dgvExpense.Name = "dgvExpense"
         Me.dgvExpense.ReadOnly = True
         Me.dgvExpense.RowHeadersVisible = False
         Me.dgvExpense.RowHeadersWidth = 62
         Me.dgvExpense.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing
         Me.dgvExpense.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.dgvExpense.Size = New System.Drawing.Size(707, 626)
+        Me.dgvExpense.Size = New System.Drawing.Size(736, 564)
         Me.dgvExpense.TabIndex = 24
         Me.dgvExpense.TabStop = False
         '
         'btnPrintPreview
         '
-        Me.btnPrintPreview.Anchor = System.Windows.Forms.AnchorStyles.Top
-        Me.btnPrintPreview.BackColor = System.Drawing.SystemColors.Control
+        Me.btnPrintPreview.BackColor = System.Drawing.Color.White
         Me.btnPrintPreview.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
-        Me.btnPrintPreview.FlatStyle = System.Windows.Forms.FlatStyle.Popup
-        Me.btnPrintPreview.ForeColor = System.Drawing.Color.Black
+        Me.btnPrintPreview.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.btnPrintPreview.ForeColor = System.Drawing.Color.FromArgb(CType(CType(33, Byte), Integer), CType(CType(37, Byte), Integer), CType(CType(41, Byte), Integer))
         Me.btnPrintPreview.Image = CType(resources.GetObject("btnPrintPreview.Image"), System.Drawing.Image)
-        Me.btnPrintPreview.Location = New System.Drawing.Point(129, 2)
+        Me.btnPrintPreview.Location = New System.Drawing.Point(148, 0)
+        Me.btnPrintPreview.Margin = New System.Windows.Forms.Padding(8, 0, 0, 0)
         Me.btnPrintPreview.Name = "btnPrintPreview"
-        Me.btnPrintPreview.Size = New System.Drawing.Size(116, 97)
+        Me.btnPrintPreview.Size = New System.Drawing.Size(140, 48)
         Me.btnPrintPreview.TabIndex = 80
         Me.btnPrintPreview.Text = "Print Preview"
-        Me.btnPrintPreview.TextAlign = System.Drawing.ContentAlignment.BottomCenter
-        Me.btnPrintPreview.TextImageRelation = System.Windows.Forms.TextImageRelation.TextAboveImage
+        Me.btnPrintPreview.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText
         Me.TTFileReport.SetToolTip(Me.btnPrintPreview, "Print Preview")
         Me.btnPrintPreview.UseVisualStyleBackColor = False
         '
         'btnFileReport
         '
-        Me.btnFileReport.Anchor = System.Windows.Forms.AnchorStyles.Top
-        Me.btnFileReport.BackColor = System.Drawing.SystemColors.Control
+        Me.btnFileReport.BackColor = System.Drawing.Color.FromArgb(CType(CType(43, Byte), Integer), CType(CType(142, Byte), Integer), CType(CType(85, Byte), Integer))
         Me.btnFileReport.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
         Me.btnFileReport.FlatAppearance.MouseDownBackColor = System.Drawing.Color.White
         Me.btnFileReport.FlatAppearance.MouseOverBackColor = System.Drawing.Color.White
-        Me.btnFileReport.FlatStyle = System.Windows.Forms.FlatStyle.Popup
-        Me.btnFileReport.ForeColor = System.Drawing.Color.Black
+        Me.btnFileReport.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.btnFileReport.ForeColor = System.Drawing.Color.White
         Me.btnFileReport.Image = CType(resources.GetObject("btnFileReport.Image"), System.Drawing.Image)
-        Me.btnFileReport.Location = New System.Drawing.Point(5, 2)
+        Me.btnFileReport.Location = New System.Drawing.Point(0, 0)
+        Me.btnFileReport.Margin = New System.Windows.Forms.Padding(0)
         Me.btnFileReport.Name = "btnFileReport"
-        Me.btnFileReport.Size = New System.Drawing.Size(116, 97)
+        Me.btnFileReport.Size = New System.Drawing.Size(140, 48)
         Me.btnFileReport.TabIndex = 81
         Me.btnFileReport.Text = "File Report"
-        Me.btnFileReport.TextAlign = System.Drawing.ContentAlignment.BottomCenter
-        Me.btnFileReport.TextImageRelation = System.Windows.Forms.TextImageRelation.TextAboveImage
+        Me.btnFileReport.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText
         Me.TTFileReport.SetToolTip(Me.btnFileReport, "File Report")
         Me.btnFileReport.UseVisualStyleBackColor = False
         '
         'BTNDown
         '
-        Me.BTNDown.BackColor = System.Drawing.Color.Transparent
-        Me.BTNDown.FlatStyle = System.Windows.Forms.FlatStyle.Popup
+        Me.BTNDown.BackColor = System.Drawing.Color.White
+        Me.BTNDown.FlatStyle = System.Windows.Forms.FlatStyle.Flat
         Me.BTNDown.Image = CType(resources.GetObject("BTNDown.Image"), System.Drawing.Image)
-        Me.BTNDown.Location = New System.Drawing.Point(295, 42)
+        Me.BTNDown.Location = New System.Drawing.Point(42, 0)
+        Me.BTNDown.Margin = New System.Windows.Forms.Padding(6, 0, 0, 0)
         Me.BTNDown.Name = "BTNDown"
-        Me.BTNDown.Size = New System.Drawing.Size(34, 38)
+        Me.BTNDown.Size = New System.Drawing.Size(36, 32)
         Me.BTNDown.TabIndex = 64
         Me.BTNDown.UseVisualStyleBackColor = False
         '
         'BTNUp
         '
-        Me.BTNUp.BackColor = System.Drawing.Color.Transparent
-        Me.BTNUp.FlatStyle = System.Windows.Forms.FlatStyle.Popup
+        Me.BTNUp.BackColor = System.Drawing.Color.White
+        Me.BTNUp.FlatStyle = System.Windows.Forms.FlatStyle.Flat
         Me.BTNUp.Image = CType(resources.GetObject("BTNUp.Image"), System.Drawing.Image)
-        Me.BTNUp.Location = New System.Drawing.Point(295, 2)
+        Me.BTNUp.Location = New System.Drawing.Point(0, 0)
+        Me.BTNUp.Margin = New System.Windows.Forms.Padding(0)
         Me.BTNUp.Name = "BTNUp"
-        Me.BTNUp.Size = New System.Drawing.Size(34, 38)
+        Me.BTNUp.Size = New System.Drawing.Size(36, 32)
         Me.BTNUp.TabIndex = 63
         Me.BTNUp.UseVisualStyleBackColor = False
         '
         'GBAllowance
         '
-        Me.GBAllowance.BackColor = System.Drawing.SystemColors.Control
+        Me.GBAllowance.BackColor = System.Drawing.Color.White
         Me.GBAllowance.Controls.Add(Me.Label3)
         Me.GBAllowance.Controls.Add(Me.txtMDays)
         Me.GBAllowance.Controls.Add(Me.Label2)
@@ -888,7 +910,7 @@ Partial Class frmEReport
         Me.GBAllowance.Controls.Add(Me.BTNCloseComputation)
         Me.GBAllowance.Controls.Add(Me.BTNComputation)
         Me.GBAllowance.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.GBAllowance.Location = New System.Drawing.Point(545, 135)
+        Me.GBAllowance.Location = New System.Drawing.Point(110, 320)
         Me.GBAllowance.Name = "GBAllowance"
         Me.GBAllowance.Size = New System.Drawing.Size(201, 96)
         Me.GBAllowance.TabIndex = 84
@@ -945,28 +967,155 @@ Partial Class frmEReport
         Me.BTNComputation.Text = "Done"
         Me.BTNComputation.UseVisualStyleBackColor = True
         '
+        'mainLayout
+        '
+        Me.mainLayout.ColumnCount = 1
+        Me.mainLayout.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
+        Me.mainLayout.Controls.Add(Me.headerPanel, 0, 0)
+        Me.mainLayout.Controls.Add(Me.contentLayout, 0, 1)
+        Me.mainLayout.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.mainLayout.Location = New System.Drawing.Point(0, 0)
+        Me.mainLayout.Name = "mainLayout"
+        Me.mainLayout.Padding = New System.Windows.Forms.Padding(16)
+        Me.mainLayout.RowCount = 2
+        Me.mainLayout.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 76.0!))
+        Me.mainLayout.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
+        Me.mainLayout.Size = New System.Drawing.Size(1160, 720)
+        Me.mainLayout.TabIndex = 85
+        '
+        'headerPanel
+        '
+        Me.headerPanel.Controls.Add(Me.actionPanel)
+        Me.headerPanel.Controls.Add(Me.lblSubtitle)
+        Me.headerPanel.Controls.Add(Me.lblTitle)
+        Me.headerPanel.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.headerPanel.Location = New System.Drawing.Point(16, 16)
+        Me.headerPanel.Margin = New System.Windows.Forms.Padding(0, 0, 0, 12)
+        Me.headerPanel.Name = "headerPanel"
+        Me.headerPanel.Size = New System.Drawing.Size(1128, 64)
+        Me.headerPanel.TabIndex = 0
+        '
+        'actionPanel
+        '
+        Me.actionPanel.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.actionPanel.Controls.Add(Me.btnFileReport)
+        Me.actionPanel.Controls.Add(Me.btnPrintPreview)
+        Me.actionPanel.Location = New System.Drawing.Point(839, 8)
+        Me.actionPanel.Margin = New System.Windows.Forms.Padding(0)
+        Me.actionPanel.Name = "actionPanel"
+        Me.actionPanel.Size = New System.Drawing.Size(289, 48)
+        Me.actionPanel.TabIndex = 2
+        '
+        'lblSubtitle
+        '
+        Me.lblSubtitle.AutoSize = True
+        Me.lblSubtitle.Font = New System.Drawing.Font("Segoe UI", 9.0!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblSubtitle.ForeColor = System.Drawing.Color.FromArgb(CType(CType(86, Byte), Integer), CType(CType(94, Byte), Integer), CType(CType(104, Byte), Integer))
+        Me.lblSubtitle.Location = New System.Drawing.Point(3, 34)
+        Me.lblSubtitle.Name = "lblSubtitle"
+        Me.lblSubtitle.Size = New System.Drawing.Size(243, 15)
+        Me.lblSubtitle.TabIndex = 1
+        Me.lblSubtitle.Text = "Add, review, preview, and file expense details"
+        '
+        'lblTitle
+        '
+        Me.lblTitle.AutoSize = True
+        Me.lblTitle.Font = New System.Drawing.Font("Segoe UI Semibold", 15.75!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblTitle.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(40, Byte), Integer))
+        Me.lblTitle.Location = New System.Drawing.Point(0, 0)
+        Me.lblTitle.Name = "lblTitle"
+        Me.lblTitle.Size = New System.Drawing.Size(163, 30)
+        Me.lblTitle.TabIndex = 0
+        Me.lblTitle.Text = "Expense Report"
+        '
+        'contentLayout
+        '
+        Me.contentLayout.ColumnCount = 2
+        Me.contentLayout.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 392.0!))
+        Me.contentLayout.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
+        Me.contentLayout.Controls.Add(Me.leftPanel, 0, 0)
+        Me.contentLayout.Controls.Add(Me.gridPanel, 1, 0)
+        Me.contentLayout.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.contentLayout.Location = New System.Drawing.Point(16, 92)
+        Me.contentLayout.Margin = New System.Windows.Forms.Padding(0)
+        Me.contentLayout.Name = "contentLayout"
+        Me.contentLayout.RowCount = 1
+        Me.contentLayout.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
+        Me.contentLayout.Size = New System.Drawing.Size(1128, 612)
+        Me.contentLayout.TabIndex = 1
+        '
+        'leftPanel
+        '
+        Me.leftPanel.BackColor = System.Drawing.Color.White
+        Me.leftPanel.Controls.Add(Me.TabControl1)
+        Me.leftPanel.Controls.Add(Me.GBTransportation)
+        Me.leftPanel.Controls.Add(Me.GBMeals)
+        Me.leftPanel.Controls.Add(Me.GBAllowance)
+        Me.leftPanel.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.leftPanel.Location = New System.Drawing.Point(0, 0)
+        Me.leftPanel.Margin = New System.Windows.Forms.Padding(0, 0, 16, 0)
+        Me.leftPanel.Name = "leftPanel"
+        Me.leftPanel.Padding = New System.Windows.Forms.Padding(8)
+        Me.leftPanel.Size = New System.Drawing.Size(376, 612)
+        Me.leftPanel.TabIndex = 0
+        '
+        'gridPanel
+        '
+        Me.gridPanel.BackColor = System.Drawing.Color.White
+        Me.gridPanel.Controls.Add(Me.dgvExpense)
+        Me.gridPanel.Controls.Add(Me.gridHeaderPanel)
+        Me.gridPanel.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridPanel.Location = New System.Drawing.Point(392, 0)
+        Me.gridPanel.Margin = New System.Windows.Forms.Padding(0)
+        Me.gridPanel.Name = "gridPanel"
+        Me.gridPanel.Padding = New System.Windows.Forms.Padding(0, 0, 0, 6)
+        Me.gridPanel.Size = New System.Drawing.Size(736, 612)
+        Me.gridPanel.TabIndex = 1
+        '
+        'gridHeaderPanel
+        '
+        Me.gridHeaderPanel.Controls.Add(Me.sortPanel)
+        Me.gridHeaderPanel.Controls.Add(Me.lblExpenseList)
+        Me.gridHeaderPanel.Dock = System.Windows.Forms.DockStyle.Top
+        Me.gridHeaderPanel.Location = New System.Drawing.Point(0, 0)
+        Me.gridHeaderPanel.Name = "gridHeaderPanel"
+        Me.gridHeaderPanel.Size = New System.Drawing.Size(736, 42)
+        Me.gridHeaderPanel.TabIndex = 0
+        '
+        'sortPanel
+        '
+        Me.sortPanel.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.sortPanel.Controls.Add(Me.BTNUp)
+        Me.sortPanel.Controls.Add(Me.BTNDown)
+        Me.sortPanel.Location = New System.Drawing.Point(658, 5)
+        Me.sortPanel.Name = "sortPanel"
+        Me.sortPanel.Size = New System.Drawing.Size(78, 32)
+        Me.sortPanel.TabIndex = 1
+        '
+        'lblExpenseList
+        '
+        Me.lblExpenseList.AutoSize = True
+        Me.lblExpenseList.Font = New System.Drawing.Font("Segoe UI Semibold", 10.0!, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblExpenseList.ForeColor = System.Drawing.Color.FromArgb(CType(CType(33, Byte), Integer), CType(CType(37, Byte), Integer), CType(CType(41, Byte), Integer))
+        Me.lblExpenseList.Location = New System.Drawing.Point(12, 11)
+        Me.lblExpenseList.Name = "lblExpenseList"
+        Me.lblExpenseList.Size = New System.Drawing.Size(92, 19)
+        Me.lblExpenseList.TabIndex = 0
+        Me.lblExpenseList.Text = "Expense lines"
+        '
         'frmEReport
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.BackColor = System.Drawing.SystemColors.ActiveCaption
+        Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(236, Byte), Integer), CType(CType(240, Byte), Integer), CType(CType(244, Byte), Integer))
         Me.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
-        Me.ClientSize = New System.Drawing.Size(1042, 626)
-        Me.Controls.Add(Me.GBAllowance)
-        Me.Controls.Add(Me.GBMeals)
-        Me.Controls.Add(Me.btnPrintPreview)
-        Me.Controls.Add(Me.GBTransportation)
-        Me.Controls.Add(Me.TabControl1)
-        Me.Controls.Add(Me.BTNDown)
-        Me.Controls.Add(Me.BTNUp)
-        Me.Controls.Add(Me.btnFileReport)
-        Me.Controls.Add(Me.dgvExpense)
+        Me.ClientSize = New System.Drawing.Size(1160, 720)
+        Me.Controls.Add(Me.mainLayout)
         Me.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog
         Me.KeyPreview = True
         Me.Location = New System.Drawing.Point(300, 200)
-        Me.MaximizeBox = False
         Me.MinimizeBox = False
+        Me.MinimumSize = New System.Drawing.Size(1080, 660)
         Me.Name = "frmEReport"
         Me.ShowIcon = False
         Me.ShowInTaskbar = False
@@ -982,6 +1131,16 @@ Partial Class frmEReport
         CType(Me.dgvExpense, System.ComponentModel.ISupportInitialize).EndInit()
         Me.GBAllowance.ResumeLayout(False)
         Me.GBAllowance.PerformLayout()
+        Me.mainLayout.ResumeLayout(False)
+        Me.headerPanel.ResumeLayout(False)
+        Me.headerPanel.PerformLayout()
+        Me.actionPanel.ResumeLayout(False)
+        Me.contentLayout.ResumeLayout(False)
+        Me.leftPanel.ResumeLayout(False)
+        Me.gridPanel.ResumeLayout(False)
+        Me.gridHeaderPanel.ResumeLayout(False)
+        Me.gridHeaderPanel.PerformLayout()
+        Me.sortPanel.ResumeLayout(False)
         Me.ResumeLayout(False)
 
     End Sub
@@ -1062,4 +1221,15 @@ Partial Class frmEReport
     Friend WithEvents LBLComputation As Label
     Friend WithEvents txtComputation As TextBox
     Friend WithEvents RTBNotification As RichTextBox
+    Friend WithEvents mainLayout As TableLayoutPanel
+    Friend WithEvents headerPanel As Panel
+    Friend WithEvents lblTitle As Label
+    Friend WithEvents lblSubtitle As Label
+    Friend WithEvents actionPanel As FlowLayoutPanel
+    Friend WithEvents contentLayout As TableLayoutPanel
+    Friend WithEvents leftPanel As Panel
+    Friend WithEvents gridPanel As Panel
+    Friend WithEvents gridHeaderPanel As Panel
+    Friend WithEvents lblExpenseList As Label
+    Friend WithEvents sortPanel As FlowLayoutPanel
 End Class

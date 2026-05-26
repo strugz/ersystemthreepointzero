@@ -1,7 +1,7 @@
 ﻿Public Class frmApprove
-    Private ReadOnly _approveService As New AppServices.ApproveService()
-    Private ReadOnly _approveActionService As New AppServices.ApproveActionService()
-    Private ReadOnly _selectionContextService As New AppServices.ApproveSelectionContextService()
+    Private ReadOnly _approveService As ERSystem.AppServices.ApproveService = ApprovalServicesFactory.CreateApproveService()
+    Private ReadOnly _approveActionService As ERSystem.AppServices.ApproveActionService = ApprovalServicesFactory.CreateApproveActionService()
+    Private ReadOnly _selectionContextService As ERSystem.AppServices.ApproveSelectionContextService = ApprovalServicesFactory.CreateSelectionContextService()
 
     Private Sub frmApprove_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
         Me.KeyPreview = True
@@ -14,7 +14,7 @@
     End Sub
 
     Private Sub UserAccount()
-        Dim result As AppServices.ApproveUserAccountLoadResult = _approveService.LoadUserAccounts()
+        Dim result As ERSystem.AppServices.ApproveUserAccountLoadResult = _approveService.LoadUserAccounts()
 
         dgvUser.DataSource = result.Users
         DgUserDataVisibility({"UserID"})
@@ -31,7 +31,7 @@
             MsgBox("Please Double click on the row you are interested in")
             Exit Sub
         Else
-            Dim result As AppServices.ApproveReportDetailsLoadResult = _approveService.LoadReportDetails(dgvUser.Rows(e.RowIndex).Cells("UserID").Value.ToString())
+            Dim result As ERSystem.AppServices.ApproveReportDetailsLoadResult = _approveService.LoadReportDetails(dgvUser.Rows(e.RowIndex).Cells("UserID").Value.ToString())
             dgvUserReportDetails.DataSource = result.ReportDetails
 
             If Not result.HasRows Then
@@ -53,7 +53,7 @@
         Call UserAccount()
     End Sub
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnApprove.Click
-        Dim result As AppServices.ApproveActionResult = _approveActionService.ApproveReport(
+        Dim result As ERSystem.AppServices.ApproveActionResult = _approveActionService.ApproveReport(
             dgvUser.CurrentRow.Cells("UserID").Value.ToString(),
             dgvUserReportDetails.CurrentRow.Cells("ID").Value.ToString())
 
@@ -77,7 +77,7 @@
             MsgBox("Please Double click on the row you are interested in")
             Exit Sub
         Else
-            Dim result As AppServices.ApproveSelectionContextResult = _selectionContextService.PrepareSelectedReportContext(dgvUserReportDetails.Rows(e.RowIndex).Cells("ID").Value.ToString())
+            Dim result As ERSystem.AppServices.ApproveSelectionContextResult = _selectionContextService.PrepareSelectedReportContext(dgvUserReportDetails.Rows(e.RowIndex).Cells("ID").Value.ToString())
 
             If Not result.HasSelection Then
                 Exit Sub
@@ -113,7 +113,7 @@
             dgvUserReportDetails.Rows(e.RowIndex).Selected = True
             dgvUserReportDetails.CurrentCell = dgvUserReportDetails.Rows(e.RowIndex).Cells(1)
 
-            Dim result As AppServices.ApproveSelectionContextResult = _selectionContextService.PrepareContextMenuSelection(dgvUserReportDetails.Rows(e.RowIndex).Cells("ID").Value.ToString())
+            Dim result As ERSystem.AppServices.ApproveSelectionContextResult = _selectionContextService.PrepareContextMenuSelection(dgvUserReportDetails.Rows(e.RowIndex).Cells("ID").Value.ToString())
 
             If Not result.HasSelection Then
                 Exit Sub

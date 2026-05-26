@@ -65,6 +65,7 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Approval\ApprovalValidationStatus.vb" />
     <Compile Include="Dtos\CashAdvance\CashAdvanceDto.vb" />
     <Compile Include="Dtos\CashAdvance\CashAdvanceResponseDto.vb" />
     <Compile Include="Dtos\CashAdvance\CreateCashAdvanceDto.vb" />

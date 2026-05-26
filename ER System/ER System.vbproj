@@ -189,21 +189,10 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AppServices\ApproveActionResult.vb" />
-    <Compile Include="AppServices\ApproveActionService.vb" />
-    <Compile Include="AppServices\ApproveReloadResult.vb" />
-    <Compile Include="AppServices\ApproveReportDetailsLoadResult.vb" />
-    <Compile Include="AppServices\ApproveSelectionContextResult.vb" />
-    <Compile Include="AppServices\ApproveSelectionContextService.vb" />
-    <Compile Include="AppServices\ApproveService.vb" />
-    <Compile Include="AppServices\ApproveUserAccountLoadResult.vb" />
     <Compile Include="AppServices\LoginRequest.vb" />
     <Compile Include="AppServices\LoginResult.vb" />
-    <Compile Include="AppServices\RejectActionResult.vb" />
-    <Compile Include="AppServices\RejectActionService.vb" />
     <Compile Include="AppServices\ReportViewerContextResult.vb" />
     <Compile Include="AppServices\ReportViewerContextService.vb" />
-    <Compile Include="AppServices\ScannedReceiptCleanupService.vb" />
     <Compile Include="AppServices\SelectedReportContextService.vb" />
     <Compile Include="AppServices\StartupAdminCheckResult.vb" />
     <Compile Include="AppServices\StartupConnectionResult.vb" />
@@ -246,6 +235,7 @@
     <Compile Include="Presentation\Forms\Approval\frmApprove.Designer.vb">
       <DependentUpon>frmApprove.vb</DependentUpon>
     </Compile>
+    <Compile Include="Presentation\Forms\Approval\ApprovalServicesFactory.vb" />
     <Compile Include="Presentation\Forms\Approval\frmApprove.vb">
       <SubType>Form</SubType>
     </Compile>
@@ -255,6 +245,8 @@
     <Compile Include="Presentation\Forms\Approval\frmCancelNote.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Presentation\Forms\Approval\LegacyApprovalValidationService.vb" />
+    <Compile Include="Presentation\Forms\Approval\LegacySelectedReportContextStore.vb" />
     <Compile Include="Presentation\Forms\Admin\frmChangePassword.Designer.vb">
       <DependentUpon>frmChangePassword.vb</DependentUpon>
     </Compile>
@@ -390,9 +382,6 @@
     <Compile Include="Infrastructure\Configuration\SelectedReportContextProvider.vb" />
     <Compile Include="Infrastructure\Configuration\SettingsRegistryProvider.vb" />
     <Compile Include="Infrastructure\Configuration\UserAccountRegistryProvider.vb" />
-    <Compile Include="Infrastructure\Data\Repositories\ApproveActionRepository.vb" />
-    <Compile Include="Infrastructure\Data\Repositories\ApproveRepository.vb" />
-    <Compile Include="Infrastructure\Data\Repositories\RejectActionRepository.vb" />
     <Compile Include="Infrastructure\Data\Repositories\UserAccountRepository.vb" />
     <Compile Include="Infrastructure\Data\Sql\SqlConnectionFactory.vb" />
     <Compile Include="Infrastructure\Data\Legacy\mConn.vb" />

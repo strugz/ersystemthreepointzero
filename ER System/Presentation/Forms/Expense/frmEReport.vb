@@ -5,6 +5,7 @@ Public Class frmEReport
     Public Const MyKey As String = "crimsonmonastery2003"
     Public TripleDes As New clsEncryption(MyKey)
     Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
+    Private Shared ReadOnly CategoryHelperLocation As New Point(98, 320)
 
 #Region "Sorting"
     Enum mode
@@ -603,7 +604,7 @@ Public Class frmEReport
         Else
             If comboClick = 1 And ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = False Then
                 txtParticulars.Size = New Size(199, 40)
-                GBAllowance.Location = New Point(97, 410)
+                GBAllowance.Location = CategoryHelperLocation
                 GBAllowance.Visible = True
                 LBLComputation.Visible = True
                 txtParticulars.Text = txtCategory.Text
@@ -621,7 +622,7 @@ Public Class frmEReport
                 End If
             ElseIf comboClick = 1 And ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
                 txtParticulars.Size = New Size(199, 40)
-                GBAllowance.Location = New Point(97, 410)
+                GBAllowance.Location = CategoryHelperLocation
                 GBAllowance.Visible = True
                 If IsDBNull(GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)) = False Then
                     txtTotalNumberOfDays.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)
@@ -658,7 +659,7 @@ Public Class frmEReport
                         txtCategory.SelectedItem = Nothing
                     Else
                         Call ModDataStore.OnOffControl(False)
-                        GBTransportation.Location = New Point(97, 410)
+                        GBTransportation.Location = CategoryHelperLocation
                         GBTransportation.Visible = True
                         GBMeals.Visible = False
                         GBTransportation.BringToFront()
@@ -674,7 +675,7 @@ Public Class frmEReport
                         txtCategory.SelectedItem = Nothing
                     Else
                         Call ModDataStore.OnOffControl(False)
-                        GBMeals.Location = New Point(97, 410)
+                        GBMeals.Location = CategoryHelperLocation
                         GBMeals.Visible = True
                         GBTransportation.Visible = False
                         GBMeals.BringToFront()
