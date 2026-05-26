@@ -70,6 +70,14 @@
     <Compile Include="Dtos\CashAdvance\CashAdvanceResponseDto.vb" />
     <Compile Include="Dtos\CashAdvance\CreateCashAdvanceDto.vb" />
     <Compile Include="Dtos\CashAdvance\UpdateCashAdvanceDto.vb" />
+    <Compile Include="Dtos\ExpenseReport\AddExpenseRequestDto.vb" />
+    <Compile Include="Dtos\ExpenseReport\CreateExpenseDetailDto.vb" />
+    <Compile Include="Dtos\ExpenseReport\ExpenseDetailDto.vb" />
+    <Compile Include="Dtos\ExpenseReport\ExpenseDetailResponseDto.vb" />
+    <Compile Include="Dtos\ExpenseReport\ExpenseMealItemDto.vb" />
+    <Compile Include="Dtos\ExpenseReport\ExpenseNotificationDto.vb" />
+    <Compile Include="Dtos\ExpenseReport\ExpenseTransportationItemDto.vb" />
+    <Compile Include="Dtos\ExpenseReport\UpdateExpenseDetailDto.vb" />
     <Compile Include="Dtos\Finance\FinanceErfDetailDto.vb" />
     <Compile Include="Dtos\Finance\FinanceErfQueueDto.vb" />
     <Compile Include="Dtos\Finance\MarkPhysicalReceiptsReceivedDto.vb" />
@@ -85,6 +93,10 @@
     <Compile Include="Dtos\User\DepartmentDto.vb" />
     <Compile Include="Dtos\User\UserAuthorityDto.vb" />
     <Compile Include="Entities\CashAdvance\CashAdvanceModel.vb" />
+    <Compile Include="Entities\ExpenseReport\ExpenseDetailModel.vb" />
+    <Compile Include="Entities\ExpenseReport\ExpenseMealItemModel.vb" />
+    <Compile Include="Entities\ExpenseReport\ExpenseNotificationModel.vb" />
+    <Compile Include="Entities\ExpenseReport\ExpenseTransportationItemModel.vb" />
     <Compile Include="Entities\Finance\ReportFinanceTrackingModel.vb" />
     <Compile Include="Entities\Organization\DepartmentModel.vb" />
     <Compile Include="Entities\Report\ReportDetailModel.vb" />
@@ -125,10 +137,6 @@
       <CustomToolNamespace>My</CustomToolNamespace>
       <LastGenOutput>Settings.Designer.vb</LastGenOutput>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Dtos\ExpenseReport\" />
-    <Folder Include="Entities\ExpenseReport\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>
