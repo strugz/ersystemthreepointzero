@@ -176,6 +176,7 @@ Public Class frmEReport
                     txtComputation.Text = myERData(19)
                     txtTotalNumberOfDays.Text = myERData(20)
                 End If
+
                 dtpExpenseDate.Value = DateTime.Parse(myERData(0)).ToString("MM/dd/yyyy")
                 txtWorkWith.Text = myERData(14)
                 txtLocation.Text = myERData(5)
@@ -408,25 +409,20 @@ Public Class frmEReport
             Dim myERData As String()
             myExpenseData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
             myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
-            UpdateExpense(
-                myExpenseData(16), dtpExpenseDate.Text, IIf(CBPerdiem.Checked, "1", "0"), txtParticulars.Text,
-                txtInvoice.Text, txtMultiplier.Text, IIf(RbLocal.Checked = True, "Local", "Foreign"), txtCategory.Text,
-                txtExpenseAmount.Text, txtRemarks.Text, txtStatus.SelectedItem, txtTotal.Text,
-                IIf(Trim(txtLocation.Text) = "", "Allowance", Trim(txtLocation.Text)),
-                myERData(14), txtServiceNumber.Text, txtInstrument.Text,
-                txtSerialNumber.Text, txtWorkWith.Text, ClsData.GetMeal(),
-                ClsData.GetTranspo(), txtMDays.Text, txtComputation.Text, txtTotalNumberOfDays.Text)
+            If Not UpdateExpenseReport(myExpenseData, myERData, ClsData.GetMeal(), ClsData.GetTranspo()) Then
+                Exit Sub
+            End If
 
-            AddExpenseHisto(dtpExpenseDate.Text, IIf(CBPerdiem.Checked, "1", "0"),
-                            txtParticulars.Text, txtInvoice.Text,
-                            txtMultiplier.Text, IIf(RbLocal.Checked = True, "Local",
-                                                    "Foreign"), txtCategory.Text,
-                            txtExpenseAmount.Text, txtRemarks.Text, txtStatus.Text,
-                            txtTotal.Text, IIf(Trim(txtLocation.Text) = "", "Allowance",
-                                               Trim(txtLocation.Text)),
-                            myERData(14), myERData(13), myExpenseData(16),
-                            txtServiceNumber.Text, txtInstrument.Text, txtSerialNumber.Text,
-                            GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), txtMDays.Text, txtComputation.Text, txtTotalNumberOfDays.Text)
+            'AddExpenseHisto(dtpExpenseDate.Text, IIf(CBPerdiem.Checked, "1", "0"),
+            '                txtParticulars.Text, txtInvoice.Text,
+            '                txtMultiplier.Text, IIf(RbLocal.Checked = True, "Local",
+            '                                        "Foreign"), txtCategory.Text,
+            '                txtExpenseAmount.Text, txtRemarks.Text, txtStatus.Text,
+            '                txtTotal.Text, IIf(Trim(txtLocation.Text) = "", "Allowance",
+            '                                   Trim(txtLocation.Text)),
+            '                myERData(14), myERData(13), myExpenseData(16),
+            '                txtServiceNumber.Text, txtInstrument.Text, txtSerialNumber.Text,
+            '                GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), txtMDays.Text, txtComputation.Text, txtTotalNumberOfDays.Text)
             If MessageBox.Show(
                     "Data Saved. Do you Want to Clear the WorkWith, Hospital Name, Instrument and Serial Number above?",
                     "Clear Details",
@@ -450,6 +446,70 @@ Public Class frmEReport
         txtStatus.SelectedIndex = 0
         txtCategory.Enabled = True
     End Sub
+
+    Private Function UpdateExpenseReport(myExpenseData As String(), myERData As String(), mealData As String, transportationData As String) As Boolean
+        Try
+            Dim request As Global.ERSystem.Domain.UpdateExpenseRequestDto = CreateUpdateExpenseRequest(myExpenseData, myERData, mealData, transportationData)
+            Dim service As New Global.ERSystem.AppServices.Services.ExpenseReport.ExpenseEntryService()
+            Dim result As Global.ERSystem.AppServices.Services.ExpenseReport.UpdateExpenseResult = service.UpdateExpense(request)
+
+            If Not result.Success Then
+                MsgBox(result.Message)
+                Return False
+            End If
+
+            Return True
+        Catch ex As Exception
+            MsgBox(ex.Message)
+            Return False
+        End Try
+    End Function
+
+    Private Function CreateUpdateExpenseRequest(myExpenseData As String(), myERData As String(), mealData As String, transportationData As String) As Global.ERSystem.Domain.UpdateExpenseRequestDto
+        Dim mealParts As String() = SplitLegacyDelimitedValue(mealData)
+        Dim transportationParts As String() = SplitLegacyDelimitedValue(transportationData)
+
+        Return New Global.ERSystem.Domain.UpdateExpenseRequestDto With {
+            .ExpenseID = ParseRequiredLong(GetArrayValue(myExpenseData, 16), "Expense ID"),
+            .Transdate = dtpExpenseDate.Value.Date,
+            .Perdiem = If(CBPerdiem.Checked, "1", "0"),
+            .Particulars = txtParticulars.Text,
+            .Invoice = txtInvoice.Text,
+            .Multiplier = ParseRequiredInteger(txtMultiplier.Text, "Multiplier"),
+            .Type = If(RbLocal.Checked, "Local", "Foreign"),
+            .Category = txtCategory.Text,
+            .Amount = ParseRequiredDouble(txtExpenseAmount.Text, "Expense Amount"),
+            .Remarks = txtRemarks.Text,
+            .Status = If(txtStatus.SelectedItem Is Nothing, Nothing, txtStatus.SelectedItem.ToString()),
+            .TotalAmount = ParseRequiredDouble(txtTotal.Text, "Total Amount"),
+            .Location = If(Trim(txtLocation.Text) = "", "Allowance", Trim(txtLocation.Text)),
+            .UserID = ParseRequiredInteger(GetArrayValue(myERData, 14), "User ID"),
+            .ReportID = GetArrayValue(myERData, 13),
+            .WorkWith = txtWorkWith.Text,
+            .ServiceNumber = txtServiceNumber.Text,
+            .Instrument = txtInstrument.Text,
+            .SerialNumber = txtSerialNumber.Text,
+            .MDays = txtMDays.Text,
+            .Computation = txtComputation.Text,
+            .TotDays = txtTotalNumberOfDays.Text,
+            .Meal = GetArrayValue(mealParts, 0),
+            .PaidFor = GetArrayValue(mealParts, 1),
+            .PaidEmp = GetArrayValue(mealParts, 2),
+            .FareID = ParseNullableLong(GetArrayValue(transportationParts, 0)),
+            .FareFrom = GetArrayValue(transportationParts, 1),
+            .FareTo = GetArrayValue(transportationParts, 2)
+        }
+    End Function
+
+    Private Shared Function ParseRequiredLong(value As String, fieldName As String) As Long
+        Dim parsedValue As Long
+        If Long.TryParse(value, NumberStyles.Integer, CultureInfo.CurrentCulture, parsedValue) Then
+            Return parsedValue
+        End If
+
+        Throw New FormatException(fieldName & " must be a valid whole number.")
+    End Function
+
     Private Sub Button6_Click(sender As Object, e As EventArgs) Handles BTNUp.Click
         Dim ClsData As New ClsLoadData
         Dim myERData As String() = {}
@@ -546,11 +606,6 @@ Public Class frmEReport
             txtServiceNumber.Focus()
         End If
     End Sub
-    Private Sub txtParticulars_KeyUp(sender As Object, e As KeyEventArgs)
-        If e.KeyCode = Keys.Enter Then
-            txtType.Focus()
-        End If
-    End Sub
     Private Sub txtParticulars_LostFocus(sender As Object, e As EventArgs)
         If txtParticulars.Text Like "*MEAL*" Then
             txtCategory.SelectedIndex = 1
@@ -560,7 +615,7 @@ Public Class frmEReport
             txtCategory.SelectedItem = Nothing
         End If
     End Sub
-    Private Sub txtType_KeyUp(sender As Object, e As KeyEventArgs) Handles txtType.KeyUp
+    Private Sub txtType_KeyUp(sender As Object, e As KeyEventArgs)
         If e.KeyCode = Keys.Enter Then
             txtCategory.Focus()
         End If

@@ -18,7 +18,7 @@ Namespace Global.ERSystem.Infrastructure.Data
             End Using
         End Function
 
-        Public Function GetById(expenseId As Integer) As ExpenseDetailDto Implements IExpenseDetailRepository.GetById
+        Public Function GetById(expenseId As Long) As ExpenseDetailDto Implements IExpenseDetailRepository.GetById
             If expenseId <= 0 Then
                 Return Nothing
             End If
@@ -70,6 +70,12 @@ Namespace Global.ERSystem.Infrastructure.Data
         End Function
 
         Public Sub Update(expense As UpdateExpenseDetailDto) Implements IExpenseDetailRepository.Update
+            Using dbContext As New AppDbContext()
+                Update(expense, dbContext)
+            End Using
+        End Sub
+
+        Public Sub Update(expense As UpdateExpenseDetailDto, dbContext As AppDbContext) Implements IExpenseDetailRepository.Update
             If expense Is Nothing Then
                 Throw New ArgumentNullException("expense")
             End If
@@ -78,38 +84,38 @@ Namespace Global.ERSystem.Infrastructure.Data
                 Throw New ArgumentException("Expense ID is required.", "expense")
             End If
 
-            Using dbContext As New AppDbContext()
-                Dim existing = dbContext.ExpenseDetails.FirstOrDefault(Function(item) item.ID = expense.ID)
+            If dbContext Is Nothing Then
+                Throw New ArgumentNullException("dbContext")
+            End If
 
-                If existing Is Nothing Then
-                    Throw New InvalidOperationException("Expense details were not found.")
-                End If
+            Dim existing = dbContext.ExpenseDetails.FirstOrDefault(Function(item) item.ID = expense.ID)
 
-                existing.ExpenseTransDate = expense.ExpenseTransDate
-                existing.ExpensePerdiem = expense.ExpensePerdiem
-                existing.ExpenseParticulars = expense.ExpenseParticulars
-                existing.ExpenseInvoice = expense.ExpenseInvoice
-                existing.ExpenseMultiplier = expense.ExpenseMultiplier
-                existing.ExpenseType = expense.ExpenseType
-                existing.ExpenseCategory = expense.ExpenseCategory
-                existing.ExpenseAmount = expense.ExpenseAmount
-                existing.ExpenseRemarks = expense.ExpenseRemarks
-                existing.ExpenseStatus = expense.ExpenseStatus
-                existing.UserID = expense.UserID
-                existing.ExpenseTotalAmount = expense.ExpenseTotalAmount
-                existing.ExpenseLocation = expense.ExpenseLocation
-                existing.ReportID = expense.ReportID
-                existing.WorkWith = expense.WorkWith
-                existing.ServiceNumber = expense.ServiceNumber
-                existing.Instrument = expense.Instrument
-                existing.SerialNumber = expense.SerialNumber
-                existing.Sort = expense.Sort
-                existing.MDays = expense.MDays
-                existing.Computation = expense.Computation
-                existing.TotDays = expense.TotDays
-                existing.NumberEdited = expense.NumberEdited
-                dbContext.SaveChanges()
-            End Using
+            If existing Is Nothing Then
+                Throw New InvalidOperationException("Expense details were not found.")
+            End If
+
+            existing.ExpenseTransDate = expense.ExpenseTransDate
+            existing.ExpensePerdiem = expense.ExpensePerdiem
+            existing.ExpenseParticulars = expense.ExpenseParticulars
+            existing.ExpenseInvoice = expense.ExpenseInvoice
+            existing.ExpenseMultiplier = expense.ExpenseMultiplier
+            existing.ExpenseType = expense.ExpenseType
+            existing.ExpenseCategory = expense.ExpenseCategory
+            existing.ExpenseAmount = expense.ExpenseAmount
+            existing.ExpenseRemarks = expense.ExpenseRemarks
+            existing.ExpenseStatus = expense.ExpenseStatus
+            existing.UserID = expense.UserID
+            existing.ExpenseTotalAmount = expense.ExpenseTotalAmount
+            existing.ExpenseLocation = expense.ExpenseLocation
+            existing.ReportID = expense.ReportID
+            existing.WorkWith = expense.WorkWith
+            existing.ServiceNumber = expense.ServiceNumber
+            existing.Instrument = expense.Instrument
+            existing.SerialNumber = expense.SerialNumber
+            existing.MDays = expense.MDays
+            existing.Computation = expense.Computation
+            existing.TotDays = expense.TotDays
+            dbContext.SaveChanges()
         End Sub
 
         Private Shared Function ToDto(expense As ExpenseDetailModel) As ExpenseDetailDto

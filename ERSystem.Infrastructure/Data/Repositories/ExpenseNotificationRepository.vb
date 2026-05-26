@@ -1,5 +1,6 @@
 Option Strict On
 
+Imports System.Linq
 Imports ERSystem.Domain
 
 Namespace Global.ERSystem.Infrastructure.Data
@@ -20,6 +21,22 @@ Namespace Global.ERSystem.Infrastructure.Data
             dbContext.SaveChanges()
             Return ToDto(model)
         End Function
+
+        Public Sub DeleteByExpenseId(expenseId As Long, dbContext As AppDbContext) Implements IExpenseNotificationRepository.DeleteByExpenseId
+            If dbContext Is Nothing Then
+                Throw New ArgumentNullException("dbContext")
+            End If
+
+            Dim expenseIdValue As String = expenseId.ToString()
+            Dim notifications = dbContext.ExpenseNotifications.Where(Function(item) item.ExpenseID = expenseIdValue).ToList()
+
+            If notifications.Count = 0 Then
+                Return
+            End If
+
+            dbContext.ExpenseNotifications.RemoveRange(notifications)
+            dbContext.SaveChanges()
+        End Sub
 
         Private Shared Function ToModel(notification As ExpenseNotificationDto) As ExpenseNotificationModel
             Return New ExpenseNotificationModel With {

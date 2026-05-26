@@ -79,6 +79,7 @@
     <Compile Include="Dtos\ExpenseReport\ExpenseNotificationDto.vb" />
     <Compile Include="Dtos\ExpenseReport\ExpenseTransportationItemDto.vb" />
     <Compile Include="Dtos\ExpenseReport\UpdateExpenseDetailDto.vb" />
+    <Compile Include="Dtos\ExpenseReport\UpdateExpenseRequestDto.vb" />
     <Compile Include="Dtos\Finance\FinanceErfDetailDto.vb" />
     <Compile Include="Dtos\Finance\FinanceErfQueueDto.vb" />
     <Compile Include="Dtos\Finance\MarkPhysicalReceiptsReceivedDto.vb" />

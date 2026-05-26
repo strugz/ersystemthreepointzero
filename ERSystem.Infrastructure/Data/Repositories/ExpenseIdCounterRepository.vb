@@ -1,5 +1,6 @@
 Option Strict On
 
+Imports System.Data.Entity.Migrations
 Imports System.Globalization
 Imports System.Linq
 Imports ERSystem.Domain
@@ -33,6 +34,7 @@ Namespace Global.ERSystem.Infrastructure.Data
             Else
                 counter.CurrentValue += 1
                 counter.UpdatedAt = DateTime.UtcNow
+                dbContext.ExpenseIdCounters.AddOrUpdate(counter)
             End If
 
             If counter.CurrentValue > ExpenseIdSequenceLimit Then

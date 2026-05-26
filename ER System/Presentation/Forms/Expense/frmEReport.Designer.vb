@@ -29,8 +29,14 @@ Partial Class frmEReport
         Me.txtParticulars = New System.Windows.Forms.RichTextBox()
         Me.txtComputation = New System.Windows.Forms.TextBox()
         Me.lblParticulars = New System.Windows.Forms.Label()
+        Me.GBAllowance = New System.Windows.Forms.GroupBox()
+        Me.Label3 = New System.Windows.Forms.Label()
+        Me.txtMDays = New System.Windows.Forms.TextBox()
+        Me.Label2 = New System.Windows.Forms.Label()
+        Me.txtTotalNumberOfDays = New System.Windows.Forms.TextBox()
+        Me.BTNCloseComputation = New System.Windows.Forms.Button()
+        Me.BTNComputation = New System.Windows.Forms.Button()
         Me.BTNEditCategory = New System.Windows.Forms.Button()
-        Me.txtType = New System.Windows.Forms.ComboBox()
         Me.LBLComputation = New System.Windows.Forms.Label()
         Me.RBForeign = New System.Windows.Forms.RadioButton()
         Me.RbLocal = New System.Windows.Forms.RadioButton()
@@ -94,13 +100,6 @@ Partial Class frmEReport
         Me.btnFileReport = New System.Windows.Forms.Button()
         Me.BTNDown = New System.Windows.Forms.Button()
         Me.BTNUp = New System.Windows.Forms.Button()
-        Me.GBAllowance = New System.Windows.Forms.GroupBox()
-        Me.Label3 = New System.Windows.Forms.Label()
-        Me.txtMDays = New System.Windows.Forms.TextBox()
-        Me.Label2 = New System.Windows.Forms.Label()
-        Me.txtTotalNumberOfDays = New System.Windows.Forms.TextBox()
-        Me.BTNCloseComputation = New System.Windows.Forms.Button()
-        Me.BTNComputation = New System.Windows.Forms.Button()
         Me.mainLayout = New System.Windows.Forms.TableLayoutPanel()
         Me.headerPanel = New System.Windows.Forms.Panel()
         Me.actionPanel = New System.Windows.Forms.FlowLayoutPanel()
@@ -114,10 +113,10 @@ Partial Class frmEReport
         Me.lblExpenseList = New System.Windows.Forms.Label()
         Me.TabControl1.SuspendLayout()
         Me.TPExpenseReport.SuspendLayout()
+        Me.GBAllowance.SuspendLayout()
         Me.GBTransportation.SuspendLayout()
         Me.GBMeals.SuspendLayout()
         CType(Me.dgvExpense, System.ComponentModel.ISupportInitialize).BeginInit()
-        Me.GBAllowance.SuspendLayout()
         Me.mainLayout.SuspendLayout()
         Me.headerPanel.SuspendLayout()
         Me.actionPanel.SuspendLayout()
@@ -136,7 +135,7 @@ Partial Class frmEReport
         Me.TabControl1.Location = New System.Drawing.Point(8, 8)
         Me.TabControl1.Name = "TabControl1"
         Me.TabControl1.SelectedIndex = 0
-        Me.TabControl1.Size = New System.Drawing.Size(360, 596)
+        Me.TabControl1.Size = New System.Drawing.Size(360, 524)
         Me.TabControl1.TabIndex = 23
         '
         'TPExpenseReport
@@ -148,7 +147,6 @@ Partial Class frmEReport
         Me.TPExpenseReport.Controls.Add(Me.lblParticulars)
         Me.TPExpenseReport.Controls.Add(Me.GBAllowance)
         Me.TPExpenseReport.Controls.Add(Me.BTNEditCategory)
-        Me.TPExpenseReport.Controls.Add(Me.txtType)
         Me.TPExpenseReport.Controls.Add(Me.LBLComputation)
         Me.TPExpenseReport.Controls.Add(Me.RBForeign)
         Me.TPExpenseReport.Controls.Add(Me.RbLocal)
@@ -190,7 +188,7 @@ Partial Class frmEReport
         Me.TPExpenseReport.Location = New System.Drawing.Point(4, 22)
         Me.TPExpenseReport.Name = "TPExpenseReport"
         Me.TPExpenseReport.Padding = New System.Windows.Forms.Padding(3)
-        Me.TPExpenseReport.Size = New System.Drawing.Size(352, 570)
+        Me.TPExpenseReport.Size = New System.Drawing.Size(352, 498)
         Me.TPExpenseReport.TabIndex = 1
         Me.TPExpenseReport.Text = "Expense Report"
         '
@@ -220,6 +218,73 @@ Partial Class frmEReport
         Me.lblParticulars.TabIndex = 106
         Me.lblParticulars.Text = "Particulars"
         '
+        'GBAllowance
+        '
+        Me.GBAllowance.BackColor = System.Drawing.Color.White
+        Me.GBAllowance.Controls.Add(Me.Label3)
+        Me.GBAllowance.Controls.Add(Me.txtMDays)
+        Me.GBAllowance.Controls.Add(Me.Label2)
+        Me.GBAllowance.Controls.Add(Me.txtTotalNumberOfDays)
+        Me.GBAllowance.Controls.Add(Me.BTNCloseComputation)
+        Me.GBAllowance.Controls.Add(Me.BTNComputation)
+        Me.GBAllowance.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.GBAllowance.Location = New System.Drawing.Point(98, 290)
+        Me.GBAllowance.Name = "GBAllowance"
+        Me.GBAllowance.Size = New System.Drawing.Size(201, 96)
+        Me.GBAllowance.TabIndex = 84
+        Me.GBAllowance.TabStop = False
+        Me.GBAllowance.Visible = False
+        '
+        'Label3
+        '
+        Me.Label3.AutoSize = True
+        Me.Label3.Location = New System.Drawing.Point(112, 13)
+        Me.Label3.Name = "Label3"
+        Me.Label3.Size = New System.Drawing.Size(50, 13)
+        Me.Label3.TabIndex = 86
+        Me.Label3.Text = "( - ) Days"
+        '
+        'txtMDays
+        '
+        Me.txtMDays.Location = New System.Drawing.Point(112, 29)
+        Me.txtMDays.Name = "txtMDays"
+        Me.txtMDays.Size = New System.Drawing.Size(82, 22)
+        Me.txtMDays.TabIndex = 85
+        '
+        'Label2
+        '
+        Me.Label2.AutoSize = True
+        Me.Label2.Location = New System.Drawing.Point(6, 13)
+        Me.Label2.Name = "Label2"
+        Me.Label2.Size = New System.Drawing.Size(73, 13)
+        Me.Label2.TabIndex = 84
+        Me.Label2.Text = "# of Days(22)"
+        '
+        'txtTotalNumberOfDays
+        '
+        Me.txtTotalNumberOfDays.Location = New System.Drawing.Point(6, 29)
+        Me.txtTotalNumberOfDays.Name = "txtTotalNumberOfDays"
+        Me.txtTotalNumberOfDays.Size = New System.Drawing.Size(100, 22)
+        Me.txtTotalNumberOfDays.TabIndex = 83
+        '
+        'BTNCloseComputation
+        '
+        Me.BTNCloseComputation.Location = New System.Drawing.Point(7, 68)
+        Me.BTNCloseComputation.Name = "BTNCloseComputation"
+        Me.BTNCloseComputation.Size = New System.Drawing.Size(87, 22)
+        Me.BTNCloseComputation.TabIndex = 80
+        Me.BTNCloseComputation.Text = "Close"
+        Me.BTNCloseComputation.UseVisualStyleBackColor = True
+        '
+        'BTNComputation
+        '
+        Me.BTNComputation.Location = New System.Drawing.Point(108, 68)
+        Me.BTNComputation.Name = "BTNComputation"
+        Me.BTNComputation.Size = New System.Drawing.Size(87, 22)
+        Me.BTNComputation.TabIndex = 74
+        Me.BTNComputation.Text = "Done"
+        Me.BTNComputation.UseVisualStyleBackColor = True
+        '
         'BTNEditCategory
         '
         Me.BTNEditCategory.Enabled = False
@@ -229,17 +294,6 @@ Partial Class frmEReport
         Me.BTNEditCategory.TabIndex = 79
         Me.BTNEditCategory.Text = "..."
         Me.BTNEditCategory.UseVisualStyleBackColor = True
-        '
-        'txtType
-        '
-        Me.txtType.BackColor = System.Drawing.SystemColors.InactiveCaption
-        Me.txtType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me.txtType.FormattingEnabled = True
-        Me.txtType.Items.AddRange(New Object() {"Local", "Foreign"})
-        Me.txtType.Location = New System.Drawing.Point(394, 212)
-        Me.txtType.Name = "txtType"
-        Me.txtType.Size = New System.Drawing.Size(199, 21)
-        Me.txtType.TabIndex = 6
         '
         'LBLComputation
         '
@@ -837,7 +891,7 @@ Partial Class frmEReport
         Me.dgvExpense.RowHeadersWidth = 62
         Me.dgvExpense.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing
         Me.dgvExpense.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me.dgvExpense.Size = New System.Drawing.Size(736, 564)
+        Me.dgvExpense.Size = New System.Drawing.Size(736, 492)
         Me.dgvExpense.TabIndex = 24
         Me.dgvExpense.TabStop = False
         '
@@ -901,73 +955,6 @@ Partial Class frmEReport
         Me.BTNUp.TabIndex = 63
         Me.BTNUp.UseVisualStyleBackColor = False
         '
-        'GBAllowance
-        '
-        Me.GBAllowance.BackColor = System.Drawing.Color.White
-        Me.GBAllowance.Controls.Add(Me.Label3)
-        Me.GBAllowance.Controls.Add(Me.txtMDays)
-        Me.GBAllowance.Controls.Add(Me.Label2)
-        Me.GBAllowance.Controls.Add(Me.txtTotalNumberOfDays)
-        Me.GBAllowance.Controls.Add(Me.BTNCloseComputation)
-        Me.GBAllowance.Controls.Add(Me.BTNComputation)
-        Me.GBAllowance.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.GBAllowance.Location = New System.Drawing.Point(98, 290)
-        Me.GBAllowance.Name = "GBAllowance"
-        Me.GBAllowance.Size = New System.Drawing.Size(201, 96)
-        Me.GBAllowance.TabIndex = 84
-        Me.GBAllowance.TabStop = False
-        Me.GBAllowance.Visible = False
-        '
-        'Label3
-        '
-        Me.Label3.AutoSize = True
-        Me.Label3.Location = New System.Drawing.Point(112, 13)
-        Me.Label3.Name = "Label3"
-        Me.Label3.Size = New System.Drawing.Size(50, 13)
-        Me.Label3.TabIndex = 86
-        Me.Label3.Text = "( - ) Days"
-        '
-        'txtMDays
-        '
-        Me.txtMDays.Location = New System.Drawing.Point(112, 29)
-        Me.txtMDays.Name = "txtMDays"
-        Me.txtMDays.Size = New System.Drawing.Size(82, 22)
-        Me.txtMDays.TabIndex = 85
-        '
-        'Label2
-        '
-        Me.Label2.AutoSize = True
-        Me.Label2.Location = New System.Drawing.Point(6, 13)
-        Me.Label2.Name = "Label2"
-        Me.Label2.Size = New System.Drawing.Size(73, 13)
-        Me.Label2.TabIndex = 84
-        Me.Label2.Text = "# of Days(22)"
-        '
-        'txtTotalNumberOfDays
-        '
-        Me.txtTotalNumberOfDays.Location = New System.Drawing.Point(6, 29)
-        Me.txtTotalNumberOfDays.Name = "txtTotalNumberOfDays"
-        Me.txtTotalNumberOfDays.Size = New System.Drawing.Size(100, 22)
-        Me.txtTotalNumberOfDays.TabIndex = 83
-        '
-        'BTNCloseComputation
-        '
-        Me.BTNCloseComputation.Location = New System.Drawing.Point(7, 68)
-        Me.BTNCloseComputation.Name = "BTNCloseComputation"
-        Me.BTNCloseComputation.Size = New System.Drawing.Size(87, 22)
-        Me.BTNCloseComputation.TabIndex = 80
-        Me.BTNCloseComputation.Text = "Close"
-        Me.BTNCloseComputation.UseVisualStyleBackColor = True
-        '
-        'BTNComputation
-        '
-        Me.BTNComputation.Location = New System.Drawing.Point(108, 68)
-        Me.BTNComputation.Name = "BTNComputation"
-        Me.BTNComputation.Size = New System.Drawing.Size(87, 22)
-        Me.BTNComputation.TabIndex = 74
-        Me.BTNComputation.Text = "Done"
-        Me.BTNComputation.UseVisualStyleBackColor = True
-        '
         'mainLayout
         '
         Me.mainLayout.ColumnCount = 1
@@ -981,7 +968,7 @@ Partial Class frmEReport
         Me.mainLayout.RowCount = 2
         Me.mainLayout.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 76.0!))
         Me.mainLayout.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.mainLayout.Size = New System.Drawing.Size(1160, 720)
+        Me.mainLayout.Size = New System.Drawing.Size(1160, 648)
         Me.mainLayout.TabIndex = 85
         '
         'headerPanel
@@ -1042,7 +1029,7 @@ Partial Class frmEReport
         Me.contentLayout.Name = "contentLayout"
         Me.contentLayout.RowCount = 1
         Me.contentLayout.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.contentLayout.Size = New System.Drawing.Size(1128, 612)
+        Me.contentLayout.Size = New System.Drawing.Size(1128, 540)
         Me.contentLayout.TabIndex = 1
         '
         'leftPanel
@@ -1056,7 +1043,7 @@ Partial Class frmEReport
         Me.leftPanel.Margin = New System.Windows.Forms.Padding(0, 0, 16, 0)
         Me.leftPanel.Name = "leftPanel"
         Me.leftPanel.Padding = New System.Windows.Forms.Padding(8)
-        Me.leftPanel.Size = New System.Drawing.Size(376, 612)
+        Me.leftPanel.Size = New System.Drawing.Size(376, 540)
         Me.leftPanel.TabIndex = 0
         '
         'gridPanel
@@ -1069,7 +1056,7 @@ Partial Class frmEReport
         Me.gridPanel.Margin = New System.Windows.Forms.Padding(0)
         Me.gridPanel.Name = "gridPanel"
         Me.gridPanel.Padding = New System.Windows.Forms.Padding(0, 0, 0, 6)
-        Me.gridPanel.Size = New System.Drawing.Size(736, 612)
+        Me.gridPanel.Size = New System.Drawing.Size(736, 540)
         Me.gridPanel.TabIndex = 1
         '
         'gridHeaderPanel
@@ -1109,7 +1096,7 @@ Partial Class frmEReport
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(236, Byte), Integer), CType(CType(240, Byte), Integer), CType(CType(244, Byte), Integer))
         Me.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
-        Me.ClientSize = New System.Drawing.Size(1160, 720)
+        Me.ClientSize = New System.Drawing.Size(1160, 648)
         Me.Controls.Add(Me.mainLayout)
         Me.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
         Me.KeyPreview = True
@@ -1124,13 +1111,13 @@ Partial Class frmEReport
         Me.TabControl1.ResumeLayout(False)
         Me.TPExpenseReport.ResumeLayout(False)
         Me.TPExpenseReport.PerformLayout()
+        Me.GBAllowance.ResumeLayout(False)
+        Me.GBAllowance.PerformLayout()
         Me.GBTransportation.ResumeLayout(False)
         Me.GBTransportation.PerformLayout()
         Me.GBMeals.ResumeLayout(False)
         Me.GBMeals.PerformLayout()
         CType(Me.dgvExpense, System.ComponentModel.ISupportInitialize).EndInit()
-        Me.GBAllowance.ResumeLayout(False)
-        Me.GBAllowance.PerformLayout()
         Me.mainLayout.ResumeLayout(False)
         Me.headerPanel.ResumeLayout(False)
         Me.headerPanel.PerformLayout()
@@ -1169,7 +1156,6 @@ Partial Class frmEReport
     Friend WithEvents lblTotalExpenseAmount As System.Windows.Forms.Label
     Friend WithEvents lblExpenseAmount As System.Windows.Forms.Label
     Friend WithEvents txtCategory As System.Windows.Forms.ComboBox
-    Friend WithEvents txtType As System.Windows.Forms.ComboBox
     Friend WithEvents Label12 As System.Windows.Forms.Label
     Friend WithEvents Label13 As System.Windows.Forms.Label
     Friend WithEvents Label10 As System.Windows.Forms.Label

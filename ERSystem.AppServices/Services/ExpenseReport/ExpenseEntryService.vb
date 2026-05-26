@@ -95,6 +95,39 @@ Namespace Global.ERSystem.AppServices.Services.ExpenseReport
             End Using
         End Function
 
+        Public Function UpdateExpense(request As UpdateExpenseRequestDto) As UpdateExpenseResult
+            If request Is Nothing Then
+                Return UpdateExpenseResult.Failed("Expense update request is required.")
+            End If
+
+            Using dbContext As New AppDbContext()
+                Using transaction = dbContext.Database.BeginTransaction(IsolationLevel.Serializable)
+                    Try
+                        _expenseDetailRepository.Update(CreateUpdateExpenseDetail(request), dbContext)
+
+                        If Not String.IsNullOrWhiteSpace(request.Meal) Then
+                            _expenseMealItemRepository.UpsertByExpenseId(CreateMealItem(request, request.ExpenseID), dbContext)
+                        End If
+
+                        If request.FareID.HasValue Then
+                            _expenseTransportationItemRepository.UpsertByExpenseId(CreateTransportationItem(request, request.ExpenseID), dbContext)
+                        End If
+
+                        If ShouldCreateNotification(request.Meal) Then
+                            _expenseNotificationRepository.DeleteByExpenseId(request.ExpenseID, dbContext)
+                            _expenseNotificationRepository.Create(CreateNotification(request, request.ExpenseID), dbContext)
+                        End If
+
+                        transaction.Commit()
+                        Return UpdateExpenseResult.Succeeded(request.ExpenseID)
+                    Catch ex As Exception
+                        transaction.Rollback()
+                        Return UpdateExpenseResult.Failed(ex.Message)
+                    End Try
+                End Using
+            End Using
+        End Function
+
         Private Shared Function CreateExpenseDetail(request As AddExpenseRequestDto, expenseId As Long, sort As Integer) As CreateExpenseDetailDto
             Return New CreateExpenseDetailDto With {
                 .ID = expenseId,
@@ -133,7 +166,25 @@ Namespace Global.ERSystem.AppServices.Services.ExpenseReport
             }
         End Function
 
+        Private Shared Function CreateMealItem(request As UpdateExpenseRequestDto, expenseId As Long) As ExpenseMealItemDto
+            Return New ExpenseMealItemDto With {
+                .ExpenseID = expenseId,
+                .Meal = request.Meal,
+                .PaidFor = request.PaidFor,
+                .PaidEmp = request.PaidEmp
+            }
+        End Function
+
         Private Shared Function CreateTransportationItem(request As AddExpenseRequestDto, expenseId As Long) As ExpenseTransportationItemDto
+            Return New ExpenseTransportationItemDto With {
+                .expense_id = expenseId,
+                .FareID = request.FareID.Value.ToString(),
+                .FareFrom = request.FareFrom,
+                .FareTo = request.FareTo
+            }
+        End Function
+
+        Private Shared Function CreateTransportationItem(request As UpdateExpenseRequestDto, expenseId As Long) As ExpenseTransportationItemDto
             Return New ExpenseTransportationItemDto With {
                 .expense_id = expenseId,
                 .FareID = request.FareID.Value.ToString(),
@@ -151,6 +202,45 @@ Namespace Global.ERSystem.AppServices.Services.ExpenseReport
                 .Category = request.Meal,
                 .UsernameFiled = If(request.UserID.HasValue, request.UserID.Value.ToString(), Nothing),
                 .Status = 0
+            }
+        End Function
+
+        Private Shared Function CreateNotification(request As UpdateExpenseRequestDto, expenseId As Long) As ExpenseNotificationDto
+            Return New ExpenseNotificationDto With {
+                .ID = Guid.NewGuid().ToString(),
+                .ToNotify = request.PaidEmp,
+                .DateIncluded = request.Transdate,
+                .ExpenseID = expenseId.ToString(),
+                .Category = request.Meal,
+                .UsernameFiled = If(request.UserID.HasValue, request.UserID.Value.ToString(), Nothing),
+                .Status = 0
+            }
+        End Function
+
+        Private Shared Function CreateUpdateExpenseDetail(request As UpdateExpenseRequestDto) As UpdateExpenseDetailDto
+            Return New UpdateExpenseDetailDto With {
+                .ID = request.ExpenseID,
+                .ExpenseTransDate = request.Transdate,
+                .ExpensePerdiem = request.Perdiem,
+                .ExpenseParticulars = request.Particulars,
+                .ExpenseInvoice = request.Invoice,
+                .ExpenseMultiplier = request.Multiplier,
+                .ExpenseType = request.Type,
+                .ExpenseCategory = request.Category,
+                .ExpenseAmount = request.Amount,
+                .ExpenseRemarks = request.Remarks,
+                .ExpenseStatus = request.Status,
+                .UserID = request.UserID,
+                .ExpenseTotalAmount = request.TotalAmount,
+                .ExpenseLocation = request.Location,
+                .ReportID = request.ReportID,
+                .WorkWith = NormalizeWorkWith(request.WorkWith),
+                .ServiceNumber = request.ServiceNumber,
+                .Instrument = request.Instrument,
+                .SerialNumber = request.SerialNumber,
+                .MDays = request.MDays,
+                .Computation = request.Computation,
+                .TotDays = request.TotDays
             }
         End Function
 

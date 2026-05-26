@@ -79,6 +79,7 @@
     <Compile Include="Services\Approval\ScannedReceiptCleanupService.vb" />
     <Compile Include="Services\ExpenseReport\AddExpenseResult.vb" />
     <Compile Include="Services\ExpenseReport\ExpenseEntryService.vb" />
+    <Compile Include="Services\ExpenseReport\UpdateExpenseResult.vb" />
     <Compile Include="Services\IAccountSettingsSessionContext.vb" />
     <Compile Include="Services\IAccountSettingsValueProtector.vb" />
     <Compile Include="Services\ISmsNotificationService.vb" />
