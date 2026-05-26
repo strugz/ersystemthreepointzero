@@ -146,6 +146,7 @@ Partial Class frmEReport
         Me.TPExpenseReport.Controls.Add(Me.txtParticulars)
         Me.TPExpenseReport.Controls.Add(Me.txtComputation)
         Me.TPExpenseReport.Controls.Add(Me.lblParticulars)
+        Me.TPExpenseReport.Controls.Add(Me.GBAllowance)
         Me.TPExpenseReport.Controls.Add(Me.BTNEditCategory)
         Me.TPExpenseReport.Controls.Add(Me.txtType)
         Me.TPExpenseReport.Controls.Add(Me.LBLComputation)
@@ -910,7 +911,7 @@ Partial Class frmEReport
         Me.GBAllowance.Controls.Add(Me.BTNCloseComputation)
         Me.GBAllowance.Controls.Add(Me.BTNComputation)
         Me.GBAllowance.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.GBAllowance.Location = New System.Drawing.Point(110, 320)
+        Me.GBAllowance.Location = New System.Drawing.Point(98, 290)
         Me.GBAllowance.Name = "GBAllowance"
         Me.GBAllowance.Size = New System.Drawing.Size(201, 96)
         Me.GBAllowance.TabIndex = 84
@@ -1050,7 +1051,6 @@ Partial Class frmEReport
         Me.leftPanel.Controls.Add(Me.TabControl1)
         Me.leftPanel.Controls.Add(Me.GBTransportation)
         Me.leftPanel.Controls.Add(Me.GBMeals)
-        Me.leftPanel.Controls.Add(Me.GBAllowance)
         Me.leftPanel.Dock = System.Windows.Forms.DockStyle.Fill
         Me.leftPanel.Location = New System.Drawing.Point(0, 0)
         Me.leftPanel.Margin = New System.Windows.Forms.Padding(0, 0, 16, 0)

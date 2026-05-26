@@ -6,7 +6,8 @@ Imports System.ComponentModel.DataAnnotations.Schema
 Public Class ExpenseDetailModel
 
     <Key>
-    Public Property ID As Integer
+    <DatabaseGenerated(DatabaseGeneratedOption.None)>
+    Public Property ID As Long
 
     Public Property ExpenseTransDate As Nullable(Of Date)
 

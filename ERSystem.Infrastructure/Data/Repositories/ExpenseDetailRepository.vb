@@ -57,6 +57,18 @@ Namespace Global.ERSystem.Infrastructure.Data
             Return ToDto(model)
         End Function
 
+        Public Function CountActiveByReportId(reportId As String, dbContext As AppDbContext) As Integer Implements IExpenseDetailRepository.CountActiveByReportId
+            If String.IsNullOrWhiteSpace(reportId) Then
+                Return 0
+            End If
+
+            If dbContext Is Nothing Then
+                Throw New ArgumentNullException("dbContext")
+            End If
+
+            Return dbContext.ExpenseDetails.Count(Function(item) item.ReportID = reportId AndAlso item.ExpenseStatus = "True")
+        End Function
+
         Public Sub Update(expense As UpdateExpenseDetailDto) Implements IExpenseDetailRepository.Update
             If expense Is Nothing Then
                 Throw New ArgumentNullException("expense")
@@ -131,6 +143,7 @@ Namespace Global.ERSystem.Infrastructure.Data
 
         Private Shared Function ToModel(expense As CreateExpenseDetailDto) As ExpenseDetailModel
             Return New ExpenseDetailModel With {
+                .ID = expense.ID,
                 .ExpenseTransDate = expense.ExpenseTransDate,
                 .ExpensePerdiem = expense.ExpensePerdiem,
                 .ExpenseParticulars = expense.ExpenseParticulars,
@@ -149,9 +162,11 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .ServiceNumber = expense.ServiceNumber,
                 .Instrument = expense.Instrument,
                 .SerialNumber = expense.SerialNumber,
+                .Sort = expense.Sort,
                 .MDays = expense.MDays,
                 .Computation = expense.Computation,
-                .TotDays = expense.TotDays
+                .TotDays = expense.TotDays,
+                .NumberEdited = expense.NumberEdited
             }
         End Function
     End Class

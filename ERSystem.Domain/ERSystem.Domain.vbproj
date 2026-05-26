@@ -74,6 +74,7 @@
     <Compile Include="Dtos\ExpenseReport\CreateExpenseDetailDto.vb" />
     <Compile Include="Dtos\ExpenseReport\ExpenseDetailDto.vb" />
     <Compile Include="Dtos\ExpenseReport\ExpenseDetailResponseDto.vb" />
+    <Compile Include="Dtos\ExpenseReport\ExpenseIdCounterDto.vb" />
     <Compile Include="Dtos\ExpenseReport\ExpenseMealItemDto.vb" />
     <Compile Include="Dtos\ExpenseReport\ExpenseNotificationDto.vb" />
     <Compile Include="Dtos\ExpenseReport\ExpenseTransportationItemDto.vb" />
@@ -94,6 +95,7 @@
     <Compile Include="Dtos\User\UserAuthorityDto.vb" />
     <Compile Include="Entities\CashAdvance\CashAdvanceModel.vb" />
     <Compile Include="Entities\ExpenseReport\ExpenseDetailModel.vb" />
+    <Compile Include="Entities\ExpenseReport\ExpenseIdCounterModel.vb" />
     <Compile Include="Entities\ExpenseReport\ExpenseMealItemModel.vb" />
     <Compile Include="Entities\ExpenseReport\ExpenseNotificationModel.vb" />
     <Compile Include="Entities\ExpenseReport\ExpenseTransportationItemModel.vb" />

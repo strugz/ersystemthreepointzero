@@ -677,7 +677,7 @@ Module modLoadingData
             End Using
         End Using
     End Function
-    Public Function LoadExpenseReportDetails(ByVal ReportID As String, ByVal ExpenseID As String) As DataTable
+    Public Function LoadExpenseReportDetails(ByVal ReportID As String, ByVal ExpenseID As Long) As DataTable
         DBConnection()
         Using dtLoadExpenseDetails As New DataTable
             Using sqlcmdLoadExpenseDetails As New SqlCommand
@@ -686,7 +686,7 @@ Module modLoadingData
                         .Connection = SQLConnection
                         .CommandText = "sp2_LoadEReportExpenseDetails"
                         .Parameters.AddWithValue("@ReportID", ReportID).SqlDbType = SqlDbType.VarChar
-                        .Parameters.AddWithValue("@ExpenseID", ExpenseID).SqlDbType = SqlDbType.VarChar
+                        .Parameters.AddWithValue("@ExpenseID", ExpenseID).SqlDbType = SqlDbType.BigInt
                         .CommandType = CommandType.StoredProcedure
                         dtLoadExpenseDetails.Load(.ExecuteReader)
                         Return dtLoadExpenseDetails

@@ -2,7 +2,7 @@ Imports System
 
 Public Class ExpenseDetailDto
 
-    Public Property ID As Integer
+    Public Property ID As Long
 
     Public Property ExpenseTransDate As Nullable(Of Date)
 

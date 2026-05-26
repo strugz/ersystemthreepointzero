@@ -1,11 +1,12 @@
 ﻿Imports System.IO
+Imports System.Globalization
 Public Class frmEReport
     Dim SortNumber As Integer
     Dim counter As String = ""
     Public Const MyKey As String = "crimsonmonastery2003"
     Public TripleDes As New clsEncryption(MyKey)
     Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
-    Private Shared ReadOnly CategoryHelperLocation As New Point(98, 320)
+    Private Shared ReadOnly CategoryHelperLocation As New Point(98, 283)
 
 #Region "Sorting"
     Enum mode
@@ -266,7 +267,10 @@ Public Class frmEReport
         ElseIf txtWorkWith.Text = "" Then
             MsgBox("Please fill the WorkWith")
         Else
-            AddExpenseReport()
+            If Not AddExpenseReport() Then
+                Exit Sub
+            End If
+
             If MessageBox.Show(
                         "Data Saved. Do you Want to Clear the WorkWith, Hospital Name, Instrument and Serial Number above?",
                         "Clear Details",
@@ -289,29 +293,108 @@ Public Class frmEReport
         txtCategory.Enabled = True
         txtComputation.Clear()
     End Sub
-    Private Sub AddExpenseReport()
+    Private Function AddExpenseReport() As Boolean
         Dim ClsData As New ClsLoadData
         Dim myERData As String()
         myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
         Try
-            AddExpense(dtpExpenseDate.Value, IIf(CBPerdiem.Checked, "1", "0"), txtParticulars.Text,
-           txtInvoice.Text, txtMultiplier.Text, IIf(RbLocal.Checked = True,
-                                                    "Local", "Foreign"), txtCategory.Text,
-           txtExpenseAmount.Text, txtRemarks.Text, txtStatus.SelectedItem,
-           txtTotal.Text,
-           IIf(Trim(Trim(txtLocation.Text)) = "", "Allowance",
-            Trim(Trim(Trim(txtLocation.Text)))),
-           myERData(14), myERData(13),
-           IIf(txtServiceNumber.Text = "", "N/A", txtServiceNumber.Text),
-           IIf(txtInstrument.Text = "", "N/A", txtInstrument.Text),
-           IIf(txtSerialNumber.Text = "", "N/A", txtSerialNumber.Text), txtWorkWith.Text,
-           ClsData.GetMeal(), ClsData.GetTranspo(),
-           txtMDays.Text,
-           txtComputation.Text, txtTotalNumberOfDays.Text)
+            Dim request As Global.ERSystem.Domain.AddExpenseRequestDto = CreateAddExpenseRequest(myERData, ClsData.GetMeal(), ClsData.GetTranspo())
+            Dim service As New Global.ERSystem.AppServices.Services.ExpenseReport.ExpenseEntryService()
+            Dim result As Global.ERSystem.AppServices.Services.ExpenseReport.AddExpenseResult = service.AddExpense(request)
+
+            If Not result.Success Then
+                MsgBox(result.Message)
+                Return False
+            End If
+
+            Return True
         Catch ex As Exception
             MsgBox(ex.Message)
+            Return False
         End Try
-    End Sub
+    End Function
+
+    Private Function CreateAddExpenseRequest(myERData As String(), mealData As String, transportationData As String) As Global.ERSystem.Domain.AddExpenseRequestDto
+        Dim mealParts As String() = SplitLegacyDelimitedValue(mealData)
+        Dim transportationParts As String() = SplitLegacyDelimitedValue(transportationData)
+
+        Return New Global.ERSystem.Domain.AddExpenseRequestDto With {
+            .Transdate = dtpExpenseDate.Value.Date,
+            .Perdiem = If(CBPerdiem.Checked, "1", "0"),
+            .Particulars = txtParticulars.Text,
+            .Invoice = txtInvoice.Text,
+            .Multiplier = ParseRequiredInteger(txtMultiplier.Text, "Multiplier"),
+            .Type = If(RbLocal.Checked, "Local", "Foreign"),
+            .Category = txtCategory.Text,
+            .Amount = ParseRequiredDouble(txtExpenseAmount.Text, "Expense Amount"),
+            .Remarks = txtRemarks.Text,
+            .Status = If(txtStatus.SelectedItem Is Nothing, Nothing, txtStatus.SelectedItem.ToString()),
+            .TotalAmount = ParseRequiredDouble(txtTotal.Text, "Total Amount"),
+            .Location = If(Trim(txtLocation.Text) = "", "Allowance", Trim(txtLocation.Text)),
+            .UserID = ParseRequiredInteger(GetArrayValue(myERData, 14), "User ID"),
+            .ReportID = GetArrayValue(myERData, 13),
+            .WorkWith = txtWorkWith.Text,
+            .ServiceNumber = If(txtServiceNumber.Text = "", "N/A", txtServiceNumber.Text),
+            .Instrument = If(txtInstrument.Text = "", "N/A", txtInstrument.Text),
+            .SerialNumber = If(txtSerialNumber.Text = "", "N/A", txtSerialNumber.Text),
+            .MDays = txtMDays.Text,
+            .Computation = txtComputation.Text,
+            .TotDays = txtTotalNumberOfDays.Text,
+            .Meal = GetArrayValue(mealParts, 0),
+            .PaidFor = GetArrayValue(mealParts, 1),
+            .PaidEmp = GetArrayValue(mealParts, 2),
+            .FareID = ParseNullableLong(GetArrayValue(transportationParts, 0)),
+            .FareFrom = GetArrayValue(transportationParts, 1),
+            .FareTo = GetArrayValue(transportationParts, 2)
+        }
+    End Function
+
+    Private Shared Function SplitLegacyDelimitedValue(value As String) As String()
+        If String.IsNullOrWhiteSpace(value) Then
+            Return New String() {}
+        End If
+
+        Return value.Split("/"c)
+    End Function
+
+    Private Shared Function GetArrayValue(values As String(), index As Integer) As String
+        If values Is Nothing OrElse values.Length <= index Then
+            Return String.Empty
+        End If
+
+        Return values(index)
+    End Function
+
+    Private Shared Function ParseRequiredInteger(value As String, fieldName As String) As Integer
+        Dim parsedValue As Integer
+        If Integer.TryParse(value, NumberStyles.Integer, CultureInfo.CurrentCulture, parsedValue) Then
+            Return parsedValue
+        End If
+
+        Throw New FormatException(fieldName & " must be a valid whole number.")
+    End Function
+
+    Private Shared Function ParseNullableLong(value As String) As Nullable(Of Long)
+        If String.IsNullOrWhiteSpace(value) Then
+            Return Nothing
+        End If
+
+        Dim parsedValue As Long
+        If Long.TryParse(value, NumberStyles.Integer, CultureInfo.CurrentCulture, parsedValue) Then
+            Return parsedValue
+        End If
+
+        Throw New FormatException("Fare ID must be a valid whole number.")
+    End Function
+
+    Private Shared Function ParseRequiredDouble(value As String, fieldName As String) As Double
+        Dim parsedValue As Double
+        If Double.TryParse(value, NumberStyles.Float Or NumberStyles.AllowThousands, CultureInfo.CurrentCulture, parsedValue) Then
+            Return parsedValue
+        End If
+
+        Throw New FormatException(fieldName & " must be a valid number.")
+    End Function
     Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
         ModDataStore.ClearExpenseDataDetails(transactionID, comboClick)
     End Sub

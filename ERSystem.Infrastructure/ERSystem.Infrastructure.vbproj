@@ -91,6 +91,10 @@
     <Compile Include="Data\Interfaces\IFinanceReviewRepository.vb" />
     <Compile Include="Data\Interfaces\IFinanceReviewService.vb" />
     <Compile Include="Data\Interfaces\IExpenseDetailRepository.vb" />
+    <Compile Include="Data\Interfaces\IExpenseIdCounterRepository.vb" />
+    <Compile Include="Data\Interfaces\IExpenseMealItemRepository.vb" />
+    <Compile Include="Data\Interfaces\IExpenseNotificationRepository.vb" />
+    <Compile Include="Data\Interfaces\IExpenseTransportationItemRepository.vb" />
     <Compile Include="Data\Interfaces\IReportDetailRepository.vb" />
     <Compile Include="Data\Interfaces\IReportDetailService.vb" />
     <Compile Include="Data\Interfaces\IRejectActionRepository.vb" />
@@ -100,6 +104,10 @@
     <Compile Include="Data\Repositories\ApproveActionRepository.vb" />
     <Compile Include="Data\Repositories\ApproveRepository.vb" />
     <Compile Include="Data\Repositories\ExpenseDetailRepository.vb" />
+    <Compile Include="Data\Repositories\ExpenseIdCounterRepository.vb" />
+    <Compile Include="Data\Repositories\ExpenseMealItemRepository.vb" />
+    <Compile Include="Data\Repositories\ExpenseNotificationRepository.vb" />
+    <Compile Include="Data\Repositories\ExpenseTransportationItemRepository.vb" />
     <Compile Include="Data\Repositories\ReportDetailRepository.vb" />
     <Compile Include="Data\Repositories\FinanceReviewRepository.vb" />
     <Compile Include="Data\Repositories\RejectActionRepository.vb" />

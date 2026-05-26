@@ -2,6 +2,8 @@ Imports System
 
 Public Class CreateExpenseDetailDto
 
+    Public Property ID As Long
+
     Public Property ExpenseTransDate As Nullable(Of Date)
 
     Public Property ExpensePerdiem As String
@@ -38,10 +40,14 @@ Public Class CreateExpenseDetailDto
 
     Public Property SerialNumber As String
 
+    Public Property Sort As Nullable(Of Integer)
+
     Public Property MDays As String
 
     Public Property Computation As String
 
     Public Property TotDays As String
+
+    Public Property NumberEdited As Nullable(Of Integer)
 
 End Class
