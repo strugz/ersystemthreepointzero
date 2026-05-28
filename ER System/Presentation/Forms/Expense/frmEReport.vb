@@ -1,10 +1,11 @@
 ﻿Imports System.IO
-Imports System.Globalization
 Public Class frmEReport
     Dim SortNumber As Integer
     Public Const MyKey As String = "crimsonmonastery2003"
     Public TripleDes As New clsEncryption(MyKey)
     Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
+    Private ReadOnly _presenter As New EReportPresenter()
+    Private ReadOnly _allowanceComputationService As New AllowanceComputationService()
 
 #Region "Sorting"
     Enum mode
@@ -152,29 +153,10 @@ Public Class frmEReport
         txtWorkWith.Text = "NONE"
     End Sub
 
-    Private Function BuildAllowanceComputation(totalDays As String, minusDays As String, amount As String) As AllowanceComputationResult
-        Dim normalizedMinusDays As String = If(String.IsNullOrWhiteSpace(minusDays), "0", minusDays)
-        Dim multiplier As Double = Val(totalDays) - Val(normalizedMinusDays)
-        Dim computationText As String
-
-        If normalizedMinusDays <> "0" Then
-            computationText = " (" & totalDays & "Days - " & normalizedMinusDays & "Days) * " & amount
-        Else
-            computationText = " (" & totalDays & "Days) * " & amount
-        End If
-
-        Return New AllowanceComputationResult With {
-            .TotalDays = totalDays,
-            .MinusDays = normalizedMinusDays,
-            .Multiplier = multiplier.ToString(),
-            .ComputationText = computationText
-        }
-    End Function
-
     Private Sub ShowAllowanceComputationPopup()
         Using popup As New AllowanceComputationPopup(txtTotalNumberOfDays.Text, txtMDays.Text)
             If popup.ShowDialog(Me) = DialogResult.OK Then
-                ApplyAllowanceComputationResult(BuildAllowanceComputation(popup.Result.TotalDays, popup.Result.MinusDays, txtExpenseAmount.Text))
+                ApplyAllowanceComputationResult(_allowanceComputationService.Build(popup.Result.TotalDays, popup.Result.MinusDays, txtExpenseAmount.Text))
             Else
                 ApplyAllowanceComputationCancel()
             End If
@@ -465,259 +447,105 @@ Public Class frmEReport
 
     End Sub
     Private Sub btnExpenseSave_Click(sender As Object, e As EventArgs) Handles btnExpenseSave.Click
-        Dim ClsData As New ClsLoadData
-        Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
-        If txtParticulars.Text = Nothing Or txtExpenseAmount.Text = Nothing Or txtCategory.SelectedItem = "" Then
-            MsgBox("Please fill in the Particulars/Expense Amount/Category")
-        ElseIf RbLocal.Checked = False And RBForeign.Checked = False Then
-            MsgBox("Please Select Type")
-        ElseIf txtCategory.SelectedItem = Nothing Then
-            MsgBox("Please Select Category")
-        ElseIf txtWorkWith.Text = "" Then
-            MsgBox("Please fill the WorkWith")
-        Else
-            If Not AddExpenseReport() Then
-                Exit Sub
-            End If
-
-            If MessageBox.Show(
-                        "Data Saved. Do you Want to Clear the WorkWith, Hospital Name, Instrument and Serial Number above?",
-                        "Clear Details",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) = DialogResult.Yes Then
-                ModDataStore.ClearAllExpenseData()
-            Else
-                ModDataStore.clearExpenseData()
-            End If
-
-            Using dtLoadExpenseReport As DataTable = LoadingExpenseReport(myERData(13), GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
-                dgvExpense.DataSource = dtLoadExpenseReport
-            End Using
-            txtParticulars.Focus()
-            dgvExpense.Enabled = True
-            comboClick = 0
-        End If
-        transactionID = ""
-        txtStatus.SelectedIndex = 0
-        txtCategory.Enabled = True
-        txtComputation.Clear()
+        ApplyExpenseEntryResult(_presenter.AddExpense(CreateExpenseEntrySnapshot()))
     End Sub
-    Private Function AddExpenseReport() As Boolean
-        Dim ClsData As New ClsLoadData
-        Dim myERData As String()
-        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
-        Try
-            Dim request As Global.ERSystem.Domain.AddExpenseRequestDto = CreateAddExpenseRequest(myERData, ClsData.GetMeal(), ClsData.GetTranspo())
-            Dim service As New Global.ERSystem.AppServices.Services.ExpenseReport.ExpenseEntryService()
-            Dim result As Global.ERSystem.AppServices.Services.ExpenseReport.AddExpenseResult = service.AddExpense(request)
 
-            If Not result.Success Then
-                MsgBox(result.Message)
-                Return False
-            End If
-
-            Return True
-        Catch ex As Exception
-            MsgBox(ex.Message)
-            Return False
-        End Try
-    End Function
-
-    Private Function CreateAddExpenseRequest(myERData As String(), mealData As String, transportationData As String) As Global.ERSystem.Domain.AddExpenseRequestDto
-        Dim mealParts As String() = SplitLegacyDelimitedValue(mealData)
-        Dim transportationParts As String() = SplitLegacyDelimitedValue(transportationData)
-
-        Return New Global.ERSystem.Domain.AddExpenseRequestDto With {
+    Private Function CreateExpenseEntrySnapshot() As EReportEntrySnapshot
+        Return New EReportEntrySnapshot With {
             .Transdate = dtpExpenseDate.Value.Date,
-            .Perdiem = If(CBPerdiem.Checked, "1", "0"),
+            .PerdiemChecked = CBPerdiem.Checked,
             .Particulars = txtParticulars.Text,
             .Invoice = txtInvoice.Text,
-            .Multiplier = ParseRequiredInteger(txtMultiplier.Text, "Multiplier"),
-            .Type = If(RbLocal.Checked, "Local", "Foreign"),
+            .Multiplier = txtMultiplier.Text,
+            .LocalChecked = RbLocal.Checked,
+            .ForeignChecked = RBForeign.Checked,
             .Category = txtCategory.Text,
-            .Amount = ParseRequiredDouble(txtExpenseAmount.Text, "Expense Amount"),
+            .CategorySelected = txtCategory.SelectedItem IsNot Nothing,
+            .Amount = txtExpenseAmount.Text,
             .Remarks = txtRemarks.Text,
             .Status = If(txtStatus.SelectedItem Is Nothing, Nothing, txtStatus.SelectedItem.ToString()),
-            .TotalAmount = ParseRequiredDouble(txtTotal.Text, "Total Amount"),
-            .Location = If(Trim(txtLocation.Text) = "", "Allowance", Trim(txtLocation.Text)),
-            .UserID = ParseRequiredInteger(GetArrayValue(myERData, 14), "User ID"),
-            .ReportID = GetArrayValue(myERData, 13),
-            .WorkWith = txtWorkWith.Text,
-            .ServiceNumber = If(txtServiceNumber.Text = "", "N/A", txtServiceNumber.Text),
-            .Instrument = If(txtInstrument.Text = "", "N/A", txtInstrument.Text),
-            .SerialNumber = If(txtSerialNumber.Text = "", "N/A", txtSerialNumber.Text),
-            .MDays = txtMDays.Text,
-            .Computation = txtComputation.Text,
-            .TotDays = txtTotalNumberOfDays.Text,
-            .Meal = GetArrayValue(mealParts, 0),
-            .PaidFor = GetArrayValue(mealParts, 1),
-            .PaidEmp = GetArrayValue(mealParts, 2),
-            .FareID = ParseNullableLong(GetArrayValue(transportationParts, 0)),
-            .FareFrom = GetArrayValue(transportationParts, 1),
-            .FareTo = GetArrayValue(transportationParts, 2)
-        }
-    End Function
-
-    Private Shared Function SplitLegacyDelimitedValue(value As String) As String()
-        If String.IsNullOrWhiteSpace(value) Then
-            Return New String() {}
-        End If
-
-        Return value.Split("/"c)
-    End Function
-
-    Private Shared Function GetArrayValue(values As String(), index As Integer) As String
-        If values Is Nothing OrElse values.Length <= index Then
-            Return String.Empty
-        End If
-
-        Return values(index)
-    End Function
-
-    Private Shared Function ParseRequiredInteger(value As String, fieldName As String) As Integer
-        Dim parsedValue As Integer
-        If Integer.TryParse(value, NumberStyles.Integer, CultureInfo.CurrentCulture, parsedValue) Then
-            Return parsedValue
-        End If
-
-        Throw New FormatException(fieldName & " must be a valid whole number.")
-    End Function
-
-    Private Shared Function ParseNullableLong(value As String) As Nullable(Of Long)
-        If String.IsNullOrWhiteSpace(value) Then
-            Return Nothing
-        End If
-
-        Dim parsedValue As Long
-        If Long.TryParse(value, NumberStyles.Integer, CultureInfo.CurrentCulture, parsedValue) Then
-            Return parsedValue
-        End If
-
-        Throw New FormatException("Fare ID must be a valid whole number.")
-    End Function
-
-    Private Shared Function ParseRequiredDouble(value As String, fieldName As String) As Double
-        Dim parsedValue As Double
-        If Double.TryParse(value, NumberStyles.Float Or NumberStyles.AllowThousands, CultureInfo.CurrentCulture, parsedValue) Then
-            Return parsedValue
-        End If
-
-        Throw New FormatException(fieldName & " must be a valid number.")
-    End Function
-    Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
-        ModDataStore.ClearExpenseDataDetails(transactionID, comboClick)
-    End Sub
-
-    Private Sub btnExpenseUpdate_Click(sender As Object, e As EventArgs) Handles btnExpenseUpdate.Click
-        Dim ClsData As New ClsLoadData
-        If txtParticulars.Text = Nothing Or txtExpenseAmount.Text = Nothing Or txtCategory.SelectedItem = "" Then
-            MsgBox("Please fill in the Particulars/Expense Amount/Category")
-        Else
-            Dim myExpenseData As String()
-            Dim myERData As String()
-            myExpenseData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
-            If Not UpdateExpenseReport(myExpenseData, myERData, ClsData.GetMeal(), ClsData.GetTranspo()) Then
-                Exit Sub
-            End If
-
-            'AddExpenseHisto(dtpExpenseDate.Text, IIf(CBPerdiem.Checked, "1", "0"),
-            '                txtParticulars.Text, txtInvoice.Text,
-            '                txtMultiplier.Text, IIf(RbLocal.Checked = True, "Local",
-            '                                        "Foreign"), txtCategory.Text,
-            '                txtExpenseAmount.Text, txtRemarks.Text, txtStatus.Text,
-            '                txtTotal.Text, IIf(Trim(txtLocation.Text) = "", "Allowance",
-            '                                   Trim(txtLocation.Text)),
-            '                myERData(14), myERData(13), myExpenseData(16),
-            '                txtServiceNumber.Text, txtInstrument.Text, txtSerialNumber.Text,
-            '                GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), txtMDays.Text, txtComputation.Text, txtTotalNumberOfDays.Text)
-            If MessageBox.Show(
-                    "Data Saved. Do you Want to Clear the WorkWith, Hospital Name, Instrument and Serial Number above?",
-                    "Clear Details",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) = DialogResult.Yes Then
-                ModDataStore.ClearAllExpenseData()
-                ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseSettings.txt")
-            Else
-                ModDataStore.clearExpenseData()
-                ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseSettings.txt")
-            End If
-            Using dtLoadExpenseReport As DataTable = LoadingExpenseReport(myERData(13), myERData(14))
-                dgvExpense.DataSource = dtLoadExpenseReport
-            End Using
-            modReuse.SetTextFile(txtWorkWith.Text, txtLocation.Text, txtInstrument.Text, txtSerialNumber.Text, txtServiceNumber.Text)
-            txtParticulars.Focus()
-            dgvExpense.Enabled = True
-            comboClick = 0
-        End If
-        transactionID = ""
-        txtStatus.SelectedIndex = 0
-        txtCategory.Enabled = True
-    End Sub
-
-    Private Function UpdateExpenseReport(myExpenseData As String(), myERData As String(), mealData As String, transportationData As String) As Boolean
-        Try
-            Dim request As Global.ERSystem.Domain.UpdateExpenseRequestDto = CreateUpdateExpenseRequest(myExpenseData, myERData, mealData, transportationData)
-            Dim service As New Global.ERSystem.AppServices.Services.ExpenseReport.ExpenseEntryService()
-            Dim result As Global.ERSystem.AppServices.Services.ExpenseReport.UpdateExpenseResult = service.UpdateExpense(request)
-
-            If Not result.Success Then
-                MsgBox(result.Message)
-                Return False
-            End If
-
-            Return True
-        Catch ex As Exception
-            MsgBox(ex.Message)
-            Return False
-        End Try
-    End Function
-
-    Private Function CreateUpdateExpenseRequest(myExpenseData As String(), myERData As String(), mealData As String, transportationData As String) As Global.ERSystem.Domain.UpdateExpenseRequestDto
-        Dim mealParts As String() = SplitLegacyDelimitedValue(mealData)
-        Dim transportationParts As String() = SplitLegacyDelimitedValue(transportationData)
-
-        Return New Global.ERSystem.Domain.UpdateExpenseRequestDto With {
-            .ExpenseID = ParseRequiredLong(GetArrayValue(myExpenseData, 16), "Expense ID"),
-            .Transdate = dtpExpenseDate.Value.Date,
-            .Perdiem = If(CBPerdiem.Checked, "1", "0"),
-            .Particulars = txtParticulars.Text,
-            .Invoice = txtInvoice.Text,
-            .Multiplier = ParseRequiredInteger(txtMultiplier.Text, "Multiplier"),
-            .Type = If(RbLocal.Checked, "Local", "Foreign"),
-            .Category = txtCategory.Text,
-            .Amount = ParseRequiredDouble(txtExpenseAmount.Text, "Expense Amount"),
-            .Remarks = txtRemarks.Text,
-            .Status = If(txtStatus.SelectedItem Is Nothing, Nothing, txtStatus.SelectedItem.ToString()),
-            .TotalAmount = ParseRequiredDouble(txtTotal.Text, "Total Amount"),
-            .Location = If(Trim(txtLocation.Text) = "", "Allowance", Trim(txtLocation.Text)),
-            .UserID = ParseRequiredInteger(GetArrayValue(myERData, 14), "User ID"),
-            .ReportID = GetArrayValue(myERData, 13),
+            .TotalAmount = txtTotal.Text,
+            .Location = txtLocation.Text,
             .WorkWith = txtWorkWith.Text,
             .ServiceNumber = txtServiceNumber.Text,
             .Instrument = txtInstrument.Text,
             .SerialNumber = txtSerialNumber.Text,
             .MDays = txtMDays.Text,
             .Computation = txtComputation.Text,
-            .TotDays = txtTotalNumberOfDays.Text,
-            .Meal = GetArrayValue(mealParts, 0),
-            .PaidFor = GetArrayValue(mealParts, 1),
-            .PaidEmp = GetArrayValue(mealParts, 2),
-            .FareID = ParseNullableLong(GetArrayValue(transportationParts, 0)),
-            .FareFrom = GetArrayValue(transportationParts, 1),
-            .FareTo = GetArrayValue(transportationParts, 2)
+            .TotalDays = txtTotalNumberOfDays.Text
         }
     End Function
 
-    Private Shared Function ParseRequiredLong(value As String, fieldName As String) As Long
-        Dim parsedValue As Long
-        If Long.TryParse(value, NumberStyles.Integer, CultureInfo.CurrentCulture, parsedValue) Then
-            Return parsedValue
+    Private Sub ApplyExpenseEntryResult(result As EReportEntryResult)
+        If result Is Nothing Then
+            Return
         End If
 
-        Throw New FormatException(fieldName & " must be a valid whole number.")
-    End Function
+        If Not result.Success Then
+            If Not String.IsNullOrEmpty(result.Message) Then
+                MsgBox(result.Message)
+            End If
+
+            Return
+        End If
+
+        Dim snapshotBeforeClear As EReportEntrySnapshot = CreateExpenseEntrySnapshot()
+        Dim clearWorkContext As Boolean = False
+        If result.ShouldAskClearDetails Then
+            clearWorkContext =
+                MessageBox.Show(
+                    "Data Saved. Do you Want to Clear the WorkWith, Hospital Name, Instrument and Serial Number above?",
+                    "Clear Details",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button2) = DialogResult.Yes
+
+            _presenter.ApplyClearChoice(clearWorkContext, result.DeleteExpenseSettingsAfterClear)
+        End If
+
+        If result.ShouldRefreshExpenseGrid Then
+            Using dtLoadExpenseReport As DataTable = _presenter.LoadExpenseReport(result.RefreshReportId, result.RefreshUserId)
+                dgvExpense.DataSource = dtLoadExpenseReport
+            End Using
+        End If
+
+        If result.PersistWorkContext Then
+            _presenter.PersistWorkContext(snapshotBeforeClear)
+        End If
+
+        If result.FocusParticulars Then
+            txtParticulars.Focus()
+        End If
+
+        If result.EnableExpenseGrid Then
+            dgvExpense.Enabled = True
+        End If
+
+        comboClick = 0
+
+        If result.ResetTransactionId Then
+            transactionID = ""
+        End If
+
+        If result.ResetStatusIndex.HasValue Then
+            txtStatus.SelectedIndex = result.ResetStatusIndex.Value
+        End If
+
+        If result.EnableCategory Then
+            txtCategory.Enabled = True
+        End If
+
+        If result.ClearComputation Then
+            txtComputation.Clear()
+        End If
+    End Sub
+    Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
+        ModDataStore.ClearExpenseDataDetails(transactionID, comboClick)
+    End Sub
+
+    Private Sub btnExpenseUpdate_Click(sender As Object, e As EventArgs) Handles btnExpenseUpdate.Click
+        ApplyExpenseEntryResult(_presenter.UpdateExpense(CreateExpenseEntrySnapshot()))
+    End Sub
 
     Private Sub Button6_Click(sender As Object, e As EventArgs) Handles BTNUp.Click
         Dim ClsData As New ClsLoadData

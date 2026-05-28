@@ -281,6 +281,11 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Presentation\Forms\Expense\ExpenseHelperPopups.vb" />
+    <Compile Include="Presentation\Presenters\Expense\AllowanceComputationService.vb" />
+    <Compile Include="Presentation\Presenters\Expense\EReportPresenter.vb" />
+    <Compile Include="Presentation\Presenters\Expense\ExpenseEntryRequestFactory.vb" />
+    <Compile Include="Presentation\Presenters\Expense\ExpenseLegacyStateGateway.vb" />
+    <Compile Include="Presentation\ViewModels\Expense\EReportEntryModels.vb" />
     <Compile Include="Presentation\Forms\Expense\frmERType.Designer.vb">
       <DependentUpon>frmERType.vb</DependentUpon>
     </Compile>

@@ -183,8 +183,8 @@ Partial Class frmEReport
         Me.TPExpenseReport.Controls.Add(Me.Label9)
         Me.TPExpenseReport.Controls.Add(Me.CBPerdiem)
         Me.TPExpenseReport.Controls.Add(Me.lblExpenseAmount)
-        Me.TPExpenseReport.Controls.Add(Me.btnExpenseSave)
         Me.TPExpenseReport.Controls.Add(Me.btnExpenseUpdate)
+        Me.TPExpenseReport.Controls.Add(Me.btnExpenseSave)
         Me.TPExpenseReport.Location = New System.Drawing.Point(4, 22)
         Me.TPExpenseReport.Name = "TPExpenseReport"
         Me.TPExpenseReport.Padding = New System.Windows.Forms.Padding(3)
