@@ -2,7 +2,6 @@
 Imports System.Globalization
 Public Class frmEReport
     Dim SortNumber As Integer
-    Dim counter As String = ""
     Public Const MyKey As String = "crimsonmonastery2003"
     Public TripleDes As New clsEncryption(MyKey)
     Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
@@ -891,26 +890,6 @@ Public Class frmEReport
         End If
     End Sub
 
-    Private Sub BTNMeals_Click(sender As Object, e As EventArgs) Handles BTNMeals.Click
-        If CBBPaidFor.Checked = True And CLBPaidBill.CheckedIndices.Count = 0 Then
-            MessageBox.Show("No selected Employee to be Paid for. Please Uncheck 'Paid For'")
-        ElseIf CLBMeals.CheckedIndices.Count <> 0 Or CBDinnerOTMeal.Checked = True And
-            (RBDinner.Checked = True Or RBOTMeal.Checked = True) Then
-
-            If CBDinnerOTMeal.Checked = True And (RBDinner.Checked = False And RBOTMeal.Checked = False) Then
-                MsgBox("You've checked the 'Check for Dinner or OT Meal'. Please Choose either Dinner or OT Meal")
-            Else
-                Call BTNMealClick()
-                RTBNotification.Visible = False
-                txtParticulars.Visible = True
-                lblParticulars.Visible = True
-            End If
-        Else
-            MessageBox.Show("Unable to Proceed. Please Select Meal/s")
-        End If
-
-    End Sub
-
     Private Sub txtCategory_SelectedIndexChanged(sender As Object, e As EventArgs) Handles txtCategory.SelectedIndexChanged
         Dim ClsData As New ClsLoadData
         If txtCategory.SelectedItem <> Nothing Then
@@ -1299,140 +1278,9 @@ Public Class frmEReport
             CLBPaidBill.EndUpdate()
         End If
     End Sub
-    Private Sub BTNTransportation_Click(sender As Object, e As EventArgs) Handles BTNTransportation.Click
-        Dim ClsData As New ClsLoadData
-        If txtFrom.Text = "" Or txtTo.Text = "" Then
-            MsgBox("Please fill all Fields")
-        ElseIf CBBFare.SelectedValue = 4 Then
-            txtParticulars.Text = "Transportation"
-            txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
-            GBTransportation.Visible = False
-            If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
-                Dim myExpenseData As String()
-                myExpenseData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
-                ClsData.SetExpenseTransDetailsTemp({myExpenseData(0), CBBFare.SelectedValue, txtFrom.Text, txtTo.Text, CBBFare.SelectedValue.ToString() + "/" + txtFrom.Text + "/" + txtTo.Text})
-                txtExpenseAmount.Enabled = False
-            Else
-                ClsData.SetExpenseTransDetailsTemp({"0", CBBFare.SelectedValue, txtFrom.Text, txtTo.Text, CBBFare.SelectedValue.ToString() + "/" + txtFrom.Text + "/" + txtTo.Text})
-                txtExpenseAmount.Enabled = False
-            End If
-        Else
-            GBTransportation.Visible = False
-            txtParticulars.Text = txtFrom.Text + " To " + txtTo.Text + " (" + CBBFare.Text + ")"
-            TPExpenseReport.Enabled = True
-            If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
-                Dim myExpenseData As String()
-                myExpenseData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
-                ClsData.SetExpenseTransDetailsTemp({myExpenseData(0), CBBFare.SelectedValue, txtFrom.Text, txtTo.Text, CBBFare.SelectedValue.ToString() + "/" + txtFrom.Text + "/" + txtTo.Text})
-                txtExpenseAmount.Enabled = True
-            Else
-                ClsData.SetExpenseTransDetailsTemp({"0", CBBFare.SelectedValue, txtFrom.Text, txtTo.Text, CBBFare.SelectedValue.ToString() + "/" + txtFrom.Text + "/" + txtTo.Text})
-                txtExpenseAmount.Enabled = True
-            End If
-        End If
-        Call ModDataStore.OnOffControl(True)
-        Dim myERData As String() = {}
-        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") Then
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
-        End If
-        If myERData.Length <> 0 Then
-            btnExpenseSave.Visible = False
-            btnExpenseUpdate.Visible = True
-        Else
-            btnExpenseSave.Visible = True
-            btnExpenseUpdate.Visible = False
-        End If
-        txtExpenseAmount.Select()
-    End Sub
     Private Sub txtCategory_Click(sender As Object, e As EventArgs) Handles txtCategory.Click
         comboClick = 1
     End Sub
-    Private Sub GBMeals_KeyDown(sender As Object, e As KeyEventArgs) Handles GBMeals.KeyDown
-        If e.KeyCode = Keys.Escape Then
-            GBMeals.Visible = False
-            comboClick = 0
-            CLBMeals.Enabled = True
-            CBBPaidFor.Checked = False
-        End If
-    End Sub
-    Private Sub CBBPaidFor_CheckedChanged(sender As Object, e As EventArgs) Handles CBBPaidFor.CheckedChanged
-        If CBBPaidFor.Checked = True Then
-            CLBPaidBill.Enabled = True
-            CLBMeals.Enabled = False
-            CBDinnerOTMeal.Enabled = False
-            RBDinner.Enabled = False
-            RBOTMeal.Enabled = False
-        Else
-            UncheckPaidBill()
-            CLBPaidBill.Enabled = False
-            CLBMeals.Enabled = True
-            CBDinnerOTMeal.Enabled = True
-            RBDinner.Enabled = True
-            RBOTMeal.Enabled = True
-        End If
-    End Sub
-    Private Sub UncheckPaidBill()
-        For x = 0 To CLBPaidBill.CheckedIndices.Count - 1
-            CLBPaidBill.SetItemChecked(x, False)
-        Next
-    End Sub
-
-    Private Sub CLBPaidBill_SelectedIndexChanged(sender As Object, e As EventArgs) Handles CLBPaidBill.SelectedIndexChanged
-        If CLBPaidBill.CheckedIndices.Count = 0 Then
-            CBBPaidFor.Enabled = True
-        Else
-            CBBPaidFor.Enabled = False
-        End If
-    End Sub
-
-    Private Sub BTNAddFare_Click(sender As Object, e As EventArgs) Handles BTNAddFare.Click
-        Call InsertFare(CBBFare.Text)
-        CBBFare.DropDownStyle = ComboBoxStyle.DropDownList
-        FareComboValidation = "0"
-        BTNAddFare.Text = "add"
-        Dim dtLoadFare As New DataTable
-        dtLoadFare = LoadFare()
-        With CBBFare
-            .DataSource = dtLoadFare
-            .DisplayMember = "FareName"
-            .ValueMember = "id"
-        End With
-    End Sub
-
-    Private Sub BTNFareClose_Click(sender As Object, e As EventArgs) Handles BTNFareClose.Click
-        Dim ClsData As New ClsLoadData
-        Call ModDataStore.OnOffControl(True)
-        Dim myERData As String() = {}
-        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") Then
-            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
-        End If
-        If myERData.Length <> 0 Then
-            btnExpenseSave.Visible = False
-            btnExpenseUpdate.Visible = True
-        Else
-            btnExpenseSave.Visible = True
-            btnExpenseUpdate.Visible = False
-        End If
-        txtExpenseAmount.Select()
-        GBTransportation.Visible = False
-        CBBFare.DropDownStyle = ComboBoxStyle.DropDownList
-        'txtCategory.Enabled = True
-        'btnExpenseSave.Visible = False
-        'btnExpenseUpdate.Visible = True
-        'comboClick = "0"
-    End Sub
-
-    Private Sub BTNMealClose_Click(sender As Object, e As EventArgs) Handles BTNMealClose.Click
-        Call ModDataStore.OnOffControl(True)
-        GBMeals.Visible = False
-        txtCategory.Enabled = True
-        btnExpenseSave.Visible = False
-        btnExpenseUpdate.Visible = True
-        RTBNotification.Visible = False
-        lblParticulars.Visible = True
-        txtParticulars.Visible = True
-    End Sub
-
     Private Sub BTNEditCategory_Click(sender As Object, e As EventArgs) Handles BTNEditCategory.Click
         Dim ClsData As New ClsLoadData
         comboClick = "1"
@@ -1450,80 +1298,6 @@ Public Class frmEReport
         End If
     End Sub
 
-    Private Sub CBBFare_SelectedValueChanged(sender As Object, e As EventArgs) Handles CBBFare.SelectedValueChanged
-        If FareComboValidation = "1" Then
-            If CBBFare.SelectedValue = 2 Then
-                CBBFare.DropDownStyle = ComboBoxStyle.DropDown
-                FareComboValidation = "1"
-                BTNAddFare.Text = "Save"
-                CBBFare.DataSource = Nothing
-                CBBFare.Text = ""
-                BTNAddFare.Enabled = True
-                CBBFare.Select()
-
-            ElseIf CBBFare.SelectedValue = 4 Then
-                txtFrom.Text = "Allowance"
-                txtTo.Text = "Allowance"
-                txtFrom.Enabled = False
-                txtTo.Enabled = False
-                BTNAddFare.Enabled = False
-            Else
-                txtFrom.Text = ""
-                txtTo.Text = ""
-                txtFrom.Enabled = True
-                txtTo.Enabled = True
-                BTNAddFare.Enabled = False
-            End If
-        End If
-    End Sub
-    Private Sub RBDinnerOTMeal_CheckedChanged(sender As Object, e As EventArgs) Handles CBDinnerOTMeal.CheckedChanged
-        Dim str As String = modLoadingData.LoadNotification(dtpExpenseDate.Text,
-                GetRegistryValue("Software\\ER System\\UserAccount", {"Username"})(0),
-                "")
-
-        If str <> "" Then
-            Dim strSplit As String() = str.Split("/")
-            For x = 0 To UBound(strSplit)
-                If strSplit(x).Split("^")(2) = "Dinner" Or strSplit(x).Split("^")(2) = "OT Meal" Then
-                    If counter = "" Then
-                        counter = "1"
-                        MsgBox(strSplit(x).Split("^")(2) + " Meal is Already Filed by " & strSplit(x).Split("^")(1))
-                        CBDinnerOTMeal.Checked = False
-
-                    Else
-                        counter = ""
-                        CBDinnerOTMeal.Checked = False
-                    End If
-
-                End If
-            Next
-        Else
-            If CBDinnerOTMeal.Checked = True Then
-                RBDinner.Enabled = True
-                RBOTMeal.Enabled = True
-                If CLBMeals.CheckedIndices.Count = 0 Then
-                    CBBPaidFor.Enabled = True
-                Else
-                    CBBPaidFor.Enabled = False
-                    CBBPaidFor.Checked = False
-                End If
-            Else
-                RBDinner.Enabled = False
-                RBOTMeal.Enabled = False
-                RBDinner.Checked = False
-                RBOTMeal.Checked = False
-                If CLBMeals.CheckedIndices.Count = 0 Then
-                    CBBPaidFor.Enabled = False
-                    CBBPaidFor.Checked = False
-                ElseIf CLBMeals.CheckedIndices.Count = 1 Then
-                    CBBPaidFor.Enabled = True
-                End If
-            End If
-        End If
-    End Sub
-    Private Sub CBBFare_Click(sender As Object, e As EventArgs) Handles CBBFare.Click
-        FareComboValidation = "1"
-    End Sub
     Private Sub txtInvoice_TextChanged(sender As Object, e As EventArgs) Handles txtInvoice.TextChanged
         Dim ClsData As New ClsLoadData
         Dim myExpenseData As String()
@@ -1624,74 +1398,6 @@ Public Class frmEReport
                     txtMultiplier.Text = Val(txtTotalNumberOfDays.Text - txtMDays.Text)
                 End If
                 txtComputation.Text = particulars
-            End If
-        End If
-    End Sub
-    Private Sub BTNComputation_Click(sender As Object, e As EventArgs) Handles BTNComputation.Click
-        If txtMultiplier.Text = 0 Or txtMultiplier.Text < 0 Then
-            MsgBox("0 or Less than 0 Multiplier is Not Allowed!")
-        Else
-            If txtTotalNumberOfDays.Text.Equals("") And txtTotal.Text.Equals("") Then
-                MsgBox("Please Fill all Fields.")
-            Else
-                Dim ClsData As New ClsLoadData
-                BTNEditCategory.Enabled = True
-                txtCategory.Enabled = False
-                GBAllowance.Visible = False
-                txtMultiplier.Enabled = False
-                Dim ValueName As String() = {"TotalDays"}
-                Dim Value As String() = {txtTotalNumberOfDays.Text}
-                ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", "UserAccount", ValueName, Value)
-                If ClsData.RegistryGetValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0) = "IMS" Then
-                    txtExpenseAmount.Enabled = True
-                End If
-            End If
-        End If
-    End Sub
-    Private Sub BTNCloseComputation_Click(sender As Object, e As EventArgs) Handles BTNCloseComputation.Click
-        Dim ClsData As New ClsLoadData
-        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
-            GBAllowance.Visible = False
-        Else
-            txtCategory.SelectedItem = Nothing
-            GBAllowance.Visible = False
-            txtParticulars.Clear()
-        End If
-    End Sub
-    Private Sub CLBMeals_SelectedValueChanged(sender As Object, e As EventArgs) Handles CLBMeals.SelectedValueChanged
-        Dim str As String = modLoadingData.LoadNotification(dtpExpenseDate.Text,
-            GetRegistryValue("Software\\ER System\\UserAccount", {"Username"})(0),
-            "")
-        If str <> "" Then
-            Dim strSplit As String() = Split(str, "/")
-            For x = 0 To UBound(strSplit)
-                If CLBMeals.SelectedIndex = 0 And strSplit(x).Split("^")(2) = "Breakfast" Then
-                    MsgBox("Lunch Meal is Already Filed by " & strSplit(x).Split("^")(1))
-                    CLBMeals.SetItemChecked(0, False)
-                ElseIf CLBMeals.SelectedIndex = 1 And strSplit(x).Split("^")(2) = "Lunch" Then
-                    MsgBox("Lunch Meal is Already Filed by " & strSplit(x).Split("^")(1))
-                    CLBMeals.SetItemChecked(1, False)
-                End If
-            Next
-        Else
-            If txtWorkWith.Text <> "NONE" Then
-                Dim Num As Integer
-                Num = CLBMeals.CheckedItems.Count
-                If CLBMeals.CheckedIndices.Count = 1 Then
-                    If CBDinnerOTMeal.Checked = True Then
-                        CBBPaidFor.Enabled = False
-                    Else
-                        CBBPaidFor.Enabled = True
-                    End If
-                ElseIf CLBMeals.CheckedIndices.Count = 0 Then
-                    If CBDinnerOTMeal.Checked = True Then
-                        CBBPaidFor.Enabled = True
-                    Else
-                        CBBPaidFor.Enabled = False
-                    End If
-                ElseIf CLBMeals.CheckedIndices.Count >= 0 Then
-                    CBBPaidFor.Enabled = False
-                End If
             End If
         End If
     End Sub
