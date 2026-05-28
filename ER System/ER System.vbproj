@@ -280,6 +280,7 @@
     <Compile Include="Presentation\Forms\Expense\frmEReport.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Presentation\Forms\Expense\ExpenseHelperPopups.vb" />
     <Compile Include="Presentation\Forms\Expense\frmERType.Designer.vb">
       <DependentUpon>frmERType.vb</DependentUpon>
     </Compile>

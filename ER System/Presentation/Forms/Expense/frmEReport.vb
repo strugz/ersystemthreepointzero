@@ -6,7 +6,6 @@ Public Class frmEReport
     Public Const MyKey As String = "crimsonmonastery2003"
     Public TripleDes As New clsEncryption(MyKey)
     Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
-    Private Shared ReadOnly CategoryHelperLocation As New Point(98, 283)
 
 #Region "Sorting"
     Enum mode
@@ -153,6 +152,217 @@ Public Class frmEReport
         Me.dtpExpenseDate.Value = DateTime.Now.ToString("MM/dd/yyyy")
         txtWorkWith.Text = "NONE"
     End Sub
+
+    Private Function BuildAllowanceComputation(totalDays As String, minusDays As String, amount As String) As AllowanceComputationResult
+        Dim normalizedMinusDays As String = If(String.IsNullOrWhiteSpace(minusDays), "0", minusDays)
+        Dim multiplier As Double = Val(totalDays) - Val(normalizedMinusDays)
+        Dim computationText As String
+
+        If normalizedMinusDays <> "0" Then
+            computationText = " (" & totalDays & "Days - " & normalizedMinusDays & "Days) * " & amount
+        Else
+            computationText = " (" & totalDays & "Days) * " & amount
+        End If
+
+        Return New AllowanceComputationResult With {
+            .TotalDays = totalDays,
+            .MinusDays = normalizedMinusDays,
+            .Multiplier = multiplier.ToString(),
+            .ComputationText = computationText
+        }
+    End Function
+
+    Private Sub ShowAllowanceComputationPopup()
+        Using popup As New AllowanceComputationPopup(txtTotalNumberOfDays.Text, txtMDays.Text)
+            If popup.ShowDialog(Me) = DialogResult.OK Then
+                ApplyAllowanceComputationResult(BuildAllowanceComputation(popup.Result.TotalDays, popup.Result.MinusDays, txtExpenseAmount.Text))
+            Else
+                ApplyAllowanceComputationCancel()
+            End If
+        End Using
+    End Sub
+
+    Private Sub ApplyAllowanceComputationResult(result As AllowanceComputationResult)
+        Dim ClsData As New ClsLoadData
+
+        txtTotalNumberOfDays.Text = result.TotalDays
+        txtMDays.Text = result.MinusDays
+        txtMultiplier.Text = result.Multiplier
+        txtComputation.Text = result.ComputationText
+        BTNEditCategory.Enabled = True
+        txtCategory.Enabled = False
+        txtMultiplier.Enabled = False
+
+        Dim valueName As String() = {"TotalDays"}
+        Dim value As String() = {result.TotalDays}
+        ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", "UserAccount", valueName, value)
+
+        If ClsData.RegistryGetValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0) = "IMS" Then
+            txtExpenseAmount.Enabled = True
+        End If
+    End Sub
+
+    Private Sub ApplyAllowanceComputationCancel()
+        Dim ClsData As New ClsLoadData
+
+        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = False Then
+            txtCategory.SelectedItem = Nothing
+            txtParticulars.Clear()
+        End If
+    End Sub
+
+    Private Sub ShowTransportationPopup()
+        Dim selectedFareId As Object = Nothing
+
+        If CBBFare.DataSource IsNot Nothing AndAlso CBBFare.SelectedValue IsNot Nothing Then
+            selectedFareId = CBBFare.SelectedValue
+        End If
+
+        Using popup As New TransportationPopup(LoadFare(), selectedFareId, txtFrom.Text, txtTo.Text)
+            If popup.ShowDialog(Me) = DialogResult.OK Then
+                ApplyTransportationResult(popup.Result)
+            Else
+                ApplyTransportationCancel()
+            End If
+        End Using
+    End Sub
+
+    Private Sub ApplyTransportationResult(result As TransportationResult)
+        Dim ClsData As New ClsLoadData
+        Dim expenseTransportationId As String = "0"
+
+        txtParticulars.Text = result.Particulars
+        TPExpenseReport.Enabled = True
+
+        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+            Dim myExpenseData As String() = ClsData.GetEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
+
+            If myExpenseData.Length <> 0 Then
+                expenseTransportationId = myExpenseData(0)
+            End If
+        End If
+
+        ClsData.SetExpenseTransDetailsTemp({
+            expenseTransportationId,
+            result.FareId,
+            result.FareFrom,
+            result.FareTo,
+            result.Payload})
+
+        If result.FareId = "4" Then
+            txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
+        End If
+
+        txtExpenseAmount.Enabled = result.AmountEnabled
+        ApplyExpenseHelperReturnedState()
+        CBBFare.DropDownStyle = ComboBoxStyle.DropDownList
+        txtExpenseAmount.Select()
+    End Sub
+
+    Private Sub ApplyTransportationCancel()
+        Call ModDataStore.OnOffControl(True)
+        ApplyExpenseHelperReturnedState()
+        txtExpenseAmount.Select()
+        CBBFare.DropDownStyle = ComboBoxStyle.DropDownList
+    End Sub
+
+    Private Sub ShowMealSelectionPopup(workWith As String)
+        Using popup As New MealSelectionPopup(
+            dtpExpenseDate.Text,
+            GetRegistryValue("Software\\ER System\\UserAccount", {"Username"})(0),
+            workWith,
+            CLBMeals.GetItemChecked(0),
+            CLBMeals.GetItemChecked(1),
+            RBDinner.Checked,
+            RBOTMeal.Checked,
+            CBBPaidFor.Checked,
+            CBBPaidFor.Enabled,
+            CBBPaidFor.Visible,
+            CLBPaidBill.Visible,
+            GetCheckedListBoxItems(CLBPaidBill),
+            GetCheckedListBoxCheckedIndexes(CLBPaidBill))
+
+            If popup.ShowDialog(Me) = DialogResult.OK Then
+                ApplyMealSelectionResult(popup.Result)
+            Else
+                ApplyMealSelectionCancel()
+            End If
+        End Using
+    End Sub
+
+    Private Function GetCheckedListBoxItems(checkedListBox As CheckedListBox) As List(Of String)
+        Dim items As New List(Of String)()
+
+        For Each item As Object In checkedListBox.Items
+            items.Add(Convert.ToString(item))
+        Next
+
+        Return items
+    End Function
+
+    Private Function GetCheckedListBoxCheckedIndexes(checkedListBox As CheckedListBox) As List(Of Integer)
+        Dim indexes As New List(Of Integer)()
+
+        For Each checkedIndex As Integer In checkedListBox.CheckedIndices
+            indexes.Add(checkedIndex)
+        Next
+
+        Return indexes
+    End Function
+
+    Private Sub ApplyMealSelectionResult(result As MealSelectionResult)
+        CLBMeals.SetItemChecked(0, result.BreakfastSelected)
+        CLBMeals.SetItemChecked(1, result.LunchSelected)
+        CBDinnerOTMeal.Checked = result.DinnerSelected OrElse result.OtMealSelected
+        RBDinner.Checked = result.DinnerSelected
+        RBOTMeal.Checked = result.OtMealSelected
+        CBBPaidFor.Checked = result.PaidFor
+
+        For index As Integer = 0 To CLBPaidBill.Items.Count - 1
+            CLBPaidBill.SetItemChecked(index, False)
+        Next
+
+        For Each paidEmployeeIndex As Integer In result.PaidEmployeeIndexes
+            If paidEmployeeIndex >= 0 AndAlso paidEmployeeIndex < CLBPaidBill.Items.Count Then
+                CLBPaidBill.SetItemChecked(paidEmployeeIndex, True)
+            End If
+        Next
+
+        Call BTNMealClick()
+        RTBNotification.Visible = False
+        txtParticulars.Visible = True
+        lblParticulars.Visible = True
+    End Sub
+
+    Private Sub ApplyMealSelectionCancel()
+        Call ModDataStore.OnOffControl(True)
+        txtCategory.Enabled = True
+        btnExpenseSave.Visible = False
+        btnExpenseUpdate.Visible = True
+        RTBNotification.Visible = False
+        lblParticulars.Visible = True
+        txtParticulars.Visible = True
+    End Sub
+
+    Private Sub ApplyExpenseHelperReturnedState()
+        Dim ClsData As New ClsLoadData
+        Dim myERData As String() = {}
+
+        Call ModDataStore.OnOffControl(True)
+
+        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") Then
+            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+        End If
+
+        If myERData.Length <> 0 Then
+            btnExpenseSave.Visible = False
+            btnExpenseUpdate.Visible = True
+        Else
+            btnExpenseSave.Visible = True
+            btnExpenseUpdate.Visible = False
+        End If
+    End Sub
+
     Private Sub dgvExpense_CellClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvExpense.CellClick
         If e.RowIndex > 0 Then
             SortNumber = dgvExpense.Rows(e.RowIndex).Cells("sort").Value
@@ -742,8 +952,6 @@ Public Class frmEReport
         Else
             If comboClick = 1 And ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = False Then
                 txtParticulars.Size = New Size(199, 40)
-                GBAllowance.Location = CategoryHelperLocation
-                GBAllowance.Visible = True
                 LBLComputation.Visible = True
                 txtParticulars.Text = txtCategory.Text
                 txtExpenseAmount.Enabled = True
@@ -758,10 +966,9 @@ Public Class frmEReport
                 ElseIf txtCategory.SelectedIndex = 1 Then
                     txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
                 End If
+                ShowAllowanceComputationPopup()
             ElseIf comboClick = 1 And ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
                 txtParticulars.Size = New Size(199, 40)
-                GBAllowance.Location = CategoryHelperLocation
-                GBAllowance.Visible = True
                 If IsDBNull(GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)) = False Then
                     txtTotalNumberOfDays.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)
                 End If
@@ -770,6 +977,7 @@ Public Class frmEReport
                 ElseIf txtCategory.SelectedIndex = 1 Then
                     txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
                 End If
+                ShowAllowanceComputationPopup()
             ElseIf ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
                 txtCategory.Enabled = False
                 BTNEditCategory.Enabled = True
@@ -797,15 +1005,13 @@ Public Class frmEReport
                         txtCategory.SelectedItem = Nothing
                     Else
                         Call ModDataStore.OnOffControl(False)
-                        GBTransportation.Location = CategoryHelperLocation
-                        GBTransportation.Visible = True
                         GBMeals.Visible = False
-                        GBTransportation.BringToFront()
                         txtCategory.Enabled = False
                         BTNEditCategory.Enabled = True
                         btnExpenseUpdate.Visible = False
                         btnExpenseSave.Visible = False
                         Call TransportationDataValidation(ExpenseID)
+                        ShowTransportationPopup()
                     End If
                 ElseIf txtCategory.SelectedIndex = 1 Then
                     If WorkWith = "" Then
@@ -813,15 +1019,13 @@ Public Class frmEReport
                         txtCategory.SelectedItem = Nothing
                     Else
                         Call ModDataStore.OnOffControl(False)
-                        GBMeals.Location = CategoryHelperLocation
-                        GBMeals.Visible = True
                         GBTransportation.Visible = False
-                        GBMeals.BringToFront()
                         Call MealDataValidation(WorkWith, ExpenseID)
                         txtCategory.Enabled = False
                         BTNEditCategory.Enabled = True
                         btnExpenseUpdate.Visible = False
                         btnExpenseSave.Visible = False
+                        ShowMealSelectionPopup(WorkWith)
                     End If
 
                 ElseIf txtCategory.SelectedIndex = 4 Then

@@ -102,6 +102,7 @@ Namespace Global.ERSystem.Infrastructure.Data
             existing.ExpenseType = expense.ExpenseType
             existing.ExpenseCategory = expense.ExpenseCategory
             existing.ExpenseAmount = expense.ExpenseAmount
+            existing.VatAmount = expense.VatAmount
             existing.ExpenseRemarks = expense.ExpenseRemarks
             existing.ExpenseStatus = expense.ExpenseStatus
             existing.UserID = expense.UserID
@@ -129,6 +130,7 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .ExpenseType = expense.ExpenseType,
                 .ExpenseCategory = expense.ExpenseCategory,
                 .ExpenseAmount = expense.ExpenseAmount,
+                .VatAmount = expense.VatAmount,
                 .ExpenseRemarks = expense.ExpenseRemarks,
                 .ExpenseStatus = expense.ExpenseStatus,
                 .UserID = expense.UserID,
@@ -158,6 +160,7 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .ExpenseType = expense.ExpenseType,
                 .ExpenseCategory = expense.ExpenseCategory,
                 .ExpenseAmount = expense.ExpenseAmount,
+                .VatAmount = expense.VatAmount,
                 .ExpenseRemarks = expense.ExpenseRemarks,
                 .ExpenseStatus = expense.ExpenseStatus,
                 .UserID = expense.UserID,

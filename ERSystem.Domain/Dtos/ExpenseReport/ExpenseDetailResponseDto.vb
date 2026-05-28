@@ -20,6 +20,8 @@ Public Class ExpenseDetailResponseDto
 
     Public Property ExpenseAmount As Nullable(Of Double)
 
+    Public Property VatAmount As Nullable(Of Double)
+
     Public Property ExpenseRemarks As String
 
     Public Property ExpenseStatus As String

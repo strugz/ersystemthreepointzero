@@ -97,16 +97,6 @@
             RefreshEReportData()
         End If
     End Sub
-    Private Sub ToolStripButton1_Click_1(sender As Object, e As EventArgs) Handles btnSearchOpen.Click
-        'If SearchButtonValidation = "0" Then
-        '    GBSearch.Visible = True
-        '    SearchButtonValidation = "1"
-        'Else
-        '    SearchButtonValidation = "0"
-        '    GBSearch.Visible = False
-        '    TxtSearchBy.Clear()
-        'End If
-    End Sub
     Private Sub PictureBox2_Click(sender As Object, e As EventArgs) Handles PictureBox2.Click
         Dim ClsData As New ClsLoadData
         frmLogin.txtUsername.Clear()

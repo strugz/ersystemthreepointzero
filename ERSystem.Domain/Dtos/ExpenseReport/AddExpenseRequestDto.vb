@@ -18,6 +18,8 @@ Public Class AddExpenseRequestDto
 
     Public Property Amount As Nullable(Of Double)
 
+    Public Property VatAmount As Nullable(Of Double)
+
     Public Property Remarks As String
 
     Public Property Status As String
