@@ -41,7 +41,7 @@ Public NotInheritable Class ExpenseLegacyStateGateway
 
     Public Sub ClearExpenseEntry(clearWorkContext As Boolean)
         If clearWorkContext Then
-            ModDataStore.ClearAllExpenseData()
+            Call ModDataStore.ClearExpenseDataDetails(transactionID, comboClick)
         Else
             ModDataStore.clearExpenseData()
         End If

@@ -388,30 +388,6 @@ Module ModDataStore
             .txtParticulars.Enabled = False
         End With
     End Sub
-    Friend Sub ClearAllExpenseData()
-        With frmEReport
-            .CBPerdiem.Checked = False
-            .dtpExpenseDate.Value = DateTime.Now
-            .txtWorkWith.Text = ""
-            modLoadingData.WorkWith = ""
-            .txtLocation.Clear()
-            .txtInstrument.Clear()
-            .txtSerialNumber.Clear()
-            .txtServiceNumber.Clear()
-            .RbLocal.Checked = True
-            .txtCategory.SelectedItem = Nothing
-            .txtParticulars.Text = ""
-            .txtExpenseAmount.Clear()
-            .txtTotal.Clear()
-            .txtMultiplier.Text = 1
-            .txtInvoice.Clear()
-            .txtStatus.SelectedIndex = 0
-            .txtRemarks.Text = ""
-            .btnExpenseUpdate.Visible = False
-            .btnExpenseSave.Visible = True
-            .txtParticulars.Enabled = False
-        End With
-    End Sub
     Friend Sub RPTValidation(ByVal ReportStatus As String, ByVal PrintStatus As String)
         With frmRpt
             If ReportStatus = "For Approval" Then

@@ -128,9 +128,19 @@ Public Class frmEReport
     End Sub
     Private Sub frmEReport_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
         If e.KeyCode = Keys.Escape Then
-            Call ModDataStore.ClearExpenseDataDetails(transactionID, comboClick)
+            CancelCurrentExpenseEdit()
+            e.Handled = True
         End If
     End Sub
+
+    Private Sub CancelCurrentExpenseEdit()
+        Call ModDataStore.ClearExpenseDataDetails(transactionID, comboClick)
+    End Sub
+
+    Private Sub ApplySavedExpenseClearChoice(clearWorkContext As Boolean, deleteExpenseSettings As Boolean)
+        _presenter.ApplyClearChoice(clearWorkContext, deleteExpenseSettings)
+    End Sub
+
     Private Sub frmEReport_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Dim ClsData As New ClsLoadData
         Call DgExpenseVisibility({"ID", "reportid", "sort"})
@@ -151,6 +161,7 @@ Public Class frmEReport
         End If
         Me.dtpExpenseDate.Value = DateTime.Now.ToString("MM/dd/yyyy")
         txtWorkWith.Text = "NONE"
+        UpdateVatAmountState()
     End Sub
 
     Private Sub ShowAllowanceComputationPopup()
@@ -353,7 +364,7 @@ Public Class frmEReport
     Private Sub dgvExpense_CellDoubleClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvExpense.CellDoubleClick
         Try
             Dim ClsData As New ClsLoadData
-            Call ModDataStore.ClearExpenseDataDetails(transactionID, comboClick)
+            CancelCurrentExpenseEdit()
             ClsData.SetExpenseDetails(dgvExpense.Rows(e.RowIndex).Cells("reportid").Value,
                                           dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
             ClsData.SetExpenseMealDetails(dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
@@ -462,6 +473,7 @@ Public Class frmEReport
             .Category = txtCategory.Text,
             .CategorySelected = txtCategory.SelectedItem IsNot Nothing,
             .Amount = txtExpenseAmount.Text,
+            .VatAmount = txtVatAmount.Text,
             .Remarks = txtRemarks.Text,
             .Status = If(txtStatus.SelectedItem Is Nothing, Nothing, txtStatus.SelectedItem.ToString()),
             .TotalAmount = txtTotal.Text,
@@ -500,7 +512,7 @@ Public Class frmEReport
                     MessageBoxIcon.Warning,
                     MessageBoxDefaultButton.Button2) = DialogResult.Yes
 
-            _presenter.ApplyClearChoice(clearWorkContext, result.DeleteExpenseSettingsAfterClear)
+            ApplySavedExpenseClearChoice(clearWorkContext, result.DeleteExpenseSettingsAfterClear)
         End If
 
         If result.ShouldRefreshExpenseGrid Then
@@ -538,9 +550,11 @@ Public Class frmEReport
         If result.ClearComputation Then
             txtComputation.Clear()
         End If
+
+        UpdateVatAmountState()
     End Sub
     Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
-        ModDataStore.ClearExpenseDataDetails(transactionID, comboClick)
+        CancelCurrentExpenseEdit()
     End Sub
 
     Private Sub btnExpenseUpdate_Click(sender As Object, e As EventArgs) Handles btnExpenseUpdate.Click
@@ -668,6 +682,16 @@ Public Class frmEReport
         End If
     End Sub
     Private Sub txtInvoice_KeyUp(sender As Object, e As KeyEventArgs) Handles txtInvoice.KeyUp
+        If e.KeyCode = Keys.Enter Then
+            If txtVatAmount.Enabled Then
+                txtVatAmount.Focus()
+            Else
+                txtRemarks.Focus()
+            End If
+        End If
+    End Sub
+
+    Private Sub txtVatAmount_KeyUp(sender As Object, e As KeyEventArgs) Handles txtVatAmount.KeyUp
         If e.KeyCode = Keys.Enter Then
             txtRemarks.Focus()
         End If
@@ -1127,6 +1151,8 @@ Public Class frmEReport
     End Sub
 
     Private Sub txtInvoice_TextChanged(sender As Object, e As EventArgs) Handles txtInvoice.TextChanged
+        UpdateVatAmountState()
+
         Dim ClsData As New ClsLoadData
         Dim myExpenseData As String()
         If ClsData.TempFileValidation(Application.StartupPath + "\expenseMealSettings.txt") = True Then
@@ -1143,6 +1169,15 @@ Public Class frmEReport
         End If
         If txtInvoice.Text <> "" And txtMultiplier.Text = 1 Then
             txtTotal.Text = Val(txtExpenseAmount.Text)
+        End If
+    End Sub
+
+    Private Sub UpdateVatAmountState()
+        Dim hasInvoice As Boolean = Not String.IsNullOrWhiteSpace(txtInvoice.Text)
+        txtVatAmount.Enabled = hasInvoice
+
+        If Not hasInvoice Then
+            txtVatAmount.Clear()
         End If
     End Sub
 

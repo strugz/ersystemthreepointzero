@@ -19,6 +19,7 @@ Public NotInheritable Class ExpenseEntryRequestFactory
             .Type = If(snapshot.LocalChecked, "Local", "Foreign"),
             .Category = snapshot.Category,
             .Amount = ParseRequiredDouble(snapshot.Amount, "Expense Amount"),
+            .VatAmount = ParseVatAmount(snapshot.Invoice, snapshot.VatAmount),
             .Remarks = snapshot.Remarks,
             .Status = snapshot.Status,
             .TotalAmount = ParseRequiredDouble(snapshot.TotalAmount, "Total Amount"),
@@ -61,6 +62,7 @@ Public NotInheritable Class ExpenseEntryRequestFactory
             .Type = If(snapshot.LocalChecked, "Local", "Foreign"),
             .Category = snapshot.Category,
             .Amount = ParseRequiredDouble(snapshot.Amount, "Expense Amount"),
+            .VatAmount = ParseVatAmount(snapshot.Invoice, snapshot.VatAmount),
             .Remarks = snapshot.Remarks,
             .Status = snapshot.Status,
             .TotalAmount = ParseRequiredDouble(snapshot.TotalAmount, "Total Amount"),
@@ -137,5 +139,13 @@ Public NotInheritable Class ExpenseEntryRequestFactory
         End If
 
         Throw New FormatException(fieldName & " must be a valid number.")
+    End Function
+
+    Private Shared Function ParseVatAmount(invoice As String, vatAmount As String) As Nullable(Of Double)
+        If String.IsNullOrWhiteSpace(invoice) Then
+            Return Nothing
+        End If
+
+        Return ParseRequiredDouble(vatAmount, "VAT Amount")
     End Function
 End Class

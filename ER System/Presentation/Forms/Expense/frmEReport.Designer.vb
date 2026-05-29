@@ -60,6 +60,8 @@ Partial Class frmEReport
         Me.lblExpenseStatus = New System.Windows.Forms.Label()
         Me.txtInvoice = New System.Windows.Forms.TextBox()
         Me.lblExpenseInvoice = New System.Windows.Forms.Label()
+        Me.txtVatAmount = New System.Windows.Forms.TextBox()
+        Me.lblVatAmount = New System.Windows.Forms.Label()
         Me.txtMultiplier = New System.Windows.Forms.TextBox()
         Me.lblExpenseMultiplier = New System.Windows.Forms.Label()
         Me.txtTotal = New System.Windows.Forms.TextBox()
@@ -73,8 +75,8 @@ Partial Class frmEReport
         Me.Label9 = New System.Windows.Forms.Label()
         Me.CBPerdiem = New System.Windows.Forms.CheckBox()
         Me.lblExpenseAmount = New System.Windows.Forms.Label()
-        Me.btnExpenseSave = New System.Windows.Forms.Button()
         Me.btnExpenseUpdate = New System.Windows.Forms.Button()
+        Me.btnExpenseSave = New System.Windows.Forms.Button()
         Me.GBTransportation = New System.Windows.Forms.GroupBox()
         Me.BTNFareClose = New System.Windows.Forms.Button()
         Me.BTNAddFare = New System.Windows.Forms.Button()
@@ -170,6 +172,8 @@ Partial Class frmEReport
         Me.TPExpenseReport.Controls.Add(Me.lblExpenseStatus)
         Me.TPExpenseReport.Controls.Add(Me.txtInvoice)
         Me.TPExpenseReport.Controls.Add(Me.lblExpenseInvoice)
+        Me.TPExpenseReport.Controls.Add(Me.txtVatAmount)
+        Me.TPExpenseReport.Controls.Add(Me.lblVatAmount)
         Me.TPExpenseReport.Controls.Add(Me.txtMultiplier)
         Me.TPExpenseReport.Controls.Add(Me.lblExpenseMultiplier)
         Me.TPExpenseReport.Controls.Add(Me.txtTotal)
@@ -183,8 +187,8 @@ Partial Class frmEReport
         Me.TPExpenseReport.Controls.Add(Me.Label9)
         Me.TPExpenseReport.Controls.Add(Me.CBPerdiem)
         Me.TPExpenseReport.Controls.Add(Me.lblExpenseAmount)
-        Me.TPExpenseReport.Controls.Add(Me.btnExpenseUpdate)
         Me.TPExpenseReport.Controls.Add(Me.btnExpenseSave)
+        Me.TPExpenseReport.Controls.Add(Me.btnExpenseUpdate)
         Me.TPExpenseReport.Location = New System.Drawing.Point(4, 22)
         Me.TPExpenseReport.Name = "TPExpenseReport"
         Me.TPExpenseReport.Padding = New System.Windows.Forms.Padding(3)
@@ -463,7 +467,7 @@ Partial Class frmEReport
         '
         Me.lblExpenseRemarks.AutoSize = True
         Me.lblExpenseRemarks.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.lblExpenseRemarks.Location = New System.Drawing.Point(11, 389)
+        Me.lblExpenseRemarks.Location = New System.Drawing.Point(11, 429)
         Me.lblExpenseRemarks.Name = "lblExpenseRemarks"
         Me.lblExpenseRemarks.Size = New System.Drawing.Size(50, 13)
         Me.lblExpenseRemarks.TabIndex = 48
@@ -472,10 +476,10 @@ Partial Class frmEReport
         'txtRemarks
         '
         Me.txtRemarks.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.txtRemarks.Location = New System.Drawing.Point(98, 385)
+        Me.txtRemarks.Location = New System.Drawing.Point(98, 425)
         Me.txtRemarks.Name = "txtRemarks"
-        Me.txtRemarks.Size = New System.Drawing.Size(199, 74)
-        Me.txtRemarks.TabIndex = 14
+        Me.txtRemarks.Size = New System.Drawing.Size(199, 34)
+        Me.txtRemarks.TabIndex = 15
         Me.txtRemarks.Text = ""
         '
         'txtStatus
@@ -516,6 +520,25 @@ Partial Class frmEReport
         Me.lblExpenseInvoice.Size = New System.Drawing.Size(64, 13)
         Me.lblExpenseInvoice.TabIndex = 43
         Me.lblExpenseInvoice.Text = "Invoice No."
+        '
+        'txtVatAmount
+        '
+        Me.txtVatAmount.Enabled = False
+        Me.txtVatAmount.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.txtVatAmount.Location = New System.Drawing.Point(98, 397)
+        Me.txtVatAmount.Name = "txtVatAmount"
+        Me.txtVatAmount.Size = New System.Drawing.Size(106, 22)
+        Me.txtVatAmount.TabIndex = 14
+        '
+        'lblVatAmount
+        '
+        Me.lblVatAmount.AutoSize = True
+        Me.lblVatAmount.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lblVatAmount.Location = New System.Drawing.Point(96, 382)
+        Me.lblVatAmount.Name = "lblVatAmount"
+        Me.lblVatAmount.Size = New System.Drawing.Size(68, 13)
+        Me.lblVatAmount.TabIndex = 108
+        Me.lblVatAmount.Text = "VAT Amount"
         '
         'txtMultiplier
         '
@@ -645,15 +668,6 @@ Partial Class frmEReport
         Me.lblExpenseAmount.TabIndex = 37
         Me.lblExpenseAmount.Text = "Amount"
         '
-        'btnExpenseSave
-        '
-        Me.btnExpenseSave.Location = New System.Drawing.Point(227, 465)
-        Me.btnExpenseSave.Name = "btnExpenseSave"
-        Me.btnExpenseSave.Size = New System.Drawing.Size(70, 24)
-        Me.btnExpenseSave.TabIndex = 15
-        Me.btnExpenseSave.Text = "Save"
-        Me.btnExpenseSave.UseVisualStyleBackColor = True
-        '
         'btnExpenseUpdate
         '
         Me.btnExpenseUpdate.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
@@ -664,6 +678,15 @@ Partial Class frmEReport
         Me.btnExpenseUpdate.Text = "Update"
         Me.btnExpenseUpdate.UseVisualStyleBackColor = True
         Me.btnExpenseUpdate.Visible = False
+        '
+        'btnExpenseSave
+        '
+        Me.btnExpenseSave.Location = New System.Drawing.Point(227, 465)
+        Me.btnExpenseSave.Name = "btnExpenseSave"
+        Me.btnExpenseSave.Size = New System.Drawing.Size(70, 24)
+        Me.btnExpenseSave.TabIndex = 15
+        Me.btnExpenseSave.Text = "Save"
+        Me.btnExpenseSave.UseVisualStyleBackColor = True
         '
         'GBTransportation
         '
@@ -1149,6 +1172,8 @@ Partial Class frmEReport
     Friend WithEvents lblExpenseStatus As System.Windows.Forms.Label
     Friend WithEvents txtInvoice As System.Windows.Forms.TextBox
     Friend WithEvents lblExpenseInvoice As System.Windows.Forms.Label
+    Friend WithEvents txtVatAmount As System.Windows.Forms.TextBox
+    Friend WithEvents lblVatAmount As System.Windows.Forms.Label
     Friend WithEvents txtMultiplier As System.Windows.Forms.TextBox
     Friend WithEvents lblExpenseMultiplier As System.Windows.Forms.Label
     Friend WithEvents txtTotal As System.Windows.Forms.TextBox

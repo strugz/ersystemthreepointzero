@@ -169,6 +169,10 @@ Public NotInheritable Class EReportPresenter
             Return "Please fill in the Particulars/Expense Amount/Category"
         End If
 
+        If Not String.IsNullOrWhiteSpace(snapshot.Invoice) AndAlso String.IsNullOrWhiteSpace(snapshot.VatAmount) Then
+            Return "Please fill the VAT Amount"
+        End If
+
         Return String.Empty
     End Function
 

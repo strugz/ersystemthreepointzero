@@ -11,6 +11,7 @@ Public Class EReportEntrySnapshot
     Public Property Category As String
     Public Property CategorySelected As Boolean
     Public Property Amount As String
+    Public Property VatAmount As String
     Public Property Remarks As String
     Public Property Status As String
     Public Property TotalAmount As String
