@@ -98,6 +98,7 @@
     <Compile Include="Data\Interfaces\IReportDetailRepository.vb" />
     <Compile Include="Data\Interfaces\IReportDetailService.vb" />
     <Compile Include="Data\Interfaces\IRejectActionRepository.vb" />
+    <Compile Include="Data\Interfaces\ITransactionRepository.vb" />
     <Compile Include="Data\Interfaces\IUserRegistrationRepository.vb" />
     <Compile Include="Data\Interfaces\IUserRegistrationService.vb" />
     <Compile Include="Data\Repositories\AccountSettingsRepository.vb" />
@@ -111,6 +112,7 @@
     <Compile Include="Data\Repositories\ReportDetailRepository.vb" />
     <Compile Include="Data\Repositories\FinanceReviewRepository.vb" />
     <Compile Include="Data\Repositories\RejectActionRepository.vb" />
+    <Compile Include="Data\Repositories\TransactionRepository.vb" />
     <Compile Include="Data\Repositories\UserRegistrationRepository.vb" />
     <Compile Include="Data\Sql\SqlConnectionFactory.vb" />
     <Compile Include="Data\Services\FinanceReviewService.vb" />

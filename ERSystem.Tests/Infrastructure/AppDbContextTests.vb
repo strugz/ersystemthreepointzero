@@ -11,6 +11,9 @@ Namespace Infrastructure
                 Assert.IsNotNull(dbContext.CashAdvances)
                 Assert.IsNotNull(dbContext.ReportFinanceTrackings)
                 Assert.IsNotNull(dbContext.UserRegistrations)
+                Assert.IsNotNull(dbContext.ContactMasters)
+                Assert.IsNotNull(dbContext.TradeMasters)
+                Assert.IsNotNull(dbContext.AccountMasters)
             End Using
         End Sub
     End Class

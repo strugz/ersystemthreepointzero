@@ -70,6 +70,7 @@
     <Compile Include="Dtos\CashAdvance\CashAdvanceResponseDto.vb" />
     <Compile Include="Dtos\CashAdvance\CreateCashAdvanceDto.vb" />
     <Compile Include="Dtos\CashAdvance\UpdateCashAdvanceDto.vb" />
+    <Compile Include="Dtos\Crm\FwmsTransactionDto.vb" />
     <Compile Include="Dtos\ExpenseReport\AddExpenseRequestDto.vb" />
     <Compile Include="Dtos\ExpenseReport\CreateExpenseDetailDto.vb" />
     <Compile Include="Dtos\ExpenseReport\ExpenseDetailDto.vb" />
@@ -95,6 +96,9 @@
     <Compile Include="Dtos\User\DepartmentDto.vb" />
     <Compile Include="Dtos\User\UserAuthorityDto.vb" />
     <Compile Include="Entities\CashAdvance\CashAdvanceModel.vb" />
+    <Compile Include="Entities\Crm\AccountMasterModel.vb" />
+    <Compile Include="Entities\Crm\ContactMasterModel.vb" />
+    <Compile Include="Entities\Crm\TradeMasterModel.vb" />
     <Compile Include="Entities\ExpenseReport\ExpenseDetailModel.vb" />
     <Compile Include="Entities\ExpenseReport\ExpenseIdCounterModel.vb" />
     <Compile Include="Entities\ExpenseReport\ExpenseMealItemModel.vb" />
