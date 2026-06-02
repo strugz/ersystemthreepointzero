@@ -52,6 +52,7 @@ Partial Class frmEReport
         Me.txtInstrument = New System.Windows.Forms.TextBox()
         Me.Label21 = New System.Windows.Forms.Label()
         Me.txtServiceNumber = New System.Windows.Forms.TextBox()
+        Me.btnFwmsLookup = New System.Windows.Forms.Button()
         Me.Label20 = New System.Windows.Forms.Label()
         Me.btnCancel = New System.Windows.Forms.Button()
         Me.lblExpenseRemarks = New System.Windows.Forms.Label()
@@ -75,8 +76,8 @@ Partial Class frmEReport
         Me.Label9 = New System.Windows.Forms.Label()
         Me.CBPerdiem = New System.Windows.Forms.CheckBox()
         Me.lblExpenseAmount = New System.Windows.Forms.Label()
-        Me.btnExpenseUpdate = New System.Windows.Forms.Button()
         Me.btnExpenseSave = New System.Windows.Forms.Button()
+        Me.btnExpenseUpdate = New System.Windows.Forms.Button()
         Me.GBTransportation = New System.Windows.Forms.GroupBox()
         Me.BTNFareClose = New System.Windows.Forms.Button()
         Me.BTNAddFare = New System.Windows.Forms.Button()
@@ -164,6 +165,7 @@ Partial Class frmEReport
         Me.TPExpenseReport.Controls.Add(Me.txtInstrument)
         Me.TPExpenseReport.Controls.Add(Me.Label21)
         Me.TPExpenseReport.Controls.Add(Me.txtServiceNumber)
+        Me.TPExpenseReport.Controls.Add(Me.btnFwmsLookup)
         Me.TPExpenseReport.Controls.Add(Me.Label20)
         Me.TPExpenseReport.Controls.Add(Me.btnCancel)
         Me.TPExpenseReport.Controls.Add(Me.lblExpenseRemarks)
@@ -384,6 +386,7 @@ Partial Class frmEReport
         Me.btnHospital.TabIndex = 101
         Me.btnHospital.Text = "..."
         Me.btnHospital.UseVisualStyleBackColor = True
+        Me.btnHospital.Visible = False
         '
         'btnInstrumentHistory
         '
@@ -441,6 +444,15 @@ Partial Class frmEReport
         Me.txtServiceNumber.Name = "txtServiceNumber"
         Me.txtServiceNumber.Size = New System.Drawing.Size(199, 22)
         Me.txtServiceNumber.TabIndex = 4
+        '
+        'btnFwmsLookup
+        '
+        Me.btnFwmsLookup.Location = New System.Drawing.Point(301, 135)
+        Me.btnFwmsLookup.Name = "btnFwmsLookup"
+        Me.btnFwmsLookup.Size = New System.Drawing.Size(24, 22)
+        Me.btnFwmsLookup.TabIndex = 109
+        Me.btnFwmsLookup.Text = "..."
+        Me.btnFwmsLookup.UseVisualStyleBackColor = True
         '
         'Label20
         '
@@ -668,6 +680,15 @@ Partial Class frmEReport
         Me.lblExpenseAmount.TabIndex = 37
         Me.lblExpenseAmount.Text = "Amount"
         '
+        'btnExpenseSave
+        '
+        Me.btnExpenseSave.Location = New System.Drawing.Point(227, 465)
+        Me.btnExpenseSave.Name = "btnExpenseSave"
+        Me.btnExpenseSave.Size = New System.Drawing.Size(70, 24)
+        Me.btnExpenseSave.TabIndex = 15
+        Me.btnExpenseSave.Text = "Save"
+        Me.btnExpenseSave.UseVisualStyleBackColor = True
+        '
         'btnExpenseUpdate
         '
         Me.btnExpenseUpdate.Font = New System.Drawing.Font("Segoe UI", 8.25!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
@@ -678,15 +699,6 @@ Partial Class frmEReport
         Me.btnExpenseUpdate.Text = "Update"
         Me.btnExpenseUpdate.UseVisualStyleBackColor = True
         Me.btnExpenseUpdate.Visible = False
-        '
-        'btnExpenseSave
-        '
-        Me.btnExpenseSave.Location = New System.Drawing.Point(227, 465)
-        Me.btnExpenseSave.Name = "btnExpenseSave"
-        Me.btnExpenseSave.Size = New System.Drawing.Size(70, 24)
-        Me.btnExpenseSave.TabIndex = 15
-        Me.btnExpenseSave.Text = "Save"
-        Me.btnExpenseSave.UseVisualStyleBackColor = True
         '
         'GBTransportation
         '
@@ -1225,6 +1237,7 @@ Partial Class frmEReport
     Friend WithEvents GBAllowance As GroupBox
     Friend WithEvents BTNCloseComputation As Button
     Friend WithEvents BTNComputation As Button
+    Friend WithEvents btnFwmsLookup As Button
     Friend WithEvents Label3 As Label
     Friend WithEvents txtMDays As TextBox
     Friend WithEvents Label2 As Label

@@ -77,6 +77,7 @@
     <Compile Include="Services\Approval\RejectActionResult.vb" />
     <Compile Include="Services\Approval\RejectActionService.vb" />
     <Compile Include="Services\Approval\ScannedReceiptCleanupService.vb" />
+    <Compile Include="Services\Crm\TransactionLookupService.vb" />
     <Compile Include="Services\ExpenseReport\AddExpenseResult.vb" />
     <Compile Include="Services\ExpenseReport\ExpenseEntryService.vb" />
     <Compile Include="Services\ExpenseReport\UpdateExpenseResult.vb" />

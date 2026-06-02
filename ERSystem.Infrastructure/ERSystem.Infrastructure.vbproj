@@ -55,6 +55,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
@@ -81,6 +82,7 @@
     <Compile Include="Configuration\SettingsRegistryProvider.vb" />
     <Compile Include="Configuration\UserAccountRegistryProvider.vb" />
     <Compile Include="Data\AppDbContext.vb" />
+    <Compile Include="Data\FwmsDbContext.vb" />
     <Compile Include="Data\Interfaces\IApproveActionRepository.vb" />
     <Compile Include="Data\Interfaces\IApproveRepository.vb" />
     <Compile Include="Data\Repositories\CashAdvanceRepository.vb" />

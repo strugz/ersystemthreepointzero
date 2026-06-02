@@ -20,9 +20,6 @@ Public Class AppDbContext
     Public Property ExpenseMealItems As DbSet(Of ExpenseMealItemModel)
     Public Property ExpenseTransportationItems As DbSet(Of ExpenseTransportationItemModel)
     Public Property ExpenseNotifications As DbSet(Of ExpenseNotificationModel)
-    Public Property ContactMasters As DbSet(Of ContactMasterModel)
-    Public Property TradeMasters As DbSet(Of TradeMasterModel)
-    Public Property AccountMasters As DbSet(Of AccountMasterModel)
 
     Protected Overrides Sub OnModelCreating(modelBuilder As DbModelBuilder)
         MyBase.OnModelCreating(modelBuilder)
@@ -39,8 +36,5 @@ Public Class AppDbContext
         modelBuilder.Entity(Of ExpenseMealItemModel)().ToTable("tbExpenseMealItem")
         modelBuilder.Entity(Of ExpenseTransportationItemModel)().ToTable("tbExpenseTransportationItem")
         modelBuilder.Entity(Of ExpenseNotificationModel)().ToTable("tbNotification")
-        modelBuilder.Entity(Of ContactMasterModel)().ToTable("CNTMST")
-        modelBuilder.Entity(Of TradeMasterModel)().ToTable("TRDMST")
-        modelBuilder.Entity(Of AccountMasterModel)().ToTable("ACCMST_")
     End Sub
 End Class

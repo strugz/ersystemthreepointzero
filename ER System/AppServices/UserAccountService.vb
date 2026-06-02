@@ -1,5 +1,7 @@
 Option Strict On
 
+Imports ERSystem.Infrastructure.Configuration
+
 Namespace AppServices
     Friend Class UserAccountService
         Private Const EncryptionKey As String = "crimsonmonastery2003"
@@ -10,12 +12,12 @@ Namespace AppServices
         }
 
         Private ReadOnly _repository As Infrastructure.Data.Repositories.UserAccountRepository
-        Private ReadOnly _userAccountRegistryProvider As Infrastructure.Configuration.UserAccountRegistryProvider
+        Private ReadOnly _userAccountRegistryProvider As UserAccountRegistryProvider
         Private ReadOnly _encryption As clsEncryption
 
         Public Sub New()
             _repository = New Infrastructure.Data.Repositories.UserAccountRepository()
-            _userAccountRegistryProvider = New Infrastructure.Configuration.UserAccountRegistryProvider()
+            _userAccountRegistryProvider = New UserAccountRegistryProvider()
             _encryption = New clsEncryption(EncryptionKey)
         End Sub
 

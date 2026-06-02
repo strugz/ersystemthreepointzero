@@ -1,19 +1,21 @@
 Option Strict On
 
+Imports ERSystem.Infrastructure.Configuration
+
 Namespace AppServices
     Friend Class ReportViewerContextService
         Private Const EncryptionKey As String = "crimsonmonastery2003"
 
         Private ReadOnly _selectedReportContextProvider As Infrastructure.Configuration.SelectedReportContextProvider
         Private ReadOnly _connectionSettingsProvider As Infrastructure.Configuration.RegistryConnectionSettingsProvider
-        Private ReadOnly _userAccountRegistryProvider As Infrastructure.Configuration.UserAccountRegistryProvider
+        Private ReadOnly _userAccountRegistryProvider As UserAccountRegistryProvider
         Private ReadOnly _encryption As clsEncryption
         Private ReadOnly _loader As ClsLoadData
 
         Public Sub New()
             _selectedReportContextProvider = New Infrastructure.Configuration.SelectedReportContextProvider()
             _connectionSettingsProvider = New Infrastructure.Configuration.RegistryConnectionSettingsProvider()
-            _userAccountRegistryProvider = New Infrastructure.Configuration.UserAccountRegistryProvider()
+            _userAccountRegistryProvider = New UserAccountRegistryProvider()
             _encryption = New clsEncryption(EncryptionKey)
             _loader = New ClsLoadData()
         End Sub

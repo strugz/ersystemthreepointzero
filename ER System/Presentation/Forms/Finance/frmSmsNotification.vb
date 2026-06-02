@@ -1,4 +1,5 @@
 Imports ERSystem.Domain
+Imports ERSystem.Infrastructure.Configuration
 Imports ERSystem.Infrastructure.Data
 Imports System.Collections.Generic
 
@@ -8,7 +9,7 @@ Public Class frmSmsNotification
     Private ReadOnly _queueItem As FinanceErfQueueDto
     Private ReadOnly _smsNotificationService As Global.ERSystem.AppServices.ISmsNotificationService
     Private ReadOnly _userRegistrationService As IUserRegistrationService
-    Private ReadOnly _userAccountRegistryProvider As New Infrastructure.Configuration.UserAccountRegistryProvider()
+    Private ReadOnly _userAccountRegistryProvider As New UserAccountRegistryProvider()
     Private ReadOnly _recipients As New List(Of SmsRecipientDto)()
     Private ReadOnly _lblUserIdentifier As New Label()
     Private ReadOnly _lstRecipients As New ListBox()

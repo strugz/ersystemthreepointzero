@@ -1,4 +1,5 @@
 Imports ERSystem.Domain
+Imports ERSystem.Infrastructure.Configuration
 Imports ERSystem.Infrastructure.Data
 
 Public Class frmFinanceErfReview
@@ -8,7 +9,7 @@ Public Class frmFinanceErfReview
 
     Private ReadOnly _financeReviewService As IFinanceReviewService
     Private ReadOnly _smsNotificationService As Global.ERSystem.AppServices.ISmsNotificationService
-    Private ReadOnly _userAccountRegistryProvider As New Infrastructure.Configuration.UserAccountRegistryProvider()
+    Private ReadOnly _userAccountRegistryProvider As New UserAccountRegistryProvider()
     Private ReadOnly _grid As New DataGridView()
     Private ReadOnly _txtEmployee As New TextBox()
     Private ReadOnly _cboStatus As New ComboBox()

@@ -11,6 +11,12 @@ Namespace Infrastructure
                 Assert.IsNotNull(dbContext.CashAdvances)
                 Assert.IsNotNull(dbContext.ReportFinanceTrackings)
                 Assert.IsNotNull(dbContext.UserRegistrations)
+            End Using
+        End Sub
+
+        <TestMethod>
+        Public Sub FwmsConstructor_ExposesExpectedDbSets()
+            Using dbContext As New FwmsDbContext()
                 Assert.IsNotNull(dbContext.ContactMasters)
                 Assert.IsNotNull(dbContext.TradeMasters)
                 Assert.IsNotNull(dbContext.AccountMasters)

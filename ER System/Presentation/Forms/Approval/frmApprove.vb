@@ -52,7 +52,11 @@
         frmCancelNote.ShowDialog()
         Call UserAccount()
     End Sub
-    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnApprove.Click
+    Private Sub btnApprove_Click(sender As Object, e As EventArgs) Handles btnApprove.Click
+        If MsgBox("Are you sure you want to approve this report?", MsgBoxStyle.YesNo Or MsgBoxStyle.Question, "Confirm Approval") <> MsgBoxResult.Yes Then
+            Exit Sub
+        End If
+
         Dim result As ERSystem.AppServices.ApproveActionResult = _approveActionService.ApproveReport(
             dgvUser.CurrentRow.Cells("UserID").Value.ToString(),
             dgvUserReportDetails.CurrentRow.Cells("ID").Value.ToString())

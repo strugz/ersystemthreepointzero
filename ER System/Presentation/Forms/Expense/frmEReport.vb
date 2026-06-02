@@ -681,6 +681,22 @@ Public Class frmEReport
             txtParticulars.Focus()
         End If
     End Sub
+
+    Private Sub btnFwmsLookup_Click(sender As Object, e As EventArgs) Handles btnFwmsLookup.Click
+        Using lookup As New frmFwmsTransactionLookup()
+            If lookup.ShowDialog(Me) = DialogResult.OK AndAlso lookup.SelectedTransaction IsNot Nothing Then
+                ApplyFwmsTransaction(lookup.SelectedTransaction)
+            End If
+        End Using
+    End Sub
+
+    Private Sub ApplyFwmsTransaction(transaction As Global.ERSystem.Domain.FwmsTransactionDto)
+        txtLocation.Text = If(transaction.ACCMNM, String.Empty)
+        txtInstrument.Text = If(transaction.TRDMDE, String.Empty)
+        txtServiceNumber.Text = If(transaction.TRDMTT, String.Empty)
+        txtSerialNumber.Text = If(transaction.TRDMMC, String.Empty)
+    End Sub
+
     Private Sub txtInvoice_KeyUp(sender As Object, e As KeyEventArgs) Handles txtInvoice.KeyUp
         If e.KeyCode = Keys.Enter Then
             If txtVatAmount.Enabled Then
