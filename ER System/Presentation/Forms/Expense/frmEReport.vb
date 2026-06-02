@@ -400,6 +400,7 @@ Public Class frmEReport
                 txtExpenseAmount.Enabled = IIf(myExpenseData(2) = 1, True, IIf(myERData(4) = 0 And myERData(3) = "Transportation", True, False))
                 txtCategory.SelectedItem = myERData(3)
                 txtInvoice.Text = myERData(8)
+                LoadVatAmountForExpense(dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
                 btnExpenseSave.Visible = False
                 btnExpenseUpdate.Visible = True
             End If
@@ -407,6 +408,25 @@ Public Class frmEReport
             MsgBox(ex.ToString)
         End Try
     End Sub
+
+    Private Sub LoadVatAmountForExpense(expenseIdValue As Object)
+        Dim expenseId As Long
+        If expenseIdValue Is Nothing OrElse Not Long.TryParse(expenseIdValue.ToString(), expenseId) Then
+            txtVatAmount.Clear()
+            Return
+        End If
+
+        Dim repository As New Global.ERSystem.Infrastructure.Data.ExpenseDetailRepository()
+        Dim expense As Global.ERSystem.Domain.ExpenseDetailDto = repository.GetById(expenseId)
+
+        If expense Is Nothing OrElse Not expense.VatAmount.HasValue Then
+            txtVatAmount.Clear()
+            Return
+        End If
+
+        txtVatAmount.Text = expense.VatAmount.Value.ToString()
+    End Sub
+
     Private Sub txtExpenseAmount_KeyUp(sender As Object, e As KeyEventArgs) Handles txtExpenseAmount.KeyUp
         If e.KeyCode = Keys.Enter Then
             txtMultiplier.Focus()

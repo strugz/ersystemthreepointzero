@@ -122,6 +122,5 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .ERFReferenceNo = report.ERFReferenceNo
             }
         End Function
-    End Class
+End Class
 End Namespace
-j
