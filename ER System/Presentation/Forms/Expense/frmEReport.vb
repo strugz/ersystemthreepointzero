@@ -400,6 +400,7 @@ Public Class frmEReport
                 txtExpenseAmount.Enabled = IIf(myExpenseData(2) = 1, True, IIf(myERData(4) = 0 And myERData(3) = "Transportation", True, False))
                 txtCategory.SelectedItem = myERData(3)
                 txtInvoice.Text = myERData(8)
+                LoadWorkWithForExpense(dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
                 LoadVatAmountForExpense(dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
                 btnExpenseSave.Visible = False
                 btnExpenseUpdate.Visible = True
@@ -409,15 +410,18 @@ Public Class frmEReport
         End Try
     End Sub
 
-    Private Sub LoadVatAmountForExpense(expenseIdValue As Object)
-        Dim expenseId As Long
-        If expenseIdValue Is Nothing OrElse Not Long.TryParse(expenseIdValue.ToString(), expenseId) Then
-            txtVatAmount.Clear()
+    Private Sub LoadWorkWithForExpense(expenseIdValue As Object)
+        Dim expense As Global.ERSystem.Domain.ExpenseDetailDto = GetExpenseDetailById(expenseIdValue)
+
+        If expense Is Nothing Then
             Return
         End If
 
-        Dim repository As New Global.ERSystem.Infrastructure.Data.ExpenseDetailRepository()
-        Dim expense As Global.ERSystem.Domain.ExpenseDetailDto = repository.GetById(expenseId)
+        txtWorkWith.Text = If(expense.WorkWith, String.Empty)
+    End Sub
+
+    Private Sub LoadVatAmountForExpense(expenseIdValue As Object)
+        Dim expense As Global.ERSystem.Domain.ExpenseDetailDto = GetExpenseDetailById(expenseIdValue)
 
         If expense Is Nothing OrElse Not expense.VatAmount.HasValue Then
             txtVatAmount.Clear()
@@ -426,6 +430,16 @@ Public Class frmEReport
 
         txtVatAmount.Text = expense.VatAmount.Value.ToString()
     End Sub
+
+    Private Function GetExpenseDetailById(expenseIdValue As Object) As Global.ERSystem.Domain.ExpenseDetailDto
+        Dim expenseId As Long
+        If expenseIdValue Is Nothing OrElse Not Long.TryParse(expenseIdValue.ToString(), expenseId) Then
+            Return Nothing
+        End If
+
+        Dim repository As New Global.ERSystem.Infrastructure.Data.ExpenseDetailRepository()
+        Return repository.GetById(expenseId)
+    End Function
 
     Private Sub txtExpenseAmount_KeyUp(sender As Object, e As KeyEventArgs) Handles txtExpenseAmount.KeyUp
         If e.KeyCode = Keys.Enter Then

@@ -12,7 +12,7 @@ Public Class CashAdvanceModel
 
     Public Property emp_userID As Nullable(Of Integer)
 
-    Public Property CashAmount As Nullable(Of Double)
+    Public Property CashAmount As Nullable(Of Double) = 0R
 
     Public Property CashDate As String
 

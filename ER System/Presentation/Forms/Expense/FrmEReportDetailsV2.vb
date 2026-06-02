@@ -216,7 +216,7 @@ Public Class FrmEReportDetailsV2
         Return New CreateCashAdvanceDto With {
             .ReportID = reportId,
             .emp_userID = userId,
-            .CashAmount = If(IsLiquidation(), ParseNullableDouble(TxtAmount.Text), Nothing),
+            .CashAmount = If(IsLiquidation(), ParseDoubleOrZero(TxtAmount.Text), 0),
             .CashDate = If(IsCashAdvanceReport(), DtpCashDate.Value.ToString("MM-dd-yyyy"), String.Empty),
             .CashRefDoc = If(IsCashAdvanceReport(), TxtRefDoc.Text.Trim(), String.Empty),
             .CashRefNo = TxtReferenceNo.Text.Trim(),
@@ -230,7 +230,7 @@ Public Class FrmEReportDetailsV2
         Return New UpdateCashAdvanceDto With {
             .ReportID = _reportId,
             .emp_userID = userId,
-            .CashAmount = If(IsLiquidation(), ParseNullableDouble(TxtAmount.Text), Nothing),
+            .CashAmount = If(IsLiquidation(), ParseDoubleOrZero(TxtAmount.Text), 0),
             .CashDate = If(IsCashAdvanceReport(), DtpCashDate.Value.ToString("MM-dd-yyyy"), String.Empty),
             .CashRefDoc = If(IsCashAdvanceReport(), TxtRefDoc.Text.Trim(), String.Empty),
             .CashRefNo = TxtReferenceNo.Text.Trim(),
@@ -513,6 +513,15 @@ Public Class FrmEReportDetailsV2
         End If
 
         Return Nothing
+    End Function
+
+    Private Function ParseDoubleOrZero(value As String) As Double
+        Dim parsed As Double
+        If Double.TryParse(value, parsed) Then
+            Return parsed
+        End If
+
+        Return 0
     End Function
 
     Private Function ParseDateOrToday(value As String) As DateTime
