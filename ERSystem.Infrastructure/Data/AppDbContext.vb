@@ -20,6 +20,7 @@ Public Class AppDbContext
     Public Property ExpenseMealItems As DbSet(Of ExpenseMealItemModel)
     Public Property ExpenseTransportationItems As DbSet(Of ExpenseTransportationItemModel)
     Public Property ExpenseNotifications As DbSet(Of ExpenseNotificationModel)
+    Public Property ScannedReceiptAttachments As DbSet(Of ScannedReceiptAttachmentModel)
 
     Protected Overrides Sub OnModelCreating(modelBuilder As DbModelBuilder)
         MyBase.OnModelCreating(modelBuilder)
@@ -36,5 +37,6 @@ Public Class AppDbContext
         modelBuilder.Entity(Of ExpenseMealItemModel)().ToTable("tbExpenseMealItem")
         modelBuilder.Entity(Of ExpenseTransportationItemModel)().ToTable("tbExpenseTransportationItem")
         modelBuilder.Entity(Of ExpenseNotificationModel)().ToTable("tbNotification")
+        modelBuilder.Entity(Of ScannedReceiptAttachmentModel)().ToTable("tbScannedReceiptAttachment")
     End Sub
 End Class

@@ -48,4 +48,6 @@ Public Class ReportDetailModel
     Public Property ERFReferenceNo As String
 
     Public Overridable Property CashAdvances As ICollection(Of CashAdvanceModel)
+
+    Public Overridable Property ScannedReceiptAttachments As ICollection(Of ScannedReceiptAttachmentModel)
 End Class

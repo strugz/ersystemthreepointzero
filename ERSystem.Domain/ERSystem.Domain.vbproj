@@ -90,6 +90,9 @@
     <Compile Include="Dtos\Report\CreateReportDetailDto.vb" />
     <Compile Include="Dtos\Report\ReportDetailDto.vb" />
     <Compile Include="Dtos\Report\ReportDetailResponseDto.vb" />
+    <Compile Include="Dtos\Report\SaveScannedReceiptAttachmentRequest.vb" />
+    <Compile Include="Dtos\Report\ScannedReceiptAttachmentDto.vb" />
+    <Compile Include="Dtos\Report\ScannedReceiptAttachmentMetadataDto.vb" />
     <Compile Include="Dtos\Report\UpdateReportDetailDto.vb" />
     <Compile Include="Dtos\User\AccountSettingsDto.vb" />
     <Compile Include="Dtos\User\AuthorityUserDto.vb" />
@@ -107,6 +110,7 @@
     <Compile Include="Entities\Finance\ReportFinanceTrackingModel.vb" />
     <Compile Include="Entities\Organization\DepartmentModel.vb" />
     <Compile Include="Entities\Report\ReportDetailModel.vb" />
+    <Compile Include="Entities\Report\ScannedReceiptAttachmentModel.vb" />
     <Compile Include="Entities\User\EmployeeRateModel.vb" />
     <Compile Include="Entities\User\UserAuthorityModel.vb" />
     <Compile Include="Entities\User\UserRegistrationModel.vb" />

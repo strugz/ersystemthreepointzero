@@ -25,7 +25,10 @@ Friend NotInheritable Class ApprovalServicesFactory
     Public Shared Function CreateApproveActionService() As ERSystem.AppServices.ApproveActionService
         Dim approveService As ERSystem.AppServices.ApproveService = CreateApproveService()
         Dim financeReviewService As IFinanceReviewService = New FinanceReviewService()
-        Dim cleanupService As New ERSystem.AppServices.ScannedReceiptCleanupService(New ReportDetailService(), financeReviewService)
+        Dim cleanupService As New ERSystem.AppServices.ScannedReceiptCleanupService(
+            New ReportDetailService(),
+            financeReviewService,
+            New ScannedReceiptAttachmentService())
 
         Return New ERSystem.AppServices.ApproveActionService(
             ApproveActionRepository,

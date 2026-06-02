@@ -10,18 +10,26 @@ Public Class FrmEReportDetailsV2
 
     Private ReadOnly _reportDetailService As IReportDetailService
     Private ReadOnly _cashAdvanceService As ICashAdvanceService
+    Private ReadOnly _scannedReceiptAttachmentService As ScannedReceiptAttachmentService
     Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
     Private _reportId As String = String.Empty
     Private _lastAutoPurpose As String = String.Empty
 
     Public Sub New()
-        Me.New(New ReportDetailService(), New CashAdvanceService())
+        Me.New(New ReportDetailService(), New CashAdvanceService(), New ScannedReceiptAttachmentService())
     End Sub
 
     Public Sub New(reportDetailService As IReportDetailService, cashAdvanceService As ICashAdvanceService)
+        Me.New(reportDetailService, cashAdvanceService, New ScannedReceiptAttachmentService())
+    End Sub
+
+    Public Sub New(reportDetailService As IReportDetailService,
+                   cashAdvanceService As ICashAdvanceService,
+                   scannedReceiptAttachmentService As ScannedReceiptAttachmentService)
         InitializeComponent()
         _reportDetailService = reportDetailService
         _cashAdvanceService = cashAdvanceService
+        _scannedReceiptAttachmentService = scannedReceiptAttachmentService
     End Sub
 
     Private Sub FrmEReportDetailsV2_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -63,7 +71,7 @@ Public Class FrmEReportDetailsV2
             dialog.Title = "Select scanned receipt attachment"
 
             If dialog.ShowDialog(Me) = DialogResult.OK Then
-                TxtAttachment.Text = String.Join(";", dialog.FileNames)
+                TxtAttachment.Text = AppendAttachmentPaths(TxtAttachment.Text, dialog.FileNames)
             End If
         End Using
     End Sub
@@ -191,7 +199,7 @@ Public Class FrmEReportDetailsV2
             .ERFReferenceNo = TxtERFReferenceNo.Text.Trim()
         }
 
-        _reportDetailService.CreateReport(report, BuildCreateCashAdvanceDto(newReportId, userId))
+        _reportDetailService.CreateReport(report, BuildCreateCashAdvanceDto(newReportId, userId), SplitAttachmentPaths(attachmentPath), userId)
         _reportId = newReportId
     End Sub
 
@@ -210,7 +218,63 @@ Public Class FrmEReportDetailsV2
         })
 
         _cashAdvanceService.UpdateByReportId(_reportId, BuildUpdateCashAdvanceDto(userId))
+        _scannedReceiptAttachmentService.ReplaceForReport(New SaveScannedReceiptAttachmentRequest With {
+            .ReportID = _reportId,
+            .LocalPaths = SplitAttachmentPaths(attachmentPath),
+            .CreatedByUserID = userId
+        })
     End Sub
+
+    Private Shared Function SplitAttachmentPaths(attachmentPath As String) As IEnumerable(Of String)
+        If String.IsNullOrWhiteSpace(attachmentPath) Then
+            Return Enumerable.Empty(Of String)()
+        End If
+
+        Return attachmentPath.Split(";"c).
+            Select(Function(path) path.Trim()).
+            Where(Function(path) path.Length > 0).
+            ToList()
+    End Function
+
+    Private Shared Function AppendAttachmentPaths(existingAttachmentPath As String, selectedPaths As IEnumerable(Of String)) As String
+        Dim attachmentPaths As New List(Of String)()
+        Dim pathKeys As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+
+        AddUniqueAttachmentPaths(attachmentPaths, pathKeys, SplitAttachmentPaths(existingAttachmentPath))
+        AddUniqueAttachmentPaths(attachmentPaths, pathKeys, selectedPaths)
+
+        Return String.Join(";", attachmentPaths)
+    End Function
+
+    Private Shared Sub AddUniqueAttachmentPaths(attachmentPaths As IList(Of String),
+                                                pathKeys As ISet(Of String),
+                                                sourcePaths As IEnumerable(Of String))
+        If sourcePaths Is Nothing Then
+            Return
+        End If
+
+        For Each sourcePath As String In sourcePaths
+            Dim normalizedPath As String = If(sourcePath, String.Empty).Trim()
+
+            If normalizedPath.Length = 0 Then
+                Continue For
+            End If
+
+            Dim pathKey As String = BuildAttachmentPathKey(normalizedPath)
+
+            If pathKeys.Add(pathKey) Then
+                attachmentPaths.Add(normalizedPath)
+            End If
+        Next
+    End Sub
+
+    Private Shared Function BuildAttachmentPathKey(attachmentPath As String) As String
+        Try
+            Return Path.GetFullPath(attachmentPath)
+        Catch ex As Exception
+            Return attachmentPath.Trim()
+        End Try
+    End Function
 
     Private Function BuildCreateCashAdvanceDto(reportId As String, userId As Integer) As CreateCashAdvanceDto
         Return New CreateCashAdvanceDto With {

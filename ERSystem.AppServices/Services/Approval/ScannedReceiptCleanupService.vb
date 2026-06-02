@@ -6,12 +6,19 @@ Imports ERSystem.Infrastructure.Data
 Public Class ScannedReceiptCleanupService
     Private ReadOnly _reportDetailService As IReportDetailService
     Private ReadOnly _financeReviewService As IFinanceReviewService
+    Private ReadOnly _scannedReceiptAttachmentService As ScannedReceiptAttachmentService
 
     Public Sub New()
-        Me.New(New ReportDetailService(), New FinanceReviewService())
+        Me.New(New ReportDetailService(), New FinanceReviewService(), New ScannedReceiptAttachmentService())
     End Sub
 
     Public Sub New(reportDetailService As IReportDetailService, financeReviewService As IFinanceReviewService)
+        Me.New(reportDetailService, financeReviewService, New ScannedReceiptAttachmentService())
+    End Sub
+
+    Public Sub New(reportDetailService As IReportDetailService,
+                   financeReviewService As IFinanceReviewService,
+                   scannedReceiptAttachmentService As ScannedReceiptAttachmentService)
         If reportDetailService Is Nothing Then
             Throw New ArgumentNullException("reportDetailService")
         End If
@@ -20,8 +27,13 @@ Public Class ScannedReceiptCleanupService
             Throw New ArgumentNullException("financeReviewService")
         End If
 
+        If scannedReceiptAttachmentService Is Nothing Then
+            Throw New ArgumentNullException("scannedReceiptAttachmentService")
+        End If
+
         _reportDetailService = reportDetailService
         _financeReviewService = financeReviewService
+        _scannedReceiptAttachmentService = scannedReceiptAttachmentService
     End Sub
 
     Public Sub DeleteScannedReceiptsForApprovedReport(reportId As String)
@@ -32,6 +44,7 @@ Public Class ScannedReceiptCleanupService
         Dim report = _reportDetailService.GetById(reportId)
 
         If report Is Nothing OrElse String.IsNullOrWhiteSpace(report.ReportAttachment) Then
+            _scannedReceiptAttachmentService.DeleteForReport(reportId)
             _financeReviewService.MarkScannedReceiptsDeleted(reportId)
             Return
         End If
@@ -54,6 +67,7 @@ Public Class ScannedReceiptCleanupService
             End Try
         Next
 
+        _scannedReceiptAttachmentService.DeleteForReport(reportId)
         _financeReviewService.MarkScannedReceiptsDeleted(reportId)
         _financeReviewService.ClearScannedReceiptAttachment(reportId)
     End Sub
