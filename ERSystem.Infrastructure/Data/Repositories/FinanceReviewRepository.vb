@@ -258,6 +258,7 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .ReportDateTo = report.ReportDateTo,
                 .ReportDescription = report.ReportDescription,
                 .ReportType = report.ReportType,
+                .ERFReferenceNo = ResolveErfReferenceNo(report, cashAdvance),
                 .CashRefNo = If(cashAdvance Is Nothing, String.Empty, cashAdvance.CashRefNo),
                 .FinanceStatus = finance.FinanceStatus,
                 .PhysicalReceiptsReceived = finance.PhysicalReceiptsReceived,
@@ -279,6 +280,7 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .ReportDateTo = report.ReportDateTo,
                 .ReportDescription = report.ReportDescription,
                 .ReportType = report.ReportType,
+                .ERFReferenceNo = ResolveErfReferenceNo(report, cashAdvance),
                 .CashAmount = If(cashAdvance Is Nothing, Nothing, cashAdvance.CashAmount),
                 .CashDate = If(cashAdvance Is Nothing, String.Empty, cashAdvance.CashDate),
                 .CashRefDoc = If(cashAdvance Is Nothing, String.Empty, cashAdvance.CashRefDoc),
@@ -292,6 +294,22 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .FinanceRemarks = finance.FinanceRemarks,
                 .ScannedReceiptsDeletedDate = finance.ScannedReceiptsDeletedDate
             }
+        End Function
+
+        Private Shared Function ResolveErfReferenceNo(report As ReportDetailModel, cashAdvance As CashAdvanceModel) As String
+            If report IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(report.ERFReferenceNo) Then
+                Return report.ERFReferenceNo.Trim()
+            End If
+
+            If cashAdvance IsNot Nothing AndAlso IsGeneratedErfReference(cashAdvance.CashRefNo) Then
+                Return cashAdvance.CashRefNo.Trim()
+            End If
+
+            Return String.Empty
+        End Function
+
+        Private Shared Function IsGeneratedErfReference(value As String) As Boolean
+            Return Not String.IsNullOrWhiteSpace(value) AndAlso value.Trim().StartsWith("ER-", StringComparison.OrdinalIgnoreCase)
         End Function
 
         Private Shared Function ToMissingReceiptDto(report As ReportDetailModel, finance As ReportFinanceTrackingModel) As MissingPhysicalReceiptDto

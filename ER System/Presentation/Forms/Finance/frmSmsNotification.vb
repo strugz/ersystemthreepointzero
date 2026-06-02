@@ -144,7 +144,7 @@ Public Class frmSmsNotification
             .UserInitial = GetCurrentSenderIdentifier(),
             .Message = _txtMessage.Text,
             .ReportID = If(_queueItem Is Nothing, String.Empty, _queueItem.ReportID),
-            .ReferenceNo = If(_queueItem Is Nothing, String.Empty, _queueItem.CashRefNo)
+            .ReferenceNo = GetReferenceText()
         })
 
         MessageBox.Show(result.Message)
@@ -180,6 +180,10 @@ Public Class frmSmsNotification
     Private Function GetReferenceText() As String
         If _queueItem Is Nothing Then
             Return String.Empty
+        End If
+
+        If Not String.IsNullOrWhiteSpace(_queueItem.ERFReferenceNo) Then
+            Return _queueItem.ERFReferenceNo.Trim()
         End If
 
         If Not String.IsNullOrWhiteSpace(_queueItem.CashRefNo) Then

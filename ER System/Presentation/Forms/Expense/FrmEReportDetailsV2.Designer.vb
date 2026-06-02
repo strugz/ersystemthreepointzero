@@ -26,12 +26,14 @@ Partial Class FrmEReportDetailsV2
         Me.Label4 = New System.Windows.Forms.Label()
         Me.CboReportType = New System.Windows.Forms.ComboBox()
         Me.Label5 = New System.Windows.Forms.Label()
+        Me.TxtERFReferenceNo = New System.Windows.Forms.TextBox()
         Me.TxtReferenceNo = New System.Windows.Forms.TextBox()
         Me.GroupBoxCash = New System.Windows.Forms.GroupBox()
         Me.TxtRevolvingFund = New System.Windows.Forms.TextBox()
         Me.Label10 = New System.Windows.Forms.Label()
         Me.TxtAmount = New System.Windows.Forms.TextBox()
         Me.Label9 = New System.Windows.Forms.Label()
+        Me.Label11 = New System.Windows.Forms.Label()
         Me.TxtRefDoc = New System.Windows.Forms.RichTextBox()
         Me.Label8 = New System.Windows.Forms.Label()
         Me.DtpCashDate = New System.Windows.Forms.DateTimePicker()
@@ -132,21 +134,23 @@ Partial Class FrmEReportDetailsV2
         Me.Label5.Font = New System.Drawing.Font("Segoe UI", 8.25!)
         Me.Label5.Location = New System.Drawing.Point(12, 144)
         Me.Label5.Name = "Label5"
-        Me.Label5.Size = New System.Drawing.Size(58, 13)
+        Me.Label5.Size = New System.Drawing.Size(79, 13)
         Me.Label5.TabIndex = 8
-        Me.Label5.Text = "Reference"
+        Me.Label5.Text = "ERF Reference"
         '
-        'TxtReferenceNo
+        'TxtERFReferenceNo
         '
-        Me.TxtReferenceNo.Font = New System.Drawing.Font("Segoe UI", 8.25!)
-        Me.TxtReferenceNo.Location = New System.Drawing.Point(86, 141)
-        Me.TxtReferenceNo.Name = "TxtReferenceNo"
-        Me.TxtReferenceNo.ReadOnly = True
-        Me.TxtReferenceNo.Size = New System.Drawing.Size(338, 22)
-        Me.TxtReferenceNo.TabIndex = 9
+        Me.TxtERFReferenceNo.Font = New System.Drawing.Font("Segoe UI", 8.25!)
+        Me.TxtERFReferenceNo.Location = New System.Drawing.Point(110, 141)
+        Me.TxtERFReferenceNo.Name = "TxtERFReferenceNo"
+        Me.TxtERFReferenceNo.ReadOnly = True
+        Me.TxtERFReferenceNo.Size = New System.Drawing.Size(314, 22)
+        Me.TxtERFReferenceNo.TabIndex = 9
         '
         'GroupBoxCash
         '
+        Me.GroupBoxCash.Controls.Add(Me.TxtReferenceNo)
+        Me.GroupBoxCash.Controls.Add(Me.Label11)
         Me.GroupBoxCash.Controls.Add(Me.TxtRevolvingFund)
         Me.GroupBoxCash.Controls.Add(Me.Label10)
         Me.GroupBoxCash.Controls.Add(Me.TxtAmount)
@@ -158,42 +162,59 @@ Partial Class FrmEReportDetailsV2
         Me.GroupBoxCash.Font = New System.Drawing.Font("Segoe UI", 8.25!)
         Me.GroupBoxCash.Location = New System.Drawing.Point(12, 169)
         Me.GroupBoxCash.Name = "GroupBoxCash"
-        Me.GroupBoxCash.Size = New System.Drawing.Size(412, 187)
+        Me.GroupBoxCash.Size = New System.Drawing.Size(412, 215)
         Me.GroupBoxCash.TabIndex = 10
         Me.GroupBoxCash.TabStop = False
         Me.GroupBoxCash.Text = "Cash Details"
         '
+        'TxtReferenceNo
+        '
+        Me.TxtReferenceNo.Font = New System.Drawing.Font("Segoe UI", 8.25!)
+        Me.TxtReferenceNo.Location = New System.Drawing.Point(126, 126)
+        Me.TxtReferenceNo.Name = "TxtReferenceNo"
+        Me.TxtReferenceNo.Size = New System.Drawing.Size(275, 22)
+        Me.TxtReferenceNo.TabIndex = 5
+        '
         'TxtRevolvingFund
         '
-        Me.TxtRevolvingFund.Location = New System.Drawing.Point(126, 154)
+        Me.TxtRevolvingFund.Location = New System.Drawing.Point(126, 182)
         Me.TxtRevolvingFund.Name = "TxtRevolvingFund"
         Me.TxtRevolvingFund.Size = New System.Drawing.Size(275, 22)
-        Me.TxtRevolvingFund.TabIndex = 7
+        Me.TxtRevolvingFund.TabIndex = 9
         '
         'Label10
         '
         Me.Label10.AutoSize = True
-        Me.Label10.Location = New System.Drawing.Point(6, 157)
+        Me.Label10.Location = New System.Drawing.Point(6, 185)
         Me.Label10.Name = "Label10"
         Me.Label10.Size = New System.Drawing.Size(87, 13)
-        Me.Label10.TabIndex = 6
+        Me.Label10.TabIndex = 8
         Me.Label10.Text = "Revolving Fund"
         '
         'TxtAmount
         '
-        Me.TxtAmount.Location = New System.Drawing.Point(126, 126)
+        Me.TxtAmount.Location = New System.Drawing.Point(126, 154)
         Me.TxtAmount.Name = "TxtAmount"
         Me.TxtAmount.Size = New System.Drawing.Size(275, 22)
-        Me.TxtAmount.TabIndex = 5
+        Me.TxtAmount.TabIndex = 7
         '
         'Label9
         '
         Me.Label9.AutoSize = True
-        Me.Label9.Location = New System.Drawing.Point(6, 129)
+        Me.Label9.Location = New System.Drawing.Point(6, 157)
         Me.Label9.Name = "Label9"
         Me.Label9.Size = New System.Drawing.Size(48, 13)
-        Me.Label9.TabIndex = 4
+        Me.Label9.TabIndex = 6
         Me.Label9.Text = "Amount"
+        '
+        'Label11
+        '
+        Me.Label11.AutoSize = True
+        Me.Label11.Location = New System.Drawing.Point(6, 129)
+        Me.Label11.Name = "Label11"
+        Me.Label11.Size = New System.Drawing.Size(71, 13)
+        Me.Label11.TabIndex = 4
+        Me.Label11.Text = "Ref. Number"
         '
         'TxtRefDoc
         '
@@ -237,7 +258,7 @@ Partial Class FrmEReportDetailsV2
         Me.GroupBoxAttachment.Controls.Add(Me.TxtAttachment)
         Me.GroupBoxAttachment.Controls.Add(Me.Label6)
         Me.GroupBoxAttachment.Font = New System.Drawing.Font("Segoe UI", 8.25!)
-        Me.GroupBoxAttachment.Location = New System.Drawing.Point(12, 362)
+        Me.GroupBoxAttachment.Location = New System.Drawing.Point(12, 390)
         Me.GroupBoxAttachment.Name = "GroupBoxAttachment"
         Me.GroupBoxAttachment.Size = New System.Drawing.Size(412, 76)
         Me.GroupBoxAttachment.TabIndex = 11
@@ -281,7 +302,7 @@ Partial Class FrmEReportDetailsV2
         'BtnCancel
         '
         Me.BtnCancel.Font = New System.Drawing.Font("Segoe UI", 8.25!)
-        Me.BtnCancel.Location = New System.Drawing.Point(246, 450)
+        Me.BtnCancel.Location = New System.Drawing.Point(246, 478)
         Me.BtnCancel.Name = "BtnCancel"
         Me.BtnCancel.Size = New System.Drawing.Size(86, 28)
         Me.BtnCancel.TabIndex = 12
@@ -291,7 +312,7 @@ Partial Class FrmEReportDetailsV2
         'BtnSave
         '
         Me.BtnSave.Font = New System.Drawing.Font("Segoe UI", 8.25!)
-        Me.BtnSave.Location = New System.Drawing.Point(338, 450)
+        Me.BtnSave.Location = New System.Drawing.Point(338, 478)
         Me.BtnSave.Name = "BtnSave"
         Me.BtnSave.Size = New System.Drawing.Size(86, 28)
         Me.BtnSave.TabIndex = 13
@@ -302,12 +323,12 @@ Partial Class FrmEReportDetailsV2
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(436, 490)
+        Me.ClientSize = New System.Drawing.Size(436, 518)
         Me.Controls.Add(Me.BtnSave)
         Me.Controls.Add(Me.BtnCancel)
         Me.Controls.Add(Me.GroupBoxAttachment)
         Me.Controls.Add(Me.GroupBoxCash)
-        Me.Controls.Add(Me.TxtReferenceNo)
+        Me.Controls.Add(Me.TxtERFReferenceNo)
         Me.Controls.Add(Me.Label5)
         Me.Controls.Add(Me.CboReportType)
         Me.Controls.Add(Me.Label4)
@@ -341,12 +362,14 @@ Partial Class FrmEReportDetailsV2
     Friend WithEvents Label4 As Label
     Friend WithEvents CboReportType As ComboBox
     Friend WithEvents Label5 As Label
+    Friend WithEvents TxtERFReferenceNo As TextBox
     Friend WithEvents TxtReferenceNo As TextBox
     Friend WithEvents GroupBoxCash As GroupBox
     Friend WithEvents TxtRevolvingFund As TextBox
     Friend WithEvents Label10 As Label
     Friend WithEvents TxtAmount As TextBox
     Friend WithEvents Label9 As Label
+    Friend WithEvents Label11 As Label
     Friend WithEvents TxtRefDoc As RichTextBox
     Friend WithEvents Label8 As Label
     Friend WithEvents DtpCashDate As DateTimePicker

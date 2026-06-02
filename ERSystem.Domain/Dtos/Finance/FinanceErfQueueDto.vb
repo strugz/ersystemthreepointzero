@@ -9,6 +9,7 @@ Public Class FinanceErfQueueDto
     Public Property ReportDateTo As Nullable(Of Date)
     Public Property ReportDescription As String
     Public Property ReportType As String
+    Public Property ERFReferenceNo As String
     Public Property CashRefNo As String
     Public Property FinanceStatus As String
     Public Property PhysicalReceiptsReceived As Boolean

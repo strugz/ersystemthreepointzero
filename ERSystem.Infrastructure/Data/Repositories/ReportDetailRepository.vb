@@ -80,6 +80,7 @@ Namespace Global.ERSystem.Infrastructure.Data
                 existing.ReportDescription = report.ReportDescription
                 existing.ReportAttachment = report.ReportAttachment
                 existing.ReportType = report.ReportType
+                existing.ERFReferenceNo = report.ERFReferenceNo
                 dbContext.SaveChanges()
             End Using
         End Sub
@@ -98,7 +99,8 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .ReportPrintStatus = report.ReportPrintStatus,
                 .ReportNumberStatus = report.ReportNumberStatus,
                 .ReportAttachment = report.ReportAttachment,
-                .ReportType = report.ReportType
+                .ReportType = report.ReportType,
+                .ERFReferenceNo = report.ERFReferenceNo
             }
         End Function
 
@@ -116,8 +118,10 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .ReportPrintStatus = report.ReportPrintStatus,
                 .ReportNumberStatus = report.ReportNumberStatus,
                 .ReportAttachment = report.ReportAttachment,
-                .ReportType = report.ReportType
+                .ReportType = report.ReportType,
+                .ERFReferenceNo = report.ERFReferenceNo
             }
         End Function
     End Class
 End Namespace
+j

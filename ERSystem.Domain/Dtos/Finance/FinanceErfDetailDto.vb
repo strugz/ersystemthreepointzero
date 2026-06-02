@@ -9,6 +9,7 @@ Public Class FinanceErfDetailDto
     Public Property ReportDateTo As Nullable(Of Date)
     Public Property ReportDescription As String
     Public Property ReportType As String
+    Public Property ERFReferenceNo As String
     Public Property CashAmount As Nullable(Of Double)
     Public Property CashDate As String
     Public Property CashRefDoc As String

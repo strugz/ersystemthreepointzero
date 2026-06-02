@@ -28,4 +28,6 @@ Public Class CreateReportDetailDto
 
     Public Property ReportType As String
 
+    Public Property ERFReferenceNo As String
+
 End Class

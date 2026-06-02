@@ -105,10 +105,11 @@ Public Class FrmEReportDetailsV2
         TxtAttachment.Text = If(report.ReportAttachment, String.Empty)
         SelectReportType(ResolveReportType(report, cashAdvance))
         TxtPurpose.Text = report.ReportDescription
+        TxtERFReferenceNo.Text = ResolveErfReferenceNo(report, cashAdvance)
         _lastAutoPurpose = If(CboReportType.SelectedItem Is Nothing, String.Empty, CboReportType.SelectedItem.ToString())
 
         If cashAdvance IsNot Nothing Then
-            TxtReferenceNo.Text = cashAdvance.CashRefNo
+            TxtReferenceNo.Text = ResolveCashReferenceNo(report, cashAdvance)
             DtpCashDate.Value = ParseDateOrToday(cashAdvance.CashDate)
             TxtRefDoc.Text = cashAdvance.CashRefDoc
             TxtAmount.Text = If(cashAdvance.CashAmount.HasValue, cashAdvance.CashAmount.Value.ToString(), String.Empty)
@@ -126,10 +127,11 @@ Public Class FrmEReportDetailsV2
         DtpReportTo.Value = DateTime.Now
         DtpCashDate.Value = DateTime.Now
         TxtRefDoc.Clear()
+        TxtReferenceNo.Clear()
         TxtAmount.Clear()
         TxtRevolvingFund.Clear()
         TxtAttachment.Clear()
-        TxtReferenceNo.Text = GenerateReferenceNumber()
+        TxtERFReferenceNo.Text = GenerateReferenceNumber()
         CboReportType.SelectedIndex = 0
         BtnSave.Text = "Save"
         ApplyReportTypeState()
@@ -148,8 +150,8 @@ Public Class FrmEReportDetailsV2
             Return False
         End If
 
-        If String.IsNullOrWhiteSpace(TxtReferenceNo.Text) Then
-            TxtReferenceNo.Text = GenerateReferenceNumber()
+        If String.IsNullOrWhiteSpace(TxtERFReferenceNo.Text) Then
+            TxtERFReferenceNo.Text = GenerateReferenceNumber()
         End If
 
         If IsReplenishment() AndAlso String.IsNullOrWhiteSpace(TxtRevolvingFund.Text) Then
@@ -185,7 +187,8 @@ Public Class FrmEReportDetailsV2
             .ReportPrintStatus = GetInitialPrintStatus(),
             .ReportNumberStatus = 0,
             .ReportAttachment = attachmentPath,
-            .ReportType = CboReportType.SelectedItem.ToString()
+            .ReportType = CboReportType.SelectedItem.ToString(),
+            .ERFReferenceNo = TxtERFReferenceNo.Text.Trim()
         }
 
         _reportDetailService.CreateReport(report, BuildCreateCashAdvanceDto(newReportId, userId))
@@ -202,7 +205,8 @@ Public Class FrmEReportDetailsV2
             .ReportDateTo = DtpReportTo.Value.Date,
             .ReportDescription = TxtPurpose.Text.Trim(),
             .ReportAttachment = attachmentPath,
-            .ReportType = CboReportType.SelectedItem.ToString()
+            .ReportType = CboReportType.SelectedItem.ToString(),
+            .ERFReferenceNo = TxtERFReferenceNo.Text.Trim()
         })
 
         _cashAdvanceService.UpdateByReportId(_reportId, BuildUpdateCashAdvanceDto(userId))
@@ -245,6 +249,7 @@ Public Class FrmEReportDetailsV2
         GroupBoxCash.Enabled = Not reimbursement
         DtpCashDate.Enabled = cashAdvanceReport
         TxtRefDoc.Enabled = cashAdvanceReport
+        TxtReferenceNo.Enabled = cashAdvanceReport
         TxtAmount.Enabled = liquidation
         TxtRevolvingFund.Enabled = replenishment
 
@@ -253,10 +258,12 @@ Public Class FrmEReportDetailsV2
         ElseIf reimbursement Then
             TxtAmount.Clear()
             TxtRefDoc.Clear()
+            TxtReferenceNo.Clear()
             TxtRevolvingFund.Clear()
         ElseIf replenishment Then
             TxtAmount.Clear()
             TxtRefDoc.Clear()
+            TxtReferenceNo.Clear()
         End If
     End Sub
 
@@ -314,6 +321,34 @@ Public Class FrmEReportDetailsV2
         End If
 
         Return ReportTypeLiquidation
+    End Function
+
+    Private Function ResolveErfReferenceNo(report As ReportDetailDto, cashAdvance As CashAdvanceDto) As String
+        If report IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(report.ERFReferenceNo) Then
+            Return report.ERFReferenceNo.Trim()
+        End If
+
+        If cashAdvance IsNot Nothing AndAlso IsGeneratedErfReference(cashAdvance.CashRefNo) Then
+            Return cashAdvance.CashRefNo.Trim()
+        End If
+
+        Return GenerateReferenceNumber()
+    End Function
+
+    Private Function ResolveCashReferenceNo(report As ReportDetailDto, cashAdvance As CashAdvanceDto) As String
+        If cashAdvance Is Nothing OrElse String.IsNullOrWhiteSpace(cashAdvance.CashRefNo) Then
+            Return String.Empty
+        End If
+
+        If String.IsNullOrWhiteSpace(report.ERFReferenceNo) AndAlso IsGeneratedErfReference(cashAdvance.CashRefNo) Then
+            Return String.Empty
+        End If
+
+        Return cashAdvance.CashRefNo.Trim()
+    End Function
+
+    Private Function IsGeneratedErfReference(value As String) As Boolean
+        Return Not String.IsNullOrWhiteSpace(value) AndAlso value.Trim().StartsWith("ER-", StringComparison.OrdinalIgnoreCase)
     End Function
 
     Private Function NormalizeReportType(value As String) As String
@@ -434,7 +469,7 @@ Public Class FrmEReportDetailsV2
     End Function
 
     Private Function GenerateReferenceNumber() As String
-        Return "ER-" & DateTime.Now.ToString("yyyyMMdd-HHmmss")
+        Return "ER-" & GetCurrentUserId().ToString() & DateTime.Now.ToString("yyyyMMdd-HHmmss")
     End Function
 
     Private Function GetCurrentUserId() As Integer

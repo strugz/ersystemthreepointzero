@@ -257,7 +257,8 @@ Public Class frmFinanceErfReview
         SetColumnHeader("ReportDateTo", "To")
         SetColumnHeader("ReportDescription", "Description")
         SetColumnHeader("ReportType", "ERF Type")
-        SetColumnHeader("CashRefNo", "Ref No.")
+        SetColumnHeader("ERFReferenceNo", "ERF Ref No.")
+        SetColumnHeader("CashRefNo", "Cash Ref No.")
         SetColumnHeader("FinanceStatus", "Status")
         SetColumnHeader("PhysicalReceiptsReceived", "Receipts")
         SetColumnHeader("PhysicalReceiptsReceivedDate", "Received Date")
@@ -266,6 +267,7 @@ Public Class frmFinanceErfReview
         SetColumnWidth("UserID", 70)
         SetColumnWidth("ReportDateFrom", 90)
         SetColumnWidth("ReportDateTo", 90)
+        SetColumnWidth("ERFReferenceNo", 110)
         SetColumnWidth("CashRefNo", 110)
         SetColumnWidth("FinanceStatus", 130)
         SetColumnWidth("PhysicalReceiptsReceived", 80)
@@ -322,7 +324,8 @@ Public Class frmFinanceErfReview
                 "Description: " & detail.ReportDescription & Environment.NewLine &
                 "Type: " & detail.ReportType & Environment.NewLine &
                 "Date: " & FormatDate(detail.ReportDateFrom) & " to " & FormatDate(detail.ReportDateTo) & Environment.NewLine &
-                "Reference No.: " & detail.CashRefNo & Environment.NewLine &
+                "ERF Reference No.: " & detail.ERFReferenceNo & Environment.NewLine &
+                "Cash Reference No.: " & detail.CashRefNo & Environment.NewLine &
                 "Cash Amount: " & If(detail.CashAmount.HasValue, detail.CashAmount.Value.ToString("N2"), String.Empty) & Environment.NewLine &
                 "Revolving Fund: " & detail.RevolvingFund & Environment.NewLine &
                 "Finance Status: " & detail.FinanceStatus & Environment.NewLine &

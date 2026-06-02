@@ -45,5 +45,7 @@ Public Class ReportDetailModel
 
     Public Property ReportType As String
 
+    Public Property ERFReferenceNo As String
+
     Public Overridable Property CashAdvances As ICollection(Of CashAdvanceModel)
 End Class

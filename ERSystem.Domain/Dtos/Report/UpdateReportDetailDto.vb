@@ -44,4 +44,6 @@ Public Class UpdateReportDetailDto
 
     Public Property ReportType As String
 
+    Public Property ERFReferenceNo As String
+
 End Class
