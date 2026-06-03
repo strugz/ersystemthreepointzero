@@ -5,6 +5,7 @@ Imports System.IO
 
 Public Class frmRpt
     Public Const MyKey As String = "crimsonmonastery2003"
+    Private Const ErPdfFolderName As String = "ERPDF"
     Public TripleDes As New clsEncryption(MyKey)
     Public strExportFile As String = Nothing
     Public Property ShowReceiptPreviewPanel As Boolean
@@ -74,10 +75,11 @@ Public Class frmRpt
         ExportER.SetParameterValue("@UserID", ModDataStore.ReportUserID)
         ExportER.SetParameterValue("@reportID", context.ReportId)
         Dim dtp As DateTime = Date.Now
+        Dim erPdfDirectory As String = EnsureErPdfDirectory()
         If modLoadingData.RBT = "0" Then
-            strExportFile = Application.StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & "ER" & modLoadingData.sDate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
+            strExportFile = erPdfDirectory & "\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & "ER" & modLoadingData.sDate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
         Else
-            strExportFile = Application.StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & modLoadingData.LocationCode & modLoadingData.sDate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
+            strExportFile = erPdfDirectory & "\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & modLoadingData.LocationCode & modLoadingData.sDate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
         End If
         Dim ErExportOptions As ExportOptions
         Dim ERDiskDestinationOptions As New DiskFileDestinationOptions()
@@ -93,6 +95,12 @@ Public Class frmRpt
         ExportER.PrintOptions.PrinterDuplex = PrinterDuplex.Simplex
         ExportER.Export()
     End Sub
+
+    Private Shared Function EnsureErPdfDirectory() As String
+        Dim erPdfDirectory As String = Path.Combine(Application.StartupPath, ErPdfFolderName)
+        Directory.CreateDirectory(erPdfDirectory)
+        Return erPdfDirectory
+    End Function
 
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles btnSendPrint.Click
         Dim context As AppServices.ReportViewerContextResult = _reportViewerContextService.Load()

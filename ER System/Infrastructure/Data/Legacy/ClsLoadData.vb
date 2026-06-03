@@ -1,6 +1,8 @@
 ﻿Imports JFramework
 Imports System.IO
 Public Class ClsLoadData : Inherits AppFramework
+    Private Const ErPdfFolderName As String = "ERPDF"
+
     Friend Function SetEReportDetails(ByVal ReportID As String) As String
         Dim EReportDetails As DataTable
         Dim str As String = ""
@@ -115,15 +117,31 @@ Public Class ClsLoadData : Inherits AppFramework
         Return ReportLoad(Application.StartupPath & "\ER Report.rpt", username, password, {"@UserID", "@reportID"}, {GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), ReportID})
     End Function
     Friend Function PDFExport(ByVal username As String, ByVal password As String, ByVal reportID As String, ByVal path As String) As String
+        EnsureExportDirectory(path)
         Return PDF(PDFCreator(username, password, reportID), path)
     End Function
     Friend Function PDFLocation(ByVal rbt As Boolean, ByVal ERdate As DateTime, Optional ByVal LocationCode As String = "") As String
+        Dim erPdfDirectory As String = EnsureErPdfDirectory()
         If rbt = True Then
-            Return Application.StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & "ER" & ERdate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
+            Return erPdfDirectory & "\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & "ER" & ERdate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
         Else
-            Return Application.StartupPath & "\ERPDF\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & LocationCode & ERdate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
+            Return erPdfDirectory & "\" & GetRegistryValue("Software\\ER System\\UserAccount", {"username"})(0) & LocationCode & ERdate.ToString("ddMMMyyyy").ToUpper & ".pdf".ToString
         End If
     End Function
+
+    Private Shared Function EnsureErPdfDirectory() As String
+        Dim erPdfDirectory As String = Path.Combine(Application.StartupPath, ErPdfFolderName)
+        Directory.CreateDirectory(erPdfDirectory)
+        Return erPdfDirectory
+    End Function
+
+    Private Shared Sub EnsureExportDirectory(ByVal exportPath As String)
+        Dim exportDirectory As String = Path.GetDirectoryName(exportPath)
+        If Not String.IsNullOrWhiteSpace(exportDirectory) Then
+            Directory.CreateDirectory(exportDirectory)
+        End If
+    End Sub
+
     Friend Function SendExpenseEmail(ByVal EmailSender As String, ByVal Password As String,
                                      ByVal EmailReceiver As String, ByVal EmailBCC As String, ByVal EmailCC As String,
                                      ByVal Subject As String, ByVal Body As String, ByVal Attachment As String) As String
