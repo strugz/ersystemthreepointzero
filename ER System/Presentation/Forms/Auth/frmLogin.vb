@@ -1,5 +1,4 @@
 ﻿Imports System.Net.NetworkInformation
-Imports System.Threading
 Public Class frmLogin
     Private ReadOnly _userAccountService As New AppServices.UserAccountService()
     Private Sub frmLogin_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
@@ -27,32 +26,13 @@ Public Class frmLogin
             End If
         Catch ex As Exception
         End Try
-        Dim CurrentVersion As String
-        Dim NewVersion As String
         Dim MainExeCurrentVersion As String
         Dim MainExeNewVersion As String
-        CurrentVersion = GetFileVersionInfo(Application.StartupPath + "\ER.exe").ToString()
-        NewVersion = GetFileVersionInfo(Application.StartupPath + "\Executable\ER.exe").ToString()
         MainExeCurrentVersion = GetFileVersionInfo(Application.StartupPath + "\ER System.exe").ToString()
         MainExeNewVersion = modLoadingData.SearchVersion()
         If Pinging("192.168.4.96").Status <> IPStatus.Success Then
             If MainExeCurrentVersion <> MainExeNewVersion Then
                 MsgBox("Please Update your Expense Report System.")
-            End If
-        Else
-            If CurrentVersion <> NewVersion Then
-                If (Not IO.File.Exists(Application.StartupPath + "\Executable")) Then
-                    Thread.Sleep(300)
-                    IO.File.Delete(Application.StartupPath + "\ER.exe")
-                    IO.File.Copy(Application.StartupPath + "\Executable\ER.exe", Application.StartupPath + "\ER.exe")
-
-                    My.Computer.Registry.SetValue("HKEY_CURRENT_USER\Software\ER System\Connection", "ERUpdater", "1")
-                    If (Not IO.Directory.Exists(Application.StartupPath + "\ERPDF")) Then
-                        IO.Directory.CreateDirectory(Application.StartupPath + "\ERPDF")
-                    End If
-                    MsgBox("Application Updated. The Application will be close . . . .")
-                    Application.Exit()
-                End If
             End If
         End If
     End Sub
