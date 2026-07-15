@@ -1,0 +1,11 @@
+:root { font-family: Inter, "Segoe UI", sans-serif; color: #172433; background: #f6f8fb; }
+html { overflow-y: auto; }
+body { margin: 0; min-width: 320px; }
+.page-shell { max-width: 1480px; margin: 0 auto; padding: 24px; }
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; }
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.detail-stack { display: grid; gap: 16px; }
+.field-label { display: block; margin-bottom: 4px; color: #667788; font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.grid-wide { grid-column: 1 / -1; }
+.muted { color: #667788; }
+@media (max-width: 600px) { .page-shell { padding: 16px; } }

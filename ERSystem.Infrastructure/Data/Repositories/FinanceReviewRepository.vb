@@ -120,8 +120,6 @@ Namespace Global.ERSystem.Infrastructure.Data
                 Return Nothing
             End If
 
-            EnsureTrackingRowForApprovedReport(reportId)
-
             Using dbContext As New AppDbContext()
                 Dim report = dbContext.ReportsDetails.
                     AsNoTracking().
@@ -159,8 +157,6 @@ Namespace Global.ERSystem.Infrastructure.Data
             If request Is Nothing Then
                 Throw New ArgumentNullException("request")
             End If
-
-            EnsureTrackingRowForApprovedReport(request.ReportID)
 
             Using dbContext As New AppDbContext()
                 Dim existing = dbContext.ReportFinanceTrackings.FirstOrDefault(Function(item) item.ReportID = request.ReportID)
