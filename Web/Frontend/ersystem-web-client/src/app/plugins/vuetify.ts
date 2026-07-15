@@ -6,7 +6,20 @@ import { colors } from '@/shared/design/tokens'
 export default createVuetify({
   theme: {
     defaultTheme: 'erLight',
-    themes: { erLight: { dark: false, colors: { primary: colors.brand, secondary: colors.accent, background: colors.surface, surface: '#FFFFFF', success: colors.success, warning: colors.warning, error: colors.error, info: colors.info } } }
+    themes: { erLight: { dark: false, colors: {
+      primary: colors.brand,
+      secondary: colors.accent,
+      background: colors.canvas,
+      surface: colors.surface,
+      'surface-variant': colors.brandSoft,
+      'on-background': colors.ink,
+      'on-surface': colors.ink,
+      outline: colors.border,
+      success: colors.success,
+      warning: colors.warning,
+      error: colors.error,
+      info: colors.info
+    } } }
   },
   defaults: {
     VBtn: { rounded: 'lg', elevation: 0 },

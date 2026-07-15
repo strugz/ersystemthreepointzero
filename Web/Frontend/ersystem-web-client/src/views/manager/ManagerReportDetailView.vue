@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
+import { useSessionStore } from '@/app/stores/session'
 import { ApiError } from '@/shared/api/client'
 import AppBreadcrumbs from '@/shared/components/AppBreadcrumbs.vue'
 import AppDate from '@/shared/components/AppDate.vue'
@@ -16,13 +17,17 @@ import { useAsyncAction } from '@/shared/composables/useAsyncAction'
 import { useSnackbar } from '@/shared/composables/useSnackbar'
 import { managerApprovalApi } from '@/features/manager-approvals/api'
 import { calculateManagerAmounts, resolveExpenseAmount } from '@/features/manager-approvals/amounts'
+import { useManagerReportsQueueStore } from '@/features/manager-approvals/queueStore'
+import { canCurrentManagerAct } from '@/features/manager-approvals/workflowPresentation'
 import ManagerApprovalDialogs from '@/features/manager-approvals/ManagerApprovalDialogs.vue'
 import type { ManagerReportDetail, ReceiptAttachment } from '@/features/manager-approvals/types'
 
 const route = useRoute()
 const router = useRouter()
+const session = useSessionStore()
 const { mdAndUp, smAndDown } = useDisplay()
 const snackbar = useSnackbar()
+const managerQueue = useManagerReportsQueueStore()
 const reportId = computed(() => String(route.params.reportId))
 const report = ref<ManagerReportDetail | null>(null)
 const loading = ref(false)
@@ -35,6 +40,10 @@ const previewUrl = ref('')
 const previewType = ref('')
 const previewTitle = ref('')
 const amounts = computed(() => calculateManagerAmounts(report.value?.expenses ?? [], report.value?.cashAdvance ?? null))
+const canTakeAction = computed(() => report.value
+  ? canCurrentManagerAct(report.value, session.user?.userId)
+  : false)
+const isApproved = computed(() => report.value?.status.trim().toLowerCase() === 'approved')
 
 async function load() {
   loading.value = true
@@ -45,22 +54,26 @@ async function load() {
 }
 
 async function approve() {
-  if (!report.value) return
+  if (!report.value || !canTakeAction.value) return
   try {
-    await action.run(() => managerApprovalApi.approve(reportId.value, report.value!.rowVersion))
+    const result = await action.run(() => managerApprovalApi.approve(reportId.value, report.value!.rowVersion))
+    if (!result) return
     approveOpen.value = false
+    managerQueue.applyWorkflowResult(result)
     snackbar.success('The report was approved.')
-    await router.push('/manager/reports')
+    await router.replace('/manager/reports')
   } catch (caught) { await handleActionFailure(caught) }
 }
 
 async function returnReport(reason: string) {
-  if (!report.value) return
+  if (!report.value || !canTakeAction.value) return
   try {
-    await action.run(() => managerApprovalApi.returnReport(reportId.value, reason, report.value!.rowVersion))
+    const result = await action.run(() => managerApprovalApi.returnReport(reportId.value, reason, report.value!.rowVersion))
+    if (!result) return
     returnOpen.value = false
+    managerQueue.applyWorkflowResult(result)
     snackbar.success('The report was returned to the employee.')
-    await router.push('/manager/reports')
+    await router.replace('/manager/reports')
   } catch (caught) { await handleActionFailure(caught) }
 }
 
@@ -91,63 +104,102 @@ onBeforeUnmount(closePreview)
 </script>
 
 <template>
-  <AppBreadcrumbs :items="[{ title: 'Manager approvals', to: '/manager/reports' }, { title: reportId }]" />
+  <AppBreadcrumbs
+    v-if="mdAndUp"
+    :items="[{ title: 'Manager approvals', to: '/manager/reports' }, { title: reportId }]"
+  />
   <div
-    class="position-relative"
+    class="manager-detail-page position-relative"
     style="min-height: 160px"
   >
     <AppLoadingOverlay :loading="loading" />
     <AppErrorAlert :message="error || action.error.value" />
     <template v-if="report">
-      <div :class="{ 'has-mobile-workflow-actions': !mdAndUp }">
+      <div :class="{ 'has-mobile-workflow-actions': !mdAndUp && canTakeAction }">
         <AppPageHeader
+          v-if="mdAndUp"
           :title="`Report ${report.reportId}`"
           :subtitle="`${report.employeeName} · ${report.department}`"
         >
-          <div
-            v-if="mdAndUp"
-            class="d-flex flex-wrap ga-2"
-          >
-            <v-btn
-              color="error"
-              variant="outlined"
-              prepend-icon="mdi-undo"
-              @click="returnOpen = true"
-            >
-              Return
-            </v-btn>
-            <v-btn
-              color="success"
-              prepend-icon="mdi-check"
-              @click="approveOpen = true"
-            >
-              Approve
-            </v-btn>
+          <div class="d-flex flex-wrap align-center ga-2">
+            <AppStatusChip :status="report.status" />
+            <template v-if="canTakeAction">
+              <v-btn
+                color="error"
+                variant="outlined"
+                prepend-icon="mdi-undo"
+                @click="returnOpen = true"
+              >
+                Return
+              </v-btn>
+              <v-btn
+                color="success"
+                prepend-icon="mdi-check"
+                @click="approveOpen = true"
+              >
+                Approve
+              </v-btn>
+            </template>
           </div>
         </AppPageHeader>
+        <template v-else>
+          <div class="manager-detail-mobile-nav">
+            <v-btn
+              icon="mdi-arrow-left"
+              variant="text"
+              to="/manager/reports"
+              aria-label="Back to Manager approvals"
+            />
+            <span>Manager approvals</span>
+          </div>
+          <section class="manager-report-hero">
+            <div class="d-flex align-center justify-space-between ga-3 mb-3">
+              <span class="manager-report-hero__eyebrow">Expense report</span>
+              <AppStatusChip :status="report.status" />
+            </div>
+            <h1 class="manager-report-hero__title">
+              {{ report.employeeName }}
+            </h1>
+            <p class="manager-report-hero__department">
+              {{ report.department || 'No department' }}
+            </p>
+            <div class="manager-report-hero__reference">
+              {{ report.reportId }}
+            </div>
+          </section>
+        </template>
         <v-card
           class="amount-summary border mb-4"
           variant="flat"
         >
-          <v-card-text class="amount-summary__grid">
-            <div class="amount-summary__metric">
-              <span class="field-label">Total filed expenses</span>
-              <AppMoney :value="amounts.filedExpenses" />
-            </div>
-            <div class="amount-summary__metric">
-              <span class="field-label">Cash advance</span>
-              <AppMoney
-                v-if="report.cashAdvance?.amount != null"
-                :value="amounts.cashAdvanceAmount"
-              />
-              <span v-else>—</span>
-            </div>
-            <div class="amount-summary__metric">
+          <v-card-text class="pa-0">
+            <div class="amount-summary__primary">
               <span class="field-label">Combined grand total</span>
               <span class="amount-summary__total"><AppMoney :value="amounts.combinedTotal" /></span>
             </div>
+            <v-divider />
+            <div class="amount-summary__breakdown">
+              <div class="amount-summary__metric">
+                <span class="field-label">Total filed expenses</span>
+                <strong><AppMoney :value="amounts.filedExpenses" /></strong>
+              </div>
+              <div class="amount-summary__metric">
+                <span class="field-label">Cash advance</span>
+                <strong v-if="report.cashAdvance?.amount != null"><AppMoney :value="amounts.cashAdvanceAmount" /></strong>
+                <span v-else>—</span>
+              </div>
+            </div>
           </v-card-text>
         </v-card>
+        <v-alert
+          v-if="isApproved"
+          type="success"
+          variant="tonal"
+          icon="mdi-check-circle-outline"
+          class="mb-4"
+          title="Approval complete"
+          text="This report is approved. No further action is required."
+        />
         <v-row>
           <v-col
             cols="12"
@@ -159,7 +211,6 @@ onBeforeUnmount(closePreview)
               variant="flat"
             >
               <v-card-text class="detail-grid">
-                <div><span class="field-label">Status</span><AppStatusChip :status="report.status" /></div>
                 <div><span class="field-label">Approval step</span>{{ report.currentStep }} of {{ report.totalSteps }}</div>
                 <div><span class="field-label">Report type</span>{{ report.reportType || '—' }}</div>
                 <div><span class="field-label">ERF reference</span>{{ report.erfReferenceNumber || '—' }}</div>
@@ -318,6 +369,7 @@ onBeforeUnmount(closePreview)
     </template>
   </div>
   <ManagerApprovalDialogs
+    v-if="canTakeAction"
     v-model:approve-open="approveOpen"
     v-model:return-open="returnOpen"
     :loading="action.loading.value"
@@ -349,7 +401,7 @@ onBeforeUnmount(closePreview)
     </v-card>
   </v-dialog>
   <div
-    v-if="report && !mdAndUp"
+    v-if="report && !mdAndUp && canTakeAction"
     class="mobile-workflow-actions"
   >
     <v-btn

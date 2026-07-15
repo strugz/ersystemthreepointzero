@@ -16,6 +16,7 @@ const activeDestination = computed(() => resolveNavigationDestination(route.path
   <v-navigation-drawer
     v-if="mdAndUp"
     v-model="drawer"
+    class="authenticated-drawer"
   >
     <div class="pa-5">
       <div class="text-overline text-primary">
@@ -50,6 +51,8 @@ const activeDestination = computed(() => resolveNavigationDestination(route.path
     </v-list>
   </v-navigation-drawer>
   <v-app-bar
+    class="authenticated-app-bar"
+    color="primary"
     flat
     border
   >
@@ -58,7 +61,18 @@ const activeDestination = computed(() => resolveNavigationDestination(route.path
       aria-label="Toggle navigation"
       @click="drawer = !drawer"
     />
-    <v-app-bar-title>Expense Report System</v-app-bar-title>
+    <div
+      class="app-brand-icon-tile"
+      aria-hidden="true"
+    >
+      <img
+        src="/er-system-icon.png"
+        alt=""
+      >
+    </div>
+    <v-app-bar-title class="app-brand-title">
+      Expense Report System
+    </v-app-bar-title>
   </v-app-bar>
   <v-main :class="{ 'mobile-authenticated-main': !mdAndUp }">
     <router-view />
@@ -69,7 +83,7 @@ const activeDestination = computed(() => resolveNavigationDestination(route.path
     class="mobile-bottom-navigation"
     grow
     mandatory
-    color="primary"
+    color="white"
     height="72"
   >
     <v-btn
