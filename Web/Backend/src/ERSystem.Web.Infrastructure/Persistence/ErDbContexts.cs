@@ -12,6 +12,7 @@ public sealed class LegacyErDbContext(DbContextOptions<LegacyErDbContext> option
     public DbSet<ExpenseDetailEntity> Expenses => Set<ExpenseDetailEntity>();
     public DbSet<CashAdvanceEntity> CashAdvances => Set<CashAdvanceEntity>();
     public DbSet<ReportAuthorityEntity> ReportAuthorities => Set<ReportAuthorityEntity>();
+    public DbSet<ReportApprovalTransactionEntity> ApprovalTransactions => Set<ReportApprovalTransactionEntity>();
     public DbSet<ReportFinanceTrackingEntity> FinanceTracking => Set<ReportFinanceTrackingEntity>();
     public DbSet<ScannedReceiptAttachmentEntity> ScannedReceipts => Set<ScannedReceiptAttachmentEntity>();
     public DbSet<WebWorkflowAuditEntity> WorkflowAudits => Set<WebWorkflowAuditEntity>();
@@ -119,6 +120,23 @@ public sealed class LegacyErDbContext(DbContextOptions<LegacyErDbContext> option
             entity.Property(x => x.SignId).HasColumnName("SignID");
             entity.Property(x => x.UserId).HasColumnName("UserID");
             entity.Property(x => x.AuthoritySignature).HasColumnName("AuthoritySignature");
+        });
+
+        modelBuilder.Entity<ReportApprovalTransactionEntity>(entity =>
+        {
+            entity.ToTable("tbReportApprovalTransaction");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("ID").ValueGeneratedOnAdd();
+            entity.Property(x => x.ReportId).HasColumnName("ReportID").HasMaxLength(50).IsUnicode(false);
+            entity.Property(x => x.ApprovalCycle).HasColumnName("ApprovalCycle");
+            entity.Property(x => x.EmployeeUserId).HasColumnName("EmployeeUserID");
+            entity.Property(x => x.ApproverUserId).HasColumnName("ApproverUserID");
+            entity.Property(x => x.StepOrder).HasColumnName("StepOrder");
+            entity.Property(x => x.Status).HasColumnName("Status").HasMaxLength(20).IsUnicode(false);
+            entity.Property(x => x.SubmittedAtUtc).HasColumnName("SubmittedAtUtc");
+            entity.Property(x => x.ActionedAtUtc).HasColumnName("ActionedAtUtc");
+            entity.Property(x => x.ActionRemarks).HasColumnName("ActionRemarks").HasMaxLength(1000);
+            entity.Property(x => x.RowVersion).HasColumnName("RowVersion").IsRowVersion();
         });
 
         modelBuilder.Entity<ReportFinanceTrackingEntity>(entity =>

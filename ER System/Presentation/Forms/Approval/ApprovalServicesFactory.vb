@@ -9,7 +9,6 @@ Friend NotInheritable Class ApprovalServicesFactory
     Private Shared ReadOnly RejectActionRepository As IRejectActionRepository = New RejectActionRepository()
     Private Shared ReadOnly SettingsRegistryProvider As New SettingsRegistryProvider()
     Private Shared ReadOnly UserAccountRegistryProvider As New UserAccountRegistryProvider()
-    Private Shared ReadOnly ApprovalValidationService As ERSystem.AppServices.IApprovalValidationService = New LegacyApprovalValidationService()
     Private Shared ReadOnly SelectedReportContextStore As ERSystem.AppServices.ISelectedReportContextStore = New LegacySelectedReportContextStore()
 
     Private Sub New()
@@ -34,7 +33,6 @@ Friend NotInheritable Class ApprovalServicesFactory
             ApproveActionRepository,
             approveService,
             UserAccountRegistryProvider,
-            ApprovalValidationService,
             financeReviewService,
             cleanupService)
     End Function
@@ -48,7 +46,8 @@ Friend NotInheritable Class ApprovalServicesFactory
     Public Shared Function CreateRejectActionService() As ERSystem.AppServices.RejectActionService
         Return New ERSystem.AppServices.RejectActionService(
             RejectActionRepository,
-            CreateApproveService())
+            CreateApproveService(),
+            UserAccountRegistryProvider)
     End Function
 
     Public Shared Function CreateSelectedReportContextStore() As ERSystem.AppServices.ISelectedReportContextStore

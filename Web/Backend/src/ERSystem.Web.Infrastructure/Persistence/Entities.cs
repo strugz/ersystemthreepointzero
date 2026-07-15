@@ -83,6 +83,21 @@ public sealed class ReportAuthorityEntity
     public byte[]? AuthoritySignature { get; set; }
 }
 
+public sealed class ReportApprovalTransactionEntity
+{
+    public long Id { get; set; }
+    public string ReportId { get; set; } = string.Empty;
+    public int ApprovalCycle { get; set; }
+    public int EmployeeUserId { get; set; }
+    public int ApproverUserId { get; set; }
+    public int StepOrder { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime SubmittedAtUtc { get; set; }
+    public DateTime? ActionedAtUtc { get; set; }
+    public string? ActionRemarks { get; set; }
+    public byte[] RowVersion { get; set; } = [];
+}
+
 public sealed class ReportFinanceTrackingEntity
 {
     public long Id { get; set; }

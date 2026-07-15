@@ -23,29 +23,30 @@ public sealed class ManagerApprovalService(
             !string.Equals(query.Status, "completed", StringComparison.OrdinalIgnoreCase);
 
         var source =
-            from report in db.Reports.AsNoTracking()
-            join assignment in db.UserAuthorities.AsNoTracking() on report.UserId equals assignment.UserId
+            from approval in db.ApprovalTransactions.AsNoTracking()
+            join report in db.Reports.AsNoTracking() on approval.ReportId equals report.Id
             join user in db.Users.AsNoTracking() on report.UserId equals user.UserId
             join department in db.Departments.AsNoTracking() on user.DepartmentId equals department.Id into departments
             from department in departments.DefaultIfEmpty()
-            where assignment.AuthorityId == managerUserId
-            select new { report, assignment, user, department };
+            where approval.ApproverUserId == managerUserId &&
+                  !db.ApprovalTransactions.Any(laterCycle =>
+                      laterCycle.ReportId == approval.ReportId && laterCycle.ApprovalCycle > approval.ApprovalCycle)
+            select new { report, approval, user, department };
 
         if (pending)
         {
             source = source.Where(x =>
+                x.approval.Status == ApprovalTransactionStates.Pending &&
                 x.report.ReportFileStatus == ReportStates.Filed &&
-                !db.ReportAuthorities.Any(a => a.ReportId == x.report.Id && a.SignId == managerUserId) &&
-                x.report.ReportReserveStatus2 != managerUserId.ToString() &&
-                !db.UserAuthorities.Any(previous =>
-                    previous.UserId == x.report.UserId && previous.Sort < x.assignment.Sort &&
-                    !db.ReportAuthorities.Any(completed => completed.ReportId == x.report.Id && completed.SignId == previous.AuthorityId)));
+                !db.ApprovalTransactions.Any(previous =>
+                    previous.ReportId == x.approval.ReportId && previous.ApprovalCycle == x.approval.ApprovalCycle &&
+                    previous.StepOrder < x.approval.StepOrder && previous.Status != ApprovalTransactionStates.Approved));
         }
         else
         {
             source = source.Where(x =>
-                db.ReportAuthorities.Any(a => a.ReportId == x.report.Id && a.SignId == managerUserId) ||
-                x.report.ReportReserveStatus2 == managerUserId.ToString());
+                x.approval.Status == ApprovalTransactionStates.Approved ||
+                x.approval.Status == ApprovalTransactionStates.Returned);
         }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -86,8 +87,9 @@ public sealed class ManagerApprovalService(
                 x.report.ReportDateTo,
                 Description = x.report.ReportDescription ?? string.Empty,
                 ReportType = x.report.ReportType ?? string.Empty,
-                CurrentStep = x.assignment.Sort ?? 0,
-                TotalSteps = db.UserAuthorities.Count(a => a.UserId == x.report.UserId),
+                CurrentStep = x.approval.StepOrder,
+                TotalSteps = db.ApprovalTransactions.Count(a =>
+                    a.ReportId == x.approval.ReportId && a.ApprovalCycle == x.approval.ApprovalCycle),
                 x.report.ReportFileStatus,
                 x.report.ReportPrintStatus,
                 x.report.RowVersion
@@ -104,13 +106,15 @@ public sealed class ManagerApprovalService(
     {
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         var header = await (
-            from report in db.Reports.AsNoTracking()
-            join assignment in db.UserAuthorities.AsNoTracking() on report.UserId equals assignment.UserId
+            from approval in db.ApprovalTransactions.AsNoTracking()
+            join report in db.Reports.AsNoTracking() on approval.ReportId equals report.Id
             join user in db.Users.AsNoTracking() on report.UserId equals user.UserId
             join department in db.Departments.AsNoTracking() on user.DepartmentId equals department.Id into departments
             from department in departments.DefaultIfEmpty()
-            where report.Id == reportId && assignment.AuthorityId == managerUserId
-            select new { report, assignment, user, department }).SingleOrDefaultAsync(cancellationToken)
+            where report.Id == reportId && approval.ApproverUserId == managerUserId &&
+                  approval.Status != ApprovalTransactionStates.Superseded
+            orderby approval.ApprovalCycle descending
+            select new { report, approval, user, department }).FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException("The report was not found or is not assigned to the current manager.");
 
         var expenseRows = await db.Expenses.AsNoTracking().Where(x => x.ReportId == reportId)
@@ -128,21 +132,17 @@ public sealed class ManagerApprovalService(
         var attachments = await db.ScannedReceipts.AsNoTracking().Where(x => x.ReportId == reportId).OrderBy(x => x.Id)
             .Select(x => new ReceiptAttachmentDto(x.Id, x.OriginalFileName, x.ContentType, x.FileSizeBytes, x.CreatedDate))
             .ToListAsync(cancellationToken);
-        var assignments = await db.UserAuthorities.AsNoTracking().Where(x => x.UserId == header.report.UserId).OrderBy(x => x.Sort).ToListAsync(cancellationToken);
-        var approvals = await db.ReportAuthorities.AsNoTracking().Where(x => x.ReportId == reportId).ToListAsync(cancellationToken);
-        var approverIds = assignments.Where(x => x.AuthorityId.HasValue).Select(x => x.AuthorityId!.Value).ToArray();
+        var assignments = await db.ApprovalTransactions.AsNoTracking()
+            .Where(x => x.ReportId == reportId && x.ApprovalCycle == header.approval.ApprovalCycle)
+            .OrderBy(x => x.StepOrder).ToListAsync(cancellationToken);
+        var approverIds = assignments.Select(x => x.ApproverUserId).ToArray();
         var approvers = await db.Users.AsNoTracking().Where(x => x.UserId.HasValue && approverIds.Contains(x.UserId.Value))
             .ToDictionaryAsync(x => x.UserId!.Value, x => x.FullName ?? x.Username ?? string.Empty, cancellationToken);
-        var auditDates = await db.WorkflowAudits.AsNoTracking().Where(x => x.ReportId == reportId && x.EventType == WorkflowEvents.ManagerApproved)
-            .GroupBy(x => x.ActorUserId).Select(x => new { UserId = x.Key, Date = x.Max(a => a.OccurredAtUtc) })
-            .ToDictionaryAsync(x => x.UserId, x => (DateTime?)x.Date, cancellationToken);
-
         var trail = assignments.Select(x =>
         {
-            var approverId = x.AuthorityId ?? 0;
-            var approved = approvals.Any(a => a.SignId == approverId) || header.report.ReportReserveStatus2 == approverId.ToString();
-            return new ApprovalTrailItemDto(approverId, approvers.GetValueOrDefault(approverId, x.AuthorityName ?? string.Empty).Trim(),
-                x.Sort ?? 0, auditDates.GetValueOrDefault(approverId), approved ? "Approved" : "Pending");
+            var approverId = x.ApproverUserId;
+            return new ApprovalTrailItemDto(approverId, approvers.GetValueOrDefault(approverId, string.Empty).Trim(),
+                x.StepOrder, x.ActionedAtUtc, x.Status);
         }).ToArray();
 
         return new ManagerReportDetailDto(
@@ -150,7 +150,7 @@ public sealed class ManagerApprovalService(
             header.department?.Name?.Trim() ?? string.Empty, header.report.ReportDateFrom, header.report.ReportDateTo,
             header.report.ReportDescription?.Trim() ?? string.Empty, TextNormalization.TrimLegacy(header.report.ReportType),
             header.report.ErfReferenceNumber?.Trim() ?? string.Empty, expenses, cashDto, attachments, trail,
-            header.assignment.Sort ?? 0, assignments.Count, ResolveReportStatus(header.report.ReportFileStatus, header.report.ReportPrintStatus),
+            header.approval.StepOrder, assignments.Count, ResolveReportStatus(header.report.ReportFileStatus, header.report.ReportPrintStatus),
             rowVersions.Encode(header.report.RowVersion));
     }
 
@@ -175,24 +175,28 @@ public sealed class ManagerApprovalService(
             if (!rowVersions.Matches(report.RowVersion, request.RowVersion)) throw new ConflictException("The report changed. Refresh and try again.");
             if (report.ReportFileStatus != ReportStates.Filed) throw new ConflictException("The report is no longer pending approval.");
 
-            var owner = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.UserId == report.UserId, cancellationToken)
-                ?? throw new NotFoundException("The report owner was not found.");
-            var assignments = await db.UserAuthorities.AsNoTracking().Where(x => x.UserId == report.UserId).OrderBy(x => x.Sort).ToListAsync(cancellationToken);
-            var assignment = assignments.SingleOrDefault(x => x.AuthorityId == managerUserId)
-                ?? throw new ForbiddenException("The current manager is not assigned to this report.");
-            var approvals = await db.ReportAuthorities.AsNoTracking().Where(x => x.ReportId == reportId).ToListAsync(cancellationToken);
-            if (approvals.Any(x => x.SignId == managerUserId) || report.ReportReserveStatus2 == managerUserId.ToString())
-                throw new ConflictException("This approval was already completed.");
-            var completedSorts = assignments.Where(a => approvals.Any(x => x.SignId == a.AuthorityId)).Select(a => a.Sort ?? 0).ToArray();
-            if (!ApprovalSequence.CanApprove(assignment.Sort ?? 0, completedSorts))
+            var approval = await db.ApprovalTransactions
+                .Where(x => x.ReportId == reportId && x.ApproverUserId == managerUserId)
+                .OrderByDescending(x => x.ApprovalCycle).FirstOrDefaultAsync(cancellationToken)
+                ?? throw new ForbiddenException("The current manager has no approval transaction for this report.");
+            if (approval.Status != ApprovalTransactionStates.Pending)
+                throw new ConflictException("This approval transaction is no longer pending.");
+            var previousIncomplete = await db.ApprovalTransactions.AsNoTracking().AnyAsync(x =>
+                x.ReportId == reportId && x.ApprovalCycle == approval.ApprovalCycle &&
+                x.StepOrder < approval.StepOrder && x.Status != ApprovalTransactionStates.Approved, cancellationToken);
+            if (previousIncomplete)
                 throw new ConflictException("A previous approver must complete the report first.");
 
             var previousState = ResolveReportStatus(report.ReportFileStatus, report.ReportPrintStatus);
             var newNumber = (report.ReportNumberStatus ?? 0) + 1;
-            if (!owner.ReportNumberStatus.HasValue) throw new ConflictException("The report owner has no configured final approval step.");
-            var isFinal = newNumber == owner.ReportNumberStatus.Value;
+            var isFinal = !await db.ApprovalTransactions.AsNoTracking().AnyAsync(x =>
+                x.ReportId == reportId && x.ApprovalCycle == approval.ApprovalCycle &&
+                x.StepOrder > approval.StepOrder, cancellationToken);
             report.ReportNumberStatus = newNumber;
             report.ReportEndorseStatus = ReportStates.EndorseApproved;
+            approval.Status = ApprovalTransactionStates.Approved;
+            approval.ActionedAtUtc = clock.UtcNow;
+            approval.ActionRemarks = null;
 
             if (!isFinal)
             {
@@ -247,21 +251,22 @@ public sealed class ManagerApprovalService(
         var report = await db.Reports.AsNoTracking().SingleOrDefaultAsync(x => x.Id == reportId, cancellationToken)
             ?? throw new NotFoundException("The report was not found.");
         if (!rowVersions.Matches(report.RowVersion, request.RowVersion)) throw new ConflictException("The report changed. Refresh and try again.");
-        var assigned = await db.UserAuthorities.AsNoTracking().AnyAsync(x => x.UserId == report.UserId && x.AuthorityId == managerUserId, cancellationToken);
-        if (!assigned) throw new ForbiddenException("The current manager is not assigned to this report.");
         if (report.ReportFileStatus != ReportStates.Filed) throw new ConflictException("The report is no longer pending approval.");
 
-        var assignments = await db.UserAuthorities.AsNoTracking().Where(x => x.UserId == report.UserId).OrderBy(x => x.Sort).ToListAsync(cancellationToken);
-        var assignment = assignments.Single(x => x.AuthorityId == managerUserId);
-        var approvals = await db.ReportAuthorities.AsNoTracking().Where(x => x.ReportId == reportId).ToListAsync(cancellationToken);
-        if (approvals.Any(x => x.SignId == managerUserId) || report.ReportReserveStatus2 == managerUserId.ToString())
-            throw new ConflictException("This manager action was already completed.");
-        var completedSorts = assignments.Where(a => approvals.Any(x => x.SignId == a.AuthorityId)).Select(a => a.Sort ?? 0).ToArray();
-        if (!ApprovalSequence.CanApprove(assignment.Sort ?? 0, completedSorts))
+        var approval = await db.ApprovalTransactions.AsNoTracking()
+            .Where(x => x.ReportId == reportId && x.ApproverUserId == managerUserId)
+            .OrderByDescending(x => x.ApprovalCycle).FirstOrDefaultAsync(cancellationToken)
+            ?? throw new ForbiddenException("The current manager has no approval transaction for this report.");
+        if (approval.Status != ApprovalTransactionStates.Pending)
+            throw new ConflictException("This approval transaction is no longer pending.");
+        var previousIncomplete = await db.ApprovalTransactions.AsNoTracking().AnyAsync(x =>
+            x.ReportId == reportId && x.ApprovalCycle == approval.ApprovalCycle &&
+            x.StepOrder < approval.StepOrder && x.Status != ApprovalTransactionStates.Approved, cancellationToken);
+        if (previousIncomplete)
             throw new ConflictException("A previous approver must complete the report first.");
 
         var legacyReason = reason.Length <= 255 ? reason : reason[..255];
-        await db.Database.ExecuteSqlInterpolatedAsync($"EXEC dbo.sp2_LoadUserReportDetailsCancel {reportId}, {legacyReason}", cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync($"EXEC dbo.sp2_LoadUserReportDetailsCancel {reportId}, {legacyReason}, {managerUserId}", cancellationToken);
         var audit = CreateAudit(reportId, managerUserId, WorkflowEvents.ManagerReturned, "For Approval", "Returned", reason, correlationId);
         await auditWriter.WriteAsync(db.Database.GetDbConnection(), transaction.GetDbTransaction(), audit, cancellationToken);
         var updated = await db.Reports.AsNoTracking().SingleAsync(x => x.Id == reportId, cancellationToken);

@@ -1,6 +1,7 @@
 using ERSystem.Web.Application.Common;
 using ERSystem.Web.Domain.Common;
 using ERSystem.Web.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace ERSystem.Web.Tests.Architecture;
 
@@ -28,5 +29,19 @@ public sealed class DependencyTests
     {
         Assert.Equal("ERSystem.Web.Infrastructure", typeof(LegacyErDbContext).Assembly.GetName().Name);
         Assert.Equal("ERSystem.Web.Infrastructure", typeof(WebWorkflowDbContext).Assembly.GetName().Name);
+    }
+
+    [Fact]
+    public void Legacy_context_maps_the_dedicated_approval_transaction_table()
+    {
+        var options = new DbContextOptionsBuilder<LegacyErDbContext>()
+            .UseSqlServer("Server=(local);Database=ERSystemModelOnly;Trusted_Connection=True;TrustServerCertificate=True")
+            .Options;
+        using var context = new LegacyErDbContext(options);
+        var entity = context.Model.FindEntityType(typeof(ReportApprovalTransactionEntity));
+
+        Assert.NotNull(entity);
+        Assert.Equal("tbReportApprovalTransaction", entity.GetTableName());
+        Assert.True(entity.FindProperty(nameof(ReportApprovalTransactionEntity.RowVersion))!.IsConcurrencyToken);
     }
 }

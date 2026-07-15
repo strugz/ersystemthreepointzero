@@ -8,14 +8,12 @@ Public Class ApproveActionService
     Private ReadOnly _approveActionRepository As IApproveActionRepository
     Private ReadOnly _approveService As ApproveService
     Private ReadOnly _userAccountRegistryProvider As UserAccountRegistryProvider
-    Private ReadOnly _approvalValidationService As IApprovalValidationService
     Private ReadOnly _financeReviewService As IFinanceReviewService
     Private ReadOnly _scannedReceiptCleanupService As ScannedReceiptCleanupService
 
     Public Sub New(approveActionRepository As IApproveActionRepository,
                    approveService As ApproveService,
                    userAccountRegistryProvider As UserAccountRegistryProvider,
-                   approvalValidationService As IApprovalValidationService,
                    financeReviewService As IFinanceReviewService,
                    scannedReceiptCleanupService As ScannedReceiptCleanupService)
         If approveActionRepository Is Nothing Then
@@ -30,10 +28,6 @@ Public Class ApproveActionService
             Throw New ArgumentNullException("userAccountRegistryProvider")
         End If
 
-        If approvalValidationService Is Nothing Then
-            Throw New ArgumentNullException("approvalValidationService")
-        End If
-
         If financeReviewService Is Nothing Then
             Throw New ArgumentNullException("financeReviewService")
         End If
@@ -45,14 +39,13 @@ Public Class ApproveActionService
         _approveActionRepository = approveActionRepository
         _approveService = approveService
         _userAccountRegistryProvider = userAccountRegistryProvider
-        _approvalValidationService = approvalValidationService
         _financeReviewService = financeReviewService
         _scannedReceiptCleanupService = scannedReceiptCleanupService
     End Sub
 
     Public Function ApproveReport(userIdToApprover As String, reportIdToApprove As String) As ApproveActionResult
         Dim loginUserId As String = _userAccountRegistryProvider.GetValue("UserID")
-        Dim approverValidate As ApprovalValidationStatus = _approvalValidationService.Validate(userIdToApprover, loginUserId, reportIdToApprove)
+        Dim approverValidate As ApprovalValidationStatus = _approveActionRepository.ValidateApproval(reportIdToApprove, loginUserId)
 
         If approverValidate = ApprovalValidationStatus.CanApprove Then
             _approveActionRepository.UpdateFileStatus(userIdToApprover, reportIdToApprove, loginUserId)

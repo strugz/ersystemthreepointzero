@@ -21,7 +21,9 @@ public sealed class DatabaseCompatibilityValidator(
                    CONVERT(nvarchar(128), SERVERPROPERTY('Edition')),
                    CONVERT(int, compatibility_level),
                    CASE WHEN OBJECT_ID(N'dbo.tbWebLoginSecurity', N'U') IS NULL THEN 0 ELSE 1 END,
-                   CASE WHEN OBJECT_ID(N'dbo.tbWebWorkflowAudit', N'U') IS NULL THEN 0 ELSE 1 END
+                   CASE WHEN OBJECT_ID(N'dbo.tbWebWorkflowAudit', N'U') IS NULL THEN 0 ELSE 1 END,
+                   CASE WHEN OBJECT_ID(N'dbo.tbReportApprovalTransaction', N'U') IS NULL THEN 0 ELSE 1 END,
+                   CASE WHEN OBJECT_ID(N'dbo.sp2_RefileER', N'P') IS NULL THEN 0 ELSE 1 END
             FROM sys.databases
             WHERE name = DB_NAME();
             """;
@@ -46,9 +48,9 @@ public sealed class DatabaseCompatibilityValidator(
         if (compatibilityLevel != RequiredCompatibilityLevel)
             throw new InvalidOperationException(
                 $"ER System Web v1 requires database compatibility level {RequiredCompatibilityLevel}.");
-        if (reader.GetInt32(3) == 0 || reader.GetInt32(4) == 0)
+        if (reader.GetInt32(3) == 0 || reader.GetInt32(4) == 0 || reader.GetInt32(5) == 0 || reader.GetInt32(6) == 0)
             throw new InvalidOperationException(
-                "ER System Web database objects are missing. Run Database/20260715_CreateWebApprovalAndReceiptSupport.sql before starting the API.");
+                "ER System Web database objects are missing. Run the required scripts in Database date order before starting the API.");
 
         if (majorVersion < 15)
             logger.LogWarning(

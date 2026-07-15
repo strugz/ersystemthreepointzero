@@ -14,6 +14,14 @@ public static class FinanceStates
     public const string ReceiptsReceived = "Receipts Received";
 }
 
+public static class ApprovalTransactionStates
+{
+    public const string Pending = "Pending";
+    public const string Approved = "Approved";
+    public const string Returned = "Returned";
+    public const string Superseded = "Superseded";
+}
+
 public static class WorkflowEvents
 {
     public const string ManagerApproved = "ManagerApproved";

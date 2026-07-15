@@ -4,6 +4,8 @@
 
 This guide applies only to files under `Web/`. The repository-root `AGENTS.md` remains authoritative for repository-wide rules and the legacy WinForms application. If the two guides conflict, follow the root guide.
 
+For work under `Backend/`, also follow `Backend/AGENTS.md`. For work under `Frontend/`, also follow `Frontend/AGENTS.md`. These nested guides explain the current projects, files, workflows, placement decisions, and verification expectations in greater detail; this guide remains authoritative for rules shared across the whole web portal.
+
 ## Folder Ownership
 
 - `Frontend/ersystem-web-client/` owns the Vue, TypeScript, and Vuetify single-page application.
