@@ -17,6 +17,16 @@ import { useAsyncAction } from '@/shared/composables/useAsyncAction'
 import { useSnackbar } from '@/shared/composables/useSnackbar'
 import { managerApprovalApi } from '@/features/manager-approvals/api'
 import { calculateManagerAmounts, resolveExpenseAmount } from '@/features/manager-approvals/amounts'
+import {
+  createExpenseTableHeaders,
+  formatReceiptSize,
+  hasAmountSummary,
+  hasCashAdvanceData,
+  hasDisplayMoney,
+  hasDisplayText,
+  hasExpenseMetadata,
+  receiptDisplayName
+} from '@/features/manager-approvals/detailPresentation'
 import { useManagerReportsQueueStore } from '@/features/manager-approvals/queueStore'
 import { canCurrentManagerAct } from '@/features/manager-approvals/workflowPresentation'
 import ManagerApprovalDialogs from '@/features/manager-approvals/ManagerApprovalDialogs.vue'
@@ -36,6 +46,7 @@ const approveOpen = ref(false)
 const returnOpen = ref(false)
 const action = useAsyncAction()
 const previewOpen = ref(false)
+const openingAttachmentId = ref<number | null>(null)
 const previewUrl = ref('')
 const previewType = ref('')
 const previewTitle = ref('')
@@ -44,6 +55,11 @@ const canTakeAction = computed(() => report.value
   ? canCurrentManagerAct(report.value, session.user?.userId)
   : false)
 const isApproved = computed(() => report.value?.status.trim().toLowerCase() === 'approved')
+const desktopSubtitle = computed(() => [report.value?.employeeName, report.value?.department].filter(hasDisplayText).join(' · '))
+const expenseHeaders = computed(() => createExpenseTableHeaders(report.value?.expenses ?? []))
+const showAmountSummary = computed(() => hasAmountSummary(report.value?.expenses ?? [], report.value?.cashAdvance ?? null))
+const showCashAdvance = computed(() => hasCashAdvanceData(report.value?.cashAdvance ?? null))
+const showSideColumn = computed(() => showCashAdvance.value || (report.value?.approvalTrail.length ?? 0) > 0)
 
 async function load() {
   loading.value = true
@@ -84,23 +100,43 @@ async function handleActionFailure(caught: unknown) {
   } else snackbar.error(caught instanceof Error ? caught.message : 'The action failed.')
 }
 
-async function preview(attachment: ReceiptAttachment) {
-  closePreview()
+async function preview(attachment: ReceiptAttachment, index: number) {
+  if (openingAttachmentId.value != null) return
+  releasePreview()
+  openingAttachmentId.value = attachment.id
   try {
     const blob = await managerApprovalApi.attachment(attachment.id)
+    if (blob.size === 0) throw new Error('The receipt file is empty.')
     previewUrl.value = URL.createObjectURL(blob)
-    previewType.value = attachment.contentType || blob.type
-    previewTitle.value = attachment.fileName
+    previewType.value = blob.type || attachment.contentType || 'application/octet-stream'
+    previewTitle.value = receiptDisplayName(attachment, index)
     previewOpen.value = true
   } catch (caught) { snackbar.error(caught instanceof Error ? caught.message : 'Unable to open the receipt.') }
+  finally { openingAttachmentId.value = null }
 }
-function closePreview() {
+function requestClosePreview() { previewOpen.value = false }
+function releasePreview() {
   previewOpen.value = false
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   previewUrl.value = ''
+  previewType.value = ''
+  previewTitle.value = ''
+}
+function openPreviewExternally() {
+  if (previewUrl.value) window.open(previewUrl.value, '_blank', 'noopener,noreferrer')
+}
+function downloadPreview() {
+  if (!previewUrl.value) return
+  const link = document.createElement('a')
+  link.href = previewUrl.value
+  link.download = previewTitle.value || 'scanned-receipt'
+  link.rel = 'noopener'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
 }
 onMounted(load)
-onBeforeUnmount(closePreview)
+onBeforeUnmount(releasePreview)
 </script>
 
 <template>
@@ -119,7 +155,7 @@ onBeforeUnmount(closePreview)
         <AppPageHeader
           v-if="mdAndUp"
           :title="`Report ${report.reportId}`"
-          :subtitle="`${report.employeeName} · ${report.department}`"
+          :subtitle="desktopSubtitle"
         >
           <div class="d-flex flex-wrap align-center ga-2">
             <AppStatusChip :status="report.status" />
@@ -157,11 +193,17 @@ onBeforeUnmount(closePreview)
               <span class="manager-report-hero__eyebrow">Expense report</span>
               <AppStatusChip :status="report.status" />
             </div>
-            <h1 class="manager-report-hero__title">
+            <h1
+              v-if="hasDisplayText(report.employeeName)"
+              class="manager-report-hero__title"
+            >
               {{ report.employeeName }}
             </h1>
-            <p class="manager-report-hero__department">
-              {{ report.department || 'No department' }}
+            <p
+              v-if="hasDisplayText(report.department)"
+              class="manager-report-hero__department"
+            >
+              {{ report.department }}
             </p>
             <div class="manager-report-hero__reference">
               {{ report.reportId }}
@@ -169,6 +211,7 @@ onBeforeUnmount(closePreview)
           </section>
         </template>
         <v-card
+          v-if="showAmountSummary"
           class="amount-summary border mb-4"
           variant="flat"
         >
@@ -178,15 +221,23 @@ onBeforeUnmount(closePreview)
               <span class="amount-summary__total"><AppMoney :value="amounts.combinedTotal" /></span>
             </div>
             <v-divider />
-            <div class="amount-summary__breakdown">
-              <div class="amount-summary__metric">
+            <div
+              class="amount-summary__breakdown"
+              :class="{ 'amount-summary__breakdown--single': !report.expenses.length || !hasDisplayMoney(report.cashAdvance?.amount) }"
+            >
+              <div
+                v-if="report.expenses.length"
+                class="amount-summary__metric"
+              >
                 <span class="field-label">Total filed expenses</span>
                 <strong><AppMoney :value="amounts.filedExpenses" /></strong>
               </div>
-              <div class="amount-summary__metric">
+              <div
+                v-if="hasDisplayMoney(report.cashAdvance?.amount)"
+                class="amount-summary__metric"
+              >
                 <span class="field-label">Cash advance</span>
-                <strong v-if="report.cashAdvance?.amount != null"><AppMoney :value="amounts.cashAdvanceAmount" /></strong>
-                <span v-else>—</span>
+                <strong><AppMoney :value="amounts.cashAdvanceAmount" /></strong>
               </div>
             </div>
           </v-card-text>
@@ -203,7 +254,7 @@ onBeforeUnmount(closePreview)
         <v-row>
           <v-col
             cols="12"
-            lg="8"
+            :lg="showSideColumn ? 8 : 12"
           >
             <v-card
               title="Report summary"
@@ -211,27 +262,38 @@ onBeforeUnmount(closePreview)
               variant="flat"
             >
               <v-card-text class="detail-grid">
-                <div><span class="field-label">Approval step</span>{{ report.currentStep }} of {{ report.totalSteps }}</div>
-                <div><span class="field-label">Report type</span>{{ report.reportType || '—' }}</div>
-                <div><span class="field-label">ERF reference</span>{{ report.erfReferenceNumber || '—' }}</div>
-                <div><span class="field-label">From</span><AppDate :value="report.dateFrom" /></div>
-                <div><span class="field-label">To</span><AppDate :value="report.dateTo" /></div>
-                <div class="grid-wide">
-                  <span class="field-label">Description</span>{{ report.description || '—' }}
+                <div>
+                  <span class="field-label">Approval step</span>{{ report.currentStep }} of {{ report.totalSteps }}
+                </div>
+                <div v-if="hasDisplayText(report.reportType)">
+                  <span class="field-label">Report type</span>{{ report.reportType }}
+                </div>
+                <div v-if="hasDisplayText(report.erfReferenceNumber)">
+                  <span class="field-label">ERF reference</span>{{ report.erfReferenceNumber }}
+                </div>
+                <div v-if="hasDisplayText(report.dateFrom)">
+                  <span class="field-label">From</span><AppDate :value="report.dateFrom" />
+                </div>
+                <div v-if="hasDisplayText(report.dateTo)">
+                  <span class="field-label">To</span><AppDate :value="report.dateTo" />
+                </div>
+                <div
+                  v-if="hasDisplayText(report.description)"
+                  class="grid-wide"
+                >
+                  <span class="field-label">Description</span>{{ report.description }}
                 </div>
               </v-card-text>
             </v-card>
             <v-card
+              v-if="report.expenses.length"
               title="Expenses"
               class="mb-4 border"
               variant="flat"
             >
               <v-data-table
                 v-if="mdAndUp"
-                :headers="[
-                  { title: 'Date', key: 'transactionDate' }, { title: 'Particulars', key: 'particulars' },
-                  { title: 'Category', key: 'category' }, { title: 'Amount', key: 'amount', align: 'end' }
-                ]"
+                :headers="expenseHeaders"
                 :items="report.expenses"
                 density="comfortable"
               >
@@ -243,7 +305,7 @@ onBeforeUnmount(closePreview)
                 </template>
               </v-data-table>
               <v-card-text
-                v-else-if="report.expenses.length"
+                v-else
                 class="expense-mobile-list"
               >
                 <v-card
@@ -254,22 +316,38 @@ onBeforeUnmount(closePreview)
                 >
                   <v-card-text>
                     <div class="d-flex align-start justify-space-between ga-3">
-                      <div>
-                        <div class="font-weight-bold">
-                          {{ expense.particulars || 'Expense item' }}
+                      <div v-if="hasDisplayText(expense.particulars) || hasDisplayText(expense.category)">
+                        <div
+                          v-if="hasDisplayText(expense.particulars)"
+                          class="font-weight-bold"
+                        >
+                          {{ expense.particulars }}
                         </div>
-                        <div class="text-caption muted">
-                          {{ expense.category || 'Uncategorized' }}
+                        <div
+                          v-if="hasDisplayText(expense.category)"
+                          class="text-caption muted"
+                        >
+                          {{ expense.category }}
                         </div>
                       </div>
                       <span class="expense-card__amount"><AppMoney :value="resolveExpenseAmount(expense)" /></span>
                     </div>
-                    <v-divider class="my-3" />
-                    <div class="detail-grid">
-                      <div><span class="field-label">Date</span><AppDate :value="expense.transactionDate" /></div>
-                      <div><span class="field-label">Location</span>{{ expense.location || '—' }}</div>
+                    <v-divider
+                      v-if="hasExpenseMetadata(expense)"
+                      class="my-3"
+                    />
+                    <div
+                      v-if="hasExpenseMetadata(expense)"
+                      class="detail-grid"
+                    >
+                      <div v-if="hasDisplayText(expense.transactionDate)">
+                        <span class="field-label">Date</span><AppDate :value="expense.transactionDate" />
+                      </div>
+                      <div v-if="hasDisplayText(expense.location)">
+                        <span class="field-label">Location</span>{{ expense.location }}
+                      </div>
                       <div
-                        v-if="expense.remarks"
+                        v-if="hasDisplayText(expense.remarks)"
                         class="grid-wide"
                       >
                         <span class="field-label">Remarks</span>{{ expense.remarks }}
@@ -278,72 +356,81 @@ onBeforeUnmount(closePreview)
                   </v-card-text>
                 </v-card>
               </v-card-text>
-              <v-card-text
-                v-else
-                class="muted"
-              >
-                No expense items were filed.
-              </v-card-text>
             </v-card>
             <v-card
+              v-if="report.attachments.length"
               title="Scanned receipts"
               class="mb-4 border"
               variant="flat"
             >
-              <v-list v-if="report.attachments.length">
+              <v-list>
                 <v-list-item
-                  v-for="attachment in report.attachments"
+                  v-for="(attachment, index) in report.attachments"
                   :key="attachment.id"
-                  :title="attachment.fileName"
-                  :subtitle="`${Math.ceil(attachment.fileSizeBytes / 1024)} KB`"
+                  class="receipt-list-item"
+                  :title="receiptDisplayName(attachment, index)"
+                  :subtitle="[formatReceiptSize(attachment.fileSizeBytes), !mdAndUp ? 'Tap to open' : ''].filter(Boolean).join(' · ')"
                   prepend-icon="mdi-paperclip"
+                  :aria-label="`Open ${receiptDisplayName(attachment, index)}`"
+                  :disabled="openingAttachmentId != null"
+                  tag="button"
+                  type="button"
+                  link
+                  @click="preview(attachment, index)"
                 >
                   <template #append>
-                    <v-btn
-                      variant="text"
-                      :icon="mdAndUp ? undefined : 'mdi-eye'"
-                      :prepend-icon="mdAndUp ? 'mdi-eye' : undefined"
-                      :aria-label="`Preview ${attachment.fileName}`"
-                      @click="preview(attachment)"
+                    <v-progress-circular
+                      v-if="openingAttachmentId === attachment.id"
+                      indeterminate
+                      color="primary"
+                      size="22"
+                      width="2"
+                      :aria-label="`Opening ${receiptDisplayName(attachment, index)}`"
+                    />
+                    <span
+                      v-else
+                      class="receipt-list-item__action"
+                      aria-hidden="true"
                     >
-                      <span v-if="mdAndUp">Preview</span>
-                    </v-btn>
+                      <span v-if="mdAndUp">Open</span>
+                      <v-icon icon="mdi-chevron-right" />
+                    </span>
                   </template>
                 </v-list-item>
               </v-list>
-              <v-card-text
-                v-else
-                class="muted"
-              >
-                No scanned receipts are attached.
-              </v-card-text>
             </v-card>
           </v-col>
           <v-col
+            v-if="showSideColumn"
             cols="12"
             lg="4"
           >
             <v-card
+              v-if="showCashAdvance && report.cashAdvance"
               title="Cash advance"
               class="mb-4 border"
               variant="flat"
             >
-              <v-card-text
-                v-if="report.cashAdvance"
-                class="detail-stack"
-              >
-                <div><span class="field-label">Amount</span><AppMoney :value="report.cashAdvance.amount" /></div>
-                <div><span class="field-label">Reference</span>{{ report.cashAdvance.referenceNumber || '—' }}</div>
-                <div><span class="field-label">Document</span>{{ report.cashAdvance.referenceDocument || '—' }}</div>
-              </v-card-text>
-              <v-card-text
-                v-else
-                class="muted"
-              >
-                No cash advance recorded.
+              <v-card-text class="detail-stack">
+                <div v-if="hasDisplayMoney(report.cashAdvance.amount)">
+                  <span class="field-label">Amount</span><AppMoney :value="report.cashAdvance.amount" />
+                </div>
+                <div v-if="hasDisplayText(report.cashAdvance.date)">
+                  <span class="field-label">Date</span>{{ report.cashAdvance.date }}
+                </div>
+                <div v-if="hasDisplayText(report.cashAdvance.referenceNumber)">
+                  <span class="field-label">Reference</span>{{ report.cashAdvance.referenceNumber }}
+                </div>
+                <div v-if="hasDisplayText(report.cashAdvance.referenceDocument)">
+                  <span class="field-label">Document</span>{{ report.cashAdvance.referenceDocument }}
+                </div>
+                <div v-if="hasDisplayText(report.cashAdvance.revolvingFund)">
+                  <span class="field-label">Revolving fund</span>{{ report.cashAdvance.revolvingFund }}
+                </div>
               </v-card-text>
             </v-card>
             <v-card
+              v-if="report.approvalTrail.length"
               title="Approval trail"
               class="border"
               variant="flat"
@@ -380,14 +467,15 @@ onBeforeUnmount(closePreview)
     v-model="previewOpen"
     max-width="1000"
     :fullscreen="smAndDown"
-    @after-leave="closePreview"
+    @after-leave="releasePreview"
   >
-    <v-card>
-      <v-card-title class="d-flex align-center">
-        <span>{{ previewTitle }}</span><v-spacer /><v-btn
+    <v-card class="receipt-preview-dialog">
+      <v-card-title class="d-flex align-center ga-3">
+        <span class="receipt-preview-dialog__title">{{ previewTitle }}</span><v-spacer /><v-btn
           icon="mdi-close"
           variant="text"
-          @click="closePreview"
+          aria-label="Close receipt preview"
+          @click="requestClosePreview"
         />
       </v-card-title>
       <v-card-text>
@@ -396,6 +484,8 @@ onBeforeUnmount(closePreview)
           :url="previewUrl"
           :content-type="previewType"
           :title="previewTitle"
+          @open-external="openPreviewExternally"
+          @download="downloadPreview"
         />
       </v-card-text>
     </v-card>
