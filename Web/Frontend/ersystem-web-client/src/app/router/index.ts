@@ -12,6 +12,7 @@ const router = createRouter({
       { path: 'manager/reports/:reportId', component: () => import('@/views/manager/ManagerReportDetailView.vue'), meta: { role: 'Manager' } },
       { path: 'finance/receipts', component: () => import('@/views/finance/FinanceReceiptsView.vue'), meta: { role: 'Finance' } },
       { path: 'finance/receipts/:reportId', component: () => import('@/views/finance/FinanceReceiptDetailView.vue'), meta: { role: 'Finance' } },
+      { path: 'account', component: () => import('@/views/account/AccountView.vue') },
       { path: 'forbidden', component: () => import('@/views/ForbiddenView.vue') }
     ] },
     { path: '/:pathMatch(.*)*', redirect: '/' }
