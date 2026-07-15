@@ -40,13 +40,13 @@
         "Entry"
         {
         "MsmKey" = "8:_790E59A27181FA5F750607D4A8701339"
-        "OwnerKey" = "8:_CCC2A3B7B53ED188856CAE8EB5D9C7BC"
+        "OwnerKey" = "8:_CED2F27AE6F1449BB1A5A7A3E8E8354D"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
         {
         "MsmKey" = "8:_790E59A27181FA5F750607D4A8701339"
-        "OwnerKey" = "8:_CED2F27AE6F1449BB1A5A7A3E8E8354D"
+        "OwnerKey" = "8:_CCC2A3B7B53ED188856CAE8EB5D9C7BC"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -178,7 +178,7 @@
         "Entry"
         {
         "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_7DBBADEB07B7AD24109B4366EFF9A0FC"
+        "OwnerKey" = "8:_790E59A27181FA5F750607D4A8701339"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -197,12 +197,6 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_CCC2A3B7B53ED188856CAE8EB5D9C7BC"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_UNDEFINED"
-        "OwnerKey" = "8:_790E59A27181FA5F750607D4A8701339"
         "MsmSig" = "8:_UNDEFINED"
         }
         "Entry"
@@ -263,6 +257,12 @@
         {
         "MsmKey" = "8:_UNDEFINED"
         "OwnerKey" = "8:_60AC6300C045E0AEEE5EB9128D0F1D95"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_UNDEFINED"
+        "OwnerKey" = "8:_7DBBADEB07B7AD24109B4366EFF9A0FC"
         "MsmSig" = "8:_UNDEFINED"
         }
     }
@@ -895,15 +895,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:ERSystem3.5Setup"
-        "ProductCode" = "8:{4C296471-0CEC-4188-AAE6-CB8878F5A2BD}"
-        "PackageCode" = "8:{E30739B6-299F-42F2-AF85-30136B9DE525}"
+        "ProductCode" = "8:{AA5A61E8-03A6-46FD-909A-277F81A2599D}"
+        "PackageCode" = "8:{48195EDC-99D3-44F2-A7DB-391ABA68F46A}"
         "UpgradeCode" = "8:{0C726727-4B67-4645-BB72-3D9462A614DF}"
         "AspNetVersion" = "8:2.0.50727.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:1.0.7"
+        "ProductVersion" = "8:1.0.9"
         "Manufacturer" = "8:MDMPI"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"

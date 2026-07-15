@@ -70,7 +70,7 @@ Public NotInheritable Class EReportPresenter
                 .ClearComputation = True
             }
         Catch ex As Exception
-            Return EReportEntryResult.Failed(ex.Message)
+            Return EReportEntryResult.Failed(ex.ToString)
         End Try
     End Function
 

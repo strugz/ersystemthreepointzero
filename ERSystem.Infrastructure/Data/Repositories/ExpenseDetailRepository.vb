@@ -50,7 +50,11 @@ Namespace Global.ERSystem.Infrastructure.Data
             If dbContext Is Nothing Then
                 Throw New ArgumentNullException("dbContext")
             End If
+            Try
 
+            Catch ex As Exception
+
+            End Try
             Dim model As ExpenseDetailModel = ToModel(expense)
             dbContext.ExpenseDetails.Add(model)
             dbContext.SaveChanges()

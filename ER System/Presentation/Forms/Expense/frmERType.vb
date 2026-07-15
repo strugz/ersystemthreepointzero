@@ -47,7 +47,7 @@ Public Class frmERType
                         With dtLoadUserEmailDetails
                             ClsData.SendExpenseEmail(
                                 TripleDes.DecryptData(.Rows(0).Item("EmailAdd")), TripleDes.DecryptData(.Rows(0).Item("EmailPass")), .Rows(0).Item("EmailTo"),
-                                .Rows(0).Item("EmailBCC"), "",
+                                Convert.ToString(.Rows(0).Item("EmailBCC")), "",
                                 ClsData.EmailSubject(IIf(rbtERF.Checked = True, True, False), GetRegistryValue("Software\\ER System\\UserAccount", {"Username"})(0), myERData(1), txtLocationName.Text),
                                 myBody, myPDFLocation)
                         End With

@@ -89,7 +89,7 @@ Namespace Global.ERSystem.AppServices.Services.ExpenseReport
                         Return AddExpenseResult.Succeeded(expenseId)
                     Catch ex As Exception
                         transaction.Rollback()
-                        Return AddExpenseResult.Failed(ex.Message)
+                        Return AddExpenseResult.Failed(ex.ToString)
                     End Try
                 End Using
             End Using

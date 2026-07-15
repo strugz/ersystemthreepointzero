@@ -25,7 +25,7 @@ Public Class ExpenseDetailModel
 
     Public Property ExpenseAmount As Nullable(Of Double)
 
-    Public Property VatAmount As Nullable(Of Double)
+    Public Property VatAmount As Nullable(Of Double) = 0R
 
     Public Property ExpenseRemarks As String
 

@@ -23,10 +23,10 @@ Public Class frmChangePassword
     Private Sub frmChangePassword_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Using dtLoadUserAccountEmail As DataTable = LoadingUserAccountEmail(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0))
             If dtLoadUserAccountEmail.Rows.Count <> 0 Then
-                txtEmailAdd.Text = TripleDes.DecryptData(dtLoadUserAccountEmail.Rows(0).Item("EmailAdd"))
-                txtEmailPass.Text = TripleDes.DecryptData(dtLoadUserAccountEmail.Rows(0).Item("EmailPass"))
-                txtEmailTo.Text = dtLoadUserAccountEmail.Rows(0).Item("EmailTo")
-                txtBcc.Text = dtLoadUserAccountEmail.Rows(0).Item("EmailBCC")
+                txtEmailAdd.Text = TripleDes.DecryptData(Convert.ToString(dtLoadUserAccountEmail.Rows(0).Item("EmailAdd")))
+                txtEmailPass.Text = TripleDes.DecryptData(Convert.ToString(dtLoadUserAccountEmail.Rows(0).Item("EmailPass")))
+                txtEmailTo.Text = Convert.ToString(dtLoadUserAccountEmail.Rows(0).Item("EmailTo"))
+                txtBcc.Text = Convert.ToString(dtLoadUserAccountEmail.Rows(0).Item("EmailBCC"))
             End If
         End Using
     End Sub
