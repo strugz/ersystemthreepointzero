@@ -3,7 +3,11 @@ import { calculateManagerAmounts, resolveExpenseAmount } from '@/features/manage
 import type { CashAdvance, ExpenseLine } from '@/features/manager-approvals/types'
 
 function expense(amount: number, totalAmount: number): ExpenseLine {
-  return { id: null, transactionDate: null, particulars: '', category: '', location: '', amount, totalAmount, remarks: '' }
+  return {
+    id: null, transactionDate: null, isPerDiem: false, particulars: '', invoiceNumber: '', multiplier: null,
+    expenseType: '', category: '', amount, vatAmount: null, totalAmount, location: '', remarks: '', workWith: '',
+    serviceNumber: '', instrument: '', serialNumber: '', minusDays: '', totalDays: '', computation: ''
+  }
 }
 
 function cashAdvance(amount: number | null): CashAdvance {
@@ -19,19 +23,30 @@ describe('manager amount calculations', () => {
     expect(resolveExpenseAmount(expense(125, 0))).toBe(125)
   })
 
-  it('adds displayed expense amounts and cash advance into the combined total', () => {
+  it('calculates a balance due to MDMPI when the cash advance is greater', () => {
     expect(calculateManagerAmounts([expense(100, 0), expense(20, 80)], cashAdvance(500))).toEqual({
       filedExpenses: 180,
       cashAdvanceAmount: 500,
-      combinedTotal: 680
+      balanceDueAmount: 320,
+      balanceDueTo: 'MDMPI'
     })
   })
 
-  it('treats a missing cash advance as zero', () => {
+  it('calculates a balance due to the employee when expenses are greater', () => {
     expect(calculateManagerAmounts([expense(100, 0)], null)).toEqual({
       filedExpenses: 100,
       cashAdvanceAmount: 0,
-      combinedTotal: 100
+      balanceDueAmount: 100,
+      balanceDueTo: 'EMPLOYEE'
+    })
+  })
+
+  it('matches the desktop rule by assigning an exact zero balance to MDMPI', () => {
+    expect(calculateManagerAmounts([expense(100, 0)], cashAdvance(100))).toEqual({
+      filedExpenses: 100,
+      cashAdvanceAmount: 100,
+      balanceDueAmount: 0,
+      balanceDueTo: 'MDMPI'
     })
   })
 })

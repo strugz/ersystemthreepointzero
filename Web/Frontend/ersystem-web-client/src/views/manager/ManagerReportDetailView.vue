@@ -19,18 +19,22 @@ import { managerApprovalApi } from '@/features/manager-approvals/api'
 import { calculateManagerAmounts, resolveExpenseAmount } from '@/features/manager-approvals/amounts'
 import {
   createExpenseTableHeaders,
+  expenseLineCountLabel,
+  expensePresentationKey,
   formatReceiptSize,
   hasAmountSummary,
-  hasCashAdvanceData,
   hasDisplayMoney,
   hasDisplayText,
-  hasExpenseMetadata,
   receiptDisplayName
 } from '@/features/manager-approvals/detailPresentation'
 import { useManagerReportsQueueStore } from '@/features/manager-approvals/queueStore'
 import { canCurrentManagerAct } from '@/features/manager-approvals/workflowPresentation'
 import ManagerApprovalDialogs from '@/features/manager-approvals/ManagerApprovalDialogs.vue'
-import type { ManagerReportDetail, ReceiptAttachment } from '@/features/manager-approvals/types'
+import ManagerExpenseCard from '@/features/manager-approvals/ManagerExpenseCard.vue'
+import ManagerExpenseDetails from '@/features/manager-approvals/ManagerExpenseDetails.vue'
+import type { ExpenseLine, ManagerReportDetail, ReceiptAttachment } from '@/features/manager-approvals/types'
+
+type ExpenseTableRow = ExpenseLine & { presentationKey: string }
 
 const route = useRoute()
 const router = useRouter()
@@ -50,21 +54,35 @@ const openingAttachmentId = ref<number | null>(null)
 const previewUrl = ref('')
 const previewType = ref('')
 const previewTitle = ref('')
+const mobileExpandedExpenses = ref<string[]>([])
+const desktopExpandedExpenses = ref<string[]>([])
 const amounts = computed(() => calculateManagerAmounts(report.value?.expenses ?? [], report.value?.cashAdvance ?? null))
 const canTakeAction = computed(() => report.value
   ? canCurrentManagerAct(report.value, session.user?.userId)
   : false)
 const isApproved = computed(() => report.value?.status.trim().toLowerCase() === 'approved')
 const desktopSubtitle = computed(() => [report.value?.employeeName, report.value?.department].filter(hasDisplayText).join(' · '))
+const displayReportTitle = computed(() => hasDisplayText(report.value?.erfReferenceNumber)
+  ? `Expense report ${report.value.erfReferenceNumber.trim()}`
+  : 'Expense report')
 const expenseHeaders = computed(() => createExpenseTableHeaders(report.value?.expenses ?? []))
+const expenseRows = computed<ExpenseTableRow[]>(() => (report.value?.expenses ?? []).map((expense, index) => ({
+  ...expense,
+  presentationKey: expensePresentationKey(expense, index)
+})))
 const showAmountSummary = computed(() => hasAmountSummary(report.value?.expenses ?? [], report.value?.cashAdvance ?? null))
-const showCashAdvance = computed(() => hasCashAdvanceData(report.value?.cashAdvance ?? null))
-const showSideColumn = computed(() => showCashAdvance.value || (report.value?.approvalTrail.length ?? 0) > 0)
+const showSideColumn = computed(() => (report.value?.approvalTrail.length ?? 0) > 0)
 
 async function load() {
   loading.value = true
   error.value = ''
-  try { report.value = await managerApprovalApi.detail(reportId.value) }
+  try {
+    report.value = await managerApprovalApi.detail(reportId.value)
+    const firstExpense = report.value.expenses[0]
+    const initialExpansion = firstExpense ? [expensePresentationKey(firstExpense, 0)] : []
+    mobileExpandedExpenses.value = initialExpansion
+    desktopExpandedExpenses.value = initialExpansion
+  }
   catch (caught) { error.value = caught instanceof Error ? caught.message : 'Unable to load this report.' }
   finally { loading.value = false }
 }
@@ -142,7 +160,7 @@ onBeforeUnmount(releasePreview)
 <template>
   <AppBreadcrumbs
     v-if="mdAndUp"
-    :items="[{ title: 'Manager approvals', to: '/manager/reports' }, { title: reportId }]"
+    :items="[{ title: 'Manager approvals', to: '/manager/reports' }, { title: displayReportTitle }]"
   />
   <div
     class="manager-detail-page position-relative"
@@ -154,7 +172,7 @@ onBeforeUnmount(releasePreview)
       <div :class="{ 'has-mobile-workflow-actions': !mdAndUp && canTakeAction }">
         <AppPageHeader
           v-if="mdAndUp"
-          :title="`Report ${report.reportId}`"
+          :title="displayReportTitle"
           :subtitle="desktopSubtitle"
         >
           <div class="d-flex flex-wrap align-center ga-2">
@@ -205,8 +223,12 @@ onBeforeUnmount(releasePreview)
             >
               {{ report.department }}
             </p>
-            <div class="manager-report-hero__reference">
-              {{ report.reportId }}
+            <div
+              v-if="hasDisplayText(report.erfReferenceNumber)"
+              class="manager-report-hero__reference"
+            >
+              <span class="field-label">ERF reference</span>
+              <span class="manager-report-hero__reference-value">{{ report.erfReferenceNumber }}</span>
             </div>
           </section>
         </template>
@@ -217,25 +239,19 @@ onBeforeUnmount(releasePreview)
         >
           <v-card-text class="pa-0">
             <div class="amount-summary__primary">
-              <span class="field-label">Combined grand total</span>
-              <span class="amount-summary__total"><AppMoney :value="amounts.combinedTotal" /></span>
+              <div>
+                <span class="field-label">Balance due</span>
+                <span class="amount-summary__payee">Due to <strong>{{ amounts.balanceDueTo }}</strong></span>
+              </div>
+              <span class="amount-summary__total"><AppMoney :value="amounts.balanceDueAmount" /></span>
             </div>
             <v-divider />
-            <div
-              class="amount-summary__breakdown"
-              :class="{ 'amount-summary__breakdown--single': !report.expenses.length || !hasDisplayMoney(report.cashAdvance?.amount) }"
-            >
-              <div
-                v-if="report.expenses.length"
-                class="amount-summary__metric"
-              >
+            <div class="amount-summary__breakdown">
+              <div class="amount-summary__metric">
                 <span class="field-label">Total filed expenses</span>
                 <strong><AppMoney :value="amounts.filedExpenses" /></strong>
               </div>
-              <div
-                v-if="hasDisplayMoney(report.cashAdvance?.amount)"
-                class="amount-summary__metric"
-              >
+              <div class="amount-summary__metric">
                 <span class="field-label">Cash advance</span>
                 <strong><AppMoney :value="amounts.cashAdvanceAmount" /></strong>
               </div>
@@ -287,75 +303,66 @@ onBeforeUnmount(releasePreview)
             </v-card>
             <v-card
               v-if="report.expenses.length"
-              title="Expenses"
               class="mb-4 border"
               variant="flat"
             >
+              <v-card-title class="manager-expenses-heading">
+                <span>Expenses</span>
+                <v-chip
+                  color="primary"
+                  size="small"
+                  variant="tonal"
+                >
+                  {{ expenseLineCountLabel(report.expenses.length) }}
+                </v-chip>
+              </v-card-title>
               <v-data-table
                 v-if="mdAndUp"
+                v-model:expanded="desktopExpandedExpenses"
+                class="manager-expense-table"
                 :headers="expenseHeaders"
-                :items="report.expenses"
+                :items="expenseRows"
                 density="comfortable"
+                item-value="presentationKey"
+                show-expand
               >
                 <template #item.transactionDate="{ item }">
-                  <AppDate :value="item.transactionDate" />
+                  <AppDate
+                    v-if="hasDisplayText(item.transactionDate)"
+                    :value="item.transactionDate"
+                  />
                 </template>
                 <template #item.amount="{ item }">
-                  <strong class="text-primary"><AppMoney :value="resolveExpenseAmount(item)" /></strong>
+                  <strong class="manager-expense-table__amount text-primary"><AppMoney :value="resolveExpenseAmount(item)" /></strong>
+                </template>
+                <template #item.vatAmount="{ item }">
+                  <AppMoney
+                    v-if="hasDisplayMoney(item.vatAmount)"
+                    :value="item.vatAmount"
+                  />
+                </template>
+                <template #expanded-row="{ columns, item }">
+                  <tr class="manager-expense-table__expanded-row">
+                    <td :colspan="columns.length">
+                      <ManagerExpenseDetails :expense="item" />
+                    </td>
+                  </tr>
                 </template>
               </v-data-table>
-              <v-card-text
+              <v-expansion-panels
                 v-else
+                v-model="mobileExpandedExpenses"
                 class="expense-mobile-list"
+                multiple
               >
-                <v-card
-                  v-for="expense in report.expenses"
+                <ManagerExpenseCard
+                  v-for="(expense, index) in report.expenses"
                   :key="expense.id ?? `${expense.transactionDate}-${expense.particulars}`"
-                  class="border"
-                  variant="flat"
-                >
-                  <v-card-text>
-                    <div class="d-flex align-start justify-space-between ga-3">
-                      <div v-if="hasDisplayText(expense.particulars) || hasDisplayText(expense.category)">
-                        <div
-                          v-if="hasDisplayText(expense.particulars)"
-                          class="font-weight-bold"
-                        >
-                          {{ expense.particulars }}
-                        </div>
-                        <div
-                          v-if="hasDisplayText(expense.category)"
-                          class="text-caption muted"
-                        >
-                          {{ expense.category }}
-                        </div>
-                      </div>
-                      <span class="expense-card__amount"><AppMoney :value="resolveExpenseAmount(expense)" /></span>
-                    </div>
-                    <v-divider
-                      v-if="hasExpenseMetadata(expense)"
-                      class="my-3"
-                    />
-                    <div
-                      v-if="hasExpenseMetadata(expense)"
-                      class="detail-grid"
-                    >
-                      <div v-if="hasDisplayText(expense.transactionDate)">
-                        <span class="field-label">Date</span><AppDate :value="expense.transactionDate" />
-                      </div>
-                      <div v-if="hasDisplayText(expense.location)">
-                        <span class="field-label">Location</span>{{ expense.location }}
-                      </div>
-                      <div
-                        v-if="hasDisplayText(expense.remarks)"
-                        class="grid-wide"
-                      >
-                        <span class="field-label">Remarks</span>{{ expense.remarks }}
-                      </div>
-                    </div>
-                  </v-card-text>
-                </v-card>
-              </v-card-text>
+                  :expense="expense"
+                  :index="index"
+                  :value="expensePresentationKey(expense, index)"
+                />
+              </v-expansion-panels>
             </v-card>
             <v-card
               v-if="report.attachments.length"
@@ -405,30 +412,6 @@ onBeforeUnmount(releasePreview)
             cols="12"
             lg="4"
           >
-            <v-card
-              v-if="showCashAdvance && report.cashAdvance"
-              title="Cash advance"
-              class="mb-4 border"
-              variant="flat"
-            >
-              <v-card-text class="detail-stack">
-                <div v-if="hasDisplayMoney(report.cashAdvance.amount)">
-                  <span class="field-label">Amount</span><AppMoney :value="report.cashAdvance.amount" />
-                </div>
-                <div v-if="hasDisplayText(report.cashAdvance.date)">
-                  <span class="field-label">Date</span>{{ report.cashAdvance.date }}
-                </div>
-                <div v-if="hasDisplayText(report.cashAdvance.referenceNumber)">
-                  <span class="field-label">Reference</span>{{ report.cashAdvance.referenceNumber }}
-                </div>
-                <div v-if="hasDisplayText(report.cashAdvance.referenceDocument)">
-                  <span class="field-label">Document</span>{{ report.cashAdvance.referenceDocument }}
-                </div>
-                <div v-if="hasDisplayText(report.cashAdvance.revolvingFund)">
-                  <span class="field-label">Revolving fund</span>{{ report.cashAdvance.revolvingFund }}
-                </div>
-              </v-card-text>
-            </v-card>
             <v-card
               v-if="report.approvalTrail.length"
               title="Approval trail"

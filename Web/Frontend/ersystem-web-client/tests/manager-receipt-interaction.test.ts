@@ -2,9 +2,10 @@ import { flushPromises, shallowMount } from '@vue/test-utils'
 import { ref } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ManagerReportDetailView from '@/views/manager/ManagerReportDetailView.vue'
-import type { ManagerReportDetail } from '@/features/manager-approvals/types'
+import type { ExpenseLine, ManagerReportDetail } from '@/features/manager-approvals/types'
 
 const mocks = vi.hoisted(() => ({
+  routeReportId: '24fce0c6-0c63-4973-994d-be5af93b2610',
   detail: vi.fn(),
   attachment: vi.fn(),
   snackbarError: vi.fn(),
@@ -16,7 +17,7 @@ vi.mock('vuetify', () => ({
 }))
 
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: { reportId: 'ER-1' } }),
+  useRoute: () => ({ params: { reportId: mocks.routeReportId } }),
   useRouter: () => ({ replace: mocks.routerReplace })
 }))
 
@@ -41,9 +42,9 @@ vi.mock('@/features/manager-approvals/api', () => ({
   }
 }))
 
-function report(): ManagerReportDetail {
+function report(overrides: Partial<ManagerReportDetail> = {}): ManagerReportDetail {
   return {
-    reportId: 'ER-1',
+    reportId: mocks.routeReportId,
     employeeUserId: 1,
     employeeName: 'Employee',
     department: '',
@@ -62,7 +63,17 @@ function report(): ManagerReportDetail {
       { id: 10, fileName: 'Invoice.pdf', contentType: 'application/pdf', fileSizeBytes: 200, createdDateUtc: '' },
       { id: 11, fileName: 'Photo.png', contentType: 'image/png', fileSizeBytes: 300, createdDateUtc: '' }
     ],
-    approvalTrail: [{ approverUserId: 7, approverName: 'Manager', sort: 1, occurredAtUtc: null, status: 'Pending' }]
+    approvalTrail: [{ approverUserId: 7, approverName: 'Manager', sort: 1, occurredAtUtc: null, status: 'Pending' }],
+    ...overrides
+  }
+}
+
+function expense(overrides: Partial<ExpenseLine> = {}): ExpenseLine {
+  return {
+    id: 5, transactionDate: null, isPerDiem: false, particulars: 'Taxi', invoiceNumber: '', multiplier: null,
+    expenseType: '', category: '', amount: 100, vatAmount: null, totalAmount: 100, location: '', remarks: '',
+    workWith: '', serviceNumber: '', instrument: '', serialNumber: '', minusDays: '', totalDays: '',
+    computation: '', ...overrides
   }
 }
 
@@ -83,6 +94,14 @@ function mountView() {
         VRow: passThrough,
         VCol: passThrough,
         VList: passThrough,
+        VExpansionPanels: {
+          name: 'VExpansionPanels',
+          props: {
+            modelValue: { type: Array, default: () => [] },
+            multiple: { type: Boolean, default: false }
+          },
+          template: '<div><slot /></div>'
+        },
         VListItem: {
           emits: ['click'],
           template: '<button v-bind="$attrs" @click="$emit(\'click\')"><slot /><slot name="append" /></button>'
@@ -111,6 +130,42 @@ describe('Manager receipt interaction', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
+  })
+
+  it('provides the mobile Back row as an accessible in-flow navigation landmark', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.find('.manager-detail-mobile-nav').exists()).toBe(true)
+    const backButton = wrapper.get('button[aria-label="Back to Manager approvals"]')
+    expect(backButton.attributes('to')).toBe('/manager/reports')
+    expect(wrapper.find('.manager-detail-mobile-nav').text()).toContain('Manager approvals')
+  })
+
+  it('shows the ERF reference and settlement summary without exposing the route UUID or a cash card', async () => {
+    mocks.detail.mockResolvedValue(report({
+      erfReferenceNumber: 'ER-1430820260602-165400',
+      cashAdvance: { amount: 500, date: '2026-07-15', referenceDocument: 'Voucher', referenceNumber: 'CA-1', revolvingFund: '' }
+    }))
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('ER-1430820260602-165400')
+    expect(wrapper.text()).not.toContain(mocks.routeReportId)
+    expect(wrapper.text()).toContain('Balance due')
+    expect(wrapper.text()).toContain('Due to MDMPI')
+    expect(wrapper.text()).toContain('Cash advance')
+    expect(wrapper.find('[title="Cash advance"]').exists()).toBe(false)
+  })
+
+  it('opens the first mobile expense while allowing multiple panels', async () => {
+    mocks.detail.mockResolvedValue(report({ expenses: [expense(), expense({ id: 6, particulars: 'Meal' })] }))
+    const wrapper = mountView()
+    await flushPromises()
+
+    const panels = wrapper.getComponent({ name: 'VExpansionPanels' })
+    expect(panels.props('modelValue')).toEqual(['expense-id-5'])
+    expect(panels.props('multiple')).toBe(true)
   })
 
   it('opens the full receipt row and exposes external and download actions', async () => {

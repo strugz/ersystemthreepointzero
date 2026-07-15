@@ -16,12 +16,24 @@ export interface ManagerReportListItem {
 export interface ExpenseLine {
   id: number | null
   transactionDate: string | null
+  isPerDiem: boolean
   particulars: string
+  invoiceNumber: string
+  multiplier: number | null
+  expenseType: string
   category: string
-  location: string
   amount: number
+  vatAmount: number | null
   totalAmount: number
+  location: string
   remarks: string
+  workWith: string
+  serviceNumber: string
+  instrument: string
+  serialNumber: string
+  minusDays: string
+  totalDays: string
+  computation: string
 }
 
 export interface CashAdvance {

@@ -117,11 +117,18 @@ public sealed class ManagerApprovalService(
             select new { report, approval, user, department }).FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException("The report was not found or is not assigned to the current manager.");
 
-        var expenseRows = await db.Expenses.AsNoTracking().Where(x => x.ReportId == reportId)
+        // Match the legacy Crystal report: only active expense lines contribute to review totals.
+        var expenseRows = await db.Expenses.AsNoTracking().Where(x => x.ReportId == reportId && x.Status == "True")
             .OrderBy(x => x.Sort).ThenBy(x => x.TransactionDate).ToListAsync(cancellationToken);
         var expenses = expenseRows.Select(x => new ExpenseLineDto(
-            x.Id, x.TransactionDate, x.Particulars?.Trim() ?? string.Empty, x.Category?.Trim() ?? string.Empty,
-            x.Location?.Trim() ?? string.Empty, ToMoney(x.Amount), ToMoney(x.TotalAmount), x.Remarks?.Trim() ?? string.Empty)).ToArray();
+            x.Id, x.TransactionDate, x.PerDiem == "1", x.Particulars?.Trim() ?? string.Empty,
+            x.InvoiceNumber?.Trim() ?? string.Empty, x.Multiplier, x.ExpenseType?.Trim() ?? string.Empty,
+            x.Category?.Trim() ?? string.Empty, ToMoney(x.Amount), ToNullableMoney(x.VatAmount),
+            ToMoney(x.TotalAmount), x.Location?.Trim() ?? string.Empty, x.Remarks?.Trim() ?? string.Empty,
+            x.WorkWith?.Trim() ?? string.Empty, x.ServiceNumber?.Trim() ?? string.Empty,
+            x.Instrument?.Trim() ?? string.Empty, x.SerialNumber?.Trim() ?? string.Empty,
+            x.MinusDays?.Trim() ?? string.Empty, x.TotalDays?.Trim() ?? string.Empty,
+            x.Computation?.Trim() ?? string.Empty)).ToArray();
 
         var cash = await db.CashAdvances.AsNoTracking().FirstOrDefaultAsync(x => x.ReportId == reportId, cancellationToken);
         var cashDto = cash is null ? null : new CashAdvanceDto(
@@ -281,4 +288,6 @@ public sealed class ManagerApprovalService(
         fileStatus == ReportStates.Approved && printStatus == ReportStates.Approved ? "Approved" : "For Approval";
 
     private static decimal ToMoney(double? value) => Math.Round(Convert.ToDecimal(value ?? 0d), 2, MidpointRounding.AwayFromZero);
+
+    private static decimal? ToNullableMoney(double? value) => value.HasValue ? ToMoney(value) : null;
 }

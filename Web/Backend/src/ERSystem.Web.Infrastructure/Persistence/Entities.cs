@@ -53,12 +53,25 @@ public sealed class ExpenseDetailEntity
 {
     public long? Id { get; set; }
     public DateOnly? TransactionDate { get; set; }
+    public string? PerDiem { get; set; }
     public string? Particulars { get; set; }
+    public string? InvoiceNumber { get; set; }
+    public int? Multiplier { get; set; }
+    public string? ExpenseType { get; set; }
     public string? Category { get; set; }
     public double? Amount { get; set; }
+    public double? VatAmount { get; set; }
     public string? Remarks { get; set; }
+    public string? Status { get; set; }
     public double? TotalAmount { get; set; }
     public string? Location { get; set; }
+    public string? WorkWith { get; set; }
+    public string? ServiceNumber { get; set; }
+    public string? Instrument { get; set; }
+    public string? SerialNumber { get; set; }
+    public string? MinusDays { get; set; }
+    public string? Computation { get; set; }
+    public string? TotalDays { get; set; }
     public string? ReportId { get; set; }
     public int? Sort { get; set; }
 }

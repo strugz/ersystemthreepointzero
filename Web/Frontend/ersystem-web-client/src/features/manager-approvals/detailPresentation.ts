@@ -14,22 +14,26 @@ export function hasDisplayMoney(value: number | null | undefined): value is numb
   return value != null && value !== 0
 }
 
-export function hasCashAdvanceData(cashAdvance: CashAdvance | null): cashAdvance is CashAdvance {
-  return cashAdvance != null && (
-    hasDisplayMoney(cashAdvance.amount)
-    || hasDisplayText(cashAdvance.date)
-    || hasDisplayText(cashAdvance.referenceDocument)
-    || hasDisplayText(cashAdvance.referenceNumber)
-    || hasDisplayText(cashAdvance.revolvingFund)
-  )
+const legacyEmptyExpenseValues = new Set(['0', 'N/A', 'NONE'])
+
+export function hasExpenseDetailText(value: unknown): value is string {
+  return hasDisplayText(value) && !legacyEmptyExpenseValues.has(value.trim().toUpperCase())
+}
+
+export function hasDisplayNumber(value: number | null | undefined): value is number {
+  return value != null && Number.isFinite(value) && value !== 0
+}
+
+export function expensePresentationKey(expense: ExpenseLine, index: number): string {
+  return expense.id == null ? `expense-index-${index}` : `expense-id-${expense.id}`
 }
 
 export function hasAmountSummary(expenses: ExpenseLine[], cashAdvance: CashAdvance | null): boolean {
   return expenses.length > 0 || hasDisplayMoney(cashAdvance?.amount)
 }
 
-export function hasExpenseMetadata(expense: ExpenseLine): boolean {
-  return hasDisplayText(expense.transactionDate) || hasDisplayText(expense.location) || hasDisplayText(expense.remarks)
+export function expenseLineCountLabel(count: number): string {
+  return `${count} ${count === 1 ? 'expense' : 'expenses'}`
 }
 
 export function createExpenseTableHeaders(expenses: ExpenseLine[]): ExpenseTableHeader[] {
@@ -37,7 +41,8 @@ export function createExpenseTableHeaders(expenses: ExpenseLine[]): ExpenseTable
   if (expenses.some(expense => hasDisplayText(expense.transactionDate))) headers.push({ title: 'Date', key: 'transactionDate' })
   if (expenses.some(expense => hasDisplayText(expense.particulars))) headers.push({ title: 'Particulars', key: 'particulars' })
   if (expenses.some(expense => hasDisplayText(expense.category))) headers.push({ title: 'Category', key: 'category' })
-  headers.push({ title: 'Amount', key: 'amount', align: 'end' })
+  if (expenses.some(expense => hasDisplayMoney(expense.vatAmount))) headers.push({ title: 'VAT', key: 'vatAmount', align: 'end' })
+  headers.push({ title: 'Filed amount', key: 'amount', align: 'end' })
   return headers
 }
 
