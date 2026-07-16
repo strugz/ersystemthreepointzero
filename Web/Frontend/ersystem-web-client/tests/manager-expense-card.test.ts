@@ -1,7 +1,7 @@
 import { shallowMount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
+import AppExpenseCard from '@/shared/components/AppExpenseCard.vue'
 import AppMoney from '@/shared/components/AppMoney.vue'
-import ManagerExpenseCard from '@/features/manager-approvals/ManagerExpenseCard.vue'
 import type { ExpenseLine } from '@/features/manager-approvals/types'
 
 function expense(overrides: Partial<ExpenseLine> = {}): ExpenseLine {
@@ -33,7 +33,7 @@ function expense(overrides: Partial<ExpenseLine> = {}): ExpenseLine {
 const passThrough = { template: '<div><slot /></div>' }
 
 function mountCard(props: { expense: ExpenseLine; index: number; value: string }) {
-  return shallowMount(ManagerExpenseCard, {
+  return shallowMount(AppExpenseCard, {
     props,
     global: {
       stubs: {
@@ -46,7 +46,7 @@ function mountCard(props: { expense: ExpenseLine; index: number; value: string }
   })
 }
 
-describe('ManagerExpenseCard', () => {
+describe('AppExpenseCard', () => {
   it('shows the compact review header with filed amount and VAT', () => {
     const wrapper = mountCard({
       index: 0,
@@ -81,7 +81,7 @@ describe('ManagerExpenseCard', () => {
     expect(wrapper.text()).toContain('Expense 2')
     expect(wrapper.text()).toContain('Taxi fare')
     expect(wrapper.findComponent(AppMoney).props('value')).toBe(325)
-    expect(wrapper.find('.manager-expense-card__category').exists()).toBe(false)
-    expect(wrapper.find('.manager-expense-card__vat').exists()).toBe(false)
+    expect(wrapper.find('.report-expense-card__category').exists()).toBe(false)
+    expect(wrapper.find('.report-expense-card__vat').exists()).toBe(false)
   })
 })

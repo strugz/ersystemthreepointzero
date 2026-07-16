@@ -93,12 +93,14 @@ public sealed class FinanceReceiptService(
             from report in db.Reports.AsNoTracking()
             join finance in db.FinanceTracking.AsNoTracking() on report.Id equals finance.ReportId
             join user in db.Users.AsNoTracking() on report.UserId equals user.UserId
+            join department in db.Departments.AsNoTracking() on user.DepartmentId equals department.Id into departments
+            from department in departments.DefaultIfEmpty()
             join cash in db.CashAdvances.AsNoTracking() on report.Id equals cash.ReportId into cashRows
             from cash in cashRows.DefaultIfEmpty()
             join receiver in db.Users.AsNoTracking() on finance.PhysicalReceiptsReceivedBy equals receiver.UserId into receivers
             from receiver in receivers.DefaultIfEmpty()
             where report.Id == reportId && report.ReportFileStatus == ReportStates.Approved && report.ReportPrintStatus == ReportStates.Approved
-            select new { report, finance, user, cash, receiver }).SingleOrDefaultAsync(cancellationToken)
+            select new { report, finance, user, department, cash, receiver }).SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException("The approved Finance report was not found.");
 
         var cashReference = row.cash?.ReferenceNumber?.Trim() ?? string.Empty;
@@ -106,11 +108,10 @@ public sealed class FinanceReceiptService(
             row.report.Id, row.user.UserId ?? 0, row.user.FullName?.Trim() ?? string.Empty,
             row.report.ReportDateFrom, row.report.ReportDateTo, row.report.ReportDescription?.Trim() ?? string.Empty,
             TextNormalization.TrimLegacy(row.report.ReportType), ResolveErfReference(row.report.ErfReferenceNumber, cashReference),
-            row.cash?.Amount is double amount ? ToMoney(amount) : null, cashReference,
             row.finance.FinanceStatus?.Trim() ?? FinanceStates.Pending, row.finance.PhysicalReceiptsReceived,
             row.finance.PhysicalReceiptsReceivedBy, row.receiver?.FullName?.Trim() ?? string.Empty,
             ToUtc(row.finance.PhysicalReceiptsReceivedDate), row.finance.FinanceRemarks?.Trim() ?? string.Empty,
-            rowVersions.Encode(row.finance.RowVersion));
+            rowVersions.Encode(row.finance.RowVersion), row.department?.Name?.Trim() ?? string.Empty);
     }
 
     public async Task<ReceivePhysicalReceiptsResult> ReceiveAsync(

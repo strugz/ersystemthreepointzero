@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import AppDate from '@/shared/components/AppDate.vue'
 import AppMoney from '@/shared/components/AppMoney.vue'
-import { resolveExpenseAmount } from './amounts'
-import { hasDisplayMoney, hasDisplayNumber, hasDisplayText, hasExpenseDetailText } from './detailPresentation'
-import type { ExpenseLine } from './types'
+import type { ExpenseLine } from '@/shared/types/reportReview'
+import { resolveExpenseAmount } from '@/shared/utils/reportAmounts'
+import {
+  hasDisplayMoney,
+  hasDisplayNumber,
+  hasDisplayText,
+  hasExpenseDetailText
+} from '@/shared/utils/reportReview'
 
 const props = defineProps<{ expense: ExpenseLine }>()
 </script>
 
 <template>
-  <div class="manager-expense-details">
+  <div class="report-expense-details">
     <div v-if="hasDisplayText(props.expense.transactionDate)">
       <span class="field-label">Transaction date</span>
       <AppDate :value="props.expense.transactionDate" />
@@ -83,14 +88,14 @@ const props = defineProps<{ expense: ExpenseLine }>()
     </div>
     <div
       v-if="hasExpenseDetailText(props.expense.computation)"
-      class="manager-expense-details__wide manager-expense-details__note"
+      class="report-expense-details__wide report-expense-details__note"
     >
       <span class="field-label">Computation</span>
       {{ props.expense.computation }}
     </div>
     <div
       v-if="hasExpenseDetailText(props.expense.remarks)"
-      class="manager-expense-details__wide manager-expense-details__note"
+      class="report-expense-details__wide report-expense-details__note"
     >
       <span class="field-label">Employee remarks</span>
       {{ props.expense.remarks }}

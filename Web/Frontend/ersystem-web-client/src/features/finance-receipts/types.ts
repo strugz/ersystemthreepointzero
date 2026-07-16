@@ -14,11 +14,11 @@ export interface FinanceReceiptListItem {
   rowVersion: string
 }
 
-export interface FinanceReceiptDetail extends FinanceReceiptListItem {
-  cashAmount: number | null
+export interface FinanceReceiptDetail extends Omit<FinanceReceiptListItem, 'cashReferenceNumber'> {
   receivedByUserId: number | null
   receivedByName: string
   remarks: string
+  department: string
 }
 
 export interface FinanceReceiptFilters extends Record<string, unknown> {

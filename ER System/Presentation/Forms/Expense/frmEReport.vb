@@ -1254,13 +1254,31 @@ Public Class frmEReport
             End If
         ElseIf myERData(12) = "Approved" Or myERData(12) = "For Approval" Then
             Dim y As MsgBoxResult
-            y = MessageBox.Show("Are you sure you want to Update your Expense Report?", "Update", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2)
+            y = MessageBox.Show(
+                "Are you sure you want to update your Expense Report?" & vbNewLine & vbNewLine &
+                "All Manager approval and Finance physical-receipt tracking will be permanently cleared. " &
+                "The report must complete approval again after it is refiled.",
+                "Update Report",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2)
             If y = MsgBoxResult.Yes Then
-                Call UpdatePrintStatus(myERData(13))
-                DeleteImage(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), myERData(13))
-                ClsData.SetEReportDetails(myERData(13))
-                Call UpdateEReportData()
-                Call EReportOpenValidation()
+                Dim currentUserId As Integer
+                If Not Integer.TryParse(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), currentUserId) Then
+                    MessageBox.Show("The current user account could not be identified. The report was not changed.",
+                                    "Update Report", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Exit Sub
+                End If
+
+                Try
+                    ReopenReportForEditing(currentUserId, myERData(13))
+                    ClsData.SetEReportDetails(myERData(13))
+                    Call UpdateEReportData()
+                    Call EReportOpenValidation()
+                Catch ex As Exception
+                    MessageBox.Show("The report could not be reopened. No workflow data was changed." & vbNewLine & vbNewLine & ex.Message,
+                                    "Update Report", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                End Try
             Else
                 Exit Sub
             End If

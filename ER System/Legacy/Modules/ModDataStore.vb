@@ -551,19 +551,6 @@ Module ModDataStore
             Call DgReportDataVisibility({"Report ID"})
         End With
     End Sub
-    Friend Sub UpdatePrintStatus(ByVal ReportID As String)
-        DBConnection()
-        Using sqlcmdPrintStatus As New SqlClient.SqlCommand
-            Using SQLConnection As SqlClient.SqlConnection = mConn.SQLConnection
-                With sqlcmdPrintStatus
-                    .Connection = SQLConnection
-                    .CommandText = "UPDATE tbReportDetails SET ReportPrintStatus ='1', ReportEndorseStatus = 'NOT APPROVED', ReportFileStatus = '0',ReportNumberStatus = '0' where ID='" & ReportID & "'"
-                    .CommandType = CommandType.Text
-                    .ExecuteNonQuery()
-                End With
-            End Using
-        End Using
-    End Sub
     Friend Function DgvSearch(ByVal TxtSearchBy As String) As DataView
         Using ReportDataTable As DataTable = LoadingDataReport(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), "01/01/1990", "12/01/2200")
             Return New DataView(ReportDataTable, TxtSearchBy, "Date From desc", DataViewRowState.CurrentRows)

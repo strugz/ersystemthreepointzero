@@ -1,7 +1,7 @@
 import { shallowMount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
+import AppExpenseDetails from '@/shared/components/AppExpenseDetails.vue'
 import AppMoney from '@/shared/components/AppMoney.vue'
-import ManagerExpenseDetails from '@/features/manager-approvals/ManagerExpenseDetails.vue'
 import type { ExpenseLine } from '@/features/manager-approvals/types'
 
 function expense(overrides: Partial<ExpenseLine> = {}): ExpenseLine {
@@ -30,9 +30,9 @@ function expense(overrides: Partial<ExpenseLine> = {}): ExpenseLine {
   }
 }
 
-describe('ManagerExpenseDetails', () => {
+describe('AppExpenseDetails', () => {
   it('shows all populated business-review fields', () => {
-    const wrapper = shallowMount(ManagerExpenseDetails, {
+    const wrapper = shallowMount(AppExpenseDetails, {
       props: {
         expense: expense({
           transactionDate: '2026-07-15',
@@ -68,7 +68,7 @@ describe('ManagerExpenseDetails', () => {
   })
 
   it('hides blank, zero, and legacy placeholder fields', () => {
-    const wrapper = shallowMount(ManagerExpenseDetails, {
+    const wrapper = shallowMount(AppExpenseDetails, {
       props: {
         expense: expense({
           amount: 325,

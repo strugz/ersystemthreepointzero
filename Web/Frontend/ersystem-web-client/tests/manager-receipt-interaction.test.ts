@@ -2,6 +2,10 @@ import { flushPromises, shallowMount } from '@vue/test-utils'
 import { ref } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ManagerReportDetailView from '@/views/manager/ManagerReportDetailView.vue'
+import AppExpenseReview from '@/shared/components/AppExpenseReview.vue'
+import AppMobileBackNavigation from '@/shared/components/AppMobileBackNavigation.vue'
+import AppReceiptList from '@/shared/components/AppReceiptList.vue'
+import AppReportAmountSummary from '@/shared/components/AppReportAmountSummary.vue'
 import type { ExpenseLine, ManagerReportDetail } from '@/features/manager-approvals/types'
 
 const mocks = vi.hoisted(() => ({
@@ -136,10 +140,13 @@ describe('Manager receipt interaction', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(wrapper.find('.manager-detail-mobile-nav').exists()).toBe(true)
-    const backButton = wrapper.get('button[aria-label="Back to Manager approvals"]')
-    expect(backButton.attributes('to')).toBe('/manager/reports')
-    expect(wrapper.find('.manager-detail-mobile-nav').text()).toContain('Manager approvals')
+    expect(wrapper.find('.report-detail-shell').exists()).toBe(true)
+    const navigation = wrapper.getComponent(AppMobileBackNavigation)
+    expect(navigation.props()).toMatchObject({
+      to: '/manager/reports',
+      label: 'Manager approvals',
+      accessibleLabel: 'Back to Manager approvals'
+    })
   })
 
   it('shows the ERF reference and settlement summary without exposing the route UUID or a cash card', async () => {
@@ -152,16 +159,47 @@ describe('Manager receipt interaction', () => {
 
     expect(wrapper.text()).toContain('ER-1430820260602-165400')
     expect(wrapper.text()).not.toContain(mocks.routeReportId)
-    expect(wrapper.text()).toContain('Balance due')
-    expect(wrapper.text()).toContain('Due to MDMPI')
-    expect(wrapper.text()).toContain('Cash advance')
+    const amountSummary = wrapper.getComponent(AppReportAmountSummary)
+    expect(amountSummary.props('expenses')).toEqual([])
+    expect(amountSummary.props('cashAdvance')).toEqual({
+      amount: 500,
+      date: '2026-07-15',
+      referenceDocument: 'Voucher',
+      referenceNumber: 'CA-1',
+      revolvingFund: ''
+    })
     expect(wrapper.find('[title="Cash advance"]').exists()).toBe(false)
   })
 
-  it('opens the first mobile expense while allowing multiple panels', async () => {
-    mocks.detail.mockResolvedValue(report({ expenses: [expense(), expense({ id: 6, particulars: 'Meal' })] }))
+  it('uses the status chip without a duplicate approved-state banner', async () => {
+    mocks.detail.mockResolvedValue(report({ status: 'Approved' }))
     const wrapper = mountView()
     await flushPromises()
+
+    expect(wrapper.text()).not.toContain('Approval complete')
+    expect(wrapper.text()).not.toContain('No further action is required')
+  })
+
+  it('opens the first mobile expense while allowing multiple panels', async () => {
+    const expenses = [expense(), expense({ id: 6, particulars: 'Meal' })]
+    const wrapper = shallowMount(AppExpenseReview, {
+      props: { expenses, desktop: false },
+      global: {
+        stubs: {
+          VCard: passThrough,
+          VCardTitle: passThrough,
+          VChip: passThrough,
+          VExpansionPanels: {
+            name: 'VExpansionPanels',
+            props: {
+              modelValue: { type: Array, default: () => [] },
+              multiple: { type: Boolean, default: false }
+            },
+            template: '<div><slot /></div>'
+          }
+        }
+      }
+    })
 
     const panels = wrapper.getComponent({ name: 'VExpansionPanels' })
     expect(panels.props('modelValue')).toEqual(['expense-id-5'])
@@ -174,10 +212,8 @@ describe('Manager receipt interaction', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    const receiptRow = wrapper.get('button[aria-label="Open Invoice.pdf"]')
-    expect(receiptRow.element.tagName).toBe('BUTTON')
-    expect(receiptRow.attributes('type')).toBe('button')
-    await receiptRow.trigger('click')
+    const receiptList = wrapper.getComponent(AppReceiptList)
+    receiptList.vm.$emit('open', report().attachments[0], 0)
     await flushPromises()
 
     expect(mocks.attachment).toHaveBeenCalledWith(10)
@@ -193,7 +229,7 @@ describe('Manager receipt interaction', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.get('button[aria-label="Open Invoice.pdf"]').trigger('click')
+    wrapper.getComponent(AppReceiptList).vm.$emit('open', report().attachments[0], 0)
     await flushPromises()
 
     expect(mocks.snackbarError).toHaveBeenCalledWith('The receipt file is empty.')
@@ -205,11 +241,12 @@ describe('Manager receipt interaction', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.get('button[aria-label="Open Invoice.pdf"]').trigger('click')
+    const receiptList = wrapper.getComponent(AppReceiptList)
+    receiptList.vm.$emit('open', report().attachments[0], 0)
     await flushPromises()
 
     expect(mocks.snackbarError).toHaveBeenCalledWith('You do not have access to this receipt.')
-    expect(wrapper.find('button[aria-label="Open Photo.png"]').exists()).toBe(true)
+    expect(receiptList.props('attachments')).toHaveLength(2)
   })
 
   it('revokes the previous object URL when another receipt opens and on unmount', async () => {
@@ -219,9 +256,10 @@ describe('Manager receipt interaction', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.get('button[aria-label="Open Invoice.pdf"]').trigger('click')
+    const receiptList = wrapper.getComponent(AppReceiptList)
+    receiptList.vm.$emit('open', report().attachments[0], 0)
     await flushPromises()
-    await wrapper.get('button[aria-label="Open Photo.png"]').trigger('click')
+    receiptList.vm.$emit('open', report().attachments[1], 1)
     await flushPromises()
 
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:application/pdf')

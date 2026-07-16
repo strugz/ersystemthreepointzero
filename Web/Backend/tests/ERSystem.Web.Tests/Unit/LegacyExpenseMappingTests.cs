@@ -1,4 +1,6 @@
+using ERSystem.Web.Application.Features.FinanceReceipts;
 using ERSystem.Web.Application.Features.ManagerApprovals;
+using ERSystem.Web.Application.Features.ReportReview;
 using ERSystem.Web.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -33,7 +35,7 @@ public sealed class LegacyExpenseMappingTests
     }
 
     [Fact]
-    public void Manager_expense_contract_keeps_vat_nullable_and_exposes_business_fields()
+    public void Shared_expense_contract_keeps_vat_nullable_and_exposes_business_fields()
     {
         var properties = typeof(ExpenseLineDto).GetProperties().ToDictionary(property => property.Name);
 
@@ -41,6 +43,31 @@ public sealed class LegacyExpenseMappingTests
         Assert.Equal(typeof(bool), properties[nameof(ExpenseLineDto.IsPerDiem)].PropertyType);
         Assert.Contains(nameof(ExpenseLineDto.InvoiceNumber), properties.Keys);
         Assert.Contains(nameof(ExpenseLineDto.Computation), properties.Keys);
+    }
+
+    [Fact]
+    public void Finance_detail_contract_exposes_identification_without_expense_review_payload()
+    {
+        var properties = typeof(FinanceReceiptDetailDto).GetProperties()
+            .ToDictionary(property => property.Name);
+
+        Assert.Contains(nameof(FinanceReceiptDetailDto.Department), properties.Keys);
+        Assert.DoesNotContain("CashAmount", properties.Keys);
+        Assert.DoesNotContain("CashReferenceNumber", properties.Keys);
+        Assert.DoesNotContain("Expenses", properties.Keys);
+        Assert.DoesNotContain("CashAdvance", properties.Keys);
+        Assert.DoesNotContain("Attachments", properties.Keys);
+        Assert.DoesNotContain("ApprovalTrail", properties.Keys);
+    }
+
+    [Fact]
+    public void Manager_list_contract_exposes_erf_reference_without_replacing_internal_report_id()
+    {
+        var properties = typeof(ManagerReportListItemDto).GetProperties()
+            .ToDictionary(property => property.Name);
+
+        Assert.Contains(nameof(ManagerReportListItemDto.ReportId), properties.Keys);
+        Assert.Contains(nameof(ManagerReportListItemDto.ErfReferenceNumber), properties.Keys);
     }
 
     private static LegacyErDbContext CreateContext()

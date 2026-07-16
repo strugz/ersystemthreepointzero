@@ -14,7 +14,9 @@ export const useManagerReportsQueueStore = defineStore('manager-reports-queue', 
 
   async function ensureLoaded(userId: number | null) {
     if (ownerUserId.value !== userId) clear(userId)
-    if (!loaded.value) await refresh()
+    const contractIsStale = table.items.value.some(item =>
+      typeof item.erfReferenceNumber !== 'string')
+    if (!loaded.value || contractIsStale) await refresh()
   }
 
   async function refresh() {

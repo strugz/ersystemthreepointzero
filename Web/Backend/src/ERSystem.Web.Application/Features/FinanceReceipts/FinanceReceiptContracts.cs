@@ -21,9 +21,9 @@ public sealed record FinanceReceiptListItemDto(
 public sealed record FinanceReceiptDetailDto(
     string ReportId, int EmployeeUserId, string EmployeeName, DateOnly? DateFrom,
     DateOnly? DateTo, string Description, string ReportType, string ErfReferenceNumber,
-    decimal? CashAmount, string CashReferenceNumber, string FinanceStatus,
-    bool PhysicalReceiptsReceived, int? ReceivedByUserId, string ReceivedByName,
-    DateTime? ReceivedDateUtc, string Remarks, string RowVersion);
+    string FinanceStatus, bool PhysicalReceiptsReceived,
+    int? ReceivedByUserId, string ReceivedByName,
+    DateTime? ReceivedDateUtc, string Remarks, string RowVersion, string Department);
 
 public sealed record ReceivePhysicalReceiptsRequest(string? Remarks, string RowVersion);
 public sealed record ReceivePhysicalReceiptsResult(string ReportId, string FinanceStatus, string RowVersion);

@@ -395,25 +395,21 @@ Module modMaintenance
             strError = ex.Message
         End Try
     End Sub
-    Public Sub DeleteImage(ByVal userID As String, ByVal reportID As String)
-        Try
-            DBConnection()
-            Using sqlDelete As New SqlCommand
-                Using SQLConnection As SqlConnection = mConn.SQLConnection
-                    With sqlDelete
-                        .Connection = SQLConnection
-                        .CommandText = "sp2_DeleteVar"
-                        .CommandType = CommandType.StoredProcedure
-                        .Parameters.Add("@reportID", SqlDbType.VarChar).Value = reportID
-                        .Parameters.AddWithValue("@userID", userID).SqlDbType = SqlDbType.VarChar
-                        .Parameters.AddWithValue("@Image", DBNull.Value).SqlDbType = SqlDbType.VarBinary
-                        .ExecuteNonQuery()
-                    End With
-                End Using
+    Public Sub ReopenReportForEditing(ByVal userID As Integer, ByVal reportID As String)
+        DBConnection()
+        Using reopenCommand As New SqlCommand
+            Using SQLConnection As SqlConnection = mConn.SQLConnection
+                With reopenCommand
+                    .Connection = SQLConnection
+                    .CommandText = "sp2_DeleteVar"
+                    .CommandType = CommandType.StoredProcedure
+                    .Parameters.Add("@reportID", SqlDbType.VarChar, 50).Value = reportID
+                    .Parameters.Add("@userID", SqlDbType.Int).Value = userID
+                    .Parameters.Add("@Image", SqlDbType.VarBinary, -1).Value = DBNull.Value
+                    .ExecuteNonQuery()
+                End With
             End Using
-        Catch ex As Exception
-            strError = ex.Message
-        End Try
+        End Using
     End Sub
     Public Sub ChangePassword(ByVal userid As String, ByVal password As String)
         DBConnection()

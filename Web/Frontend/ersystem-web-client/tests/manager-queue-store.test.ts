@@ -12,6 +12,7 @@ vi.mock('@/features/manager-approvals/api', () => ({
 function report(reportId = 'ER-1'): ManagerReportListItem {
   return {
     reportId,
+    erfReferenceNumber: `ERF-${reportId}`,
     employeeUserId: 7,
     employeeName: 'Jay Bryan C. Abaoag',
     department: 'IMS',
@@ -47,6 +48,21 @@ describe('Manager reports queue store', () => {
     expect(queue.filters.search).toBe('Jay')
     expect(queue.page).toBe(2)
     expect(queue.scrollPosition).toBe(420)
+  })
+
+  it('refreshes cached rows created before the ERF list contract was added', async () => {
+    const legacyRow = { ...report() } as ManagerReportListItem
+    delete (legacyRow as Partial<ManagerReportListItem>).erfReferenceNumber
+    mocks.list
+      .mockResolvedValueOnce({ items: [legacyRow], total: 1, page: 1, pageSize: 25 })
+      .mockResolvedValueOnce({ items: [report()], total: 1, page: 1, pageSize: 25 })
+    const queue = useManagerReportsQueueStore()
+
+    await queue.ensureLoaded(7)
+    await queue.ensureLoaded(7)
+
+    expect(mocks.list).toHaveBeenCalledTimes(2)
+    expect(queue.items[0].erfReferenceNumber).toBe('ERF-ER-1')
   })
 
   it('removes a completed pending assignment before reconciling with the server', async () => {

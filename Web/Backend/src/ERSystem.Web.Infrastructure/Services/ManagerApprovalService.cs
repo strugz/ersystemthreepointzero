@@ -1,6 +1,7 @@
 using System.Data;
 using ERSystem.Web.Application.Common;
 using ERSystem.Web.Application.Features.ManagerApprovals;
+using ERSystem.Web.Application.Features.ReportReview;
 using ERSystem.Web.Domain.Common;
 using ERSystem.Web.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +56,7 @@ public sealed class ManagerApprovalService(
             source = source.Where(x =>
                 (x.user.FullName != null && x.user.FullName.Contains(search)) ||
                 x.report.Id.Contains(search) ||
+                (x.report.ErfReferenceNumber != null && x.report.ErfReferenceNumber.Contains(search)) ||
                 (x.report.ReportDescription != null && x.report.ReportDescription.Contains(search)));
         }
         if (query.DepartmentId.HasValue) source = source.Where(x => x.user.DepartmentId == query.DepartmentId);
@@ -68,6 +70,9 @@ public sealed class ManagerApprovalService(
 
         var orderedSource = query.SortBy?.ToLowerInvariant() switch
         {
+            "erfreferencenumber" or "erfreference" or "report" => query.SortDirection == SortDirection.Descending
+                ? source.OrderByDescending(x => x.report.ErfReferenceNumber).ThenBy(x => x.report.Id)
+                : source.OrderBy(x => x.report.ErfReferenceNumber).ThenBy(x => x.report.Id),
             "employee" or "employeename" => query.SortDirection == SortDirection.Descending
                 ? source.OrderByDescending(x => x.user.FullName).ThenBy(x => x.report.Id)
                 : source.OrderBy(x => x.user.FullName).ThenBy(x => x.report.Id),
@@ -80,6 +85,7 @@ public sealed class ManagerApprovalService(
             .Select(x => new
             {
                 x.report.Id,
+                ErfReferenceNumber = x.report.ErfReferenceNumber ?? string.Empty,
                 EmployeeUserId = x.user.UserId ?? 0,
                 EmployeeName = x.user.FullName ?? string.Empty,
                 Department = x.department != null ? x.department.Name ?? string.Empty : string.Empty,
@@ -96,7 +102,8 @@ public sealed class ManagerApprovalService(
             }).ToListAsync(cancellationToken);
 
         var items = rows.Select(x => new ManagerReportListItemDto(
-            x.Id, x.EmployeeUserId, x.EmployeeName.Trim(), x.Department.Trim(), x.ReportDateFrom, x.ReportDateTo,
+            x.Id, x.ErfReferenceNumber.Trim(), x.EmployeeUserId, x.EmployeeName.Trim(), x.Department.Trim(),
+            x.ReportDateFrom, x.ReportDateTo,
             x.Description.Trim(), TextNormalization.TrimLegacy(x.ReportType), x.CurrentStep, x.TotalSteps,
             ResolveReportStatus(x.ReportFileStatus, x.ReportPrintStatus), rowVersions.Encode(x.RowVersion))).ToArray();
         return items.ToInMemoryPagedResult(query);
@@ -117,47 +124,16 @@ public sealed class ManagerApprovalService(
             select new { report, approval, user, department }).FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException("The report was not found or is not assigned to the current manager.");
 
-        // Match the legacy Crystal report: only active expense lines contribute to review totals.
-        var expenseRows = await db.Expenses.AsNoTracking().Where(x => x.ReportId == reportId && x.Status == "True")
-            .OrderBy(x => x.Sort).ThenBy(x => x.TransactionDate).ToListAsync(cancellationToken);
-        var expenses = expenseRows.Select(x => new ExpenseLineDto(
-            x.Id, x.TransactionDate, x.PerDiem == "1", x.Particulars?.Trim() ?? string.Empty,
-            x.InvoiceNumber?.Trim() ?? string.Empty, x.Multiplier, x.ExpenseType?.Trim() ?? string.Empty,
-            x.Category?.Trim() ?? string.Empty, ToMoney(x.Amount), ToNullableMoney(x.VatAmount),
-            ToMoney(x.TotalAmount), x.Location?.Trim() ?? string.Empty, x.Remarks?.Trim() ?? string.Empty,
-            x.WorkWith?.Trim() ?? string.Empty, x.ServiceNumber?.Trim() ?? string.Empty,
-            x.Instrument?.Trim() ?? string.Empty, x.SerialNumber?.Trim() ?? string.Empty,
-            x.MinusDays?.Trim() ?? string.Empty, x.TotalDays?.Trim() ?? string.Empty,
-            x.Computation?.Trim() ?? string.Empty)).ToArray();
-
-        var cash = await db.CashAdvances.AsNoTracking().FirstOrDefaultAsync(x => x.ReportId == reportId, cancellationToken);
-        var cashDto = cash is null ? null : new CashAdvanceDto(
-            cash.Amount.HasValue ? ToMoney(cash.Amount) : null, cash.Date?.Trim() ?? string.Empty,
-            cash.ReferenceDocument?.Trim() ?? string.Empty, cash.ReferenceNumber?.Trim() ?? string.Empty,
-            cash.RevolvingFund?.Trim() ?? string.Empty);
-
-        var attachments = await db.ScannedReceipts.AsNoTracking().Where(x => x.ReportId == reportId).OrderBy(x => x.Id)
-            .Select(x => new ReceiptAttachmentDto(x.Id, x.OriginalFileName, x.ContentType, x.FileSizeBytes, x.CreatedDate))
-            .ToListAsync(cancellationToken);
-        var assignments = await db.ApprovalTransactions.AsNoTracking()
-            .Where(x => x.ReportId == reportId && x.ApprovalCycle == header.approval.ApprovalCycle)
-            .OrderBy(x => x.StepOrder).ToListAsync(cancellationToken);
-        var approverIds = assignments.Select(x => x.ApproverUserId).ToArray();
-        var approvers = await db.Users.AsNoTracking().Where(x => x.UserId.HasValue && approverIds.Contains(x.UserId.Value))
-            .ToDictionaryAsync(x => x.UserId!.Value, x => x.FullName ?? x.Username ?? string.Empty, cancellationToken);
-        var trail = assignments.Select(x =>
-        {
-            var approverId = x.ApproverUserId;
-            return new ApprovalTrailItemDto(approverId, approvers.GetValueOrDefault(approverId, string.Empty).Trim(),
-                x.StepOrder, x.ActionedAtUtc, x.Status);
-        }).ToArray();
+        var review = await ReportReviewDataLoader.LoadAsync(
+            db, reportId, header.approval.ApprovalCycle, cancellationToken);
 
         return new ManagerReportDetailDto(
             header.report.Id, header.user.UserId ?? 0, header.user.FullName?.Trim() ?? string.Empty,
             header.department?.Name?.Trim() ?? string.Empty, header.report.ReportDateFrom, header.report.ReportDateTo,
             header.report.ReportDescription?.Trim() ?? string.Empty, TextNormalization.TrimLegacy(header.report.ReportType),
-            header.report.ErfReferenceNumber?.Trim() ?? string.Empty, expenses, cashDto, attachments, trail,
-            header.approval.StepOrder, assignments.Count, ResolveReportStatus(header.report.ReportFileStatus, header.report.ReportPrintStatus),
+            header.report.ErfReferenceNumber?.Trim() ?? string.Empty, review.Expenses, review.CashAdvance,
+            review.Attachments, review.ApprovalTrail, header.approval.StepOrder, review.ApprovalTrail.Count,
+            ResolveReportStatus(header.report.ReportFileStatus, header.report.ReportPrintStatus),
             rowVersions.Encode(header.report.RowVersion));
     }
 
@@ -287,7 +263,4 @@ public sealed class ManagerApprovalService(
     private static string ResolveReportStatus(string? fileStatus, string? printStatus) =>
         fileStatus == ReportStates.Approved && printStatus == ReportStates.Approved ? "Approved" : "For Approval";
 
-    private static decimal ToMoney(double? value) => Math.Round(Convert.ToDecimal(value ?? 0d), 2, MidpointRounding.AwayFromZero);
-
-    private static decimal? ToNullableMoney(double? value) => value.HasValue ? ToMoney(value) : null;
 }

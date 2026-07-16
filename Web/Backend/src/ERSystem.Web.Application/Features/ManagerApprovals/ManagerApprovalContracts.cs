@@ -1,4 +1,5 @@
 using ERSystem.Web.Application.Common;
+using ERSystem.Web.Application.Features.ReportReview;
 
 namespace ERSystem.Web.Application.Features.ManagerApprovals;
 
@@ -13,20 +14,9 @@ public sealed record ManagerReportQuery : PagedRequest
 }
 
 public sealed record ManagerReportListItemDto(
-    string ReportId, int EmployeeUserId, string EmployeeName, string Department,
+    string ReportId, string ErfReferenceNumber, int EmployeeUserId, string EmployeeName, string Department,
     DateOnly? DateFrom, DateOnly? DateTo, string Description, string ReportType,
     int CurrentStep, int TotalSteps, string Status, string RowVersion);
-
-public sealed record ExpenseLineDto(
-    long? Id, DateOnly? TransactionDate, bool IsPerDiem, string Particulars,
-    string InvoiceNumber, int? Multiplier, string ExpenseType, string Category,
-    decimal Amount, decimal? VatAmount, decimal TotalAmount, string Location,
-    string Remarks, string WorkWith, string ServiceNumber, string Instrument,
-    string SerialNumber, string MinusDays, string TotalDays, string Computation);
-
-public sealed record CashAdvanceDto(decimal? Amount, string Date, string ReferenceDocument, string ReferenceNumber, string RevolvingFund);
-public sealed record ReceiptAttachmentDto(int Id, string FileName, string ContentType, long FileSizeBytes, DateTime CreatedDateUtc);
-public sealed record ApprovalTrailItemDto(int ApproverUserId, string ApproverName, int Sort, DateTime? OccurredAtUtc, string Status);
 
 public sealed record ManagerReportDetailDto(
     string ReportId, int EmployeeUserId, string EmployeeName, string Department,
@@ -39,7 +29,6 @@ public sealed record ManagerReportDetailDto(
 public sealed record ApproveReportRequest(string RowVersion);
 public sealed record ReturnReportRequest(string Reason, string RowVersion);
 public sealed record WorkflowActionResult(string ReportId, string Status, string RowVersion);
-public sealed record AttachmentContentDto(string FileName, string ContentType, byte[] Content);
 
 public interface IManagerApprovalService
 {

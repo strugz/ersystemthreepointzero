@@ -1,5 +1,20 @@
+import type {
+  ApprovalTrailItem,
+  CashAdvance,
+  ExpenseLine,
+  ReceiptAttachment
+} from '@/shared/types/reportReview'
+
+export type {
+  ApprovalTrailItem,
+  CashAdvance,
+  ExpenseLine,
+  ReceiptAttachment
+} from '@/shared/types/reportReview'
+
 export interface ManagerReportListItem {
   reportId: string
+  erfReferenceNumber: string
   employeeUserId: number
   employeeName: string
   department: string
@@ -13,55 +28,7 @@ export interface ManagerReportListItem {
   rowVersion: string
 }
 
-export interface ExpenseLine {
-  id: number | null
-  transactionDate: string | null
-  isPerDiem: boolean
-  particulars: string
-  invoiceNumber: string
-  multiplier: number | null
-  expenseType: string
-  category: string
-  amount: number
-  vatAmount: number | null
-  totalAmount: number
-  location: string
-  remarks: string
-  workWith: string
-  serviceNumber: string
-  instrument: string
-  serialNumber: string
-  minusDays: string
-  totalDays: string
-  computation: string
-}
-
-export interface CashAdvance {
-  amount: number | null
-  date: string
-  referenceDocument: string
-  referenceNumber: string
-  revolvingFund: string
-}
-
-export interface ReceiptAttachment {
-  id: number
-  fileName: string
-  contentType: string
-  fileSizeBytes: number
-  createdDateUtc: string
-}
-
-export interface ApprovalTrailItem {
-  approverUserId: number
-  approverName: string
-  sort: number
-  occurredAtUtc: string | null
-  status: string
-}
-
 export interface ManagerReportDetail extends ManagerReportListItem {
-  erfReferenceNumber: string
   expenses: ExpenseLine[]
   cashAdvance: CashAdvance | null
   attachments: ReceiptAttachment[]

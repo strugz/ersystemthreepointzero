@@ -60,3 +60,26 @@ dotnet publish Web/Backend/src/ERSystem.Web.Api/ERSystem.Web.Api.csproj -c Relea
 Copy the contents of `Web/Frontend/ersystem-web-client/dist/` into `<publish-directory>/wwwroot/`. Deploy that directory as one HTTPS IIS application so the SPA and `/api` share an origin. Configure IIS to keep Secure cookies, forward HTTPS correctly, and deny direct access to configuration or deployment files.
 
 Pilot with selected Manager and Finance accounts while the desktop client remains active. Monitor authentication failures, `409` concurrency responses, workflow audit events, API errors, and SQL latency before expanding access.
+
+## Render deployment
+
+The repository includes a Render Blueprint at `render.yaml` for the Vue
+frontend only. Render creates a free Static Site, runs the reproducible frontend
+build, publishes `dist/`, and rewrites client-side routes to `index.html`.
+
+Create a Render Blueprint from the repository. No database connection string,
+legacy encryption key, or other backend secret belongs in this static-site
+deployment. `Web/Frontend/ersystem-web-client/.env.render.example` lists the
+non-secret Render build settings if the site is configured manually instead of
+through the Blueprint.
+
+The current frontend API client uses relative `/api` URLs and secure,
+same-origin cookie authentication. A frontend-only Render deployment therefore
+serves the interface but cannot authenticate or load live data unless `/api` is
+proxied to the existing backend under the same public origin. Hosting the API on
+a separate origin instead requires a deliberate backend change covering CORS,
+cookie `SameSite` behavior, antiforgery, allowed origins, and credentials.
+
+Automatic deploys are disabled in the Blueprint for the initial frontend
+preview. Enable deploys on passing checks after the Render URL, Vue Router
+navigation, responsive layout, and static asset loading are verified.
