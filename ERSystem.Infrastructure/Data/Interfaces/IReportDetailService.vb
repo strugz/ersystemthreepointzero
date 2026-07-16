@@ -11,5 +11,10 @@ Namespace Global.ERSystem.Infrastructure.Data
                               scannedReceiptPaths As IEnumerable(Of String),
                               createdByUserId As Nullable(Of Integer)) As ReportDetailDto
         Sub Update(report As UpdateReportDetailDto)
+        Sub UpdateReport(report As UpdateReportDetailDto,
+                         cashAdvance As UpdateCashAdvanceDto,
+                         scannedReceiptPaths As IEnumerable(Of String),
+                         attachmentUpdateMode As ScannedReceiptAttachmentUpdateMode,
+                         createdByUserId As Nullable(Of Integer))
     End Interface
 End Namespace

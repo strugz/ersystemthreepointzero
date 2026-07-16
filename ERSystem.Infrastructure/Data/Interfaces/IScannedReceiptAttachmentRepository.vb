@@ -8,6 +8,10 @@ Namespace Global.ERSystem.Infrastructure.Data
                              localPaths As IEnumerable(Of String),
                              createdByUserId As Nullable(Of Integer),
                              dbContext As AppDbContext)
+        Sub AppendForReport(reportId As String,
+                            localPaths As IEnumerable(Of String),
+                            createdByUserId As Nullable(Of Integer),
+                            dbContext As AppDbContext)
 
         Sub DeleteForReport(reportId As String, dbContext As AppDbContext)
 

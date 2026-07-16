@@ -57,6 +57,22 @@
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Buffers">
+      <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Memory">
+      <HintPath>..\packages\System.Memory.4.5.5\lib\net461\System.Memory.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Numerics.Vectors">
+      <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.6.0.0\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
@@ -72,6 +88,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Infrastructure\AppDbContextTests.vb" />
+    <Compile Include="Services\ScannedReceiptCleanupServiceTests.vb" />
+    <Compile Include="Services\ScannedReceiptSelectionStateTests.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
   </ItemGroup>
   <ItemGroup>
@@ -79,6 +97,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ERSystem.AppServices\ERSystem.AppServices.vbproj">
+      <Project>{3352A82B-7FB8-4DA5-99B8-67FA6966CEE8}</Project>
+      <Name>ERSystem.AppServices</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ERSystem.Domain\ERSystem.Domain.vbproj">
       <Project>{EEFD82B5-EDDA-4F66-9533-03BAAF8E1A06}</Project>
       <Name>ERSystem.Domain</Name>

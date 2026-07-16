@@ -287,7 +287,11 @@ Public Class frmRpt
 
     Private Sub PreviewReceipt(metadata As ScannedReceiptAttachmentMetadataDto)
         If Not IsImageReceipt(metadata) Then
-            ShowReceiptMessage("PDF receipt selected. Click Open Receipt to view it.")
+            If IsPdfReceipt(metadata) Then
+                ShowReceiptMessage("PDF receipt selected. Click Open Receipt to view it.")
+            Else
+                ShowReceiptMessage("This receipt file type is not supported for preview or opening.")
+            End If
             Return
         End If
 
@@ -320,6 +324,11 @@ Public Class frmRpt
             Return
         End If
 
+        If Not IsImageReceipt(metadata) AndAlso Not IsPdfReceipt(metadata) Then
+            MsgBox("This receipt file type is not supported for opening.")
+            Return
+        End If
+
         Try
             Dim receipt As ScannedReceiptAttachmentDto = _scannedReceiptAttachmentService.GetById(metadata.ID)
 
@@ -341,7 +350,19 @@ Public Class frmRpt
             Return False
         End If
 
-        Return metadata.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
+        If String.Equals(metadata.ContentType, "image/jpeg", StringComparison.OrdinalIgnoreCase) Then
+            Return String.Equals(metadata.FileExtension, ".jpg", StringComparison.OrdinalIgnoreCase) OrElse
+                String.Equals(metadata.FileExtension, ".jpeg", StringComparison.OrdinalIgnoreCase)
+        End If
+
+        Return String.Equals(metadata.ContentType, "image/png", StringComparison.OrdinalIgnoreCase) AndAlso
+            String.Equals(metadata.FileExtension, ".png", StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Private Shared Function IsPdfReceipt(metadata As ScannedReceiptAttachmentMetadataDto) As Boolean
+        Return metadata IsNot Nothing AndAlso
+            String.Equals(metadata.ContentType, "application/pdf", StringComparison.OrdinalIgnoreCase) AndAlso
+            String.Equals(metadata.FileExtension, ".pdf", StringComparison.OrdinalIgnoreCase)
     End Function
 
     Private Shared Function BuildReceiptTempFileName(receipt As ScannedReceiptAttachmentDto) As String

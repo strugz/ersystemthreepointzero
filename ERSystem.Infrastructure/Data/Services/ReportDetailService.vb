@@ -76,5 +76,45 @@ Namespace Global.ERSystem.Infrastructure.Data
         Public Sub Update(report As UpdateReportDetailDto) Implements IReportDetailService.Update
             _repository.Update(report)
         End Sub
+
+        Public Sub UpdateReport(report As UpdateReportDetailDto,
+                                cashAdvance As UpdateCashAdvanceDto,
+                                scannedReceiptPaths As IEnumerable(Of String),
+                                attachmentUpdateMode As ScannedReceiptAttachmentUpdateMode,
+                                createdByUserId As Nullable(Of Integer)) Implements IReportDetailService.UpdateReport
+            If report Is Nothing Then
+                Throw New ArgumentNullException("report")
+            End If
+
+            If cashAdvance Is Nothing Then
+                Throw New ArgumentNullException("cashAdvance")
+            End If
+
+            If String.IsNullOrWhiteSpace(report.ID) Then
+                Throw New ArgumentException("Report ID is required.", "report")
+            End If
+
+            Dim receiptPaths As List(Of String) = If(scannedReceiptPaths, Enumerable.Empty(Of String)()).ToList()
+
+            Using dbContext As New AppDbContext()
+                Using transaction = dbContext.Database.BeginTransaction()
+                    _repository.Update(report, dbContext)
+                    _cashAdvanceRepository.UpdateByReportId(report.ID, cashAdvance, dbContext)
+
+                    Select Case attachmentUpdateMode
+                        Case ScannedReceiptAttachmentUpdateMode.Unchanged
+                            ' An unrelated report edit must not modify durable receipt content.
+                        Case ScannedReceiptAttachmentUpdateMode.Append
+                            _scannedReceiptAttachmentRepository.AppendForReport(report.ID, receiptPaths, createdByUserId, dbContext)
+                        Case ScannedReceiptAttachmentUpdateMode.Replace
+                            _scannedReceiptAttachmentRepository.ReplaceForReport(report.ID, receiptPaths, createdByUserId, dbContext)
+                        Case Else
+                            Throw New ArgumentOutOfRangeException("attachmentUpdateMode")
+                    End Select
+
+                    transaction.Commit()
+                End Using
+            End Using
+        End Sub
     End Class
 End Namespace

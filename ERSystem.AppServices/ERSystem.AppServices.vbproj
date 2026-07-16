@@ -80,6 +80,7 @@
     <Compile Include="Services\Crm\TransactionLookupService.vb" />
     <Compile Include="Services\ExpenseReport\AddExpenseResult.vb" />
     <Compile Include="Services\ExpenseReport\ExpenseEntryService.vb" />
+    <Compile Include="Services\ExpenseReport\ScannedReceiptSelectionState.vb" />
     <Compile Include="Services\ExpenseReport\UpdateExpenseResult.vb" />
     <Compile Include="Services\IAccountSettingsSessionContext.vb" />
     <Compile Include="Services\IAccountSettingsValueProtector.vb" />

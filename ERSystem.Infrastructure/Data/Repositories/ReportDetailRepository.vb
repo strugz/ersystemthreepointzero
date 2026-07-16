@@ -60,6 +60,12 @@ Namespace Global.ERSystem.Infrastructure.Data
         End Function
 
         Public Sub Update(report As UpdateReportDetailDto) Implements IReportDetailRepository.Update
+            Using dbContext As New AppDbContext()
+                Update(report, dbContext)
+            End Using
+        End Sub
+
+        Public Sub Update(report As UpdateReportDetailDto, dbContext As AppDbContext) Implements IReportDetailRepository.Update
             If report Is Nothing Then
                 Throw New ArgumentNullException("report")
             End If
@@ -68,21 +74,23 @@ Namespace Global.ERSystem.Infrastructure.Data
                 Throw New ArgumentException("Report ID is required.", "report")
             End If
 
-            Using dbContext As New AppDbContext()
-                Dim existing = dbContext.ReportsDetails.FirstOrDefault(Function(item) item.ID = report.ID)
+            If dbContext Is Nothing Then
+                Throw New ArgumentNullException("dbContext")
+            End If
 
-                If existing Is Nothing Then
-                    Throw New InvalidOperationException("Report details were not found.")
-                End If
+            Dim existing = dbContext.ReportsDetails.FirstOrDefault(Function(item) item.ID = report.ID)
 
-                existing.ReportDateFrom = report.ReportDateFrom
-                existing.ReportDateTo = report.ReportDateTo
-                existing.ReportDescription = report.ReportDescription
-                existing.ReportAttachment = report.ReportAttachment
-                existing.ReportType = report.ReportType
-                existing.ERFReferenceNo = report.ERFReferenceNo
-                dbContext.SaveChanges()
-            End Using
+            If existing Is Nothing Then
+                Throw New InvalidOperationException("Report details were not found.")
+            End If
+
+            existing.ReportDateFrom = report.ReportDateFrom
+            existing.ReportDateTo = report.ReportDateTo
+            existing.ReportDescription = report.ReportDescription
+            existing.ReportAttachment = report.ReportAttachment
+            existing.ReportType = report.ReportType
+            existing.ERFReferenceNo = report.ERFReferenceNo
+            dbContext.SaveChanges()
         End Sub
 
         Private Shared Function ToDto(report As ReportDetailModel) As ReportDetailDto

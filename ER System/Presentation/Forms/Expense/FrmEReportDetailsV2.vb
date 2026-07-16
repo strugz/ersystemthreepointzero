@@ -14,6 +14,7 @@ Public Class FrmEReportDetailsV2
     Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
     Private _reportId As String = String.Empty
     Private _lastAutoPurpose As String = String.Empty
+    Private _receiptSelection As ERSystem.AppServices.ScannedReceiptSelectionState
 
     Public Sub New()
         Me.New(New ReportDetailService(), New CashAdvanceService(), New ScannedReceiptAttachmentService())
@@ -66,18 +67,40 @@ Public Class FrmEReportDetailsV2
 
     Private Sub BtnBrowseAttachment_Click(sender As Object, e As EventArgs) Handles BtnBrowseAttachment.Click
         Using dialog As New OpenFileDialog()
-            dialog.Filter = "Receipt Files|*.pdf;*.jpg;*.jpeg;*.png|PDF Files|*.pdf|Image Files|*.jpg;*.jpeg;*.png|All Files|*.*"
+            dialog.Filter = "Receipt Files|*.pdf;*.jpg;*.jpeg;*.png|PDF Files|*.pdf|Image Files|*.jpg;*.jpeg;*.png"
             dialog.Multiselect = True
             dialog.Title = "Select scanned receipt attachment"
 
             If dialog.ShowDialog(Me) = DialogResult.OK Then
-                TxtAttachment.Text = AppendAttachmentPaths(TxtAttachment.Text, dialog.FileNames)
+                Try
+                    Dim selectedPaths As List(Of String) = ValidateSelectedAttachmentFiles(dialog.FileNames)
+                    _receiptSelection.AddLocalPaths(selectedPaths)
+                    RefreshAttachmentDisplay()
+                Catch ex As InvalidOperationException
+                    MessageBox.Show(ex.Message)
+                End Try
             End If
         End Using
     End Sub
 
     Private Sub BtnClearAttachment_Click(sender As Object, e As EventArgs) Handles BtnClearAttachment.Click
-        TxtAttachment.Clear()
+        If _receiptSelection Is Nothing OrElse Not _receiptSelection.HasReceipts Then
+            Return
+        End If
+
+        If MessageBox.Show("Remove all scanned receipts from this report?",
+                           "Confirm Receipt Removal",
+                           MessageBoxButtons.YesNo,
+                           MessageBoxIcon.Warning) <> DialogResult.Yes Then
+            Return
+        End If
+
+        Try
+            _receiptSelection.Clear()
+            RefreshAttachmentDisplay()
+        Catch ex As InvalidOperationException
+            MessageBox.Show(ex.Message)
+        End Try
     End Sub
 
     Private Sub CboReportType_SelectedIndexChanged(sender As Object, e As EventArgs) Handles CboReportType.SelectedIndexChanged
@@ -110,7 +133,19 @@ Public Class FrmEReportDetailsV2
 
         DtpReportFrom.Value = If(report.ReportDateFrom.HasValue, report.ReportDateFrom.Value, DateTime.Now)
         DtpReportTo.Value = If(report.ReportDateTo.HasValue, report.ReportDateTo.Value, DateTime.Now)
-        TxtAttachment.Text = If(report.ReportAttachment, String.Empty)
+        Dim storedReceipts As List(Of ScannedReceiptAttachmentMetadataDto)
+        Try
+            storedReceipts = _scannedReceiptAttachmentService.GetMetadataByReportId(_reportId)
+        Catch ex As Exception
+            storedReceipts = New List(Of ScannedReceiptAttachmentMetadataDto)()
+            MessageBox.Show("Unable to load scanned receipt information. Existing receipts will be preserved. " & ex.Message)
+        End Try
+
+        _receiptSelection = New ERSystem.AppServices.ScannedReceiptSelectionState(
+            report.ReportAttachment,
+            storedReceipts,
+            IsFinalApprovedReport(report))
+        RefreshAttachmentDisplay()
         SelectReportType(ResolveReportType(report, cashAdvance))
         TxtPurpose.Text = report.ReportDescription
         TxtERFReferenceNo.Text = ResolveErfReferenceNo(report, cashAdvance)
@@ -125,6 +160,7 @@ Public Class FrmEReportDetailsV2
         End If
 
         BtnSave.Text = "Update"
+        ApplyAttachmentState()
         ApplyReportTypeState()
     End Sub
 
@@ -138,10 +174,15 @@ Public Class FrmEReportDetailsV2
         TxtReferenceNo.Clear()
         TxtAmount.Clear()
         TxtRevolvingFund.Clear()
-        TxtAttachment.Clear()
+        _receiptSelection = New ERSystem.AppServices.ScannedReceiptSelectionState(
+            String.Empty,
+            Enumerable.Empty(Of ScannedReceiptAttachmentMetadataDto)(),
+            False)
+        RefreshAttachmentDisplay()
         TxtERFReferenceNo.Text = GenerateReferenceNumber()
         CboReportType.SelectedIndex = 0
         BtnSave.Text = "Save"
+        ApplyAttachmentState()
         ApplyReportTypeState()
     End Sub
 
@@ -180,7 +221,17 @@ Public Class FrmEReportDetailsV2
     Private Sub CreateReport()
         Dim newReportId As String = Guid.NewGuid().ToString()
         Dim userId As Integer = GetCurrentUserId()
-        Dim attachmentPath As String = NormalizeAttachmentPaths(newReportId)
+        Dim copiedPaths As New List(Of String)()
+        Dim createdFiles As New List(Of String)()
+
+        Try
+            copiedPaths = CopyAttachmentFiles(_receiptSelection.GetPendingLocalPaths(), newReportId, createdFiles)
+        Catch
+            DeleteCreatedFiles(createdFiles)
+            Throw
+        End Try
+
+        Dim attachmentPath As String = String.Join(";", copiedPaths)
 
         Dim report As New CreateReportDetailDto With {
             .ID = newReportId,
@@ -199,15 +250,34 @@ Public Class FrmEReportDetailsV2
             .ERFReferenceNo = TxtERFReferenceNo.Text.Trim()
         }
 
-        _reportDetailService.CreateReport(report, BuildCreateCashAdvanceDto(newReportId, userId), SplitAttachmentPaths(attachmentPath), userId)
+        Try
+            _reportDetailService.CreateReport(report, BuildCreateCashAdvanceDto(newReportId, userId), copiedPaths, userId)
+        Catch
+            DeleteCreatedFiles(createdFiles)
+            Throw
+        End Try
+
         _reportId = newReportId
     End Sub
 
     Private Sub UpdateReport()
         Dim userId As Integer = GetCurrentUserId()
-        Dim attachmentPath As String = NormalizeAttachmentPaths(_reportId)
+        Dim updateMode As ScannedReceiptAttachmentUpdateMode = _receiptSelection.UpdateMode
+        Dim copiedPaths As New List(Of String)()
+        Dim createdFiles As New List(Of String)()
 
-        _reportDetailService.Update(New UpdateReportDetailDto With {
+        If updateMode <> ScannedReceiptAttachmentUpdateMode.Unchanged Then
+            Try
+                copiedPaths = CopyAttachmentFiles(_receiptSelection.GetPendingLocalPaths(), _reportId, createdFiles)
+            Catch
+                DeleteCreatedFiles(createdFiles)
+                Throw
+            End Try
+        End If
+
+        Dim attachmentPath As String = _receiptSelection.BuildLegacyAttachmentValue(copiedPaths)
+
+        Dim report As New UpdateReportDetailDto With {
             .ID = _reportId,
             .ReportDateFrom = DtpReportFrom.Value.Date,
             .ReportDateTo = DtpReportTo.Value.Date,
@@ -215,66 +285,20 @@ Public Class FrmEReportDetailsV2
             .ReportAttachment = attachmentPath,
             .ReportType = CboReportType.SelectedItem.ToString(),
             .ERFReferenceNo = TxtERFReferenceNo.Text.Trim()
-        })
+        }
 
-        _cashAdvanceService.UpdateByReportId(_reportId, BuildUpdateCashAdvanceDto(userId))
-        _scannedReceiptAttachmentService.ReplaceForReport(New SaveScannedReceiptAttachmentRequest With {
-            .ReportID = _reportId,
-            .LocalPaths = SplitAttachmentPaths(attachmentPath),
-            .CreatedByUserID = userId
-        })
-    End Sub
-
-    Private Shared Function SplitAttachmentPaths(attachmentPath As String) As IEnumerable(Of String)
-        If String.IsNullOrWhiteSpace(attachmentPath) Then
-            Return Enumerable.Empty(Of String)()
-        End If
-
-        Return attachmentPath.Split(";"c).
-            Select(Function(path) path.Trim()).
-            Where(Function(path) path.Length > 0).
-            ToList()
-    End Function
-
-    Private Shared Function AppendAttachmentPaths(existingAttachmentPath As String, selectedPaths As IEnumerable(Of String)) As String
-        Dim attachmentPaths As New List(Of String)()
-        Dim pathKeys As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
-
-        AddUniqueAttachmentPaths(attachmentPaths, pathKeys, SplitAttachmentPaths(existingAttachmentPath))
-        AddUniqueAttachmentPaths(attachmentPaths, pathKeys, selectedPaths)
-
-        Return String.Join(";", attachmentPaths)
-    End Function
-
-    Private Shared Sub AddUniqueAttachmentPaths(attachmentPaths As IList(Of String),
-                                                pathKeys As ISet(Of String),
-                                                sourcePaths As IEnumerable(Of String))
-        If sourcePaths Is Nothing Then
-            Return
-        End If
-
-        For Each sourcePath As String In sourcePaths
-            Dim normalizedPath As String = If(sourcePath, String.Empty).Trim()
-
-            If normalizedPath.Length = 0 Then
-                Continue For
-            End If
-
-            Dim pathKey As String = BuildAttachmentPathKey(normalizedPath)
-
-            If pathKeys.Add(pathKey) Then
-                attachmentPaths.Add(normalizedPath)
-            End If
-        Next
-    End Sub
-
-    Private Shared Function BuildAttachmentPathKey(attachmentPath As String) As String
         Try
-            Return Path.GetFullPath(attachmentPath)
-        Catch ex As Exception
-            Return attachmentPath.Trim()
+            _reportDetailService.UpdateReport(
+                report,
+                BuildUpdateCashAdvanceDto(userId),
+                copiedPaths,
+                updateMode,
+                userId)
+        Catch
+            DeleteCreatedFiles(createdFiles)
+            Throw
         End Try
-    End Function
+    End Sub
 
     Private Function BuildCreateCashAdvanceDto(reportId As String, userId As Integer) As CreateCashAdvanceDto
         Return New CreateCashAdvanceDto With {
@@ -441,27 +465,17 @@ Public Class FrmEReportDetailsV2
         Return String.Empty
     End Function
 
-    Private Function NormalizeAttachmentPaths(reportId As String) As String
-        If String.IsNullOrWhiteSpace(TxtAttachment.Text) Then
-            Return String.Empty
-        End If
-
+    Private Function CopyAttachmentFiles(sourcePaths As IEnumerable(Of String),
+                                         reportId As String,
+                                         createdFiles As IList(Of String)) As List(Of String)
+        Dim validatedPaths As List(Of String) = ValidateSelectedAttachmentFiles(sourcePaths)
         Dim copiedPaths As New List(Of String)()
         Dim targetDirectory As String = Path.Combine(Application.StartupPath, ScannedReceiptsFolderName)
 
         Try
             Directory.CreateDirectory(targetDirectory)
 
-            For Each attachmentPath In TxtAttachment.Text.Split(";"c)
-                Dim sourcePath As String = attachmentPath.Trim()
-                If String.IsNullOrWhiteSpace(sourcePath) Then
-                    Continue For
-                End If
-
-                If Not File.Exists(sourcePath) Then
-                    Throw New InvalidOperationException("Attachment file was not found: " & sourcePath)
-                End If
-
+            For Each sourcePath As String In validatedPaths
                 If IsPathInDirectory(sourcePath, targetDirectory) Then
                     copiedPaths.Add(Path.GetFullPath(sourcePath))
                     Continue For
@@ -470,6 +484,7 @@ Public Class FrmEReportDetailsV2
                 Dim destinationPath As String = BuildAttachmentDestinationPath(sourcePath, targetDirectory, reportId)
                 File.Copy(sourcePath, destinationPath, False)
                 copiedPaths.Add(destinationPath)
+                createdFiles.Add(destinationPath)
             Next
         Catch ex As InvalidOperationException
             Throw
@@ -477,9 +492,115 @@ Public Class FrmEReportDetailsV2
             Throw New InvalidOperationException("Unable to copy scanned receipt attachment. " & ex.Message, ex)
         End Try
 
-        Dim normalizedPaths As String = String.Join(";", copiedPaths)
-        TxtAttachment.Text = normalizedPaths
-        Return normalizedPaths
+        Return copiedPaths
+    End Function
+
+    Private Function ValidateSelectedAttachmentFiles(sourcePaths As IEnumerable(Of String)) As List(Of String)
+        Dim validatedPaths As New List(Of String)()
+        Dim pathKeys As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+        Dim aggregateFileSize As Long
+
+        If sourcePaths Is Nothing Then
+            Return validatedPaths
+        End If
+
+        For Each path As String In sourcePaths
+            Dim sourcePath As String = If(path, String.Empty).Trim()
+            If sourcePath.Length = 0 Then
+                Continue For
+            End If
+
+            Dim fullPath As String
+            Try
+                fullPath = IO.Path.GetFullPath(sourcePath)
+            Catch ex As Exception
+                Throw New InvalidOperationException("Receipt file path is invalid: " & sourcePath, ex)
+            End Try
+
+            If Not pathKeys.Add(fullPath) Then
+                Continue For
+            End If
+
+            If Not File.Exists(fullPath) Then
+                Throw New InvalidOperationException("Receipt file was not found: " & fullPath)
+            End If
+
+            Dim extension As String = IO.Path.GetExtension(fullPath)
+            If Not IsSupportedReceiptExtension(extension) Then
+                Throw New InvalidOperationException("Unsupported receipt file type: " & extension & ". Select a PDF, JPG, JPEG, or PNG file.")
+            End If
+
+            Try
+                Using stream As New FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read)
+                    If stream.Length = 0 Then
+                        Throw New InvalidOperationException("Receipt file is empty: " & fullPath)
+                    End If
+
+                    If Long.MaxValue - aggregateFileSize < stream.Length Then
+                        Throw New InvalidOperationException("The combined receipt file size is too large to process.")
+                    End If
+
+                    aggregateFileSize += stream.Length
+                End Using
+            Catch ex As InvalidOperationException
+                Throw
+            Catch ex As Exception
+                Throw New InvalidOperationException("Receipt file could not be read: " & fullPath, ex)
+            End Try
+
+            validatedPaths.Add(fullPath)
+        Next
+
+        Return validatedPaths
+    End Function
+
+    Private Shared Function IsSupportedReceiptExtension(extension As String) As Boolean
+        Return String.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase) OrElse
+            String.Equals(extension, ".jpg", StringComparison.OrdinalIgnoreCase) OrElse
+            String.Equals(extension, ".jpeg", StringComparison.OrdinalIgnoreCase) OrElse
+            String.Equals(extension, ".png", StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Private Shared Sub DeleteCreatedFiles(createdFiles As IEnumerable(Of String))
+        If createdFiles Is Nothing Then
+            Return
+        End If
+
+        For Each filePath As String In createdFiles
+            Try
+                If File.Exists(filePath) Then
+                    File.Delete(filePath)
+                End If
+            Catch ex As IOException
+                Debug.WriteLine("Unable to roll back copied receipt file: " & ex.Message)
+            Catch ex As UnauthorizedAccessException
+                Debug.WriteLine("Unable to roll back copied receipt file: " & ex.Message)
+            End Try
+        Next
+    End Sub
+
+    Private Sub RefreshAttachmentDisplay()
+        If _receiptSelection Is Nothing Then
+            TxtAttachment.Clear()
+            Return
+        End If
+
+        TxtAttachment.Text = _receiptSelection.BuildDisplayText()
+    End Sub
+
+    Private Sub ApplyAttachmentState()
+        TxtAttachment.ReadOnly = True
+        Dim isReadOnly As Boolean = _receiptSelection IsNot Nothing AndAlso _receiptSelection.IsReadOnly
+        BtnBrowseAttachment.Enabled = Not isReadOnly
+        BtnClearAttachment.Enabled = Not isReadOnly
+        GroupBoxAttachment.Text = If(isReadOnly, "Scanned Receipts (Read-only after approval)", "Scanned Receipts")
+    End Sub
+
+    Private Shared Function IsFinalApprovedReport(report As ReportDetailDto) As Boolean
+        Return report IsNot Nothing AndAlso
+            String.Equals(report.ReportEndorseStatus, "APPROVED", StringComparison.OrdinalIgnoreCase) AndAlso
+            String.Equals(report.ReportFileStatus, "0", StringComparison.Ordinal) AndAlso
+            String.Equals(report.ReportPrintStatus, "0", StringComparison.Ordinal)
     End Function
 
     Private Function BuildAttachmentDestinationPath(sourcePath As String, targetDirectory As String, reportId As String) As String

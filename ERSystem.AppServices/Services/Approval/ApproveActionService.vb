@@ -53,7 +53,7 @@ Public Class ApproveActionService
             If _approveActionRepository.IsReportApprovedDone(reportIdToApprove) Then
                 Try
                     _financeReviewService.EnsureTrackingRowForApprovedReport(reportIdToApprove)
-                    _scannedReceiptCleanupService.DeleteScannedReceiptsForApprovedReport(reportIdToApprove)
+                    _scannedReceiptCleanupService.FinalizeScannedReceiptsForApprovedReport(reportIdToApprove)
                 Catch ex As Exception
                     Debug.WriteLine("Finance tracking or scanned receipt cleanup failed: " & ex.Message)
                 End Try

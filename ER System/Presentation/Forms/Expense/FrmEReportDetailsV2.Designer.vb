@@ -297,7 +297,7 @@ Partial Class FrmEReportDetailsV2
         Me.Label6.Name = "Label6"
         Me.Label6.Size = New System.Drawing.Size(51, 13)
         Me.Label6.TabIndex = 0
-        Me.Label6.Text = "File Path"
+        Me.Label6.Text = "Receipt Files"
         '
         'BtnCancel
         '

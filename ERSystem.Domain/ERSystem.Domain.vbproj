@@ -91,6 +91,7 @@
     <Compile Include="Dtos\Report\ReportDetailDto.vb" />
     <Compile Include="Dtos\Report\ReportDetailResponseDto.vb" />
     <Compile Include="Dtos\Report\SaveScannedReceiptAttachmentRequest.vb" />
+    <Compile Include="Dtos\Report\ScannedReceiptAttachmentUpdateMode.vb" />
     <Compile Include="Dtos\Report\ScannedReceiptAttachmentDto.vb" />
     <Compile Include="Dtos\Report\ScannedReceiptAttachmentMetadataDto.vb" />
     <Compile Include="Dtos\Report\UpdateReportDetailDto.vb" />

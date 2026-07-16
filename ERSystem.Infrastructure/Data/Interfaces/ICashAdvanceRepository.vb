@@ -7,5 +7,6 @@ Namespace Global.ERSystem.Infrastructure.Data
         Function Create(cashAdvance As CreateCashAdvanceDto) As CashAdvanceDto
         Function Create(cashAdvance As CreateCashAdvanceDto, dbContext As AppDbContext) As CashAdvanceDto
         Sub UpdateByReportId(reportId As String, cashAdvance As UpdateCashAdvanceDto)
+        Sub UpdateByReportId(reportId As String, cashAdvance As UpdateCashAdvanceDto, dbContext As AppDbContext)
     End Interface
 End Namespace

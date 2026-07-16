@@ -1,5 +1,6 @@
 Option Strict On
 
+Imports System.IO
 Imports ERSystem.Infrastructure.Configuration
 Imports ERSystem.Infrastructure.Data
 
@@ -27,7 +28,7 @@ Friend NotInheritable Class ApprovalServicesFactory
         Dim cleanupService As New ERSystem.AppServices.ScannedReceiptCleanupService(
             New ReportDetailService(),
             financeReviewService,
-            New ScannedReceiptAttachmentService())
+            Path.Combine(Application.StartupPath, "ScannedReceipts"))
 
         Return New ERSystem.AppServices.ApproveActionService(
             ApproveActionRepository,

@@ -6,19 +6,19 @@ Imports ERSystem.Infrastructure.Data
 Public Class ScannedReceiptCleanupService
     Private ReadOnly _reportDetailService As IReportDetailService
     Private ReadOnly _financeReviewService As IFinanceReviewService
-    Private ReadOnly _scannedReceiptAttachmentService As ScannedReceiptAttachmentService
+    Private ReadOnly _scannedReceiptsDirectory As String
 
     Public Sub New()
-        Me.New(New ReportDetailService(), New FinanceReviewService(), New ScannedReceiptAttachmentService())
+        Me.New(New ReportDetailService(), New FinanceReviewService(), GetDefaultScannedReceiptsDirectory())
     End Sub
 
     Public Sub New(reportDetailService As IReportDetailService, financeReviewService As IFinanceReviewService)
-        Me.New(reportDetailService, financeReviewService, New ScannedReceiptAttachmentService())
+        Me.New(reportDetailService, financeReviewService, GetDefaultScannedReceiptsDirectory())
     End Sub
 
     Public Sub New(reportDetailService As IReportDetailService,
                    financeReviewService As IFinanceReviewService,
-                   scannedReceiptAttachmentService As ScannedReceiptAttachmentService)
+                   scannedReceiptsDirectory As String)
         If reportDetailService Is Nothing Then
             Throw New ArgumentNullException("reportDetailService")
         End If
@@ -27,16 +27,16 @@ Public Class ScannedReceiptCleanupService
             Throw New ArgumentNullException("financeReviewService")
         End If
 
-        If scannedReceiptAttachmentService Is Nothing Then
-            Throw New ArgumentNullException("scannedReceiptAttachmentService")
+        If String.IsNullOrWhiteSpace(scannedReceiptsDirectory) Then
+            Throw New ArgumentException("Scanned receipts directory is required.", "scannedReceiptsDirectory")
         End If
 
         _reportDetailService = reportDetailService
         _financeReviewService = financeReviewService
-        _scannedReceiptAttachmentService = scannedReceiptAttachmentService
+        _scannedReceiptsDirectory = Path.GetFullPath(scannedReceiptsDirectory)
     End Sub
 
-    Public Sub DeleteScannedReceiptsForApprovedReport(reportId As String)
+    Public Sub FinalizeScannedReceiptsForApprovedReport(reportId As String)
         If String.IsNullOrWhiteSpace(reportId) Then
             Return
         End If
@@ -44,7 +44,6 @@ Public Class ScannedReceiptCleanupService
         Dim report = _reportDetailService.GetById(reportId)
 
         If report Is Nothing OrElse String.IsNullOrWhiteSpace(report.ReportAttachment) Then
-            _scannedReceiptAttachmentService.DeleteForReport(reportId)
             _financeReviewService.MarkScannedReceiptsDeleted(reportId)
             Return
         End If
@@ -57,7 +56,9 @@ Public Class ScannedReceiptCleanupService
             End If
 
             Try
-                If File.Exists(path) Then
+                If Not IsPathInScannedReceiptsDirectory(path) Then
+                    Debug.WriteLine("Skipped scanned receipt cleanup outside the configured directory: " & path)
+                ElseIf File.Exists(path) Then
                     File.Delete(path)
                 End If
             Catch ex As IOException
@@ -67,8 +68,24 @@ Public Class ScannedReceiptCleanupService
             End Try
         Next
 
-        _scannedReceiptAttachmentService.DeleteForReport(reportId)
         _financeReviewService.MarkScannedReceiptsDeleted(reportId)
         _financeReviewService.ClearScannedReceiptAttachment(reportId)
     End Sub
+
+    Private Function IsPathInScannedReceiptsDirectory(filePath As String) As Boolean
+        Try
+            Dim fullFilePath As String = Path.GetFullPath(filePath)
+            Dim fullDirectoryPath As String = _scannedReceiptsDirectory.
+                TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) & Path.DirectorySeparatorChar
+
+            Return fullFilePath.StartsWith(fullDirectoryPath, StringComparison.OrdinalIgnoreCase)
+        Catch ex As Exception
+            Debug.WriteLine("Unable to validate scanned receipt cleanup path: " & ex.Message)
+            Return False
+        End Try
+    End Function
+
+    Private Shared Function GetDefaultScannedReceiptsDirectory() As String
+        Return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ScannedReceipts")
+    End Function
 End Class

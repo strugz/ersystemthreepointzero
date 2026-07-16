@@ -57,6 +57,14 @@ Namespace Global.ERSystem.Infrastructure.Data
         End Function
 
         Public Sub UpdateByReportId(reportId As String, cashAdvance As UpdateCashAdvanceDto) Implements ICashAdvanceRepository.UpdateByReportId
+            Using dbContext As New AppDbContext()
+                UpdateByReportId(reportId, cashAdvance, dbContext)
+            End Using
+        End Sub
+
+        Public Sub UpdateByReportId(reportId As String,
+                                    cashAdvance As UpdateCashAdvanceDto,
+                                    dbContext As AppDbContext) Implements ICashAdvanceRepository.UpdateByReportId
             If String.IsNullOrWhiteSpace(reportId) Then
                 Throw New ArgumentException("Report ID is required.", "reportId")
             End If
@@ -65,24 +73,26 @@ Namespace Global.ERSystem.Infrastructure.Data
                 Throw New ArgumentNullException("cashAdvance")
             End If
 
-            Using dbContext As New AppDbContext()
-                Dim existing = dbContext.CashAdvances.FirstOrDefault(Function(item) item.ReportID = reportId)
+            If dbContext Is Nothing Then
+                Throw New ArgumentNullException("dbContext")
+            End If
 
-                If existing Is Nothing Then
-                    existing = New CashAdvanceModel With {.ReportID = reportId}
-                    dbContext.CashAdvances.Add(existing)
-                End If
+            Dim existing = dbContext.CashAdvances.FirstOrDefault(Function(item) item.ReportID = reportId)
 
-                existing.emp_userID = cashAdvance.emp_userID
-                existing.CashAmount = cashAdvance.CashAmount
-                existing.CashDate = cashAdvance.CashDate
-                existing.CashRefDoc = cashAdvance.CashRefDoc
-                existing.CashRefNo = cashAdvance.CashRefNo
-                existing.BalanceTo = cashAdvance.BalanceTo
-                existing.RevolvingFund = cashAdvance.RevolvingFund
-                existing.CashCheck = cashAdvance.CashCheck
-                dbContext.SaveChanges()
-            End Using
+            If existing Is Nothing Then
+                existing = New CashAdvanceModel With {.ReportID = reportId}
+                dbContext.CashAdvances.Add(existing)
+            End If
+
+            existing.emp_userID = cashAdvance.emp_userID
+            existing.CashAmount = cashAdvance.CashAmount
+            existing.CashDate = cashAdvance.CashDate
+            existing.CashRefDoc = cashAdvance.CashRefDoc
+            existing.CashRefNo = cashAdvance.CashRefNo
+            existing.BalanceTo = cashAdvance.BalanceTo
+            existing.RevolvingFund = cashAdvance.RevolvingFund
+            existing.CashCheck = cashAdvance.CashCheck
+            dbContext.SaveChanges()
         End Sub
 
         Private Shared Function ToDto(cashAdvance As CashAdvanceModel) As CashAdvanceDto
