@@ -4,23 +4,30 @@ using ERSystem.Web.Api.Middleware;
 using ERSystem.Web.Infrastructure.Configuration;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
+const string frontendCorsPolicy = "Frontend";
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options => options.AddPolicy(frontendCorsPolicy, policy => policy
+    .WithOrigins(allowedOrigins)
+    .WithMethods("GET", "POST", "HEAD", "OPTIONS")
+    .WithHeaders("Content-Type", "X-CSRF-TOKEN")
+    .AllowCredentials()));
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-CSRF-TOKEN";
     options.Cookie.Name = "ER-XSRF";
     options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SameSite = SameSiteMode.None;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options =>
 {
     options.Cookie.Name = "ER-Web-Session";
     options.Cookie.HttpOnly = true;
-    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SameSite = SameSiteMode.None;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
@@ -47,6 +54,7 @@ var app = builder.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ApiExceptionMiddleware>();
 app.UseHttpsRedirection();
+app.UseCors(frontendCorsPolicy);
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseMiddleware<AntiforgeryMiddleware>();
