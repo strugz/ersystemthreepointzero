@@ -13,6 +13,8 @@ services:
         value: 24.18.0
       - key: SKIP_INSTALL_DEPS
         value: "true"
+      - key: VITE_API_BASE_URL
+        value: https://192.168.4.206:5080
     routes:
       - type: rewrite
         source: /*

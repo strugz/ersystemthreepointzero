@@ -8,8 +8,14 @@ export class ApiError extends Error {
   constructor(public readonly status: number, message: string, public readonly problem?: ProblemDetails) { super(message) }
 }
 
+function resolveApiUrl(path: string): string {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, '')
+  if (!baseUrl) return path
+  return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 export async function refreshAntiforgery(): Promise<string> {
-  const response = await fetch('/api/auth/antiforgery', { credentials: 'include' })
+  const response = await fetch(resolveApiUrl('/api/auth/antiforgery'), { credentials: 'include' })
   if (!response.ok) throw new ApiError(response.status, 'Unable to initialize security token.')
   const body = await response.json() as { token: string }
   antiforgeryToken = body.token
@@ -27,7 +33,7 @@ async function sendRequest<T>(path: string, init: RequestInit, allowAntiforgeryR
   const headers = new Headers(init.headers)
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
   if (antiforgeryToken && requiresAntiforgery) headers.set('X-CSRF-TOKEN', antiforgeryToken)
-  const response = await fetch(path, { ...init, headers, credentials: 'include' })
+  const response = await fetch(resolveApiUrl(path), { ...init, headers, credentials: 'include' })
   if (response.status === 204) return undefined as T
   if (!response.ok) {
     let problem: ProblemDetails | undefined
@@ -48,7 +54,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
 }
 
 export async function apiBlob(path: string): Promise<Blob> {
-  const response = await fetch(path, { credentials: 'include' })
+  const response = await fetch(resolveApiUrl(path), { credentials: 'include' })
   if (!response.ok) {
     let problem: ProblemDetails | undefined
     try { problem = await response.json() as ProblemDetails } catch { problem = undefined }

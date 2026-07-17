@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import vuetify from 'vite-plugin-vuetify'
 
-const backendTarget = 'https://localhost:44337'
+const backendTarget = 'https://192.168.4.206:5080'
 
 export default defineConfig({
   plugins: [vue(), vuetify({ autoImport: true })],

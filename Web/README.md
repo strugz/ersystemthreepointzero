@@ -74,11 +74,15 @@ non-secret Render build settings if the site is configured manually instead of
 through the Blueprint.
 
 The current frontend API client uses relative `/api` URLs and secure,
-same-origin cookie authentication. A frontend-only Render deployment therefore
-serves the interface but cannot authenticate or load live data unless `/api` is
-proxied to the existing backend under the same public origin. Hosting the API on
-a separate origin instead requires a deliberate backend change covering CORS,
-cookie `SameSite` behavior, antiforgery, allowed origins, and credentials.
+same-origin cookie authentication by default. For the current LAN-only test,
+the Render build sets `VITE_API_BASE_URL=https://192.168.4.206:5080`. The
+testing browser must be connected to the `192.168.4.x` network and must trust
+the backend HTTPS certificate.
+
+Direct calls from the Render origin also require the backend to allow the exact
+Render site origin with credentials. The production design should restore a
+same-origin `/api` proxy or deliberately configure CORS, cookie `SameSite`
+behavior, antiforgery, allowed origins, and credentials for cross-origin use.
 
 Automatic deploys are disabled in the Blueprint for the initial frontend
 preview. Enable deploys on passing checks after the Render URL, Vue Router

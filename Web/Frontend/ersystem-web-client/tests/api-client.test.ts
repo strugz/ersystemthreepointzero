@@ -18,10 +18,21 @@ function requestHeaders(fetchMock: ReturnType<typeof vi.fn>, call: number): Head
 
 afterEach(() => {
   invalidateAntiforgery()
+  vi.unstubAllEnvs()
   vi.unstubAllGlobals()
 })
 
 describe('antiforgery token lifecycle', () => {
+  it('uses the configured API base URL', async () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://192.168.4.206:5080/')
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(user))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await apiRequest('/api/auth/me')
+
+    expect(fetchMock.mock.calls[0][0]).toBe('https://192.168.4.206:5080/api/auth/me')
+  })
+
   it('refreshes the token before and after login', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ token: 'anonymous-token' }))
