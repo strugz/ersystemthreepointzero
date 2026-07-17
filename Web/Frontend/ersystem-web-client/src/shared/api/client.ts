@@ -15,7 +15,7 @@ function resolveApiUrl(path: string): string {
 }
 
 export async function refreshAntiforgery(): Promise<string> {
-  const response = await fetch(resolveApiUrl('/api/auth/antiforgery'), { credentials: 'include' })
+  const response = await fetch(resolveApiUrl('/erf/auth/antiforgery'), { credentials: 'include' })
   if (!response.ok) throw new ApiError(response.status, 'Unable to initialize security token.')
   const body = await response.json() as { token: string }
   antiforgeryToken = body.token

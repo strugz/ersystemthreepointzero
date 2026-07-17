@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import vuetify from 'vite-plugin-vuetify'
 
-const backendTarget = 'https://192.168.4.206:5080'
+const backendTarget = 'https://sr.mdmpi.com.ph'
 
 export default defineConfig({
   plugins: [vue(), vuetify({ autoImport: true })],
@@ -11,8 +11,16 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': { target: backendTarget, secure: false },
-      '/health': { target: backendTarget, secure: false }
+      '/erf': {
+        target: backendTarget,
+        changeOrigin: true,
+        secure: false
+      },
+      '/health': {
+        target: backendTarget,
+        changeOrigin: true,
+        secure: false
+      }
     }
   },
   test: {

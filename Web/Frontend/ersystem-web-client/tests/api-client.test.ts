@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { authApi } from '@/features/auth/api'
 import { ApiError, apiRequest, invalidateAntiforgery, refreshAntiforgery } from '@/shared/api/client'
 
@@ -16,6 +16,10 @@ function requestHeaders(fetchMock: ReturnType<typeof vi.fn>, call: number): Head
   return new Headers((fetchMock.mock.calls[call][1] as RequestInit).headers)
 }
 
+beforeEach(() => {
+  vi.stubEnv('VITE_API_BASE_URL', '')
+})
+
 afterEach(() => {
   invalidateAntiforgery()
   vi.unstubAllEnvs()
@@ -24,13 +28,13 @@ afterEach(() => {
 
 describe('antiforgery token lifecycle', () => {
   it('uses the configured API base URL', async () => {
-    vi.stubEnv('VITE_API_BASE_URL', 'https://192.168.4.206:5080/')
+    vi.stubEnv('VITE_API_BASE_URL', 'https://sr.mdmpi.com.ph/')
     const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(user))
     vi.stubGlobal('fetch', fetchMock)
 
-    await apiRequest('/api/auth/me')
+    await apiRequest('/erf/auth/me')
 
-    expect(fetchMock.mock.calls[0][0]).toBe('https://192.168.4.206:5080/api/auth/me')
+    expect(fetchMock.mock.calls[0][0]).toBe('https://sr.mdmpi.com.ph/erf/auth/me')
   })
 
   it('refreshes the token before and after login', async () => {
@@ -42,10 +46,10 @@ describe('antiforgery token lifecycle', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await authApi.login({ username: 'USER', password: 'secret' })
-    await apiRequest<void>('/api/action', { method: 'POST' })
+    await apiRequest<void>('/erf/action', { method: 'POST' })
 
     expect(fetchMock.mock.calls.map(call => call[0])).toEqual([
-      '/api/auth/antiforgery', '/api/auth/login', '/api/auth/antiforgery', '/api/action'
+      '/erf/auth/antiforgery', '/erf/auth/login', '/erf/auth/antiforgery', '/erf/action'
     ])
     expect(requestHeaders(fetchMock, 1).get('X-CSRF-TOKEN')).toBe('anonymous-token')
     expect(requestHeaders(fetchMock, 3).get('X-CSRF-TOKEN')).toBe('authenticated-token')
@@ -61,10 +65,10 @@ describe('antiforgery token lifecycle', () => {
 
     await refreshAntiforgery()
     await authApi.logout()
-    await apiRequest<void>('/api/action', { method: 'POST' })
+    await apiRequest<void>('/erf/action', { method: 'POST' })
 
     expect(requestHeaders(fetchMock, 1).get('X-CSRF-TOKEN')).toBe('authenticated-token')
-    expect(fetchMock.mock.calls[2][0]).toBe('/api/auth/antiforgery')
+    expect(fetchMock.mock.calls[2][0]).toBe('/erf/auth/antiforgery')
     expect(requestHeaders(fetchMock, 3).get('X-CSRF-TOKEN')).toBe('anonymous-token')
   })
 
@@ -77,10 +81,10 @@ describe('antiforgery token lifecycle', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await refreshAntiforgery()
-    await expect(apiRequest('/api/auth/me')).rejects.toBeInstanceOf(ApiError)
-    await apiRequest<void>('/api/action', { method: 'POST' })
+    await expect(apiRequest('/erf/auth/me')).rejects.toBeInstanceOf(ApiError)
+    await apiRequest<void>('/erf/action', { method: 'POST' })
 
-    expect(fetchMock.mock.calls[2][0]).toBe('/api/auth/antiforgery')
+    expect(fetchMock.mock.calls[2][0]).toBe('/erf/auth/antiforgery')
     expect(requestHeaders(fetchMock, 3).get('X-CSRF-TOKEN')).toBe('anonymous-token')
   })
 
@@ -94,7 +98,7 @@ describe('antiforgery token lifecycle', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await refreshAntiforgery()
-    await apiRequest<void>('/api/action', { method: 'POST' })
+    await apiRequest<void>('/erf/action', { method: 'POST' })
 
     expect(fetchMock).toHaveBeenCalledTimes(4)
     expect(requestHeaders(fetchMock, 1).get('X-CSRF-TOKEN')).toBe('stale-token')
@@ -111,7 +115,7 @@ describe('antiforgery token lifecycle', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await refreshAntiforgery()
-    await expect(apiRequest<void>('/api/action', { method: 'POST' })).rejects.toMatchObject({ status: 400 })
+    await expect(apiRequest<void>('/erf/action', { method: 'POST' })).rejects.toMatchObject({ status: 400 })
 
     expect(fetchMock).toHaveBeenCalledTimes(4)
   })

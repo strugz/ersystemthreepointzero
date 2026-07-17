@@ -4,21 +4,21 @@ import type { ManagerReportDetail, ManagerReportFilters, ManagerReportListItem, 
 
 export const managerApprovalApi = {
   list(query: ManagerReportFilters & Record<string, unknown>) {
-    return apiRequest<PagedResult<ManagerReportListItem>>(`/api/manager/reports${buildQuery(query)}`)
+    return apiRequest<PagedResult<ManagerReportListItem>>(`/erf/manager/reports${buildQuery(query)}`)
   },
   detail(reportId: string) {
-    return apiRequest<ManagerReportDetail>(`/api/manager/reports/${encodeURIComponent(reportId)}`)
+    return apiRequest<ManagerReportDetail>(`/erf/manager/reports/${encodeURIComponent(reportId)}`)
   },
   attachment(attachmentId: number) {
-    return apiBlob(`/api/manager/attachments/${attachmentId}`)
+    return apiBlob(`/erf/manager/attachments/${attachmentId}`)
   },
   approve(reportId: string, rowVersion: string) {
-    return apiRequest<WorkflowActionResult>(`/api/manager/reports/${encodeURIComponent(reportId)}/approve`, {
+    return apiRequest<WorkflowActionResult>(`/erf/manager/reports/${encodeURIComponent(reportId)}/approve`, {
       method: 'POST', body: JSON.stringify({ rowVersion })
     })
   },
   returnReport(reportId: string, reason: string, rowVersion: string) {
-    return apiRequest<WorkflowActionResult>(`/api/manager/reports/${encodeURIComponent(reportId)}/return`, {
+    return apiRequest<WorkflowActionResult>(`/erf/manager/reports/${encodeURIComponent(reportId)}/return`, {
       method: 'POST', body: JSON.stringify({ reason, rowVersion })
     })
   }

@@ -14,7 +14,7 @@ services:
       - key: SKIP_INSTALL_DEPS
         value: "true"
       - key: VITE_API_BASE_URL
-        value: https://192.168.4.206:5080
+        value: https://sr.mdmpi.com.ph
     routes:
       - type: rewrite
         source: /*
