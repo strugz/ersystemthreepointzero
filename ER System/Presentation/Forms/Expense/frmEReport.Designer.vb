@@ -372,7 +372,7 @@ Partial Class frmEReport
         '
         'txtLocation
         '
-        Me.txtLocation.Enabled = False
+        Me.txtLocation.Enabled = True
         Me.txtLocation.Location = New System.Drawing.Point(98, 52)
         Me.txtLocation.Name = "txtLocation"
         Me.txtLocation.Size = New System.Drawing.Size(199, 22)
