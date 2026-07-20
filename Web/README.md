@@ -15,6 +15,8 @@ This solution adds Manager approval and Finance physical-receipt tracking beside
 2. Review and run `Database/20260715_CreateWebApprovalAndReceiptSupport.sql` in a controlled deployment window.
 3. Stop if any precheck fails. Resolve the reported duplicate or orphaned legacy data through an approved data-correction process; the script deliberately does not merge or delete it.
 4. Retain `Database/20260715_RollbackWebApprovalAndReceiptSupport.sql` with the deployment package.
+5. Review and run `Database/20260720_CreateApprovalReminderSupport.sql` before installing the reminder service. It adds the nullable reminder email field, the delivery ledger, and the backward-compatible `REMINDER` branch of `dbo.sp_Notify`.
+6. Retain `Database/20260720_RollbackApprovalReminderSupport.sql` for emergency rollback. It restores the prior two-parameter `dbo.sp_Notify` contract and removes the reminder delivery ledger, but deliberately preserves `NotificationEmail` contact data.
 
 Never run `ER3.0.sql` as a migration. It is reference material for the current live schema.
 
@@ -28,6 +30,51 @@ LegacyAuthentication__EncryptionKey=<existing ER credential encryption key>
 ```
 
 The API validates the SQL Server major version and database compatibility level during startup. It does not apply migrations automatically.
+
+## Approval reminder Windows Service
+
+`ERSystem.Reminders.Worker` is published and installed separately from IIS. Windows Service Manager starts it automatically, and it runs the reminder workflow each day at 8:00 AM Manila time even when the desktop application and Web API are closed. It queries only the current actionable approval step, claims each day-3/day-6/day-9 occurrence in SQL, then processes the manager email, employee email, and combined `dbo.sp_Notify` SMS gateway request independently.
+
+Production secrets belong in an ACL-protected JSON file outside the repository and publish directory. Start from this shape:
+
+```json
+{
+  "ConnectionStrings": {
+    "ErDatabase": "<SQL Server connection string>"
+  },
+  "ApprovalReminders": {
+    "EmailEnabled": false,
+    "SmsEnabled": false,
+    "RunAtLocalTime": "08:00",
+    "TimeZoneId": "Asia/Manila",
+    "InitialDelayDays": 3,
+    "RepeatIntervalDays": 3,
+    "ManagerPortalBaseUrl": "https://<er-system-host>"
+  },
+  "Smtp": {
+    "Host": "<smtp-host>",
+    "Port": 587,
+    "TlsMode": "StartTls",
+    "Username": "<smtp-user>",
+    "Password": "<smtp-password>",
+    "SenderAddress": "<sender-address>",
+    "SenderDisplayName": "ER System"
+  }
+}
+```
+
+Publish and install from an elevated PowerShell session:
+
+```powershell
+.\tools\Publish-ErReminderService.ps1 -Configuration Release -OutputPath C:\Services\ERSystemApprovalReminders
+.\tools\Manage-ErReminderService.ps1 -Action Install `
+  -ExecutablePath C:\Services\ERSystemApprovalReminders\ERSystem.Reminders.Worker.exe `
+  -SettingsPath C:\ProgramData\ERSystem\ApprovalReminders\appsettings.Production.json
+```
+
+The installation script creates a delayed automatic service under the dedicated `NT SERVICE\ERSystemApprovalReminders` virtual account, grants it read-only configuration access, registers the Event Log source, and configures process restart after unexpected failure. Grant the service identity only the required SQL permissions and network access to SQL Server and SMTP. It does not need access to `D:\ERSHARE`; `dbo.sp_Notify` writes the SMS gateway file on SQL Server.
+
+Deploy initially with both channels disabled. Populate and verify each user's “Reminder Email” in desktop Account Settings, enable email for the pilot, then enable SMS only after a controlled staging `REMINDER` confirms the gateway payload. The delivery table records `Sent` for SMTP and `Queued` for the gateway; it does not claim carrier delivery acknowledgement.
 
 ## Local development
 

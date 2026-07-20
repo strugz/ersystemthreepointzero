@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERSystem.Web.Api", "src\ERS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERSystem.Web.Tests", "tests\ERSystem.Web.Tests\ERSystem.Web.Tests.csproj", "{B250D070-5309-4B6C-AEB8-9CDA5A9EC005}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERSystem.Reminders.Worker", "src\ERSystem.Reminders.Worker\ERSystem.Reminders.Worker.csproj", "{C941EF7E-C234-4975-811F-0372A5FB506D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,5 +41,9 @@ Global
 		{B250D070-5309-4B6C-AEB8-9CDA5A9EC005}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B250D070-5309-4B6C-AEB8-9CDA5A9EC005}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B250D070-5309-4B6C-AEB8-9CDA5A9EC005}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C941EF7E-C234-4975-811F-0372A5FB506D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C941EF7E-C234-4975-811F-0372A5FB506D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C941EF7E-C234-4975-811F-0372A5FB506D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C941EF7E-C234-4975-811F-0372A5FB506D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

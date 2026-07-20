@@ -1,0 +1,65 @@
+namespace ERSystem.Web.Application.Features.ApprovalReminders;
+
+public sealed class ApprovalReminderMessageFactory(ApprovalReminderSettings settings)
+{
+    private const int SmsMaximumLength = 320;
+
+    public ApprovalReminderMessages Create(ApprovalReminderCandidate candidate, int elapsedCalendarDays)
+    {
+        ArgumentNullException.ThrowIfNull(candidate);
+        ArgumentOutOfRangeException.ThrowIfNegative(elapsedCalendarDays);
+
+        var reference = SanitizeInline(string.IsNullOrWhiteSpace(candidate.ErfReferenceNumber)
+            ? candidate.ReportId
+            : candidate.ErfReferenceNumber);
+        var employeeUsername = SanitizeInline(candidate.EmployeeUsername);
+        var managerUsername = SanitizeInline(candidate.ManagerUsername);
+        var employeeFullName = SanitizeInline(candidate.EmployeeFullName);
+        var managerFullName = SanitizeInline(candidate.ManagerFullName);
+
+        var sms = SanitizeSms(
+            $"Reminder: ERF {reference} for {employeeUsername} is still awaiting approval from {managerUsername} " +
+            $"after {elapsedCalendarDays} days. Please review or follow up.");
+
+        var managerUrl = BuildManagerReportUrl(candidate.ReportId);
+        var managerEmail = new ReminderEmail(
+            $"[ER System] Approval reminder - ERF {reference}",
+            $"Hello {managerFullName},{Environment.NewLine}{Environment.NewLine}" +
+            $"ERF {reference}, filed by {employeeFullName}, has been waiting for your approval for " +
+            $"{elapsedCalendarDays} calendar days.{Environment.NewLine}{Environment.NewLine}" +
+            $"Please review the report and either approve or return it:{Environment.NewLine}" +
+            $"{managerUrl}{Environment.NewLine}{Environment.NewLine}" +
+            $"This reminder will repeat every {settings.RepeatIntervalDays} days until the report is actioned." +
+            $"{Environment.NewLine}{Environment.NewLine}" +
+            "ER System");
+
+        var employeeEmail = new ReminderEmail(
+            $"[ER System] Your ERF {reference} is awaiting approval",
+            $"Hello {employeeFullName},{Environment.NewLine}{Environment.NewLine}" +
+            $"Your ERF {reference} has been waiting for approval from {managerFullName} for " +
+            $"{elapsedCalendarDays} calendar days.{Environment.NewLine}{Environment.NewLine}" +
+            "A reminder was also sent to the manager. You may follow up with the manager if needed." +
+            $"{Environment.NewLine}{Environment.NewLine}ER System");
+
+        return new ApprovalReminderMessages(sms, managerEmail, employeeEmail);
+    }
+
+    public static string SanitizeSms(string value)
+    {
+        var sanitized = SanitizeInline(value);
+        return sanitized.Length <= SmsMaximumLength ? sanitized : sanitized[..SmsMaximumLength];
+    }
+
+    private string BuildManagerReportUrl(string reportId)
+    {
+        var baseUrl = settings.ManagerPortalBaseUrl.Trim().TrimEnd('/');
+        return $"{baseUrl}/manager/reports/{Uri.EscapeDataString(reportId.Trim())}";
+    }
+
+    private static string SanitizeInline(string? value) =>
+        (value ?? string.Empty)
+            .Replace('|', ' ')
+            .Replace('\r', ' ')
+            .Replace('\n', ' ')
+            .Trim();
+}

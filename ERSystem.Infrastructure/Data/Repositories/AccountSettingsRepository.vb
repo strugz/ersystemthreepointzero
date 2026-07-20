@@ -112,6 +112,7 @@ Namespace Global.ERSystem.Infrastructure.Data
                 .EmailPass = user.EmailPass,
                 .EmailTo = user.EmailTo,
                 .EmailBcc = user.EmailBCC,
+                .NotificationEmail = user.NotificationEmail,
                 .Signature = user.Signature,
                 .Position = user.Position,
                 .Status = user.Status,
@@ -148,6 +149,7 @@ Namespace Global.ERSystem.Infrastructure.Data
             user.EmailPass = NormalizeEmpty(account.EmailPass)
             user.EmailTo = NormalizeEmpty(account.EmailTo)
             user.EmailBCC = NormalizeEmpty(account.EmailBcc)
+            user.NotificationEmail = NormalizeEmpty(account.NotificationEmail)
             user.Signature = account.Signature
             user.Position = NormalizeEmpty(account.Position)
             user.Status = NormalizeEmpty(account.Status)

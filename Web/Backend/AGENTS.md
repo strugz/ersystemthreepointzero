@@ -11,6 +11,7 @@ The backend is an ASP.NET Core API on .NET 10. It exposes Manager approval and F
 - `ERSystem.Web.sln` is the backend solution.
 - `Directory.Build.props` targets `net10.0`, enables nullable reference types and implicit usings, uses the latest configured C# language version, and treats warnings as errors.
 - `src/ERSystem.Web.Api/` is the executable host.
+- `src/ERSystem.Reminders.Worker/` is a separate `net10.0-windows` executable hosted by Windows Service Manager for unattended approval reminders. It is not an IIS application.
 - `tests/ERSystem.Web.Tests/` is the xUnit test project.
 - The API and SPA are published together as one same-origin IIS application, but the SPA source and build remain under `Web/Frontend/`.
 
@@ -32,6 +33,10 @@ ERSystem.Web.Infrastructure
 
 ERSystem.Web.Domain
   -> nothing
+
+ERSystem.Reminders.Worker
+  -> ERSystem.Web.Application
+  -> ERSystem.Web.Infrastructure
 
 ERSystem.Web.Tests
   -> all backend projects under test
@@ -121,6 +126,8 @@ Use .NET user secrets for local development and protected environment or IIS con
 | `Services/FinanceReceiptService.cs` | Lists fully approved reports, loads receipt-tracking detail, validates one-time physical-receipt confirmation, records receiver/date/remarks/status, enforces row-version concurrency, and writes an audit event. |
 | `Services/WorkflowAuditWriter.cs` | Inserts parameterized audit rows into `dbo.tbWebWorkflowAudit` using the workflow transaction and correlation ID. |
 | `Services/EfTransactionRunner.cs` | Provides serializable transaction execution for use cases requiring an all-or-nothing boundary. |
+
+Approval reminder orchestration lives under `Application/Features/ApprovalReminders`, pure calendar scheduling under `Domain/ApprovalReminders`, and SQL/SMTP/`dbo.sp_Notify` implementations under `Infrastructure/Reminders`. The worker project only schedules runs, creates a scope, and records sanitized summaries. Preserve the unique delivery claim before external sends and revalidate the current approval step inside the claim transaction.
 
 Manager approval and Finance receipt mutations are security- and data-integrity-sensitive. Preserve report-level authorization, serializable transactions, row-version checks, duplicate/out-of-order conflict checks, legacy stored-procedure behavior, audit writes, and the final-approval handoff to Finance.
 

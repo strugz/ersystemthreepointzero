@@ -13,6 +13,7 @@ For work under `Backend/`, also follow `Backend/AGENTS.md`. For work under `Fron
 - `Backend/src/ERSystem.Web.Application/` owns DTOs, validation, use-case interfaces, pagination, and orchestration contracts.
 - `Backend/src/ERSystem.Web.Domain/` owns UI- and infrastructure-independent workflow rules and status values.
 - `Backend/src/ERSystem.Web.Infrastructure/` owns EF Core mappings, SQL Server access, legacy credential compatibility, auditing, and external integrations.
+- `Backend/src/ERSystem.Reminders.Worker/` is the separately published Windows Service host for scheduled approval reminders. It is not hosted by IIS and exposes no HTTP endpoints.
 - `Backend/tests/ERSystem.Web.Tests/` owns unit, architecture, and SQL Server integration tests.
 
 ## Frontend Architecture
@@ -41,6 +42,9 @@ Api -> Infrastructure
 Infrastructure -> Application -> Domain
 Infrastructure -> Domain
 Domain -> nothing
+
+Reminders.Worker -> Application
+Reminders.Worker -> Infrastructure
 ```
 
 - Do not reference EF Core, HTTP, configuration, or WinForms from Domain.

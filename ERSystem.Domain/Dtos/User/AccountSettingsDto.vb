@@ -10,6 +10,7 @@ Public Class AccountSettingsDto
     Public Property EmailPass As String
     Public Property EmailTo As String
     Public Property EmailBcc As String
+    Public Property NotificationEmail As String
     Public Property Signature As Byte()
     Public Property Position As String
     Public Property Status As String

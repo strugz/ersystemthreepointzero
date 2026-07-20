@@ -1,9 +1,11 @@
 using ERSystem.Web.Application.Common;
 using ERSystem.Web.Application.Features.Authentication;
+using ERSystem.Web.Application.Features.ApprovalReminders;
 using ERSystem.Web.Application.Features.FinanceReceipts;
 using ERSystem.Web.Application.Features.ManagerApprovals;
 using ERSystem.Web.Infrastructure.Authentication;
 using ERSystem.Web.Infrastructure.Persistence;
+using ERSystem.Web.Infrastructure.Reminders;
 using ERSystem.Web.Infrastructure.Security;
 using ERSystem.Web.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -48,4 +50,69 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFinanceReceiptService, FinanceReceiptService>();
         return services;
     }
+
+    public static IServiceCollection AddApprovalReminderInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("ErDatabase")
+            ?? throw new InvalidOperationException("ConnectionStrings:ErDatabase must be configured.");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("ConnectionStrings:ErDatabase must not be empty.");
+        }
+
+        services.AddOptions<ApprovalReminderOptions>()
+            .Bind(configuration.GetSection(ApprovalReminderOptions.SectionName))
+            .Validate(options => TimeOnly.TryParseExact(options.RunAtLocalTime, "HH:mm", out _),
+                "ApprovalReminders:RunAtLocalTime must use HH:mm format.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.TimeZoneId),
+                "ApprovalReminders:TimeZoneId must be configured.")
+            .Validate(options => CanResolveTimeZone(options.TimeZoneId),
+                "ApprovalReminders:TimeZoneId is not available on this server.")
+            .Validate(options => options.InitialDelayDays > 0,
+                "ApprovalReminders:InitialDelayDays must be greater than zero.")
+            .Validate(options => options.RepeatIntervalDays > 0,
+                "ApprovalReminders:RepeatIntervalDays must be greater than zero.")
+            .Validate(options => !options.EmailEnabled || IsValidAbsoluteHttpUrl(options.ManagerPortalBaseUrl),
+                "ApprovalReminders:ManagerPortalBaseUrl must be an absolute HTTP or HTTPS URL when email is enabled.")
+            .ValidateOnStart();
+        services.AddOptions<SmtpReminderOptions>()
+            .Bind(configuration.GetSection(SmtpReminderOptions.SectionName));
+
+        services.AddSingleton(new SqlConnectionStringBuilder(connectionString));
+        services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton(serviceProvider =>
+            serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<ApprovalReminderOptions>>()
+                .Value
+                .ToSettings());
+        services.AddSingleton<ApprovalReminderMessageFactory>();
+        services.AddScoped<IApprovalReminderRepository, ApprovalReminderRepository>();
+        services.AddScoped<IApprovalReminderService, ApprovalReminderService>();
+        services.AddSingleton<IEmailReminderSender, SmtpReminderSender>();
+        services.AddSingleton<ISmsReminderSender, StoredProcedureSmsReminderSender>();
+        services.AddHostedService<ReminderDatabaseCompatibilityValidator>();
+        return services;
+    }
+
+    private static bool CanResolveTimeZone(string timeZoneId)
+    {
+        try
+        {
+            _ = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            return true;
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return false;
+        }
+        catch (InvalidTimeZoneException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsValidAbsoluteHttpUrl(string value) =>
+        Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 }

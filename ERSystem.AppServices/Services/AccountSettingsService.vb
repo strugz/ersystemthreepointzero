@@ -1,5 +1,6 @@
 Option Strict On
 
+Imports System.Net.Mail
 Imports ERSystem.Domain
 Imports ERSystem.Infrastructure.Data
 
@@ -62,6 +63,7 @@ Public Class AccountSettingsService
         Dim saveData As AccountSettingsDto = CopyForSave(account)
         saveData.EmailAdd = ProtectOptionalValue(account.EmailAdd)
         saveData.EmailPass = ProtectOptionalValue(account.EmailPass)
+        saveData.NotificationEmail = NormalizeNotificationEmail(account.NotificationEmail)
 
         _repository.SaveAccountSettings(saveData)
         RefreshCurrentUserRegistry(currentUserId)
@@ -80,6 +82,7 @@ Public Class AccountSettingsService
             .EmailPass = account.EmailPass,
             .EmailTo = account.EmailTo,
             .EmailBcc = account.EmailBcc,
+            .NotificationEmail = account.NotificationEmail,
             .Signature = account.Signature,
             .Position = account.Position,
             .Status = account.Status,
@@ -136,6 +139,28 @@ Public Class AccountSettingsService
         End If
 
         Return _valueProtector.Protect(value.Trim())
+    End Function
+
+    Private Shared Function NormalizeNotificationEmail(value As String) As String
+        If String.IsNullOrWhiteSpace(value) Then
+            Return Nothing
+        End If
+
+        Dim trimmed As String = value.Trim()
+        If trimmed.Length > 320 Then
+            Throw New InvalidOperationException("Reminder Email must be 320 characters or fewer.")
+        End If
+
+        Try
+            Dim parsed As New MailAddress(trimmed)
+            If Not parsed.Address.Equals(trimmed, StringComparison.OrdinalIgnoreCase) Then
+                Throw New InvalidOperationException("Reminder Email must contain one email address.")
+            End If
+        Catch ex As FormatException
+            Throw New InvalidOperationException("Reminder Email must contain one valid email address.", ex)
+        End Try
+
+        Return trimmed
     End Function
 
     Private Shared Function NullableDoubleToString(value As Nullable(Of Double)) As String

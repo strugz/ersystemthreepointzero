@@ -24,6 +24,7 @@ Public Class frmAccountSettings
     Private ReadOnly txtEmailPass As New TextBox()
     Private ReadOnly txtEmailTo As New TextBox()
     Private ReadOnly txtEmailBcc As New TextBox()
+    Private ReadOnly txtNotificationEmail As New TextBox()
     Private ReadOnly txtStatus As New TextBox()
     Private ReadOnly cboApprover1 As New ComboBox()
     Private ReadOnly cboApprover2 As New ComboBox()
@@ -57,7 +58,7 @@ Public Class frmAccountSettings
             .RowCount = 4,
             .Padding = New Padding(12)
         }
-        mainPanel.RowStyles.Add(New RowStyle(SizeType.Absolute, 310.0F))
+        mainPanel.RowStyles.Add(New RowStyle(SizeType.Absolute, 348.0F))
         mainPanel.RowStyles.Add(New RowStyle(SizeType.Absolute, 95.0F))
         mainPanel.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
         mainPanel.RowStyles.Add(New RowStyle(SizeType.Absolute, 44.0F))
@@ -66,7 +67,7 @@ Public Class frmAccountSettings
         Dim profileLayout As New TableLayoutPanel With {
             .Dock = DockStyle.Fill,
             .ColumnCount = 6,
-            .RowCount = 6,
+            .RowCount = 7,
             .Padding = New Padding(8)
         }
         profileLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 120.0F))
@@ -75,6 +76,7 @@ Public Class frmAccountSettings
         profileLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.0F))
         profileLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 130.0F))
         profileLayout.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 34.0F))
+        profileLayout.RowStyles.Add(New RowStyle(SizeType.Absolute, 38.0F))
         profileLayout.RowStyles.Add(New RowStyle(SizeType.Absolute, 38.0F))
         profileLayout.RowStyles.Add(New RowStyle(SizeType.Absolute, 38.0F))
         profileLayout.RowStyles.Add(New RowStyle(SizeType.Absolute, 38.0F))
@@ -97,8 +99,9 @@ Public Class frmAccountSettings
         AddField(profileLayout, "Approver 1", cboApprover1, 0, 4)
         AddField(profileLayout, "Approver 2", cboApprover2, 2, 4)
         AddField(profileLayout, "Report No. Status", txtReportNumberStatus, 4, 4)
-        AddField(profileLayout, "Work With Status", txtWorkWithStatus, 0, 5)
-        AddField(profileLayout, "Super Approver", txtSuperApprover, 2, 5)
+        AddField(profileLayout, "Reminder Email", txtNotificationEmail, 0, 5)
+        AddField(profileLayout, "Work With Status", txtWorkWithStatus, 0, 6)
+        AddField(profileLayout, "Super Approver", txtSuperApprover, 2, 6)
 
         Dim signaturePanel As New FlowLayoutPanel With {.Dock = DockStyle.Top, .FlowDirection = FlowDirection.LeftToRight, .Margin = New Padding(0, 0, 0, 0), .Height = 62}
         picSignature.BorderStyle = BorderStyle.FixedSingle
@@ -114,8 +117,8 @@ Public Class frmAccountSettings
         signaturePanel.Controls.Add(picSignature)
         signaturePanel.Controls.Add(btnChooseSignature)
         signaturePanel.Controls.Add(btnClearSignature)
-        profileLayout.Controls.Add(New Label With {.Text = "Signature", .Dock = DockStyle.Top, .TextAlign = ContentAlignment.TopLeft, .AutoSize = False, .Height = 24, .Padding = New Padding(0, 4, 0, 0)}, 4, 5)
-        profileLayout.Controls.Add(signaturePanel, 5, 5)
+        profileLayout.Controls.Add(New Label With {.Text = "Signature", .Dock = DockStyle.Top, .TextAlign = ContentAlignment.TopLeft, .AutoSize = False, .Height = 24, .Padding = New Padding(0, 4, 0, 0)}, 4, 6)
+        profileLayout.Controls.Add(signaturePanel, 5, 6)
 
         profileGroup.Controls.Add(profileLayout)
 
@@ -358,6 +361,7 @@ Public Class frmAccountSettings
         txtEmailPass.Text = _account.EmailPass
         txtEmailTo.Text = _account.EmailTo
         txtEmailBcc.Text = _account.EmailBcc
+        txtNotificationEmail.Text = _account.NotificationEmail
         txtStatus.Text = _account.Status
         cboApprover1.Text = _account.Approver1
         cboApprover2.Text = _account.Approver2
@@ -409,6 +413,7 @@ Public Class frmAccountSettings
         _account.EmailPass = txtEmailPass.Text.Trim()
         _account.EmailTo = txtEmailTo.Text.Trim()
         _account.EmailBcc = txtEmailBcc.Text.Trim()
+        _account.NotificationEmail = txtNotificationEmail.Text.Trim()
         _account.Status = LeftOrEmpty(txtStatus.Text, 1)
         _account.Approver1 = LeftOrEmpty(cboApprover1.Text, 5)
         _account.Approver2 = LeftOrEmpty(cboApprover2.Text, 5)

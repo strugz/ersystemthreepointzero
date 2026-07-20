@@ -19,6 +19,7 @@ Public Class UserRegistrationModel
     Public Property EmailPass As String
     Public Property EmailTo As String
     Public Property EmailBCC As String
+    Public Property NotificationEmail As String
     Public Property Signature As Byte()
     Public Property Position As String
     Public Property Status As String

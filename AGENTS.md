@@ -38,6 +38,7 @@ The active web projects and intended responsibilities are:
 | `Web/Backend/src/ERSystem.Web.Application/ERSystem.Web.Application.csproj` | Application contracts, DTOs, validation, pagination, and workflow coordination interfaces. References Web Domain. |
 | `Web/Backend/src/ERSystem.Web.Domain/ERSystem.Web.Domain.csproj` | UI- and infrastructure-independent workflow rules and status values. Has no project dependencies. |
 | `Web/Backend/src/ERSystem.Web.Infrastructure/ERSystem.Web.Infrastructure.csproj` | EF Core mappings, SQL Server access, legacy authentication compatibility, auditing, and service implementations. References Web Application and Web Domain. |
+| `Web/Backend/src/ERSystem.Reminders.Worker/ERSystem.Reminders.Worker.csproj` | Unattended .NET 10 Windows Service for scheduled approval email and SMS gateway reminders. Reuses Web Application, Domain, and Infrastructure but is deployed independently from IIS. |
 | `Web/Backend/tests/ERSystem.Web.Tests/ERSystem.Web.Tests.csproj` | Unit, architecture, and SQL Server integration tests for the web backend. |
 | `Web/Frontend/ersystem-web-client/` | Vue 3 single-page application for Manager and Finance workflows, built and tested with Vite and Vitest. |
 
@@ -93,6 +94,7 @@ The desktop and web codebases share database contracts and workflow behavior, no
 - `Web/Backend/src/ERSystem.Web.Application/` owns feature contracts and application abstractions. It must remain independent of ASP.NET Core hosting and EF Core persistence details.
 - `Web/Backend/src/ERSystem.Web.Domain/` owns pure workflow rules and values. It must not reference Application, Infrastructure, API, Frontend, or desktop code.
 - `Web/Backend/src/ERSystem.Web.Infrastructure/` owns persistence, legacy database compatibility, audit writing, authentication compatibility, and external integrations.
+- `Web/Backend/src/ERSystem.Reminders.Worker/` owns only Windows Service hosting and daily scheduling; reminder rules, messages, persistence, SMTP, and `dbo.sp_Notify` integration remain in their owning shared layers.
 - `Web/Backend/tests/ERSystem.Web.Tests/` mirrors backend behavior with unit, architecture, and integration coverage.
 - `Web/Frontend/ersystem-web-client/src/features/` owns feature-specific API modules, types, and UI; `src/views/` coordinates route-level screens; `src/layouts/` owns application shells; `src/app/` owns routing, plugins, and global stores; and `src/shared/` owns dependency-light reusable UI, API, formatting, validation, and design primitives.
 
@@ -155,6 +157,7 @@ Choose the smallest active project that owns the responsibility. First determine
 | Pure web workflow rule, status, or value type | A focused folder in `Web/Backend/src/ERSystem.Web.Domain/` |
 | EF Core mapping, web repository/service implementation, audit persistence, legacy authentication compatibility, or web external integration | A focused folder in `Web/Backend/src/ERSystem.Web.Infrastructure/` |
 | Web backend unit, architecture, or integration test | `Web/Backend/tests/ERSystem.Web.Tests/`, mirroring the production area |
+| Unattended reminder host or Windows Service scheduling | `Web/Backend/src/ERSystem.Reminders.Worker/`; keep business and integration logic in Domain, Application, or Infrastructure |
 | Web feature component, typed API module, or feature-specific type | `Web/Frontend/ersystem-web-client/src/features/<feature>/` |
 | Web route-level view, layout, application setup, or genuinely reusable UI/composable | The matching `views/`, `layouts/`, `app/`, or `shared/` folder under `Web/Frontend/ersystem-web-client/src/` |
 | Database schema or stored-procedure change | A new dated and descriptively named script in `Database/` |
