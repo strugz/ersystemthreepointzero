@@ -23,6 +23,23 @@ public sealed class ApprovalReminderRepositoryTests
         var compatibilityLevel = Convert.ToInt32(await command.ExecuteScalarAsync());
         Assert.Equal(100, compatibilityLevel);
 
+        await using var activationConstraintCommand = new SqlCommand(
+            """
+            SELECT CASE WHEN EXISTS
+            (
+                SELECT 1
+                FROM sys.check_constraints
+                WHERE parent_object_id = OBJECT_ID(N'dbo.tbReportApprovalReminderDelivery')
+                  AND name = N'CK_tbReportApprovalReminderDelivery_ReminderNumber'
+                  AND is_disabled = 0
+                  AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                          UPPER(definition), N' ', N''), N'(', N''), N')', N''), N'[', N''), N']', N'')
+                      LIKE N'%REMINDERNUMBER>=0%'
+            ) THEN 1 ELSE 0 END;
+            """,
+            connection);
+        Assert.Equal(1, Convert.ToInt32(await activationConstraintCommand.ExecuteScalarAsync()));
+
         var repository = new ApprovalReminderRepository(builder);
         var candidates = await repository.GetActionableApprovalsAsync(CancellationToken.None);
 

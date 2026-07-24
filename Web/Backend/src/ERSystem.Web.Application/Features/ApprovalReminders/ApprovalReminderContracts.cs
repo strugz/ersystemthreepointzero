@@ -3,10 +3,11 @@ namespace ERSystem.Web.Application.Features.ApprovalReminders;
 public sealed record ApprovalReminderSettings(
     bool EmailEnabled,
     bool SmsEnabled,
+    int ActivationPollIntervalSeconds,
     string TimeZoneId,
     TimeOnly RunAtLocalTime,
     int InitialDelayDays,
-    int RepeatIntervalDays,
+    DayOfWeek ReminderDayOfWeek,
     string ManagerPortalBaseUrl);
 
 public sealed record ApprovalReminderCandidate(
@@ -28,6 +29,10 @@ public sealed record ReminderEmail(string Subject, string Body);
 
 public sealed record ApprovalReminderMessages(
     string SmsMessage,
+    ReminderEmail ManagerEmail,
+    ReminderEmail EmployeeEmail);
+
+public sealed record ApprovalActivationMessages(
     ReminderEmail ManagerEmail,
     ReminderEmail EmployeeEmail);
 
@@ -107,5 +112,7 @@ public interface ISmsReminderSender
 
 public interface IApprovalReminderService
 {
-    Task<ApprovalReminderRunSummary> RunAsync(CancellationToken cancellationToken);
+    Task<ApprovalReminderRunSummary> RunActivationNotificationsAsync(CancellationToken cancellationToken);
+
+    Task<ApprovalReminderRunSummary> RunScheduledRemindersAsync(CancellationToken cancellationToken);
 }

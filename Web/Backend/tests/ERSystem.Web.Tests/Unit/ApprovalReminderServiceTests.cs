@@ -9,29 +9,158 @@ public sealed class ApprovalReminderServiceTests
     [Theory]
     [InlineData(2, 0)]
     [InlineData(3, 1)]
-    [InlineData(5, 1)]
-    [InlineData(6, 2)]
-    [InlineData(9, 3)]
-    public void Schedule_uses_three_day_calendar_boundaries(int elapsedDays, int expectedReminder)
+    [InlineData(8, 1)]
+    [InlineData(9, 2)]
+    [InlineData(16, 3)]
+    public void Schedule_uses_day_three_then_the_latest_wednesday(
+        int elapsedDays,
+        int expectedReminder)
     {
-        var timeZone = TimeZoneInfo.CreateCustomTimeZone("Test Manila", TimeSpan.FromHours(8), "Test Manila", "Test Manila");
-        var activeAt = new DateTime(2026, 7, 1, 16, 0, 0, DateTimeKind.Utc);
+        var activeAt = new DateTime(2026, 7, 20, 12, 0, 0, DateTimeKind.Utc);
         var now = activeAt.AddDays(elapsedDays);
 
-        var reminder = ApprovalReminderSchedule.GetDueReminderNumber(activeAt, now, timeZone, 3, 3);
+        var reminder = ApprovalReminderSchedule.GetLatestDueReminderNumber(
+            activeAt,
+            now,
+            TimeZoneInfo.Utc,
+            3,
+            DayOfWeek.Wednesday);
 
         Assert.Equal(expectedReminder, reminder);
     }
 
     [Fact]
-    public async Task Due_candidate_claims_and_processes_each_channel_independently()
+    public void Schedule_does_not_double_send_when_day_three_is_wednesday()
+    {
+        var activeAt = new DateTime(2026, 7, 19, 12, 0, 0, DateTimeKind.Utc);
+
+        var dayThreeReminder = ApprovalReminderSchedule.GetLatestDueReminderNumber(
+            activeAt,
+            new DateTime(2026, 7, 22, 12, 0, 0, DateTimeKind.Utc),
+            TimeZoneInfo.Utc,
+            3,
+            DayOfWeek.Wednesday);
+        var followingWednesdayReminder = ApprovalReminderSchedule.GetLatestDueReminderNumber(
+            activeAt,
+            new DateTime(2026, 7, 29, 12, 0, 0, DateTimeKind.Utc),
+            TimeZoneInfo.Utc,
+            3,
+            DayOfWeek.Wednesday);
+
+        Assert.Equal(1, dayThreeReminder);
+        Assert.Equal(2, followingWednesdayReminder);
+    }
+
+    [Fact]
+    public void Schedule_uses_manila_calendar_dates_instead_of_elapsed_hours()
+    {
+        var manilaTimeZone = TimeZoneInfo.CreateCustomTimeZone(
+            "Test Manila",
+            TimeSpan.FromHours(8),
+            "Test Manila",
+            "Test Manila");
+        var activeAtUtc = new DateTime(2026, 7, 20, 16, 30, 0, DateTimeKind.Utc);
+
+        var beforeLocalDayThree = ApprovalReminderSchedule.GetLatestDueReminderNumber(
+            activeAtUtc,
+            new DateTime(2026, 7, 23, 15, 59, 0, DateTimeKind.Utc),
+            manilaTimeZone,
+            3,
+            DayOfWeek.Wednesday);
+        var onLocalDayThree = ApprovalReminderSchedule.GetLatestDueReminderNumber(
+            activeAtUtc,
+            new DateTime(2026, 7, 23, 16, 0, 0, DateTimeKind.Utc),
+            manilaTimeZone,
+            3,
+            DayOfWeek.Wednesday);
+
+        Assert.Equal(0, beforeLocalDayThree);
+        Assert.Equal(1, onLocalDayThree);
+    }
+
+    [Fact]
+    public async Task Activation_scan_emails_manager_and_employee_without_sms()
     {
         var repository = new FakeRepository([CreateCandidate()]);
         var emailSender = new FakeEmailSender(ReminderSendResult.Success);
         var smsSender = new FakeSmsSender(ReminderSendResult.Success);
-        var service = CreateService(repository, emailSender, smsSender, new DateTime(2026, 7, 20, 8, 0, 0, DateTimeKind.Utc));
+        var service = CreateService(
+            repository,
+            emailSender,
+            smsSender,
+            new DateTime(2026, 7, 21, 12, 0, 0, DateTimeKind.Utc));
 
-        var summary = await service.RunAsync(CancellationToken.None);
+        var summary = await service.RunActivationNotificationsAsync(CancellationToken.None);
+
+        Assert.Equal(1, summary.CandidatesFound);
+        Assert.Equal(1, summary.DueCandidates);
+        Assert.Equal(2, summary.Sent);
+        Assert.Equal(2, repository.Claims.Count);
+        Assert.All(repository.Claims, claim => Assert.Equal(0, claim.ReminderNumber));
+        Assert.All(repository.Claims, claim => Assert.Equal(ReminderChannel.Email, claim.Channel));
+        Assert.Equal(2, emailSender.Messages.Count);
+        Assert.Empty(smsSender.Messages);
+    }
+
+    [Fact]
+    public async Task Disabled_email_claims_activation_as_skipped()
+    {
+        var repository = new FakeRepository([CreateCandidate()]);
+        var emailSender = new FakeEmailSender(ReminderSendResult.Success);
+        var service = CreateService(
+            repository,
+            emailSender,
+            new FakeSmsSender(ReminderSendResult.Success),
+            new DateTime(2026, 7, 21, 12, 0, 0, DateTimeKind.Utc),
+            emailEnabled: false,
+            smsEnabled: false);
+
+        var summary = await service.RunActivationNotificationsAsync(CancellationToken.None);
+
+        Assert.Equal(2, summary.Skipped);
+        Assert.Empty(emailSender.Messages);
+        Assert.Equal(2, repository.Completions.Count);
+        Assert.All(repository.Completions, item =>
+        {
+            Assert.Equal(ReminderDeliveryStatus.Skipped, item.Status);
+            Assert.Equal("EMAIL_DISABLED", item.FailureCode);
+        });
+    }
+
+    [Fact]
+    public async Task Expired_activation_is_skipped_so_day_three_is_the_only_message()
+    {
+        var repository = new FakeRepository([CreateCandidate()]);
+        var emailSender = new FakeEmailSender(ReminderSendResult.Success);
+        var service = CreateService(
+            repository,
+            emailSender,
+            new FakeSmsSender(ReminderSendResult.Success),
+            new DateTime(2026, 7, 23, 12, 0, 0, DateTimeKind.Utc));
+
+        var summary = await service.RunActivationNotificationsAsync(CancellationToken.None);
+
+        Assert.Equal(0, summary.DueCandidates);
+        Assert.Equal(2, summary.Skipped);
+        Assert.Empty(emailSender.Messages);
+        Assert.All(
+            repository.Completions,
+            item => Assert.Equal("ACTIVATION_EXPIRED", item.FailureCode));
+    }
+
+    [Fact]
+    public async Task Scheduled_due_candidate_processes_each_channel_independently()
+    {
+        var repository = new FakeRepository([CreateCandidate()]);
+        var emailSender = new FakeEmailSender(ReminderSendResult.Success);
+        var smsSender = new FakeSmsSender(ReminderSendResult.Success);
+        var service = CreateService(
+            repository,
+            emailSender,
+            smsSender,
+            new DateTime(2026, 7, 23, 12, 0, 0, DateTimeKind.Utc));
+
+        var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
 
         Assert.Equal(1, summary.DueCandidates);
         Assert.Equal(2, summary.Sent);
@@ -51,16 +180,36 @@ public sealed class ApprovalReminderServiceTests
             repository,
             new FakeEmailSender(ReminderSendResult.Success),
             new FakeSmsSender(ReminderSendResult.Success),
-            new DateTime(2026, 7, 26, 8, 0, 0, DateTimeKind.Utc));
+            new DateTime(2026, 8, 6, 12, 0, 0, DateTimeKind.Utc));
 
-        await service.RunAsync(CancellationToken.None);
+        await service.RunScheduledRemindersAsync(CancellationToken.None);
 
         Assert.All(repository.Claims, claim => Assert.Equal(3, claim.ReminderNumber));
         Assert.DoesNotContain(repository.Claims, claim => claim.ReminderNumber is 1 or 2);
     }
 
     [Fact]
-    public async Task Missing_email_is_skipped_without_blocking_sms()
+    public async Task Disabled_scheduled_channels_still_report_real_database_counts()
+    {
+        var repository = new FakeRepository([CreateCandidate()]);
+        var service = CreateService(
+            repository,
+            new FakeEmailSender(ReminderSendResult.Success),
+            new FakeSmsSender(ReminderSendResult.Success),
+            new DateTime(2026, 7, 23, 12, 0, 0, DateTimeKind.Utc),
+            emailEnabled: false,
+            smsEnabled: false);
+
+        var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
+
+        Assert.Equal(1, repository.QueryCount);
+        Assert.Equal(1, summary.CandidatesFound);
+        Assert.Equal(1, summary.DueCandidates);
+        Assert.Empty(repository.Claims);
+    }
+
+    [Fact]
+    public async Task Missing_email_is_skipped_without_blocking_scheduled_sms()
     {
         var repository = new FakeRepository([CreateCandidate() with
         {
@@ -72,9 +221,9 @@ public sealed class ApprovalReminderServiceTests
             repository,
             new FakeEmailSender(ReminderSendResult.Success),
             smsSender,
-            new DateTime(2026, 7, 20, 8, 0, 0, DateTimeKind.Utc));
+            new DateTime(2026, 7, 23, 12, 0, 0, DateTimeKind.Utc));
 
-        var summary = await service.RunAsync(CancellationToken.None);
+        var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
 
         Assert.Equal(2, summary.Skipped);
         Assert.Equal(1, summary.Queued);
@@ -82,14 +231,18 @@ public sealed class ApprovalReminderServiceTests
     }
 
     [Fact]
-    public async Task Existing_claims_do_not_send_duplicate_messages()
+    public async Task Existing_claims_do_not_send_duplicate_scheduled_messages()
     {
         var repository = new FakeRepository([CreateCandidate()]) { AllowClaims = false };
         var emailSender = new FakeEmailSender(ReminderSendResult.Success);
         var smsSender = new FakeSmsSender(ReminderSendResult.Success);
-        var service = CreateService(repository, emailSender, smsSender, new DateTime(2026, 7, 20, 8, 0, 0, DateTimeKind.Utc));
+        var service = CreateService(
+            repository,
+            emailSender,
+            smsSender,
+            new DateTime(2026, 7, 23, 12, 0, 0, DateTimeKind.Utc));
 
-        var summary = await service.RunAsync(CancellationToken.None);
+        var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
 
         Assert.Equal(3, summary.AlreadyClaimed);
         Assert.Empty(emailSender.Messages);
@@ -100,15 +253,18 @@ public sealed class ApprovalReminderServiceTests
         FakeRepository repository,
         FakeEmailSender emailSender,
         FakeSmsSender smsSender,
-        DateTime nowUtc)
+        DateTime nowUtc,
+        bool emailEnabled = true,
+        bool smsEnabled = true)
     {
         var settings = new ApprovalReminderSettings(
-            true,
-            true,
+            emailEnabled,
+            smsEnabled,
+            60,
             "UTC",
             new TimeOnly(8, 0),
             3,
-            3,
+            DayOfWeek.Wednesday,
             "https://er.example.test");
         return new ApprovalReminderService(
             repository,
@@ -132,7 +288,7 @@ public sealed class ApprovalReminderServiceTests
         "Maria Cruz",
         "maria@example.test",
         "ERF-2026-00421",
-        new DateTime(2026, 7, 17, 0, 0, 0, DateTimeKind.Utc));
+        new DateTime(2026, 7, 20, 12, 0, 0, DateTimeKind.Utc));
 
     private sealed class FakeClock(DateTime nowUtc) : IClock
     {
@@ -173,11 +329,16 @@ public sealed class ApprovalReminderServiceTests
         private long _nextId;
 
         public bool AllowClaims { get; set; } = true;
+        public int QueryCount { get; private set; }
         public List<(int ReminderNumber, ReminderChannel Channel, ReminderAudience Audience)> Claims { get; } = [];
         public List<(long Id, ReminderDeliveryStatus Status, string? FailureCode)> Completions { get; } = [];
 
         public Task<IReadOnlyList<ApprovalReminderCandidate>> GetActionableApprovalsAsync(
-            CancellationToken cancellationToken) => Task.FromResult(candidates);
+            CancellationToken cancellationToken)
+        {
+            QueryCount++;
+            return Task.FromResult(candidates);
+        }
 
         public Task<long?> TryClaimAsync(
             ApprovalReminderCandidate candidate,

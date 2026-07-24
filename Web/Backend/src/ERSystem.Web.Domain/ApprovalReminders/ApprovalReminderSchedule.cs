@@ -2,27 +2,44 @@ namespace ERSystem.Web.Domain.ApprovalReminders;
 
 public static class ApprovalReminderSchedule
 {
-    public static int GetDueReminderNumber(
+    public static int GetLatestDueReminderNumber(
         DateTime activeAtUtc,
         DateTime nowUtc,
         TimeZoneInfo timeZone,
         int initialDelayDays,
-        int repeatIntervalDays)
+        DayOfWeek reminderDayOfWeek)
     {
         ArgumentNullException.ThrowIfNull(timeZone);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(initialDelayDays);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(repeatIntervalDays);
 
         var activeLocalDate = TimeZoneInfo.ConvertTimeFromUtc(AsUtc(activeAtUtc), timeZone).Date;
         var currentLocalDate = TimeZoneInfo.ConvertTimeFromUtc(AsUtc(nowUtc), timeZone).Date;
-        var elapsedCalendarDays = (currentLocalDate - activeLocalDate).Days;
+        var initialReminderDate = activeLocalDate.AddDays(initialDelayDays);
 
-        if (elapsedCalendarDays < initialDelayDays)
+        if (currentLocalDate < initialReminderDate)
         {
             return 0;
         }
 
-        return ((elapsedCalendarDays - initialDelayDays) / repeatIntervalDays) + 1;
+        var firstWeeklyReminderDate = GetNextDay(initialReminderDate, reminderDayOfWeek);
+        if (currentLocalDate < firstWeeklyReminderDate)
+        {
+            return 1;
+        }
+
+        return ((currentLocalDate - firstWeeklyReminderDate).Days / 7) + 2;
+    }
+
+    public static int GetElapsedCalendarDays(
+        DateTime activeAtUtc,
+        DateTime nowUtc,
+        TimeZoneInfo timeZone)
+    {
+        ArgumentNullException.ThrowIfNull(timeZone);
+
+        var activeLocalDate = TimeZoneInfo.ConvertTimeFromUtc(AsUtc(activeAtUtc), timeZone).Date;
+        var currentLocalDate = TimeZoneInfo.ConvertTimeFromUtc(AsUtc(nowUtc), timeZone).Date;
+        return Math.Max(0, (currentLocalDate - activeLocalDate).Days);
     }
 
     public static DateTime GetNextRunUtc(DateTime nowUtc, TimeZoneInfo timeZone, TimeOnly runAtLocalTime)
@@ -40,6 +57,12 @@ public static class ApprovalReminderSchedule
         }
 
         return TimeZoneInfo.ConvertTimeToUtc(candidateLocal, timeZone);
+    }
+
+    private static DateTime GetNextDay(DateTime date, DayOfWeek dayOfWeek)
+    {
+        var daysUntil = ((int)dayOfWeek - (int)date.DayOfWeek + 7) % 7;
+        return date.AddDays(daysUntil == 0 ? 7 : daysUntil);
     }
 
     private static DateTime AsUtc(DateTime value) => value.Kind switch

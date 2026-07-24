@@ -11,31 +11,81 @@ public sealed class ApprovalReminderService(
     ApprovalReminderSettings settings,
     IClock clock) : IApprovalReminderService
 {
-    public async Task<ApprovalReminderRunSummary> RunAsync(CancellationToken cancellationToken)
-    {
-        if (!settings.EmailEnabled && !settings.SmsEnabled)
-        {
-            return new ApprovalReminderRunSummary(0, 0, 0, 0, 0, 0, 0);
-        }
+    private const int ActivationReminderNumber = 0;
 
+    public async Task<ApprovalReminderRunSummary> RunActivationNotificationsAsync(
+        CancellationToken cancellationToken)
+    {
         var timeZone = TimeZoneInfo.FindSystemTimeZoneById(settings.TimeZoneId);
         var candidates = await repository.GetActionableApprovalsAsync(cancellationToken);
-        var sent = 0;
-        var queued = 0;
-        var failed = 0;
-        var skipped = 0;
-        var alreadyClaimed = 0;
+        var nowUtc = clock.UtcNow;
+        var totals = new DeliveryTotals();
         var dueCandidates = 0;
 
         foreach (var candidate in candidates)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var reminderNumber = ApprovalReminderSchedule.GetDueReminderNumber(
+            var elapsedDays = ApprovalReminderSchedule.GetElapsedCalendarDays(
                 candidate.ActiveAtUtc,
-                clock.UtcNow,
+                nowUtc,
+                timeZone);
+            var isExpired = elapsedDays >= settings.InitialDelayDays;
+            if (!isExpired)
+            {
+                dueCandidates++;
+            }
+
+            var skipCode = isExpired
+                ? "ACTIVATION_EXPIRED"
+                : settings.EmailEnabled
+                    ? null
+                    : "EMAIL_DISABLED";
+            var messages = messageFactory.CreateActivation(candidate);
+
+            var managerOutcome = await ProcessEmailAsync(
+                candidate,
+                ActivationReminderNumber,
+                ReminderAudience.Manager,
+                candidate.ManagerUserId,
+                candidate.ManagerNotificationEmail,
+                messages.ManagerEmail,
+                skipCode,
+                cancellationToken);
+            totals.Increment(managerOutcome);
+
+            var employeeOutcome = await ProcessEmailAsync(
+                candidate,
+                ActivationReminderNumber,
+                ReminderAudience.Employee,
+                candidate.EmployeeUserId,
+                candidate.EmployeeNotificationEmail,
+                messages.EmployeeEmail,
+                skipCode,
+                cancellationToken);
+            totals.Increment(employeeOutcome);
+        }
+
+        return totals.ToSummary(candidates.Count, dueCandidates);
+    }
+
+    public async Task<ApprovalReminderRunSummary> RunScheduledRemindersAsync(
+        CancellationToken cancellationToken)
+    {
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(settings.TimeZoneId);
+        var candidates = await repository.GetActionableApprovalsAsync(cancellationToken);
+        var nowUtc = clock.UtcNow;
+        var totals = new DeliveryTotals();
+        var dueCandidates = 0;
+
+        foreach (var candidate in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var reminderNumber = ApprovalReminderSchedule.GetLatestDueReminderNumber(
+                candidate.ActiveAtUtc,
+                nowUtc,
                 timeZone,
                 settings.InitialDelayDays,
-                settings.RepeatIntervalDays);
+                settings.ReminderDayOfWeek);
 
             if (reminderNumber == 0)
             {
@@ -43,8 +93,16 @@ public sealed class ApprovalReminderService(
             }
 
             dueCandidates++;
-            var elapsedDays = GetElapsedLocalDays(candidate.ActiveAtUtc, clock.UtcNow, timeZone);
-            var messages = messageFactory.Create(candidate, elapsedDays);
+            if (!settings.EmailEnabled && !settings.SmsEnabled)
+            {
+                continue;
+            }
+
+            var elapsedDays = ApprovalReminderSchedule.GetElapsedCalendarDays(
+                candidate.ActiveAtUtc,
+                nowUtc,
+                timeZone);
+            var messages = messageFactory.CreateReminder(candidate, elapsedDays);
 
             if (settings.EmailEnabled)
             {
@@ -55,8 +113,9 @@ public sealed class ApprovalReminderService(
                     candidate.ManagerUserId,
                     candidate.ManagerNotificationEmail,
                     messages.ManagerEmail,
+                    null,
                     cancellationToken);
-                Increment(managerOutcome, ref sent, ref failed, ref skipped, ref alreadyClaimed);
+                totals.Increment(managerOutcome);
 
                 var employeeOutcome = await ProcessEmailAsync(
                     candidate,
@@ -65,8 +124,9 @@ public sealed class ApprovalReminderService(
                     candidate.EmployeeUserId,
                     candidate.EmployeeNotificationEmail,
                     messages.EmployeeEmail,
+                    null,
                     cancellationToken);
-                Increment(employeeOutcome, ref sent, ref failed, ref skipped, ref alreadyClaimed);
+                totals.Increment(employeeOutcome);
             }
 
             if (settings.SmsEnabled)
@@ -82,7 +142,7 @@ public sealed class ApprovalReminderService(
 
                 if (!claim.HasValue)
                 {
-                    alreadyClaimed++;
+                    totals.Increment(DeliveryOutcome.AlreadyClaimed);
                     continue;
                 }
 
@@ -98,8 +158,12 @@ public sealed class ApprovalReminderService(
 
                 if (result.Succeeded)
                 {
-                    await repository.CompleteAsync(claim.Value, ReminderDeliveryStatus.Queued, null, cancellationToken);
-                    queued++;
+                    await repository.CompleteAsync(
+                        claim.Value,
+                        ReminderDeliveryStatus.Queued,
+                        null,
+                        cancellationToken);
+                    totals.Increment(DeliveryOutcome.Queued);
                 }
                 else
                 {
@@ -108,19 +172,12 @@ public sealed class ApprovalReminderService(
                         ReminderDeliveryStatus.Failed,
                         NormalizeFailureCode(result.FailureCode, "SMS_QUEUE_FAILED"),
                         cancellationToken);
-                    failed++;
+                    totals.Increment(DeliveryOutcome.Failed);
                 }
             }
         }
 
-        return new ApprovalReminderRunSummary(
-            candidates.Count,
-            dueCandidates,
-            sent,
-            queued,
-            failed,
-            skipped,
-            alreadyClaimed);
+        return totals.ToSummary(candidates.Count, dueCandidates);
     }
 
     private async Task<DeliveryOutcome> ProcessEmailAsync(
@@ -130,6 +187,7 @@ public sealed class ApprovalReminderService(
         int recipientUserId,
         string? recipientAddress,
         ReminderEmail message,
+        string? skipCode,
         CancellationToken cancellationToken)
     {
         var claim = await repository.TryClaimAsync(
@@ -144,6 +202,16 @@ public sealed class ApprovalReminderService(
         if (!claim.HasValue)
         {
             return DeliveryOutcome.AlreadyClaimed;
+        }
+
+        if (!string.IsNullOrWhiteSpace(skipCode))
+        {
+            await repository.CompleteAsync(
+                claim.Value,
+                ReminderDeliveryStatus.Skipped,
+                skipCode,
+                cancellationToken);
+            return DeliveryOutcome.Skipped;
         }
 
         if (string.IsNullOrWhiteSpace(recipientAddress))
@@ -168,55 +236,27 @@ public sealed class ApprovalReminderService(
 
         if (result.Succeeded)
         {
-            await repository.CompleteAsync(claim.Value, ReminderDeliveryStatus.Sent, null, cancellationToken);
-            return DeliveryOutcome.Sent;
-        }
-        else
-        {
             await repository.CompleteAsync(
                 claim.Value,
-                ReminderDeliveryStatus.Failed,
-                NormalizeFailureCode(result.FailureCode, "EMAIL_SEND_FAILED"),
+                ReminderDeliveryStatus.Sent,
+                null,
                 cancellationToken);
-            return DeliveryOutcome.Failed;
+            return DeliveryOutcome.Sent;
         }
-    }
 
-    private static void Increment(
-        DeliveryOutcome outcome,
-        ref int sent,
-        ref int failed,
-        ref int skipped,
-        ref int alreadyClaimed)
-    {
-        switch (outcome)
-        {
-            case DeliveryOutcome.Sent:
-                sent++;
-                break;
-            case DeliveryOutcome.Failed:
-                failed++;
-                break;
-            case DeliveryOutcome.Skipped:
-                skipped++;
-                break;
-            case DeliveryOutcome.AlreadyClaimed:
-                alreadyClaimed++;
-                break;
-        }
-    }
-
-    private static int GetElapsedLocalDays(DateTime activeAtUtc, DateTime nowUtc, TimeZoneInfo timeZone)
-    {
-        var activeDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(activeAtUtc, DateTimeKind.Utc), timeZone).Date;
-        var currentDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(nowUtc, DateTimeKind.Utc), timeZone).Date;
-        return Math.Max(0, (currentDate - activeDate).Days);
+        await repository.CompleteAsync(
+            claim.Value,
+            ReminderDeliveryStatus.Failed,
+            NormalizeFailureCode(result.FailureCode, "EMAIL_SEND_FAILED"),
+            cancellationToken);
+        return DeliveryOutcome.Failed;
     }
 
     private static string NormalizeFailureCode(string? value, string fallback)
     {
         var normalized = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim().ToUpperInvariant();
-        var safe = new string(normalized.Where(character => char.IsAsciiLetterOrDigit(character) || character == '_').ToArray());
+        var safe = new string(
+            normalized.Where(character => char.IsAsciiLetterOrDigit(character) || character == '_').ToArray());
         if (string.IsNullOrEmpty(safe))
         {
             safe = fallback;
@@ -228,8 +268,43 @@ public sealed class ApprovalReminderService(
     private enum DeliveryOutcome
     {
         Sent,
+        Queued,
         Failed,
         Skipped,
         AlreadyClaimed
+    }
+
+    private sealed class DeliveryTotals
+    {
+        private int Sent { get; set; }
+        private int Queued { get; set; }
+        private int Failed { get; set; }
+        private int Skipped { get; set; }
+        private int AlreadyClaimed { get; set; }
+
+        public void Increment(DeliveryOutcome outcome)
+        {
+            switch (outcome)
+            {
+                case DeliveryOutcome.Sent:
+                    Sent++;
+                    break;
+                case DeliveryOutcome.Queued:
+                    Queued++;
+                    break;
+                case DeliveryOutcome.Failed:
+                    Failed++;
+                    break;
+                case DeliveryOutcome.Skipped:
+                    Skipped++;
+                    break;
+                case DeliveryOutcome.AlreadyClaimed:
+                    AlreadyClaimed++;
+                    break;
+            }
+        }
+
+        public ApprovalReminderRunSummary ToSummary(int candidatesFound, int dueCandidates) =>
+            new(candidatesFound, dueCandidates, Sent, Queued, Failed, Skipped, AlreadyClaimed);
     }
 }

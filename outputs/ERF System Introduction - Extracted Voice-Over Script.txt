@@ -1,0 +1,47 @@
+ERF SYSTEM INTRODUCTION
+EXTRACTED VOICE-OVER SCRIPT
+
+SLIDE 1 — ERF System Introduction
+Welcome to the ERF System tutorial. I’ll show you how to create, file, approve, and review an expense report. Follow each screen in order, and pause whenever you need more time.
+
+SLIDE 2 — The ERF workflow moves from setup to filing and approval
+The process starts with account setup and expense entry. The report is then filed, reviewed by the manager, and checked by Finance. Let’s go through each step.
+
+SLIDE 3 — Start by signing in to the ERF System
+Enter your username and password. Check that both are correct, then click Login. Use Cancel if you want to close the window.
+
+SLIDE 4 — The main page is the starting point for ERF tasks
+This is the ERF main page. Confirm your user and department at the bottom of the screen. Use the menu or shortcut buttons at the top to open a task.
+
+SLIDE 5 — Review account information before filing expenses
+Open Account Settings and review your information. Update only the fields you are allowed to change. Click Save when the details are correct.
+
+SLIDE 6 — Maintain your password and email configuration
+Use Change Password to update your login credentials. Open Email Setup to configure your work email. Check the information before saving.
+
+SLIDE 7 — Set the signatory used in the approval route
+Open the Signatory setup and select the correct approver. Check the name before saving because this determines where your report will be sent.
+
+SLIDE 8 — Create a new expense from the main workspace
+Open the expense-entry form. Complete the report details using your receipt or supporting documents. Review the information before adding expense items.
+
+SLIDE 9 — Enter each expense item completely and accurately
+Enter the date, amount, description, and other required details. Compare the entry with the receipt, then click Save. Repeat this step for every expense.
+
+SLIDE 10 — Managers open the approval review queue
+Managers open the Approval Review form and select a report from the list. Check the employee, expense details, and supporting information before taking action.
+
+SLIDE 11 — Record the approval decision after completing the review
+Choose the correct approval action after reviewing the report. Confirm that you selected the correct employee and transaction. Check that the system records the decision.
+
+SLIDE 12 — Send or print the completed expense report
+Review the completed report in the Send or Print window. Check the recipient or printer settings, then choose Send or Print as needed.
+
+SLIDE 13 — Finance verifies the submitted ERF and physical receipts
+Finance selects the correct report and reviews its details and receipt status. Add a remark when needed. Click Receipts Received only after the physical receipts have been verified.
+
+SLIDE 14 — Finance sends SMS reminders from the review form
+Click Send in the report’s SMS column. Check the recipients and preview the message. If everything is correct, click Send.
+
+SLIDE 15 — Each role owns a clear part of the ERF process
+Employees create and file the report. Managers review and decide, while Finance verifies the report and receipts. Always check that you are working with the correct transaction.

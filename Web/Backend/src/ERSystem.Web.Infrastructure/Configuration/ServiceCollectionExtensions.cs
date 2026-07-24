@@ -72,8 +72,12 @@ public static class ServiceCollectionExtensions
                 "ApprovalReminders:TimeZoneId is not available on this server.")
             .Validate(options => options.InitialDelayDays > 0,
                 "ApprovalReminders:InitialDelayDays must be greater than zero.")
-            .Validate(options => options.RepeatIntervalDays > 0,
-                "ApprovalReminders:RepeatIntervalDays must be greater than zero.")
+            .Validate(options => options.ActivationPollIntervalSeconds is >= 10 and <= 3600,
+                "ApprovalReminders:ActivationPollIntervalSeconds must be between 10 and 3600.")
+            .Validate(options =>
+                    Enum.TryParse<DayOfWeek>(options.ReminderDayOfWeek, true, out var reminderDay) &&
+                    Enum.IsDefined(reminderDay),
+                "ApprovalReminders:ReminderDayOfWeek must be a valid day of the week.")
             .Validate(options => !options.EmailEnabled || IsValidAbsoluteHttpUrl(options.ManagerPortalBaseUrl),
                 "ApprovalReminders:ManagerPortalBaseUrl must be an absolute HTTP or HTTPS URL when email is enabled.")
             .ValidateOnStart();

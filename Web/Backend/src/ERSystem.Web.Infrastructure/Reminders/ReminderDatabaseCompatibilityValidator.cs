@@ -31,6 +31,17 @@ public sealed class ReminderDatabaseCompatibilityValidator(
                    (
                        SELECT 1 FROM sys.parameters
                        WHERE object_id = OBJECT_ID(N'dbo.sp_Notify') AND name = N'@ReminderMessage'
+                   ) THEN 1 ELSE 0 END,
+                   CASE WHEN EXISTS
+                   (
+                       SELECT 1
+                       FROM sys.check_constraints
+                       WHERE parent_object_id = OBJECT_ID(N'dbo.tbReportApprovalReminderDelivery')
+                         AND name = N'CK_tbReportApprovalReminderDelivery_ReminderNumber'
+                         AND is_disabled = 0
+                         AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                                 UPPER(definition), N' ', N''), N'(', N''), N')', N''), N'[', N''), N']', N'')
+                             LIKE N'%REMINDERNUMBER>=0%'
                    ) THEN 1 ELSE 0 END
             FROM sys.databases
             WHERE name = DB_NAME();
@@ -50,12 +61,12 @@ public sealed class ReminderDatabaseCompatibilityValidator(
             throw new InvalidOperationException("The reminder service requires database compatibility level 100.");
         }
 
-        for (var ordinal = 1; ordinal <= 6; ordinal++)
+        for (var ordinal = 1; ordinal <= 7; ordinal++)
         {
             if (reader.GetInt32(ordinal) == 0)
             {
                 throw new InvalidOperationException(
-                    "Approval reminder database objects are missing. Apply the dated reminder support script before starting the service.");
+                    "Approval reminder database objects are missing or outdated. Apply all dated reminder support scripts before starting the service.");
             }
         }
 

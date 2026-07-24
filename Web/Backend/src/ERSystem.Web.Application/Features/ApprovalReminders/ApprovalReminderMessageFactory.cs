@@ -4,14 +4,42 @@ public sealed class ApprovalReminderMessageFactory(ApprovalReminderSettings sett
 {
     private const int SmsMaximumLength = 320;
 
-    public ApprovalReminderMessages Create(ApprovalReminderCandidate candidate, int elapsedCalendarDays)
+    public ApprovalActivationMessages CreateActivation(ApprovalReminderCandidate candidate)
+    {
+        ArgumentNullException.ThrowIfNull(candidate);
+
+        var reference = GetReference(candidate);
+        var employeeFullName = SanitizeInline(candidate.EmployeeFullName);
+        var managerFullName = SanitizeInline(candidate.ManagerFullName);
+        var managerUrl = BuildManagerReportUrl(candidate.ReportId);
+
+        var managerEmail = new ReminderEmail(
+            $"[ER System] Approval required - ERF {reference}",
+            $"Hello {managerFullName},{Environment.NewLine}{Environment.NewLine}" +
+            $"ERF {reference}, filed by {employeeFullName}, is now awaiting your approval." +
+            $"{Environment.NewLine}{Environment.NewLine}" +
+            $"Please review the report:{Environment.NewLine}" +
+            $"{managerUrl}{Environment.NewLine}{Environment.NewLine}" +
+            "ER System");
+
+        var employeeEmail = new ReminderEmail(
+            $"[ER System] Your ERF {reference} was filed",
+            $"Hello {employeeFullName},{Environment.NewLine}{Environment.NewLine}" +
+            $"Your ERF {reference} was filed successfully and is now awaiting approval from " +
+            $"{managerFullName}.{Environment.NewLine}{Environment.NewLine}" +
+            "ER System");
+
+        return new ApprovalActivationMessages(managerEmail, employeeEmail);
+    }
+
+    public ApprovalReminderMessages CreateReminder(
+        ApprovalReminderCandidate candidate,
+        int elapsedCalendarDays)
     {
         ArgumentNullException.ThrowIfNull(candidate);
         ArgumentOutOfRangeException.ThrowIfNegative(elapsedCalendarDays);
 
-        var reference = SanitizeInline(string.IsNullOrWhiteSpace(candidate.ErfReferenceNumber)
-            ? candidate.ReportId
-            : candidate.ErfReferenceNumber);
+        var reference = GetReference(candidate);
         var employeeUsername = SanitizeInline(candidate.EmployeeUsername);
         var managerUsername = SanitizeInline(candidate.ManagerUsername);
         var employeeFullName = SanitizeInline(candidate.EmployeeFullName);
@@ -29,7 +57,7 @@ public sealed class ApprovalReminderMessageFactory(ApprovalReminderSettings sett
             $"{elapsedCalendarDays} calendar days.{Environment.NewLine}{Environment.NewLine}" +
             $"Please review the report and either approve or return it:{Environment.NewLine}" +
             $"{managerUrl}{Environment.NewLine}{Environment.NewLine}" +
-            $"This reminder will repeat every {settings.RepeatIntervalDays} days until the report is actioned." +
+            $"This reminder will repeat every {settings.ReminderDayOfWeek} until the report is actioned." +
             $"{Environment.NewLine}{Environment.NewLine}" +
             "ER System");
 
@@ -55,6 +83,11 @@ public sealed class ApprovalReminderMessageFactory(ApprovalReminderSettings sett
         var baseUrl = settings.ManagerPortalBaseUrl.Trim().TrimEnd('/');
         return $"{baseUrl}/manager/reports/{Uri.EscapeDataString(reportId.Trim())}";
     }
+
+    private static string GetReference(ApprovalReminderCandidate candidate) =>
+        SanitizeInline(string.IsNullOrWhiteSpace(candidate.ErfReferenceNumber)
+            ? candidate.ReportId
+            : candidate.ErfReferenceNumber);
 
     private static string SanitizeInline(string? value) =>
         (value ?? string.Empty)
