@@ -17,11 +17,9 @@ public sealed class ApprovalReminderRepository(SqlConnectionStringBuilder connec
                    currentStep.EmployeeUserID,
                    LTRIM(RTRIM(ISNULL(employee.username, ''))),
                    LTRIM(RTRIM(ISNULL(employee.Fullname, employee.username))),
-                   employee.NotificationEmail,
                    currentStep.ApproverUserID,
                    LTRIM(RTRIM(ISNULL(manager.username, ''))),
                    LTRIM(RTRIM(ISNULL(manager.Fullname, manager.username))),
-                   manager.NotificationEmail,
                    report.ERFReferenceNo,
                    ISNULL(previousStep.ActionedAtUtc, currentStep.SubmittedAtUtc)
             FROM dbo.tbReportApprovalTransaction currentStep
@@ -74,13 +72,11 @@ public sealed class ApprovalReminderRepository(SqlConnectionStringBuilder connec
                 reader.GetInt32(3),
                 reader.GetString(4),
                 reader.GetString(5),
-                GetNullableString(reader, 6),
-                reader.GetInt32(7),
+                reader.GetInt32(6),
+                reader.GetString(7),
                 reader.GetString(8),
-                reader.GetString(9),
-                GetNullableString(reader, 10),
-                GetNullableString(reader, 11),
-                DateTime.SpecifyKind(reader.GetDateTime(12), DateTimeKind.Utc)));
+                GetNullableString(reader, 9),
+                DateTime.SpecifyKind(reader.GetDateTime(10), DateTimeKind.Utc)));
         }
 
         return candidates;

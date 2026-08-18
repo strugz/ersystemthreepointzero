@@ -11,15 +11,13 @@ public sealed class ApprovalReminderMessageFactory(ApprovalReminderSettings sett
         var reference = GetReference(candidate);
         var employeeFullName = SanitizeInline(candidate.EmployeeFullName);
         var managerFullName = SanitizeInline(candidate.ManagerFullName);
-        var managerUrl = BuildManagerReportUrl(candidate.ReportId);
 
         var managerEmail = new ReminderEmail(
             $"[ER System] Approval required - ERF {reference}",
             $"Hello {managerFullName},{Environment.NewLine}{Environment.NewLine}" +
             $"ERF {reference}, filed by {employeeFullName}, is now awaiting your approval." +
             $"{Environment.NewLine}{Environment.NewLine}" +
-            $"Please review the report:{Environment.NewLine}" +
-            $"{managerUrl}{Environment.NewLine}{Environment.NewLine}" +
+            $"Please review the report in ER System.{Environment.NewLine}{Environment.NewLine}" +
             "ER System");
 
         var employeeEmail = new ReminderEmail(
@@ -49,14 +47,13 @@ public sealed class ApprovalReminderMessageFactory(ApprovalReminderSettings sett
             $"Reminder: ERF {reference} for {employeeUsername} is still awaiting approval from {managerUsername} " +
             $"after {elapsedCalendarDays} days. Please review or follow up.");
 
-        var managerUrl = BuildManagerReportUrl(candidate.ReportId);
         var managerEmail = new ReminderEmail(
             $"[ER System] Approval reminder - ERF {reference}",
             $"Hello {managerFullName},{Environment.NewLine}{Environment.NewLine}" +
             $"ERF {reference}, filed by {employeeFullName}, has been waiting for your approval for " +
             $"{elapsedCalendarDays} calendar days.{Environment.NewLine}{Environment.NewLine}" +
-            $"Please review the report and either approve or return it:{Environment.NewLine}" +
-            $"{managerUrl}{Environment.NewLine}{Environment.NewLine}" +
+            $"Please review the report and either approve or return it in ER System." +
+            $"{Environment.NewLine}{Environment.NewLine}" +
             $"This reminder will repeat every {settings.ReminderDayOfWeek} until the report is actioned." +
             $"{Environment.NewLine}{Environment.NewLine}" +
             "ER System");
@@ -76,12 +73,6 @@ public sealed class ApprovalReminderMessageFactory(ApprovalReminderSettings sett
     {
         var sanitized = SanitizeInline(value);
         return sanitized.Length <= SmsMaximumLength ? sanitized : sanitized[..SmsMaximumLength];
-    }
-
-    private string BuildManagerReportUrl(string reportId)
-    {
-        var baseUrl = settings.ManagerPortalBaseUrl.Trim().TrimEnd('/');
-        return $"{baseUrl}/manager/reports/{Uri.EscapeDataString(reportId.Trim())}";
     }
 
     private static string GetReference(ApprovalReminderCandidate candidate) =>

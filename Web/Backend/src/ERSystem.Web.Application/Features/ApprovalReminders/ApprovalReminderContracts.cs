@@ -7,8 +7,7 @@ public sealed record ApprovalReminderSettings(
     string TimeZoneId,
     TimeOnly RunAtLocalTime,
     int InitialDelayDays,
-    DayOfWeek ReminderDayOfWeek,
-    string ManagerPortalBaseUrl);
+    DayOfWeek ReminderDayOfWeek);
 
 public sealed record ApprovalReminderCandidate(
     long ApprovalTransactionId,
@@ -17,11 +16,9 @@ public sealed record ApprovalReminderCandidate(
     int EmployeeUserId,
     string EmployeeUsername,
     string EmployeeFullName,
-    string? EmployeeNotificationEmail,
     int ManagerUserId,
     string ManagerUsername,
     string ManagerFullName,
-    string? ManagerNotificationEmail,
     string? ErfReferenceNumber,
     DateTime ActiveAtUtc);
 
@@ -58,11 +55,24 @@ public enum ReminderDeliveryStatus
     Skipped
 }
 
-public sealed record ReminderSendResult(bool Succeeded, string? FailureCode)
+public enum ReminderSendOutcome
 {
-    public static ReminderSendResult Success { get; } = new(true, null);
+    Sent,
+    Skipped,
+    Failed
+}
 
-    public static ReminderSendResult Failed(string failureCode) => new(false, failureCode);
+public sealed record ReminderSendResult(ReminderSendOutcome Outcome, string? FailureCode)
+{
+    public bool Succeeded => Outcome == ReminderSendOutcome.Sent;
+
+    public static ReminderSendResult Success { get; } = new(ReminderSendOutcome.Sent, null);
+
+    public static ReminderSendResult Skipped(string failureCode) =>
+        new(ReminderSendOutcome.Skipped, failureCode);
+
+    public static ReminderSendResult Failed(string failureCode) =>
+        new(ReminderSendOutcome.Failed, failureCode);
 }
 
 public sealed record ApprovalReminderRunSummary(
@@ -97,7 +107,8 @@ public interface IApprovalReminderRepository
 public interface IEmailReminderSender
 {
     Task<ReminderSendResult> SendAsync(
-        string recipientAddress,
+        int employeeUserId,
+        ReminderAudience audience,
         ReminderEmail message,
         CancellationToken cancellationToken);
 }

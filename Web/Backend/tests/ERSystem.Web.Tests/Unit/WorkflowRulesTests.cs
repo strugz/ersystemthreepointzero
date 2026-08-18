@@ -29,6 +29,19 @@ public sealed class WorkflowRulesTests
     {
         var cipher = new LegacyPasswordCipher(Options.Create(new LegacyAuthenticationOptions { EncryptionKey = "test-key" }));
         Assert.Equal("56394F616748614E617A2B373257434178436F35545A4854423757634C384661", cipher.Encrypt("Password123"));
+        Assert.Equal(
+            "Password123",
+            cipher.Decrypt("56394F616748614E617A2B373257434178436F35545A4854423757634C384661"));
+    }
+
+    [Fact]
+    public void Legacy_cipher_round_trips_unicode_email_values()
+    {
+        var cipher = new LegacyPasswordCipher(
+            Options.Create(new LegacyAuthenticationOptions { EncryptionKey = "test-key" }));
+        const string value = "employee@example.test";
+
+        Assert.Equal(value, cipher.Decrypt(cipher.Encrypt(value)));
     }
 
     [Fact]

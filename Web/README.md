@@ -37,7 +37,9 @@ The API validates the SQL Server major version and database compatibility level 
 
 `ERSystem.Reminders.Worker` is published and installed separately from IIS. Windows Service Manager starts it automatically, and it continues working when the desktop application and Web API are closed.
 
-When an employee files a report, the existing `sp2_RefileER` and `dbo.sp_Notify 'FILE'` path still creates the legacy SMS gateway request. The worker polls the current actionable approval every 60 seconds and sends a one-time activation email to the current manager and employee. When a later approval step becomes actionable, that manager and the employee receive the same activation email. The worker does not queue another SMS during activation, so the legacy `FILE` notification is not duplicated.
+When an employee files a report, the existing `sp2_RefileER` and `dbo.sp_Notify 'FILE'` path still creates the legacy SMS gateway request. The worker polls the current actionable approval every 60 seconds and sends a one-time activation email to the manager recipient and employee. When a later approval step becomes actionable, the worker sends another activation email using the employee's same configured manager address. The worker does not queue another SMS during activation, so the legacy `FILE` notification is not duplicated.
+
+For email delivery, `EmployeeUserID` on the actionable `tbReportApprovalTransaction` row identifies the employee's `tbUserRegistration` record. The worker decrypts that row's `EmailAdd` and `EmailPass` in application memory using the existing legacy encryption key. It uses the decrypted `EmailAdd` as the SMTP username, sender, and employee recipient. The employee row's plain-text `EmailTo` is the manager recipient. `ApproverUserID` continues to control approval ownership, manager naming, claim revalidation, and the SMS identity; it does not select the email address. The scoped mailbox lookup is discarded after each worker scan and no address, password, ciphertext, or key is logged or written to the reminder delivery table.
 
 The scheduled process runs daily at 8:00 AM Manila time. It sends manager email, employee email, and one combined `dbo.sp_Notify 'REMINDER'` SMS request on the third local calendar day, then on every Wednesday while the approval remains actionable. When day three is Wednesday, only the day-three occurrence is sent. A missed run sends only the latest due occurrence.
 
@@ -50,6 +52,9 @@ The committed worker configuration contains a blank database connection string b
   "ConnectionStrings": {
     "ErDatabase": "<SQL Server connection string>"
   },
+  "LegacyAuthentication": {
+    "EncryptionKey": "<existing ER credential encryption key>"
+  },
   "ApprovalReminders": {
     "EmailEnabled": false,
     "SmsEnabled": false,
@@ -57,20 +62,18 @@ The committed worker configuration contains a blank database connection string b
     "RunAtLocalTime": "08:00",
     "TimeZoneId": "Asia/Manila",
     "InitialDelayDays": 3,
-    "ReminderDayOfWeek": "Wednesday",
-    "ManagerPortalBaseUrl": "https://<er-system-host>"
+    "ReminderDayOfWeek": "Wednesday"
   },
   "Smtp": {
-    "Host": "<smtp-host>",
-    "Port": 587,
-    "TlsMode": "StartTls",
-    "Username": "<smtp-user>",
-    "Password": "<smtp-password>",
-    "SenderAddress": "<sender-address>",
+    "Host": "mail.marsmandrysdale.com",
+    "Port": 25,
+    "TlsMode": "None",
     "SenderDisplayName": "ER System"
   }
 }
 ```
+
+`Smtp:Username`, `Smtp:Password`, and `Smtp:SenderAddress` are intentionally not worker settings. Those values are resolved per employee from `EmailAdd` and `EmailPass`. Port 25 with `TlsMode: None` matches the current desktop behavior; do not change it to StartTLS until the deployed mail server has been tested and confirmed to support it.
 
 Publish and install from an elevated PowerShell session:
 
@@ -85,7 +88,7 @@ The installation script creates a delayed automatic service under the dedicated 
 
 `EmailEnabled` controls activation and scheduled email. `SmsEnabled` controls only scheduled `REMINDER` SMS; it deliberately does not disable the existing legacy `FILE` SMS. When email is disabled, activation occurrences are recorded as skipped so they are not sent later as stale filing messages. Scheduled scans still report real candidate and due counts when both reminder channels are disabled.
 
-Deploy initially with both reminder channels disabled. Populate and verify each user's “Reminder Email” in desktop Account Settings, enable email for the pilot, then enable SMS only after a controlled staging `REMINDER` confirms the gateway payload. The delivery table records `Sent` for SMTP and `Queued` for the gateway; it does not claim carrier delivery acknowledgement.
+Deploy initially with both reminder channels disabled. Verify a pilot employee's encrypted `EmailAdd` and `EmailPass` and plain-text `EmailTo`, then enable email for that controlled test. Enable SMS only after a staging `REMINDER` confirms the gateway payload. The delivery table records `Sent` for SMTP and `Queued` for the gateway; it does not claim carrier delivery acknowledgement. `NotificationEmail` remains in the database for backward compatibility but is not used by this reminder workflow.
 
 ## Local development
 

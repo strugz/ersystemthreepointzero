@@ -78,14 +78,15 @@ public static class ServiceCollectionExtensions
                     Enum.TryParse<DayOfWeek>(options.ReminderDayOfWeek, true, out var reminderDay) &&
                     Enum.IsDefined(reminderDay),
                 "ApprovalReminders:ReminderDayOfWeek must be a valid day of the week.")
-            .Validate(options => !options.EmailEnabled || IsValidAbsoluteHttpUrl(options.ManagerPortalBaseUrl),
-                "ApprovalReminders:ManagerPortalBaseUrl must be an absolute HTTP or HTTPS URL when email is enabled.")
             .ValidateOnStart();
         services.AddOptions<SmtpReminderOptions>()
             .Bind(configuration.GetSection(SmtpReminderOptions.SectionName));
+        services.AddOptions<LegacyAuthenticationOptions>()
+            .Bind(configuration.GetSection(LegacyAuthenticationOptions.SectionName));
 
         services.AddSingleton(new SqlConnectionStringBuilder(connectionString));
         services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton<LegacyPasswordCipher>();
         services.AddSingleton(serviceProvider =>
             serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<ApprovalReminderOptions>>()
                 .Value
@@ -93,7 +94,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ApprovalReminderMessageFactory>();
         services.AddScoped<IApprovalReminderRepository, ApprovalReminderRepository>();
         services.AddScoped<IApprovalReminderService, ApprovalReminderService>();
-        services.AddSingleton<IEmailReminderSender, SmtpReminderSender>();
+        services.AddScoped<IEmployeeSmtpAccountStore, SqlEmployeeSmtpAccountStore>();
+        services.AddScoped<IEmployeeSmtpAccountProvider, EmployeeSmtpAccountProvider>();
+        services.AddScoped<IEmailReminderSender, SmtpReminderSender>();
         services.AddSingleton<ISmsReminderSender, StoredProcedureSmsReminderSender>();
         services.AddHostedService<ReminderDatabaseCompatibilityValidator>();
         return services;
@@ -116,7 +119,4 @@ public static class ServiceCollectionExtensions
         }
     }
 
-    private static bool IsValidAbsoluteHttpUrl(string value) =>
-        Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
-        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 }

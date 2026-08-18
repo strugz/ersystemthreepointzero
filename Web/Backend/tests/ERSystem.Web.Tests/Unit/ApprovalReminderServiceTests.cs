@@ -99,6 +99,12 @@ public sealed class ApprovalReminderServiceTests
         Assert.All(repository.Claims, claim => Assert.Equal(0, claim.ReminderNumber));
         Assert.All(repository.Claims, claim => Assert.Equal(ReminderChannel.Email, claim.Channel));
         Assert.Equal(2, emailSender.Messages.Count);
+        Assert.Contains(
+            emailSender.Messages,
+            sent => sent.EmployeeUserId == 11 && sent.Audience == ReminderAudience.Manager);
+        Assert.Contains(
+            emailSender.Messages,
+            sent => sent.EmployeeUserId == 11 && sent.Audience == ReminderAudience.Employee);
         Assert.Empty(smsSender.Messages);
     }
 
@@ -209,24 +215,26 @@ public sealed class ApprovalReminderServiceTests
     }
 
     [Fact]
-    public async Task Missing_email_is_skipped_without_blocking_scheduled_sms()
+    public async Task Manager_address_failure_does_not_block_employee_email_or_scheduled_sms()
     {
-        var repository = new FakeRepository([CreateCandidate() with
-        {
-            ManagerNotificationEmail = null,
-            EmployeeNotificationEmail = ""
-        }]);
+        var repository = new FakeRepository([CreateCandidate()]);
+        var emailSender = new FakeEmailSender((_, audience) =>
+            audience == ReminderAudience.Manager
+                ? ReminderSendResult.Skipped("MANAGER_EMAIL_ADDRESS_MISSING")
+                : ReminderSendResult.Success);
         var smsSender = new FakeSmsSender(ReminderSendResult.Success);
         var service = CreateService(
             repository,
-            new FakeEmailSender(ReminderSendResult.Success),
+            emailSender,
             smsSender,
             new DateTime(2026, 7, 23, 12, 0, 0, DateTimeKind.Utc));
 
         var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
 
-        Assert.Equal(2, summary.Skipped);
+        Assert.Equal(1, summary.Skipped);
+        Assert.Equal(1, summary.Sent);
         Assert.Equal(1, summary.Queued);
+        Assert.Equal(2, emailSender.Messages.Count);
         Assert.Single(smsSender.Messages);
     }
 
@@ -264,8 +272,7 @@ public sealed class ApprovalReminderServiceTests
             "UTC",
             new TimeOnly(8, 0),
             3,
-            DayOfWeek.Wednesday,
-            "https://er.example.test");
+            DayOfWeek.Wednesday);
         return new ApprovalReminderService(
             repository,
             emailSender,
@@ -282,11 +289,9 @@ public sealed class ApprovalReminderServiceTests
         11,
         "JSMITH",
         "John Smith",
-        "john@example.test",
         12,
         "MCRUZ",
         "Maria Cruz",
-        "maria@example.test",
         "ERF-2026-00421",
         new DateTime(2026, 7, 20, 12, 0, 0, DateTimeKind.Utc));
 
@@ -295,17 +300,30 @@ public sealed class ApprovalReminderServiceTests
         public DateTime UtcNow => nowUtc;
     }
 
-    private sealed class FakeEmailSender(ReminderSendResult result) : IEmailReminderSender
+    private sealed class FakeEmailSender : IEmailReminderSender
     {
-        public List<(string Recipient, ReminderEmail Message)> Messages { get; } = [];
+        private readonly Func<int, ReminderAudience, ReminderSendResult> _resultFactory;
+
+        public FakeEmailSender(ReminderSendResult result)
+            : this((_, _) => result)
+        {
+        }
+
+        public FakeEmailSender(Func<int, ReminderAudience, ReminderSendResult> resultFactory)
+        {
+            _resultFactory = resultFactory;
+        }
+
+        public List<(int EmployeeUserId, ReminderAudience Audience, ReminderEmail Message)> Messages { get; } = [];
 
         public Task<ReminderSendResult> SendAsync(
-            string recipientAddress,
+            int employeeUserId,
+            ReminderAudience audience,
             ReminderEmail message,
             CancellationToken cancellationToken)
         {
-            Messages.Add((recipientAddress, message));
-            return Task.FromResult(result);
+            Messages.Add((employeeUserId, audience, message));
+            return Task.FromResult(_resultFactory(employeeUserId, audience));
         }
     }
 

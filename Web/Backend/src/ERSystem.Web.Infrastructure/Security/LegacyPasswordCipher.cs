@@ -26,6 +26,17 @@ public sealed class LegacyPasswordCipher(IOptions<LegacyAuthenticationOptions> o
         return Convert.ToHexString(Encoding.ASCII.GetBytes(Convert.ToBase64String(encrypted)));
     }
 
+    public string Decrypt(string cipherText)
+    {
+        var base64Bytes = Convert.FromHexString(cipherText);
+        var encrypted = Convert.FromBase64String(Encoding.ASCII.GetString(base64Bytes));
+        using var tripleDes = TripleDES.Create();
+        tripleDes.Key = TruncateHash(_key, tripleDes.KeySize / 8);
+        tripleDes.IV = TruncateHash(string.Empty, tripleDes.BlockSize / 8);
+        var decrypted = tripleDes.CreateDecryptor().TransformFinalBlock(encrypted, 0, encrypted.Length);
+        return Encoding.Unicode.GetString(decrypted);
+    }
+
     private static byte[] TruncateHash(string value, int length)
     {
         var hash = SHA1.HashData(Encoding.Unicode.GetBytes(value));

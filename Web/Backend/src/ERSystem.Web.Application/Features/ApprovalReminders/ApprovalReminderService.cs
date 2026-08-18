@@ -47,7 +47,6 @@ public sealed class ApprovalReminderService(
                 ActivationReminderNumber,
                 ReminderAudience.Manager,
                 candidate.ManagerUserId,
-                candidate.ManagerNotificationEmail,
                 messages.ManagerEmail,
                 skipCode,
                 cancellationToken);
@@ -58,7 +57,6 @@ public sealed class ApprovalReminderService(
                 ActivationReminderNumber,
                 ReminderAudience.Employee,
                 candidate.EmployeeUserId,
-                candidate.EmployeeNotificationEmail,
                 messages.EmployeeEmail,
                 skipCode,
                 cancellationToken);
@@ -111,7 +109,6 @@ public sealed class ApprovalReminderService(
                     reminderNumber,
                     ReminderAudience.Manager,
                     candidate.ManagerUserId,
-                    candidate.ManagerNotificationEmail,
                     messages.ManagerEmail,
                     null,
                     cancellationToken);
@@ -122,7 +119,6 @@ public sealed class ApprovalReminderService(
                     reminderNumber,
                     ReminderAudience.Employee,
                     candidate.EmployeeUserId,
-                    candidate.EmployeeNotificationEmail,
                     messages.EmployeeEmail,
                     null,
                     cancellationToken);
@@ -185,7 +181,6 @@ public sealed class ApprovalReminderService(
         int reminderNumber,
         ReminderAudience audience,
         int recipientUserId,
-        string? recipientAddress,
         ReminderEmail message,
         string? skipCode,
         CancellationToken cancellationToken)
@@ -214,27 +209,21 @@ public sealed class ApprovalReminderService(
             return DeliveryOutcome.Skipped;
         }
 
-        if (string.IsNullOrWhiteSpace(recipientAddress))
-        {
-            await repository.CompleteAsync(
-                claim.Value,
-                ReminderDeliveryStatus.Skipped,
-                "EMAIL_ADDRESS_MISSING",
-                cancellationToken);
-            return DeliveryOutcome.Skipped;
-        }
-
         ReminderSendResult result;
         try
         {
-            result = await emailSender.SendAsync(recipientAddress, message, cancellationToken);
+            result = await emailSender.SendAsync(
+                candidate.EmployeeUserId,
+                audience,
+                message,
+                cancellationToken);
         }
         catch (Exception) when (!cancellationToken.IsCancellationRequested)
         {
             result = ReminderSendResult.Failed("EMAIL_SEND_UNEXPECTED");
         }
 
-        if (result.Succeeded)
+        if (result.Outcome == ReminderSendOutcome.Sent)
         {
             await repository.CompleteAsync(
                 claim.Value,
@@ -242,6 +231,16 @@ public sealed class ApprovalReminderService(
                 null,
                 cancellationToken);
             return DeliveryOutcome.Sent;
+        }
+
+        if (result.Outcome == ReminderSendOutcome.Skipped)
+        {
+            await repository.CompleteAsync(
+                claim.Value,
+                ReminderDeliveryStatus.Skipped,
+                NormalizeFailureCode(result.FailureCode, "EMAIL_SEND_SKIPPED"),
+                cancellationToken);
+            return DeliveryOutcome.Skipped;
         }
 
         await repository.CompleteAsync(

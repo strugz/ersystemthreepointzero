@@ -13,7 +13,6 @@ public sealed class ApprovalReminderOptions
     public string TimeZoneId { get; set; } = "Asia/Manila";
     public int InitialDelayDays { get; set; } = 3;
     public string ReminderDayOfWeek { get; set; } = nameof(DayOfWeek.Wednesday);
-    public string ManagerPortalBaseUrl { get; set; } = string.Empty;
 
     public ApprovalReminderSettings ToSettings()
     {
@@ -36,8 +35,7 @@ public sealed class ApprovalReminderOptions
             TimeZoneId,
             runAt,
             InitialDelayDays,
-            reminderDayOfWeek,
-            ManagerPortalBaseUrl);
+            reminderDayOfWeek);
     }
 }
 
@@ -46,10 +44,7 @@ public sealed class SmtpReminderOptions
     public const string SectionName = "Smtp";
 
     public string Host { get; set; } = string.Empty;
-    public int Port { get; set; } = 587;
-    public string TlsMode { get; set; } = "StartTls";
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string SenderAddress { get; set; } = string.Empty;
+    public int Port { get; set; } = 25;
+    public string TlsMode { get; set; } = "None";
     public string SenderDisplayName { get; set; } = "ER System";
 }

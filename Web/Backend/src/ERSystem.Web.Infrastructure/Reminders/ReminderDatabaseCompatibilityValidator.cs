@@ -1,4 +1,5 @@
 using ERSystem.Web.Application.Features.ApprovalReminders;
+using ERSystem.Web.Infrastructure.Security;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,17 +11,20 @@ public sealed class ReminderDatabaseCompatibilityValidator(
     SqlConnectionStringBuilder connectionString,
     ApprovalReminderSettings settings,
     IOptions<SmtpReminderOptions> smtpOptions,
+    IOptions<LegacyAuthenticationOptions> legacyAuthenticationOptions,
     ILogger<ReminderDatabaseCompatibilityValidator> logger) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        ValidateConfiguration(settings, smtpOptions.Value);
+        ValidateConfiguration(settings, smtpOptions.Value, legacyAuthenticationOptions.Value);
 
         const string sql = """
             SELECT CONVERT(int, compatibility_level),
                    CASE WHEN OBJECT_ID(N'dbo.tbReportApprovalTransaction', N'U') IS NULL THEN 0 ELSE 1 END,
                    CASE WHEN OBJECT_ID(N'dbo.tbReportApprovalReminderDelivery', N'U') IS NULL THEN 0 ELSE 1 END,
-                   CASE WHEN COL_LENGTH(N'dbo.tbUserRegistration', N'NotificationEmail') IS NULL THEN 0 ELSE 1 END,
+                   CASE WHEN COL_LENGTH(N'dbo.tbUserRegistration', N'EmailAdd') IS NULL THEN 0 ELSE 1 END,
+                   CASE WHEN COL_LENGTH(N'dbo.tbUserRegistration', N'EmailPass') IS NULL THEN 0 ELSE 1 END,
+                   CASE WHEN COL_LENGTH(N'dbo.tbUserRegistration', N'EmailTo') IS NULL THEN 0 ELSE 1 END,
                    CASE WHEN OBJECT_ID(N'dbo.sp_Notify', N'P') IS NULL THEN 0 ELSE 1 END,
                    CASE WHEN EXISTS
                    (
@@ -61,7 +65,7 @@ public sealed class ReminderDatabaseCompatibilityValidator(
             throw new InvalidOperationException("The reminder service requires database compatibility level 100.");
         }
 
-        for (var ordinal = 1; ordinal <= 7; ordinal++)
+        for (var ordinal = 1; ordinal <= 9; ordinal++)
         {
             if (reader.GetInt32(ordinal) == 0)
             {
@@ -77,7 +81,8 @@ public sealed class ReminderDatabaseCompatibilityValidator(
 
     private static void ValidateConfiguration(
         ApprovalReminderSettings reminderSettings,
-        SmtpReminderOptions smtp)
+        SmtpReminderOptions smtp,
+        LegacyAuthenticationOptions legacyAuthentication)
     {
         if (!reminderSettings.EmailEnabled)
         {
@@ -89,9 +94,10 @@ public sealed class ReminderDatabaseCompatibilityValidator(
             throw new InvalidOperationException("Valid SMTP host and port settings are required when email reminders are enabled.");
         }
 
-        if (string.IsNullOrWhiteSpace(smtp.SenderAddress))
+        if (string.IsNullOrWhiteSpace(legacyAuthentication.EncryptionKey))
         {
-            throw new InvalidOperationException("Smtp:SenderAddress is required when email reminders are enabled.");
+            throw new InvalidOperationException(
+                "LegacyAuthentication:EncryptionKey is required when email reminders are enabled.");
         }
 
         if (smtp.TlsMode.Trim().ToUpperInvariant() is not ("NONE" or "SSLONCONNECT" or "STARTTLS"))

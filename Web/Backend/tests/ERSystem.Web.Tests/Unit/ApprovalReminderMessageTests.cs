@@ -11,8 +11,7 @@ public sealed class ApprovalReminderMessageTests
         TimeZoneId: "UTC",
         RunAtLocalTime: new TimeOnly(8, 0),
         InitialDelayDays: 3,
-        ReminderDayOfWeek: DayOfWeek.Wednesday,
-        ManagerPortalBaseUrl: "https://er.example.test");
+        ReminderDayOfWeek: DayOfWeek.Wednesday);
 
     [Fact]
     public void Creates_the_reviewed_email_and_sms_messages()
@@ -25,7 +24,8 @@ public sealed class ApprovalReminderMessageTests
         Assert.Equal("[ER System] Approval reminder - ERF ERF-2026-00421", messages.ManagerEmail.Subject);
         Assert.Contains("Hello Maria Cruz,", messages.ManagerEmail.Body, StringComparison.Ordinal);
         Assert.Contains("ERF ERF-2026-00421, filed by John Smith", messages.ManagerEmail.Body, StringComparison.Ordinal);
-        Assert.Contains("https://er.example.test/manager/reports/RPT-421", messages.ManagerEmail.Body, StringComparison.Ordinal);
+        Assert.Contains("either approve or return it in ER System", messages.ManagerEmail.Body, StringComparison.Ordinal);
+        Assert.DoesNotContain("http", messages.ManagerEmail.Body, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("repeat every Wednesday", messages.ManagerEmail.Body, StringComparison.Ordinal);
         Assert.Equal("[ER System] Your ERF ERF-2026-00421 is awaiting approval", messages.EmployeeEmail.Subject);
         Assert.Contains("A reminder was also sent to the manager.", messages.EmployeeEmail.Body, StringComparison.Ordinal);
@@ -38,7 +38,8 @@ public sealed class ApprovalReminderMessageTests
 
         Assert.Equal("[ER System] Approval required - ERF ERF-2026-00421", messages.ManagerEmail.Subject);
         Assert.Contains("is now awaiting your approval", messages.ManagerEmail.Body, StringComparison.Ordinal);
-        Assert.Contains("https://er.example.test/manager/reports/RPT-421", messages.ManagerEmail.Body, StringComparison.Ordinal);
+        Assert.Contains("Please review the report in ER System.", messages.ManagerEmail.Body, StringComparison.Ordinal);
+        Assert.DoesNotContain("http", messages.ManagerEmail.Body, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("[ER System] Your ERF ERF-2026-00421 was filed", messages.EmployeeEmail.Subject);
         Assert.Contains(
             "was filed successfully and is now awaiting approval from Maria Cruz",
@@ -73,11 +74,9 @@ public sealed class ApprovalReminderMessageTests
         EmployeeUserId: 11,
         EmployeeUsername: "JSMITH",
         EmployeeFullName: "John Smith",
-        EmployeeNotificationEmail: "john@example.test",
         ManagerUserId: 12,
         ManagerUsername: "MCRUZ",
         ManagerFullName: "Maria Cruz",
-        ManagerNotificationEmail: "maria@example.test",
         ErfReferenceNumber: "ERF-2026-00421",
         ActiveAtUtc: new DateTime(2026, 7, 17, 0, 0, 0, DateTimeKind.Utc));
 }
