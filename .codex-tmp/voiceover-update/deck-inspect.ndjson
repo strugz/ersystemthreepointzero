@@ -1,0 +1,271 @@
+{"kind":"layout","layoutId":"/ppt/slideMasters/slideMaster1.xml","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout1.xml","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/y90nupkv","slide":1,"title":"ERF System Introduction","textShapes":2}
+{"kind":"shape","id":"sh/ts7md4r2","slide":1,"name":"Straight Connector 5","bbox":[54,42,1172,1]}
+{"kind":"textbox","id":"sh/k3yl0zql","slide":1,"name":"Rectangle 2","text":"ERF System Introduction","textPreview":"ERF System Introduction","textChars":23,"textLines":1,"bbox":[54,230,900,90]}
+{"kind":"textbox","id":"sh/7qp4be9c","slide":1,"name":"Rectangle 3","text":"A guided walkthrough for expense filers and approving managers","textPreview":"A guided walkthrough for expense filers and approving managers","textChars":62,"textLines":1,"bbox":[58,342,850,60]}
+{"kind":"notes","id":"nt/y90nupkv","slide":1,"text":"Welcome to the ERF System tutorial. I’ll show you how to create, file, approve, and review an expense report. Follow each screen in order, and pause whenever you need more time."}
+{"kind":"slide","id":"sl/hwbqtkby","slide":2,"title":"WORKFLOW OVERVIEW","textShapes":19}
+{"kind":"textbox","id":"sh/mlgvq147","slide":2,"name":"Rectangle 29","text":"WORKFLOW OVERVIEW","textPreview":"WORKFLOW OVERVIEW","textChars":17,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/9072xkry","slide":2,"name":"Rectangle 1","text":"The ERF workflow moves from setup to filing and approval","textPreview":"The ERF workflow moves from setup to filing and approval","textChars":56,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/ozy1ofad","slide":2,"name":"Straight Connector 2","bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/b29kza94","slide":2,"name":"Rectangle 3","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/a10jqpsj","slide":2,"name":"Oval 4","bbox":[54,196,48,48]}
+{"kind":"textbox","id":"sh/x4r21kru","slide":2,"name":"Rectangle 5","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,206,48,26]}
+{"kind":"textbox","id":"sh/w3i1sfa9","slide":2,"name":"Rectangle 6","text":"Sign in","textPreview":"Sign in","textChars":7,"textLines":1,"bbox":[54,271,190,35]}
+{"kind":"textbox","id":"sh/r65knqtk","slide":2,"name":"Rectangle 7","text":"Access the ERF System with your assigned credentials.","textPreview":"Access the ERF System with your assigned credentials.","textChars":53,"textLines":1,"bbox":[54,318,190,125]}
+{"kind":"shape","id":"sh/q5wjelsz","slide":2,"name":"Straight Connector 8","bbox":[118,220,150,1]}
+{"kind":"shape","id":"sh/ove9o7yd","slide":2,"name":"Oval 9","bbox":[289,196,48,48]}
+{"kind":"textbox","id":"sh/9wnqhczy","slide":2,"name":"Rectangle 10","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[289,206,48,26]}
+{"kind":"textbox","id":"sh/mtwrmxg7","slide":2,"name":"Rectangle 11","text":"Prepare","textPreview":"Prepare","textChars":7,"textLines":1,"bbox":[289,271,190,35]}
+{"kind":"textbox","id":"sh/nu58f2hs","slide":2,"name":"Rectangle 12","text":"Review account, email, password, and signatory settings.","textPreview":"Review account, email, password, and signatory settings.","textChars":56,"textLines":1,"bbox":[289,318,190,125]}
+{"kind":"shape","id":"sh/wjy9sry9","slide":2,"name":"Straight Connector 13","bbox":[353,220,150,1]}
+{"kind":"shape","id":"sh/xk7qlczu","slide":2,"name":"Oval 14","bbox":[524,196,48,48]}
+{"kind":"textbox","id":"sh/ahwrqhgj","slide":2,"name":"Rectangle 15","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[524,206,48,26]}
+{"kind":"textbox","id":"sh/bip8jmho","slide":2,"name":"Rectangle 16","text":"Create","textPreview":"Create","textChars":6,"textLines":1,"bbox":[524,271,190,35]}
+{"kind":"textbox","id":"sh/cnupgny5","slide":2,"name":"Rectangle 17","text":"Enter expense details and confirm the report output.","textPreview":"Enter expense details and confirm the report output.","textChars":52,"textLines":1,"bbox":[524,318,190,125]}
+{"kind":"shape","id":"sh/do3q9szq","slide":2,"name":"Straight Connector 18","bbox":[588,220,150,1]}
+{"kind":"shape","id":"sh/t8byxkn2","slide":2,"name":"Oval 19","bbox":[759,196,48,48]}
+{"kind":"textbox","id":"sh/s72xofmh","slide":2,"name":"Rectangle 20","text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[759,206,48,26]}
+{"kind":"textbox","id":"sh/76twva5c","slide":2,"name":"Rectangle 21","text":"File","textPreview":"File","textChars":4,"textLines":1,"bbox":[759,271,190,35]}
+{"kind":"textbox","id":"sh/65kfmpor","slide":2,"name":"Rectangle 22","text":"Submit the report for manager review and approval.","textPreview":"Submit the report for manager review and approval.","textChars":50,"textLines":1,"bbox":[759,318,190,125]}
+{"kind":"shape","id":"sh/hcvy14ne","slide":2,"name":"Straight Connector 23","bbox":[823,220,150,1]}
+{"kind":"shape","id":"sh/gbmxszmt","slide":2,"name":"Oval 24","bbox":[994,196,48,48]}
+{"kind":"textbox","id":"sh/fadgzu58","slide":2,"name":"Rectangle 25","text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[994,206,48,26]}
+{"kind":"textbox","id":"sh/u94fqp4n","slide":2,"name":"Rectangle 26","text":"Finish","textPreview":"Finish","textChars":6,"textLines":1,"bbox":[994,271,190,35]}
+{"kind":"textbox","id":"sh/p0vy54na","slide":2,"name":"Rectangle 27","text":"Send or print the completed expense report.","textPreview":"Send or print the completed expense report.","textChars":43,"textLines":1,"bbox":[994,318,190,125]}
+{"kind":"textbox","id":"sh/4zmxwzmp","slide":2,"name":"Rectangle 28","text":"Employees prepare and file. Managers review and decide.","textPreview":"Employees prepare and file. Managers review and decide.","textChars":55,"textLines":1,"bbox":[54,590,1000,42]}
+{"kind":"notes","id":"nt/hwbqtkby","slide":2,"text":"The process starts with account setup and expense entry. The report is then filed, reviewed by the manager, and checked by Finance. Let’s go through each step."}
+{"kind":"slide","id":"sl/ofy9wn61","slide":3,"title":"EMPLOYEE","textShapes":10}
+{"kind":"textbox","id":"sh/w7ulsvqp","slide":3,"name":"Rectangle 16","text":"EMPLOYEE","textPreview":"EMPLOYEE","textChars":8,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/cza94vmx","slide":3,"name":"Rectangle 1","text":"Start by signing in to the ERF System","textPreview":"Start by signing in to the ERF System","textChars":37,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/d0jax03i","slide":3,"name":"Straight Connector 2","bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/298ryl4v","slide":3,"name":"Rectangle 3","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/3ah8rqlg","slide":3,"name":"Rectangle: Rounded Corners 4","bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/pcjqtg36","slide":3,"name":"Rectangle 6","text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/m5cra54z","slide":3,"name":"Oval 7","bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/n6ls3alk","slide":3,"name":"Rectangle 8","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/n2l4fq98","slide":3,"name":"Rectangle 9","text":"Enter your assigned username.","textPreview":"Enter your assigned username.","textChars":29,"textLines":1,"bbox":[108,219,210,70]}
+{"kind":"shape","id":"sh/m1c3mlsn","slide":3,"name":"Oval 10","bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/943mhgre","slide":3,"name":"Rectangle 11","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/83ulovat","slide":3,"name":"Rectangle 12","text":"Enter your password.","textPreview":"Enter your password.","textChars":20,"textLines":1,"bbox":[108,331,210,70]}
+{"kind":"shape","id":"sh/v6l4jq94","slide":3,"name":"Oval 13","bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/a5c3ql8z","slide":3,"name":"Rectangle 14","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/x8nml0ra","slide":3,"name":"Rectangle 15","text":"Select Login to continue.","textPreview":"Select Login to continue.","textChars":25,"textLines":1,"bbox":[108,443,210,70]}
+{"kind":"image","id":"im/8ju58bep","slide":3,"name":"Picture 21","bbox":[422.23,174,733.54,462]}
+{"kind":"notes","id":"nt/ofy9wn61","slide":3,"text":"Enter your username and password. Check that both are correct, then click Login. Use Cancel if you want to close the window."}
+{"kind":"slide","id":"sl/jyx0ra1s","slide":4,"title":"EMPLOYEE","textShapes":10}
+{"kind":"textbox","id":"sh/v6tsv2xo","slide":4,"name":"Rectangle 16","text":"EMPLOYEE","textPreview":"EMPLOYEE","textChars":8,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/1cj2d8b6","slide":4,"name":"Rectangle 1","text":"The main page is the starting point for ERF tasks","textPreview":"The main page is the starting point for ERF tasks","textChars":49,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/0ba143al","slide":4,"name":"Straight Connector 2","bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/rm1k7yt4","slide":4,"name":"Rectangle 3","text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/ql8jytsj","slide":4,"name":"Rectangle: Rounded Corners 4","bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/sna103ap","slide":4,"name":"Rectangle 6","text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/3ihk3et8","slide":4,"name":"Oval 7","bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/ih8ju9sn","slide":4,"name":"Rectangle 8","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/kbm987y5","slide":4,"name":"Rectangle 9","text":"Confirm the signed-in user.","textPreview":"Confirm the signed-in user.","textChars":27,"textLines":1,"bbox":[108,219,210,70]}
+{"kind":"shape","id":"sh/5cva1cfq","slide":4,"name":"Oval 10","bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/i94r6xgz","slide":4,"name":"Rectangle 11","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/jadsz2xk","slide":4,"name":"Rectangle 12","text":"Use the top menu to open a task.","textPreview":"Use the top menu to open a task.","textChars":32,"textLines":1,"bbox":[108,331,210,70]}
+{"kind":"shape","id":"sh/w72947yt","slide":4,"name":"Oval 13","bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/x8vaxsfe","slide":4,"name":"Rectangle 14","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/a5kr2xg3","slide":4,"name":"Rectangle 15","text":"Check the status bar for context.","textPreview":"Check the status bar for context.","textChars":33,"textLines":1,"bbox":[108,443,210,70]}
+{"kind":"image","id":"im/b6xofahg","slide":4,"name":"Picture 21","bbox":[378.17,174,821.67,462]}
+{"kind":"notes","id":"nt/jyx0ra1s","slide":4,"text":"This is the ERF main page. Confirm your user and department at the bottom of the screen. Use the menu or shortcut buttons at the top to open a task."}
+{"kind":"slide","id":"sl/i107q5of","slide":5,"title":"EMPLOYEE","textShapes":10}
+{"kind":"textbox","id":"sh/j6dwfqds","slide":5,"name":"Rectangle 16","text":"EMPLOYEE","textPreview":"EMPLOYEE","textChars":8,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/dgbulwnm","slide":5,"name":"Rectangle 1","text":"Review account information before filing expenses","textPreview":"Review account information before filing expenses","textChars":49,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/cf2tcr61","slide":5,"name":"Straight Connector 2","bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/z2tcnm5s","slide":5,"name":"Rectangle 3","text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/yhkbe1o7","slide":5,"name":"Rectangle: Rounded Corners 4","bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/032tgr6d","slide":5,"name":"Rectangle 6","text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/n6dcr65o","slide":5,"name":"Oval 7","bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/m5kbi1oj","slide":5,"name":"Rectangle 8","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/w32dkbuh","slide":5,"name":"Rectangle 9","text":"Open Account Settings.","textPreview":"Open Account Settings.","textChars":22,"textLines":1,"bbox":[108,219,210,70]}
+{"kind":"shape","id":"sh/x4vedgvm","slide":5,"name":"Oval 10","bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/ahkvi1cb","slide":5,"name":"Rectangle 11","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/v2twb6dw","slide":5,"name":"Rectangle 12","text":"Review your user and employee information.","textPreview":"Review your user and employee information.","textChars":42,"textLines":1,"bbox":[108,331,210,70]}
+{"kind":"shape","id":"sh/k7mxovud","slide":5,"name":"Oval 13","bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/58vehgvy","slide":5,"name":"Rectangle 14","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/i54fmlc7","slide":5,"name":"Rectangle 15","text":"Save only verified changes.","textPreview":"Save only verified changes.","textChars":27,"textLines":1,"bbox":[108,443,210,70]}
+{"kind":"image","id":"im/vitwz65k","slide":5,"name":"Picture 21","bbox":[378.17,174,821.67,462]}
+{"kind":"notes","id":"nt/i107q5of","slide":5,"text":"Open Account Settings and review your information. Update only the fields you are allowed to change. Click Save when the details are correct."}
+{"kind":"slide","id":"sl/x8f69ofe","slide":6,"title":"EMPLOYEE","textShapes":10}
+{"kind":"textbox","id":"sh/i54bylor","slide":6,"name":"Rectangle 16","text":"EMPLOYEE","textPreview":"EMPLOYEE","textChars":8,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/yhg7epsj","slide":6,"name":"Rectangle 1","text":"Maintain your password and email configuration","textPreview":"Maintain your password and email configuration","textChars":46,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/zi98nu94","slide":6,"name":"Straight Connector 2","bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/87ipkzal","slide":6,"name":"Rectangle 3","text":"6","textPreview":"6","textChars":1,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/98rqt4r6","slide":6,"name":"Rectangle: Rounded Corners 4","bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/7m98ru9g","slide":6,"name":"Rectangle 6","text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/oryp8fah","slide":6,"name":"Oval 7","bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/pc76hkr2","slide":6,"name":"Rectangle 8","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/h4bupgn6","slide":6,"name":"Rectangle 9","text":"Use Change Password when credentials must be updated.","textPreview":"Use Change Password when credentials must be updated.","textChars":53,"textLines":1,"bbox":[108,219,210,70]}
+{"kind":"shape","id":"sh/w32twb6l","slide":6,"name":"Oval 10","bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/v2tcn650","slide":6,"name":"Rectangle 11","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/u1kbu1ov","slide":6,"name":"Rectangle 12","text":"Open Email Setup for notification settings.","textPreview":"Open Email Setup for notification settings.","textChars":43,"textLines":1,"bbox":[108,331,210,70]}
+{"kind":"shape","id":"sh/5svutgni","slide":6,"name":"Oval 13","bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/47mt0b6x","slide":6,"name":"Rectangle 14","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/j6dcr65c","slide":6,"name":"Rectangle 15","text":"Confirm entries before saving.","textPreview":"Confirm entries before saving.","textChars":30,"textLines":1,"bbox":[108,443,210,70]}
+{"kind":"image","id":"im/a5sbipcr","slide":6,"name":"Picture 21","bbox":[378.17,174,821.67,462]}
+{"kind":"notes","id":"nt/x8f69ofe","slide":6,"text":"Use Change Password to update your login credentials. Open Email Setup to configure your work email. Check the information before saving."}
+{"kind":"slide","id":"sl/gnmp4jqx","slide":7,"title":"EMPLOYEE","textShapes":10}
+{"kind":"textbox","id":"sh/o761ov2t","slide":7,"name":"Rectangle 16","text":"EMPLOYEE","textPreview":"EMPLOYEE","textChars":8,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/cb2tkvap","slide":7,"name":"Rectangle 1","text":"Set the signatory used in the approval route","textPreview":"Set the signatory used in the approval route","textChars":44,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/dcbud0ra","slide":7,"name":"Straight Connector 2","bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/ydkbm5sv","slide":7,"name":"Rectangle 3","text":"7","textPreview":"7","textChars":1,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/zedcfa9g","slide":7,"name":"Rectangle: Rounded Corners 4","bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/l0vuh0rm","slide":7,"name":"Rectangle 6","text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/eh0ba1sr","slide":7,"name":"Oval 7","bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/fi9c369c","slide":7,"name":"Rectangle 8","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/baxkjqlk","slide":7,"name":"Rectangle 9","text":"Open the Signatory setup.","textPreview":"Open the Signatory setup.","textChars":25,"textLines":1,"bbox":[108,219,210,70]}
+{"kind":"shape","id":"sh/a9ojq5kz","slide":7,"name":"Oval 10","bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/xcz2l03q","slide":7,"name":"Rectangle 11","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/cbq1sv25","slide":7,"name":"Rectangle 12","text":"Select the appropriate approving person.","textPreview":"Select the appropriate approving person.","textChars":40,"textLines":1,"bbox":[108,331,210,70]}
+{"kind":"shape","id":"sh/n6x0fqlo","slide":7,"name":"Oval 13","bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/25ojml43","slide":7,"name":"Rectangle 14","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/p8fih03e","slide":7,"name":"Rectangle 15","text":"Save the confirmed routing choice.","textPreview":"Save the confirmed routing choice.","textChars":34,"textLines":1,"bbox":[108,443,210,70]}
+{"kind":"image","id":"im/8rqxsni1","slide":7,"name":"Picture 21","bbox":[378.17,174,821.67,462]}
+{"kind":"notes","id":"nt/gnmp4jqx","slide":7,"text":"Open the Signatory setup and select the correct approver. Check the name before saving because this determines where your report will be sent."}
+{"kind":"slide","id":"sl/fu1gfa1s","slide":8,"title":"EMPLOYEE","textShapes":10}
+{"kind":"textbox","id":"sh/zipwbmdc","slide":8,"name":"Rectangle 16","text":"EMPLOYEE","textPreview":"EMPLOYEE","textChars":8,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/18byd4zy","slide":8,"name":"Rectangle 1","text":"Create a new expense from the main workspace","textPreview":"Create a new expense from the main workspace","textChars":44,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/g72x4zyd","slide":8,"name":"Straight Connector 2","bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/ri9g7uhw","slide":8,"name":"Rectangle 3","text":"8","textPreview":"8","textChars":1,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/6h0fypgb","slide":8,"name":"Rectangle: Rounded Corners 4","bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/sjix0zy1","slide":8,"name":"Rectangle 6","text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/je9g3ahk","slide":8,"name":"Oval 7","bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/id0fu50z","slide":8,"name":"Rectangle 8","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/o7ydoret","slide":8,"name":"Rectangle 9","text":"Open the expense entry command.","textPreview":"Open the expense entry command.","textChars":31,"textLines":1,"bbox":[108,219,210,70]}
+{"kind":"shape","id":"sh/98rehwve","slide":8,"name":"Oval 10","bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/m5gvmhwn","slide":8,"name":"Rectangle 11","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/n6pwfmd8","slide":8,"name":"Rectangle 12","text":"Complete the report header details.","textPreview":"Complete the report header details.","textChars":35,"textLines":1,"bbox":[108,331,210,70]}
+{"kind":"shape","id":"sh/0jydkreh","slide":8,"name":"Oval 13","bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/1k7edwv2","slide":8,"name":"Rectangle 14","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/ehgvihwr","slide":8,"name":"Rectangle 15","text":"Continue to the expense items.","textPreview":"Continue to the expense items.","textChars":30,"textLines":1,"bbox":[108,443,210,70]}
+{"kind":"image","id":"im/nud8jy1k","slide":8,"name":"Picture 21","bbox":[378.17,174,821.67,462]}
+{"kind":"notes","id":"nt/fu1gfa1s","slide":8,"text":"Open the expense-entry form. Complete the report details using your receipt or supporting documents. Review the information before adding expense items."}
+{"kind":"slide","id":"sl/udsvah03","slide":9,"title":"EMPLOYEE","textShapes":10}
+{"kind":"textbox","id":"sh/bml0buxs","slide":9,"name":"Rectangle 16","text":"EMPLOYEE","textPreview":"EMPLOYEE","textChars":8,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/1cfmhgne","slide":9,"name":"Rectangle 1","text":"Enter each expense item completely and accurately","textPreview":"Enter each expense item completely and accurately","textChars":49,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/0b65obm9","slide":9,"name":"Straight Connector 2","bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/nex4jq5k","slide":9,"name":"Rectangle 3","text":"9","textPreview":"9","textChars":1,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/mdonql4z","slide":9,"name":"Rectangle: Rounded Corners 4","bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/ofq5svm5","slide":9,"name":"Rectangle 6","text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/bih4na5w","slide":9,"name":"Oval 7","bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/ah8nu54b","slide":9,"name":"Rectangle 8","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/oza1gfyh","slide":9,"name":"Rectangle 9","text":"Add an expense item.","textPreview":"Add an expense item.","textChars":20,"textLines":1,"bbox":[108,219,210,70]}
+{"kind":"shape","id":"sh/p0ji9kf2","slide":9,"name":"Oval 10","bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/2xsjepgb","slide":9,"name":"Rectangle 11","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/3y107axw","slide":9,"name":"Rectangle 12","text":"Complete the available item fields.","textPreview":"Complete the available item fields.","textChars":35,"textLines":1,"bbox":[108,331,210,70]}
+{"kind":"shape","id":"sh/cnu1kzyd","slide":9,"name":"Oval 13","bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/do3id4fy","slide":9,"name":"Rectangle 14","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/qlcjipgn","slide":9,"name":"Rectangle 15","text":"Save and review the new line.","textPreview":"Save and review the new line.","textChars":29,"textLines":1,"bbox":[108,443,210,70]}
+{"kind":"image","id":"im/jixovqds","slide":9,"name":"Picture 21","bbox":[378.17,174,821.67,462]}
+{"kind":"notes","id":"nt/udsvah03","slide":9,"text":"Enter the date, amount, description, and other required details. Compare the entry with the receipt, then click Save. Repeat this step for every expense."}
+{"kind":"slide","id":"sl/m90b6t0r","slide":10,"title":"MANAGER","textShapes":10}
+{"kind":"textbox","id":"sh/fapcz6ls","slide":10,"name":"Rectangle 16","text":"MANAGER","textPreview":"MANAGER","textChars":7,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/xc3mho32","slide":10,"name":"Rectangle 1","text":"Managers open the approval review queue","textPreview":"Managers open the approval review queue","textChars":39,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/cbu58j2h","slide":10,"name":"Straight Connector 2","bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/zelojyl8","slide":10,"name":"Rectangle 3","text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/ydcnatkn","slide":10,"name":"Rectangle: Rounded Corners 4","bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/kzu5c32t","slide":10,"name":"Rectangle 6","text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/725onyl4","slide":10,"name":"Oval 7","bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/m1cnetkj","slide":10,"name":"Rectangle 8","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/s7yt4b21","slide":10,"name":"Rectangle 9","text":"Open Approval Review.","textPreview":"Open Approval Review.","textChars":21,"textLines":1,"bbox":[108,219,210,70]}
+{"kind":"shape","id":"sh/d87uxg3m","slide":10,"name":"Oval 10","bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/q5gb21kb","slide":10,"name":"Rectangle 11","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/r6pcv6lw","slide":10,"name":"Rectangle 12","text":"Select a report from the queue.","textPreview":"Select a report from the queue.","textChars":31,"textLines":1,"bbox":[108,331,210,70]}
+{"kind":"shape","id":"sh/0bit8b2d","slide":10,"name":"Oval 13","bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/1cru1g3y","slide":10,"name":"Rectangle 14","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/e9gb61k7","slide":10,"name":"Rectangle 15","text":"Review the submitted expense details.","textPreview":"Review the submitted expense details.","textChars":37,"textLines":1,"bbox":[108,443,210,70]}
+{"kind":"image","id":"im/ra907i14","slide":10,"name":"Picture 21","bbox":[378.17,174,821.67,462]}
+{"kind":"notes","id":"nt/m90b6t0r","slide":10,"text":"Managers open the Approval Review form and select a report from the list. Check the employee, expense details, and supporting information before taking action."}
+{"kind":"slide","id":"sl/jetc3ut0","slide":11,"title":"MANAGER","textShapes":10}
+{"kind":"textbox","id":"sh/zaxs3yhc","slide":11,"name":"Rectangle 16","text":"MANAGER","textPreview":"MANAGER","textChars":7,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/xcryxg7y","slide":11,"name":"Rectangle 1","text":"Record the approval decision after completing the review","textPreview":"Record the approval decision after completing the review","textChars":56,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/wbih4b6d","slide":11,"name":"Straight Connector 2","bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/n69grmpw","slide":11,"name":"Rectangle 3","text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/250zy18b","slide":11,"name":"Rectangle: Rounded Corners 4","bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/o7ih0r6h","slide":11,"name":"Rectangle 6","text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/72t03qp0","slide":11,"name":"Oval 7","bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/61kzalof","slide":11,"name":"Rectangle 8","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/ofqtgnyt","slide":11,"name":"Rectangle 9","text":"Confirm the selected report.","textPreview":"Confirm the selected report.","textChars":28,"textLines":1,"bbox":[108,219,210,70]}
+{"kind":"shape","id":"sh/9gza9sze","slide":11,"name":"Oval 10","bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/mdobedg3","slide":11,"name":"Rectangle 11","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/nehs7iho","slide":11,"name":"Rectangle 12","text":"Choose the appropriate review action.","textPreview":"Choose the appropriate review action.","textChars":37,"textLines":1,"bbox":[108,331,210,70]}
+{"kind":"shape","id":"sh/0b6tc3yx","slide":11,"name":"Oval 13","bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/1cfa58zi","slide":11,"name":"Rectangle 14","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/epobatgr","slide":11,"name":"Rectangle 15","text":"Verify the report output and recorded status.","textPreview":"Verify the report output and recorded status.","textChars":45,"textLines":1,"bbox":[108,443,210,70]}
+{"kind":"image","id":"im/nipo3q14","slide":11,"name":"Picture 21","bbox":[378.17,174,821.67,462]}
+{"kind":"notes","id":"nt/jetc3ut0","slide":11,"text":"Choose the correct approval action after reviewing the report. Confirm that you selected the correct employee and transaction. Check that the system records the decision."}
+{"kind":"slide","id":"sl/8f2psfyx","slide":12,"title":"EMPLOYEE OR MANAGER","textShapes":10}
+{"kind":"textbox","id":"sh/nq1o3a5w","slide":12,"name":"Rectangle 16","text":"EMPLOYEE OR MANAGER","textPreview":"EMPLOYEE OR MANAGER","textChars":19,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/1gbm9s3a","slide":12,"name":"Rectangle 1","text":"Send or print the completed expense report","textPreview":"Send or print the completed expense report","textChars":42,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/0f2lgnmp","slide":12,"name":"Straight Connector 2","bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/ra943il8","slide":12,"name":"Rectangle 3","text":"12","textPreview":"12","textChars":2,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/q903ad4n","slide":12,"name":"Rectangle: Rounded Corners 4","bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/sb2lcnmd","slide":12,"name":"Rectangle 6","text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/b6d4f2lc","slide":12,"name":"Oval 7","bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/a543mx4r","slide":12,"name":"Rectangle 8","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/wvupgz6t","slide":12,"name":"Rectangle 9","text":"Preview the completed report.","textPreview":"Preview the completed report.","textChars":29,"textLines":1,"bbox":[108,219,210,70]}
+{"kind":"shape","id":"sh/xw3q94ne","slide":12,"name":"Oval 10","bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/atc7epon","slide":12,"name":"Rectangle 11","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/bulo7u58","slide":12,"name":"Rectangle 12","text":"Confirm the document and recipient context.","textPreview":"Confirm the document and recipient context.","textChars":43,"textLines":1,"bbox":[108,331,210,70]}
+{"kind":"shape","id":"sh/orapcf6h","slide":12,"name":"Oval 13","bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/9sj65kn2","slide":12,"name":"Rectangle 14","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/mps7a5or","slide":12,"name":"Rectangle 15","text":"Use Send or Print as required.","textPreview":"Use Send or Print as required.","textChars":30,"textLines":1,"bbox":[108,443,210,70]}
+{"kind":"image","id":"im/vytoz6lk","slide":12,"name":"Picture 21","bbox":[378.17,174,821.67,462]}
+{"kind":"notes","id":"nt/8f2psfyx","slide":12,"text":"Review the completed report in the Send or Print window. Check the recipient or printer settings, then choose Send or Print as needed."}
+{"kind":"slide","id":"sl/hgzapcr6","slide":13,"title":"FINANCE","textShapes":10}
+{"kind":"textbox","id":"sh/6l4fu547","slide":13,"text":"FINANCE","textPreview":"FINANCE","textChars":7,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/q50nydsj","slide":13,"text":"Finance verifies the submitted ERF and physical receipts","textPreview":"Finance verifies the submitted ERF and physical receipts","textChars":56,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/bq9orito","slide":13,"bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/o3i5w3ad","slide":13,"text":"13","textPreview":"13","textChars":2,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/p4r6p8by","slide":13,"bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/32ponyts","slide":13,"text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/gzy5s3a1","slide":13,"bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/1076lobm","slide":13,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/hcfy9k3u","slide":13,"text":"Find and select the submitted ERF.","textPreview":"Find and select the submitted ERF.","textChars":34,"textLines":1,"bbox":[108,219,210,76]}
+{"kind":"shape","id":"sh/gb6x0zm9","slide":13,"bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/vaxg7ulo","slide":13,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/u9ofyp43","slide":13,"text":"Review the ERF details, status, and receipt indicator.","textPreview":"Review the ERF details, status, and receipt indicator.","textChars":54,"textLines":1,"bbox":[108,331,210,76]}
+{"kind":"shape","id":"sh/t8fy5k3i","slide":13,"bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/876xwfmx","slide":13,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/7mdg3als","slide":13,"text":"Record remarks and confirm receipt handling.","textPreview":"Record remarks and confirm receipt handling.","textChars":44,"textLines":1,"bbox":[108,443,210,76]}
+{"kind":"image","id":"im/y5ozilcj","slide":13,"name":"","bbox":[378.17,174,821.67,462]}
+{"kind":"notes","id":"nt/hgzapcr6","slide":13,"text":"Finance selects the correct report and reviews its details and receipt status. Add a remark when needed. Click Receipts Received only after the physical receipts have been verified."}
+{"kind":"slide","id":"sl/6lsnupw7","slide":14,"title":"FINANCE","textShapes":10}
+{"kind":"textbox","id":"sh/z650byxo","slide":14,"text":"FINANCE","textPreview":"FINANCE","textChars":7,"textLines":1,"bbox":[54,32,450,24]}
+{"kind":"textbox","id":"sh/xc7eds76","slide":14,"text":"Finance sends SMS reminders from the review form","textPreview":"Finance sends SMS reminders from the review form","textChars":48,"textLines":1,"bbox":[54,67,1120,58]}
+{"kind":"shape","id":"sh/wbydknq1","slide":14,"bbox":[54,132,1172,1]}
+{"kind":"textbox","id":"sh/jepwf2pc","slide":14,"text":"14","textPreview":"14","textChars":2,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/idgvmx8r","slide":14,"bbox":[352,160,874,490]}
+{"kind":"textbox","id":"sh/kfidonqx","slide":14,"text":"WHAT TO DO","textPreview":"WHAT TO DO","textChars":10,"textLines":1,"bbox":[54,177,230,22]}
+{"kind":"shape","id":"sh/zi5c3y98","slide":14,"bbox":[54,222,38,38]}
+{"kind":"textbox","id":"sh/ehwvat8n","slide":14,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[54,229,38,24]}
+{"kind":"textbox","id":"sh/c3e1gjyd","slide":14,"text":"Select Send in the report’s SMS column.","textPreview":"Select Send in the report’s SMS column.","textChars":39,"textLines":1,"bbox":[108,219,210,76]}
+{"kind":"shape","id":"sh/x4ni9ofy","slide":14,"bbox":[54,334,38,38]}
+{"kind":"textbox","id":"sh/a1wze9g7","slide":14,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[54,341,38,24]}
+{"kind":"textbox","id":"sh/b2507exs","slide":14,"text":"Verify the recipients and notification message.","textPreview":"Verify the recipients and notification message.","textChars":47,"textLines":1,"bbox":[108,331,210,76]}
+{"kind":"shape","id":"sh/kre1k3y9","slide":14,"bbox":[54,446,38,38]}
+{"kind":"textbox","id":"sh/ls7idofu","slide":14,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[54,453,38,24]}
+{"kind":"textbox","id":"sh/y5wjitgj","slide":14,"text":"Review the preview, then select Send.","textPreview":"Review the preview, then select Send.","textChars":37,"textLines":1,"bbox":[108,443,210,76]}
+{"kind":"image","id":"im/bmlw7u10","slide":14,"name":"","bbox":[378.17,174,821.67,462]}
+{"kind":"notes","id":"nt/6lsnupw7","slide":14,"text":"Click Send in the report’s SMS column. Check the recipients and preview the message. If everything is correct, click Send."}
+{"kind":"slide","id":"sl/vaxsvy10","slide":15,"title":"ROLES AND NEXT STEPS","textShapes":11}
+{"kind":"textbox","id":"sh/4vm9ovel","slide":15,"name":"Rectangle 13","text":"ROLES AND NEXT STEPS","textPreview":"ROLES AND NEXT STEPS","textChars":20,"textLines":1,"bbox":[54,55,450,24]}
+{"kind":"textbox","id":"sh/547mhg3m","slide":15,"name":"Rectangle 1","text":"Each role owns a clear part of the ERF process","textPreview":"Each role owns a clear part of the ERF process","textChars":46,"textLines":1,"bbox":[54,104,1050,82]}
+{"kind":"shape","id":"sh/k3y5ov21","slide":15,"name":"Rectangle: Rounded Corners 2","bbox":[54,270,340,250]}
+{"kind":"textbox","id":"sh/76p4jqls","slide":15,"name":"Rectangle 3","text":"EMPLOYEES","textPreview":"EMPLOYEES","textChars":9,"textLines":1,"bbox":[78,300,285,26]}
+{"kind":"textbox","id":"sh/65gnqlk7","slide":15,"name":"Rectangle 4","text":"Maintain settings\nEnter expenses\nReview and file","textPreview":"Maintain settings | Enter expenses | Review and file","textChars":48,"textLines":3,"bbox":[78,352,285,126]}
+{"kind":"shape","id":"sh/t87ml0ji","slide":15,"name":"Rectangle: Rounded Corners 5","bbox":[446,270,340,250]}
+{"kind":"textbox","id":"sh/s7y5sv2x","slide":15,"name":"Rectangle 6","text":"MANAGERS","textPreview":"MANAGERS","textChars":8,"textLines":1,"bbox":[470,300,285,26]}
+{"kind":"textbox","id":"sh/na5476l8","slide":15,"name":"Rectangle 7","text":"Review submissions\nRecord decisions\nConfirm the outcome","textPreview":"Review submissions | Record decisions | Confirm the outcome","textChars":55,"textLines":3,"bbox":[470,352,285,126]}
+{"kind":"shape","id":"sh/m9c3e1kn","slide":15,"name":"Rectangle: Rounded Corners 8","bbox":[838,270,340,250]}
+{"kind":"textbox","id":"sh/wrm9kvep","slide":15,"name":"Rectangle 9","text":"BOTH ROLES","textPreview":"BOTH ROLES","textChars":10,"textLines":1,"bbox":[862,300,285,26]}
+{"kind":"textbox","id":"sh/hsvat0fa","slide":15,"name":"Rectangle 10","text":"Check the final report\nSend or print correctly\nFollow current policy","textPreview":"Check the final report | Send or print correctly | Follow current policy","textChars":68,"textLines":3,"bbox":[862,352,285,126]}
+{"kind":"textbox","id":"sh/upkrilwj","slide":15,"name":"Rectangle 11","text":"Use this guide alongside your organization’s current expense policies.","textPreview":"Use this guide alongside your organization’s current expense policies.","textChars":70,"textLines":1,"bbox":[54,590,1100,42]}
+{"kind":"textbox","id":"sh/vqdsrqx4","slide":15,"name":"Rectangle 12","text":"15","textPreview":"15","textChars":2,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"shape","id":"sh/5wvax0f6","slide":15,"bbox":[1175,665,65,42]}
+{"kind":"textbox","id":"sh/it4rm5wv","slide":15,"text":"15","textPreview":"15","textChars":2,"textLines":1,"bbox":[1190,680,36,18]}
+{"kind":"notes","id":"nt/vaxsvy10","slide":15,"text":"Employees create and file the report. Managers review and decide, while Finance verifies the report and receipts. Always check that you are working with the correct transaction."}

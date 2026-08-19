@@ -1,0 +1,344 @@
+using ERSystem.Web.Application.Common;
+using ERSystem.Web.Domain.ApprovalReminders;
+
+namespace ERSystem.Web.Application.Features.ApprovalReminders;
+
+public sealed class ApprovalReminderService(
+    IApprovalReminderRepository repository,
+    IEmailReminderSender emailSender,
+    ISmsReminderSender smsSender,
+    ApprovalReminderMessageFactory messageFactory,
+    ApprovalReminderSettings settings,
+    IClock clock) : IApprovalReminderService
+{
+    private const int ActivationReminderNumber = 0;
+
+    public async Task<ApprovalReminderRunSummary> RunActivationNotificationsAsync(
+        CancellationToken cancellationToken)
+    {
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(settings.TimeZoneId);
+        var candidates = await repository.GetActionableApprovalsAsync(cancellationToken);
+        var nowUtc = clock.UtcNow;
+        var totals = new DeliveryTotals();
+        var dueCandidates = 0;
+
+        foreach (var candidate in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var elapsedDays = ApprovalReminderSchedule.GetElapsedCalendarDays(
+                candidate.ActiveAtUtc,
+                nowUtc,
+                timeZone);
+            var isExpired = elapsedDays >= settings.InitialDelayDays;
+            if (!isExpired)
+            {
+                dueCandidates++;
+            }
+
+            var skipCode = isExpired
+                ? "ACTIVATION_EXPIRED"
+                : settings.EmailEnabled
+                    ? null
+                    : "EMAIL_DISABLED";
+            var messages = messageFactory.CreateActivation(candidate);
+
+            var managerOutcome = await ProcessEmailAsync(
+                candidate,
+                ActivationReminderNumber,
+                ReminderAudience.Manager,
+                candidate.ManagerUserId,
+                messages.ManagerEmail,
+                skipCode,
+                cancellationToken);
+            totals.Increment(managerOutcome);
+
+            var employeeOutcome = await ProcessEmailAsync(
+                candidate,
+                ActivationReminderNumber,
+                ReminderAudience.Employee,
+                candidate.EmployeeUserId,
+                messages.EmployeeEmail,
+                skipCode,
+                cancellationToken);
+            totals.Increment(employeeOutcome);
+        }
+
+        return totals.ToSummary(candidates.Count, dueCandidates);
+    }
+
+    public async Task<ApprovalReminderRunSummary> RunScheduledRemindersAsync(
+        CancellationToken cancellationToken)
+    {
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(settings.TimeZoneId);
+        var candidates = await repository.GetActionableApprovalsAsync(cancellationToken);
+        var nowUtc = clock.UtcNow;
+        var totals = new DeliveryTotals();
+        var dueCandidates = 0;
+
+        foreach (var candidate in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var reminderNumber = ApprovalReminderSchedule.GetLatestDueReminderNumber(
+                candidate.ActiveAtUtc,
+                nowUtc,
+                timeZone,
+                settings.InitialDelayDays,
+                settings.ReminderDayOfWeek);
+
+            if (reminderNumber == 0)
+            {
+                continue;
+            }
+
+            dueCandidates++;
+            if (!settings.EmailEnabled && !settings.SmsEnabled)
+            {
+                continue;
+            }
+
+            var elapsedDays = ApprovalReminderSchedule.GetElapsedCalendarDays(
+                candidate.ActiveAtUtc,
+                nowUtc,
+                timeZone);
+            var messages = messageFactory.CreateReminder(candidate, elapsedDays);
+
+            if (settings.EmailEnabled)
+            {
+                var managerOutcome = await ProcessEmailAsync(
+                    candidate,
+                    reminderNumber,
+                    ReminderAudience.Manager,
+                    candidate.ManagerUserId,
+                    messages.ManagerEmail,
+                    null,
+                    cancellationToken);
+                totals.Increment(managerOutcome);
+
+                var employeeOutcome = await ProcessEmailAsync(
+                    candidate,
+                    reminderNumber,
+                    ReminderAudience.Employee,
+                    candidate.EmployeeUserId,
+                    messages.EmployeeEmail,
+                    null,
+                    cancellationToken);
+                totals.Increment(employeeOutcome);
+            }
+
+            if (settings.SmsEnabled)
+            {
+                var recipients = new[]
+                {
+                    new SmsRecipient(ReminderAudience.Manager, candidate.ManagerUserId, candidate.ManagerUsername)
+                };
+
+                await ProcessSmsBatchAsync(
+                    candidate,
+                    reminderNumber,
+                    recipients,
+                    messages.SmsMessage,
+                    totals,
+                    cancellationToken);
+            }
+        }
+
+        return totals.ToSummary(candidates.Count, dueCandidates);
+    }
+
+    private async Task ProcessSmsBatchAsync(
+        ApprovalReminderCandidate candidate,
+        int reminderNumber,
+        IEnumerable<SmsRecipient> recipients,
+        string message,
+        DeliveryTotals totals,
+        CancellationToken cancellationToken)
+    {
+        var recipientList = recipients.ToArray();
+        var claims = new List<(long DeliveryId, string Username)>(recipientList.Length);
+        foreach (var recipient in recipientList)
+        {
+            var claim = await repository.TryClaimAsync(
+                candidate,
+                reminderNumber,
+                ReminderChannel.SmsApi,
+                recipient.Audience,
+                recipient.UserId,
+                Guid.NewGuid(),
+                cancellationToken);
+
+            if (claim.HasValue)
+            {
+                claims.Add((claim.Value, recipient.Username));
+            }
+            else
+            {
+                totals.Increment(DeliveryOutcome.AlreadyClaimed);
+            }
+        }
+
+        if (claims.Count == 0)
+        {
+            return;
+        }
+
+        ReminderSendResult result;
+        try
+        {
+            var receivers = string.Join(
+                '/',
+                claims.Select(claim => claim.Username).Distinct(StringComparer.OrdinalIgnoreCase));
+            result = await smsSender.SendAsync(
+                receivers,
+                candidate.EmployeeUsername,
+                message,
+                cancellationToken);
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            result = ReminderSendResult.Failed("SMS_API_UNEXPECTED");
+        }
+
+        var status = result.Succeeded ? ReminderDeliveryStatus.Sent : ReminderDeliveryStatus.Failed;
+        var failureCode = result.Succeeded
+            ? null
+            : NormalizeFailureCode(result.FailureCode, "SMS_API_FAILED");
+        foreach (var claim in claims)
+        {
+            await repository.CompleteAsync(claim.DeliveryId, status, failureCode, cancellationToken);
+            totals.Increment(result.Succeeded ? DeliveryOutcome.SmsSent : DeliveryOutcome.Failed);
+        }
+    }
+
+    private async Task<DeliveryOutcome> ProcessEmailAsync(
+        ApprovalReminderCandidate candidate,
+        int reminderNumber,
+        ReminderAudience audience,
+        int recipientUserId,
+        ReminderEmail message,
+        string? skipCode,
+        CancellationToken cancellationToken)
+    {
+        var claim = await repository.TryClaimAsync(
+            candidate,
+            reminderNumber,
+            ReminderChannel.Email,
+            audience,
+            recipientUserId,
+            Guid.NewGuid(),
+            cancellationToken);
+
+        if (!claim.HasValue)
+        {
+            return DeliveryOutcome.AlreadyClaimed;
+        }
+
+        if (!string.IsNullOrWhiteSpace(skipCode))
+        {
+            await repository.CompleteAsync(
+                claim.Value,
+                ReminderDeliveryStatus.Skipped,
+                skipCode,
+                cancellationToken);
+            return DeliveryOutcome.Skipped;
+        }
+
+        ReminderSendResult result;
+        try
+        {
+            result = await emailSender.SendAsync(
+                candidate.EmployeeUserId,
+                audience,
+                message,
+                cancellationToken);
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            result = ReminderSendResult.Failed("EMAIL_SEND_UNEXPECTED");
+        }
+
+        if (result.Outcome == ReminderSendOutcome.Sent)
+        {
+            await repository.CompleteAsync(
+                claim.Value,
+                ReminderDeliveryStatus.Sent,
+                null,
+                cancellationToken);
+            return DeliveryOutcome.EmailSent;
+        }
+
+        if (result.Outcome == ReminderSendOutcome.Skipped)
+        {
+            await repository.CompleteAsync(
+                claim.Value,
+                ReminderDeliveryStatus.Skipped,
+                NormalizeFailureCode(result.FailureCode, "EMAIL_SEND_SKIPPED"),
+                cancellationToken);
+            return DeliveryOutcome.Skipped;
+        }
+
+        await repository.CompleteAsync(
+            claim.Value,
+            ReminderDeliveryStatus.Failed,
+            NormalizeFailureCode(result.FailureCode, "EMAIL_SEND_FAILED"),
+            cancellationToken);
+        return DeliveryOutcome.Failed;
+    }
+
+    private static string NormalizeFailureCode(string? value, string fallback)
+    {
+        var normalized = string.IsNullOrWhiteSpace(value) ? fallback : value.Trim().ToUpperInvariant();
+        var safe = new string(
+            normalized.Where(character => char.IsAsciiLetterOrDigit(character) || character == '_').ToArray());
+        if (string.IsNullOrEmpty(safe))
+        {
+            safe = fallback;
+        }
+
+        return safe.Length <= 100 ? safe : safe[..100];
+    }
+
+    private enum DeliveryOutcome
+    {
+        EmailSent,
+        SmsSent,
+        Failed,
+        Skipped,
+        AlreadyClaimed
+    }
+
+    private sealed class DeliveryTotals
+    {
+        private int EmailSent { get; set; }
+        private int SmsSent { get; set; }
+        private int Failed { get; set; }
+        private int Skipped { get; set; }
+        private int AlreadyClaimed { get; set; }
+
+        public void Increment(DeliveryOutcome outcome)
+        {
+            switch (outcome)
+            {
+                case DeliveryOutcome.EmailSent:
+                    EmailSent++;
+                    break;
+                case DeliveryOutcome.SmsSent:
+                    SmsSent++;
+                    break;
+                case DeliveryOutcome.Failed:
+                    Failed++;
+                    break;
+                case DeliveryOutcome.Skipped:
+                    Skipped++;
+                    break;
+                case DeliveryOutcome.AlreadyClaimed:
+                    AlreadyClaimed++;
+                    break;
+            }
+        }
+
+        public ApprovalReminderRunSummary ToSummary(int candidatesFound, int dueCandidates) =>
+            new(candidatesFound, dueCandidates, EmailSent, SmsSent, Failed, Skipped, AlreadyClaimed);
+    }
+
+    private sealed record SmsRecipient(ReminderAudience Audience, int UserId, string Username);
+}

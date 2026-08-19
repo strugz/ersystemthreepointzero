@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+
+services:
+  - type: web
+    name: er-system-web-client
+    runtime: static
+    rootDir: Web/Frontend/ersystem-web-client
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_VERSION
+        value: 24.18.0
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
+      - key: VITE_API_BASE_URL
+        value: https://sr.mdmpi.com.ph
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

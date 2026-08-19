@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{3352A82B-7FB8-4DA5-99B8-67FA6966CEE8}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ERSystem.AppServices</RootNamespace>
+    <AssemblyName>ERSystem.AppServices</AssemblyName>
+    <FileAlignment>512</FileAlignment>
+    <MyType>Windows</MyType>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DocumentationFile>ERSystem.AppServices.xml</DocumentationFile>
+    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DocumentationFile>ERSystem.AppServices.xml</DocumentationFile>
+    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionExplicit>On</OptionExplicit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionCompare>Binary</OptionCompare>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionStrict>On</OptionStrict>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionInfer>On</OptionInfer>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.5.2\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Import Include="Microsoft.VisualBasic" />
+    <Import Include="System" />
+    <Import Include="System.Collections" />
+    <Import Include="System.Collections.Generic" />
+    <Import Include="System.Diagnostics" />
+    <Import Include="System.Linq" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Services\AccountSettingsSessionContext.vb" />
+    <Compile Include="Services\AccountSettingsService.vb" />
+    <Compile Include="Services\AccountSettingsValueProtector.vb" />
+    <Compile Include="Services\Approval\ApproveActionResult.vb" />
+    <Compile Include="Services\Approval\ApproveActionService.vb" />
+    <Compile Include="Services\Approval\ApproveReloadResult.vb" />
+    <Compile Include="Services\Approval\ApproveReportDetailsLoadResult.vb" />
+    <Compile Include="Services\Approval\ApproveSelectionContextResult.vb" />
+    <Compile Include="Services\Approval\ApproveSelectionContextService.vb" />
+    <Compile Include="Services\Approval\ApproveService.vb" />
+    <Compile Include="Services\Approval\ApproveUserAccountLoadResult.vb" />
+    <Compile Include="Services\Approval\IApprovalValidationService.vb" />
+    <Compile Include="Services\Approval\ISelectedReportContextStore.vb" />
+    <Compile Include="Services\Approval\RejectActionResult.vb" />
+    <Compile Include="Services\Approval\RejectActionService.vb" />
+    <Compile Include="Services\Approval\ScannedReceiptCleanupService.vb" />
+    <Compile Include="Services\Crm\TransactionLookupService.vb" />
+    <Compile Include="Services\ExpenseReport\AddExpenseResult.vb" />
+    <Compile Include="Services\ExpenseReport\ExpenseEntryService.vb" />
+    <Compile Include="Services\ExpenseReport\ScannedReceiptSelectionState.vb" />
+    <Compile Include="Services\ExpenseReport\UpdateExpenseResult.vb" />
+    <Compile Include="Services\IAccountSettingsSessionContext.vb" />
+    <Compile Include="Services\IAccountSettingsValueProtector.vb" />
+    <Compile Include="Services\ISmsNotificationService.vb" />
+    <Compile Include="Services\SmsNotificationResult.vb" />
+    <Compile Include="Services\SmsNotificationService.vb" />
+    <Compile Include="My Project\AssemblyInfo.vb" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ERSystem.Domain\ERSystem.Domain.vbproj">
+      <Project>{EEFD82B5-EDDA-4F66-9533-03BAAF8E1A06}</Project>
+      <Name>ERSystem.Domain</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ERSystem.Infrastructure\ERSystem.Infrastructure.vbproj">
+      <Project>{CE87CB0C-4DDD-4B1A-BB3A-E2D61E4EFDF2}</Project>
+      <Name>ERSystem.Infrastructure</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
+</Project>

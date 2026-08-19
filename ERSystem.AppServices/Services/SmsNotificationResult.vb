@@ -1,0 +1,6 @@
+Option Strict On
+
+Public Class SmsNotificationResult
+    Public Property IsSuccess As Boolean
+    Public Property Message As String = String.Empty
+End Class

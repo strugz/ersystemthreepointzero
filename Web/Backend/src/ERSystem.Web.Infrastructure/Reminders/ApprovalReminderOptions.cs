@@ -1,0 +1,52 @@
+using ERSystem.Web.Application.Features.ApprovalReminders;
+
+namespace ERSystem.Web.Infrastructure.Reminders;
+
+public sealed class ApprovalReminderOptions
+{
+    public const string SectionName = "ApprovalReminders";
+
+    public bool EmailEnabled { get; set; }
+    public bool SmsEnabled { get; set; }
+    public string SmsApiUrl { get; set; } = "https://mdmpi.com.ph/lasius/api_sendsms";
+    public int SmsTimeoutSeconds { get; set; } = 30;
+    public int ActivationPollIntervalSeconds { get; set; } = 60;
+    public string RunAtLocalTime { get; set; } = "08:00";
+    public string TimeZoneId { get; set; } = "Asia/Manila";
+    public int InitialDelayDays { get; set; } = 3;
+    public string ReminderDayOfWeek { get; set; } = nameof(DayOfWeek.Wednesday);
+
+    public ApprovalReminderSettings ToSettings()
+    {
+        if (!TimeOnly.TryParseExact(RunAtLocalTime, "HH:mm", out var runAt))
+        {
+            throw new InvalidOperationException("ApprovalReminders:RunAtLocalTime must use HH:mm format.");
+        }
+
+        if (!Enum.TryParse<DayOfWeek>(ReminderDayOfWeek, true, out var reminderDayOfWeek) ||
+            !Enum.IsDefined(reminderDayOfWeek))
+        {
+            throw new InvalidOperationException(
+                "ApprovalReminders:ReminderDayOfWeek must be a valid day of the week.");
+        }
+
+        return new ApprovalReminderSettings(
+            EmailEnabled,
+            SmsEnabled,
+            ActivationPollIntervalSeconds,
+            TimeZoneId,
+            runAt,
+            InitialDelayDays,
+            reminderDayOfWeek);
+    }
+}
+
+public sealed class SmtpReminderOptions
+{
+    public const string SectionName = "Smtp";
+
+    public string Host { get; set; } = string.Empty;
+    public int Port { get; set; } = 25;
+    public string TlsMode { get; set; } = "None";
+    public string SenderDisplayName { get; set; } = "ER System";
+}

@@ -1,0 +1,1335 @@
+﻿Imports System.IO
+Public Class frmEReport
+    Dim SortNumber As Integer
+    Public Const MyKey As String = "crimsonmonastery2003"
+    Public TripleDes As New clsEncryption(MyKey)
+    Private ReadOnly _selectedReportContextService As New AppServices.SelectedReportContextService()
+    Private ReadOnly _presenter As New EReportPresenter()
+    Private ReadOnly _allowanceComputationService As New AllowanceComputationService()
+
+#Region "Sorting"
+    Enum mode
+        top = 0
+        up = 1
+        down = 2
+        bottom = 3
+    End Enum
+
+    Private Sub swapRows(ByVal range As mode)
+        Dim iSelectedRow As Integer = -1
+        For iTmp = 0 To dgvExpense.Rows.Count - 1
+            If dgvExpense.Rows(iTmp).Selected Then
+                iSelectedRow = iTmp
+                Exit For
+            End If
+        Next
+        If iSelectedRow <> -1 Then
+            Dim sTmp(8) As String
+            For iTmp = 0 To dgvExpense.Columns.Count - 1
+                sTmp(iTmp) = dgvExpense.Rows(iSelectedRow).Cells(iTmp).Value.ToString
+            Next
+            Dim iNewRow As Integer
+            If range = mode.down Then
+                iNewRow = iSelectedRow + 1
+            ElseIf range = mode.up Then
+                iNewRow = iSelectedRow - 1
+            End If
+            If range = mode.up Or range = mode.down Then
+                For iTmp = 0 To dgvExpense.Columns.Count - 1
+                    dgvExpense.Rows(iSelectedRow).Cells(iTmp).Value = dgvExpense.Rows(iNewRow).Cells(iTmp).Value
+                    dgvExpense.Rows(iNewRow).Cells(iTmp).Value = sTmp(iTmp)
+                Next
+                toSelect(iNewRow)
+            ElseIf range = mode.top Or range = mode.bottom Then
+                reshuffleRows(sTmp, iSelectedRow, range)
+            End If
+        End If
+    End Sub
+    Private Sub toSelect(ByVal iNewRow As Integer)
+        dgvExpense.Rows(iNewRow).Selected = True
+    End Sub
+    Private Sub reshuffleRows(ByVal sTmp() As String, ByVal iSelectedRow As Integer, ByVal Range As mode)
+        If Range = mode.top Then
+            Dim iFirstRow As Integer = 0
+            If iSelectedRow > iFirstRow Then
+                For iTmp = iSelectedRow To 1 Step -1
+                    For iCol = 0 To dgvExpense.Columns.Count - 1
+                        dgvExpense.Rows(iTmp).Cells(iCol).Value = dgvExpense.Rows(iTmp - 1).Cells(iCol).Value
+                    Next
+                Next
+                For iCol = 0 To dgvExpense.Columns.Count - 1
+                    dgvExpense.Rows(iFirstRow).Cells(iCol).Value = sTmp(iCol).ToString
+                Next
+                toSelect(iFirstRow)
+            End If
+        Else
+            Dim iLastRow As Integer = dgvExpense.Rows.Count - 1
+            If iSelectedRow < iLastRow Then
+                For iTmp = iSelectedRow To iLastRow - 1
+                    For iCol As Integer = 0 To dgvExpense.Columns.Count - 1
+                        dgvExpense.Rows(iTmp).Cells(iCol).Value = dgvExpense.Rows(iTmp + 1).Cells(iCol).Value
+                    Next
+                Next
+                For iCol As Integer = 0 To dgvExpense.Columns.Count - 1
+                    dgvExpense.Rows(iLastRow).Cells(iCol).Value = sTmp(iCol).ToString
+                Next
+                toSelect(iLastRow)
+            End If
+        End If
+    End Sub
+#End Region
+    Public Sub AutoSizegrid()
+        dgvExpense.Columns(1).AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill
+        dgvExpense.Columns(1).DefaultCellStyle.WrapMode = DataGridViewTriState.True
+    End Sub
+
+    Private Sub frmEReport_FormClosed(sender As Object, e As FormClosedEventArgs) Handles Me.FormClosed
+        Dim ClsData As New ClsLoadData
+        My.Computer.Registry.SetValue("HKEY_CURRENT_USER\Software\ER System\Settings", "Additional", "1")
+        ModDataStore.FormSettings = "0"
+        ModDataStore.transactionID = ""
+        ModDataStore.comboClick = 0
+        txtCategory.SelectedItem = Nothing
+        BTNEditCategory.Enabled = False
+        btnExpenseUpdate.Visible = False
+        btnExpenseSave.Visible = True
+        modLoadingData.UserExpenseMeal = ""
+        txtCategory.Enabled = True
+        txtParticulars.Size = New Size(199, 68)
+        LBLComputation.Visible = False
+        txtComputation.Visible = False
+        txtMDays.Text = 0
+        txtTotalNumberOfDays.Text = 0
+        txtComputation.Text = 0
+        CBPerdiem.Enabled = True
+        Call ModDataStore.GetUserExpenseMeal()
+        Call ModDataStore.ClearExpenseData1()
+        ClsData.DeleteEReportDetails(Application.StartupPath + "\settings.txt")
+        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
+        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseTransSettingsTEMP.txt")
+        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseMealSettings.txt")
+        ClsData.DeleteEReportDetails(Application.StartupPath + "\expenseMealSettingsTEMP.txt")
+        GBTransportation.Visible = False
+        GBMeals.Visible = False
+        RTBNotification.Visible = False
+        lblParticulars.Visible = True
+        txtParticulars.Visible = True
+        TPExpenseReport.Enabled = True
+        dgvExpense.Enabled = True
+        Call ModDataStore.OnOffControl(True)
+        CBBFare.DropDownStyle = ComboBoxStyle.DropDownList
+        ModDataStore.FareComboValidation = "0"
+        BTNAddFare.Text = "add"
+        CBBPaidFor.Checked = False
+        CBBPaidFor.Enabled = False
+        RTBNotification.Visible = False
+        Call ReleasMemory()
+    End Sub
+    Private Sub frmEReport_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
+        If e.KeyCode = Keys.Escape Then
+            CancelCurrentExpenseEdit()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub CancelCurrentExpenseEdit()
+        Call ModDataStore.ClearExpenseDataDetails(transactionID, comboClick)
+    End Sub
+
+    Private Sub ApplySavedExpenseClearChoice(clearWorkContext As Boolean, deleteExpenseSettings As Boolean)
+        _presenter.ApplyClearChoice(clearWorkContext, deleteExpenseSettings)
+    End Sub
+
+    Private Sub frmEReport_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Dim ClsData As New ClsLoadData
+        Call DgExpenseVisibility({"ID", "reportid", "sort"})
+        Call myFrmEReportLoad(True)
+        txtCategory.Items.Clear()
+        txtCategory.Items.Add("Transportation")
+        txtCategory.Items.Add("Meals")
+        txtCategory.Items.Add("Toll")
+        txtCategory.Items.Add("Parking")
+        txtCategory.Items.Add("Others")
+        Dim myERData As String()
+        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        dtpExpenseDate.Value = myERData(1)
+        If GetRegistryValue("Software\\ER System\\UserAccount", {"DeptID"})(0) = 3 Then
+            CBPerdiem.Visible = True
+        Else
+            CBPerdiem.Visible = False
+        End If
+        Me.dtpExpenseDate.Value = DateTime.Now.ToString("MM/dd/yyyy")
+        txtWorkWith.Text = "NONE"
+        UpdateVatAmountState()
+    End Sub
+
+    Private Sub ShowAllowanceComputationPopup()
+        Using popup As New AllowanceComputationPopup(txtTotalNumberOfDays.Text, txtMDays.Text)
+            If popup.ShowDialog(Me) = DialogResult.OK Then
+                ApplyAllowanceComputationResult(_allowanceComputationService.Build(popup.Result.TotalDays, popup.Result.MinusDays, txtExpenseAmount.Text))
+            Else
+                ApplyAllowanceComputationCancel()
+            End If
+        End Using
+    End Sub
+
+    Private Sub ApplyAllowanceComputationResult(result As AllowanceComputationResult)
+        Dim ClsData As New ClsLoadData
+
+        txtTotalNumberOfDays.Text = result.TotalDays
+        txtMDays.Text = result.MinusDays
+        txtMultiplier.Text = result.Multiplier
+        txtComputation.Text = result.ComputationText
+        BTNEditCategory.Enabled = True
+        txtCategory.Enabled = False
+        txtMultiplier.Enabled = False
+
+        Dim valueName As String() = {"TotalDays"}
+        Dim value As String() = {result.TotalDays}
+        ClsData.RegistrySettings("HKEY_CURRENT_USER\Software\ER System", "UserAccount", valueName, value)
+
+        If ClsData.RegistryGetValue("Software\\ER System\\UserAccount", {"emp_Dept"})(0) = "IMS" Then
+            txtExpenseAmount.Enabled = True
+        End If
+    End Sub
+
+    Private Sub ApplyAllowanceComputationCancel()
+        Dim ClsData As New ClsLoadData
+
+        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = False Then
+            txtCategory.SelectedItem = Nothing
+            txtParticulars.Clear()
+        End If
+    End Sub
+
+    Private Sub ShowTransportationPopup()
+        Dim selectedFareId As Object = Nothing
+
+        If CBBFare.DataSource IsNot Nothing AndAlso CBBFare.SelectedValue IsNot Nothing Then
+            selectedFareId = CBBFare.SelectedValue
+        End If
+
+        Using popup As New TransportationPopup(LoadFare(), selectedFareId, txtFrom.Text, txtTo.Text)
+            If popup.ShowDialog(Me) = DialogResult.OK Then
+                ApplyTransportationResult(popup.Result)
+            Else
+                ApplyTransportationCancel()
+            End If
+        End Using
+    End Sub
+
+    Private Sub ApplyTransportationResult(result As TransportationResult)
+        Dim ClsData As New ClsLoadData
+        Dim expenseTransportationId As String = "0"
+
+        txtParticulars.Text = result.Particulars
+        TPExpenseReport.Enabled = True
+
+        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+            Dim myExpenseData As String() = ClsData.GetEReportDetails(Application.StartupPath + "\expenseTransSettings.txt")
+
+            If myExpenseData.Length <> 0 Then
+                expenseTransportationId = myExpenseData(0)
+            End If
+        End If
+
+        ClsData.SetExpenseTransDetailsTemp({
+            expenseTransportationId,
+            result.FareId,
+            result.FareFrom,
+            result.FareTo,
+            result.Payload})
+
+        If result.FareId = "4" Then
+            txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
+        End If
+
+        txtExpenseAmount.Enabled = result.AmountEnabled
+        ApplyExpenseHelperReturnedState()
+        CBBFare.DropDownStyle = ComboBoxStyle.DropDownList
+        txtExpenseAmount.Select()
+    End Sub
+
+    Private Sub ApplyTransportationCancel()
+        Call ModDataStore.OnOffControl(True)
+        ApplyExpenseHelperReturnedState()
+        txtExpenseAmount.Select()
+        CBBFare.DropDownStyle = ComboBoxStyle.DropDownList
+    End Sub
+
+    Private Sub ShowMealSelectionPopup(workWith As String)
+        Using popup As New MealSelectionPopup(
+            dtpExpenseDate.Text,
+            GetRegistryValue("Software\\ER System\\UserAccount", {"Username"})(0),
+            workWith,
+            CLBMeals.GetItemChecked(0),
+            CLBMeals.GetItemChecked(1),
+            RBDinner.Checked,
+            RBOTMeal.Checked,
+            CBBPaidFor.Checked,
+            CBBPaidFor.Enabled,
+            CBBPaidFor.Visible,
+            CLBPaidBill.Visible,
+            GetCheckedListBoxItems(CLBPaidBill),
+            GetCheckedListBoxCheckedIndexes(CLBPaidBill))
+
+            If popup.ShowDialog(Me) = DialogResult.OK Then
+                ApplyMealSelectionResult(popup.Result)
+            Else
+                ApplyMealSelectionCancel()
+            End If
+        End Using
+    End Sub
+
+    Private Function GetCheckedListBoxItems(checkedListBox As CheckedListBox) As List(Of String)
+        Dim items As New List(Of String)()
+
+        For Each item As Object In checkedListBox.Items
+            items.Add(Convert.ToString(item))
+        Next
+
+        Return items
+    End Function
+
+    Private Function GetCheckedListBoxCheckedIndexes(checkedListBox As CheckedListBox) As List(Of Integer)
+        Dim indexes As New List(Of Integer)()
+
+        For Each checkedIndex As Integer In checkedListBox.CheckedIndices
+            indexes.Add(checkedIndex)
+        Next
+
+        Return indexes
+    End Function
+
+    Private Sub ApplyMealSelectionResult(result As MealSelectionResult)
+        CLBMeals.SetItemChecked(0, result.BreakfastSelected)
+        CLBMeals.SetItemChecked(1, result.LunchSelected)
+        CBDinnerOTMeal.Checked = result.DinnerSelected OrElse result.OtMealSelected
+        RBDinner.Checked = result.DinnerSelected
+        RBOTMeal.Checked = result.OtMealSelected
+        CBBPaidFor.Checked = result.PaidFor
+
+        For index As Integer = 0 To CLBPaidBill.Items.Count - 1
+            CLBPaidBill.SetItemChecked(index, False)
+        Next
+
+        For Each paidEmployeeIndex As Integer In result.PaidEmployeeIndexes
+            If paidEmployeeIndex >= 0 AndAlso paidEmployeeIndex < CLBPaidBill.Items.Count Then
+                CLBPaidBill.SetItemChecked(paidEmployeeIndex, True)
+            End If
+        Next
+
+        Call BTNMealClick()
+        RTBNotification.Visible = False
+        txtParticulars.Visible = True
+        lblParticulars.Visible = True
+    End Sub
+
+    Private Sub ApplyMealSelectionCancel()
+        Call ModDataStore.OnOffControl(True)
+        txtCategory.Enabled = True
+        btnExpenseSave.Visible = False
+        btnExpenseUpdate.Visible = True
+        RTBNotification.Visible = False
+        lblParticulars.Visible = True
+        txtParticulars.Visible = True
+    End Sub
+
+    Private Sub ApplyExpenseHelperReturnedState()
+        Dim ClsData As New ClsLoadData
+        Dim myERData As String() = {}
+
+        Call ModDataStore.OnOffControl(True)
+
+        If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") Then
+            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+        End If
+
+        If myERData.Length <> 0 Then
+            btnExpenseSave.Visible = False
+            btnExpenseUpdate.Visible = True
+        Else
+            btnExpenseSave.Visible = True
+            btnExpenseUpdate.Visible = False
+        End If
+    End Sub
+
+    Private Sub dgvExpense_CellClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvExpense.CellClick
+        If e.RowIndex > 0 Then
+            SortNumber = dgvExpense.Rows(e.RowIndex).Cells("sort").Value
+        End If
+    End Sub
+
+    Private Sub dgvExpense_CellDoubleClick(sender As Object, e As DataGridViewCellEventArgs) Handles dgvExpense.CellDoubleClick
+        Try
+            Dim ClsData As New ClsLoadData
+            CancelCurrentExpenseEdit()
+            ClsData.SetExpenseDetails(dgvExpense.Rows(e.RowIndex).Cells("reportid").Value,
+                                          dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
+            ClsData.SetExpenseMealDetails(dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
+            ClsData.SetExpenseTransDetails(dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
+            Dim myERData As String()
+            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+            Dim myExpenseData As String() = {0, 0, 0}
+            If myERData.Length <> 0 Then
+                If myERData.Length = 21 Then
+                    txtMDays.Text = myERData(18)
+                    txtComputation.Text = myERData(19)
+                    txtTotalNumberOfDays.Text = myERData(20)
+                End If
+
+                dtpExpenseDate.Value = DateTime.Parse(myERData(0)).ToString("MM/dd/yyyy")
+                txtWorkWith.Text = myERData(14)
+                txtLocation.Text = myERData(5)
+                txtInstrument.Text = myERData(12)
+                txtSerialNumber.Text = myERData(13)
+                txtServiceNumber.Text = myERData(11)
+                RbLocal.Checked = IIf(myERData(2) = "Local", True, False)
+                RBForeign.Checked = IIf(myERData(2) = "Foreign", True, False)
+                txtParticulars.Text = myERData(1)
+                txtExpenseAmount.Text = myERData(15)
+                txtMultiplier.Text = myERData(7)
+                txtTotal.Text = myERData(6)
+                txtStatus.SelectedItem = myERData(9)
+                txtRemarks.Text = Replace(myERData(10), "<SPLIT>", vbLf)
+                CBPerdiem.Checked = IIf(myERData(4) <> 0, True, False)
+                CBPerdiem.Enabled = False
+                BTNEditCategory.Enabled = IIf(myERData(4) <> 0, False, True)
+                txtCategory.Enabled = IIf(myERData(4) <> 0, True, False)
+                txtExpenseAmount.Enabled = IIf(myExpenseData(2) = 1, True, IIf(myERData(4) = 0 And myERData(3) = "Transportation", True, False))
+                txtCategory.SelectedItem = myERData(3)
+                txtInvoice.Text = myERData(8)
+                LoadWorkWithForExpense(dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
+                LoadVatAmountForExpense(dgvExpense.Rows(e.RowIndex).Cells("ID").Value)
+                btnExpenseSave.Visible = False
+                btnExpenseUpdate.Visible = True
+            End If
+        Catch ex As Exception
+            MsgBox(ex.ToString)
+        End Try
+    End Sub
+
+    Private Sub LoadWorkWithForExpense(expenseIdValue As Object)
+        Dim expense As Global.ERSystem.Domain.ExpenseDetailDto = GetExpenseDetailById(expenseIdValue)
+
+        If expense Is Nothing Then
+            Return
+        End If
+
+        txtWorkWith.Text = If(expense.WorkWith, String.Empty)
+    End Sub
+
+    Private Sub LoadVatAmountForExpense(expenseIdValue As Object)
+        Dim expense As Global.ERSystem.Domain.ExpenseDetailDto = GetExpenseDetailById(expenseIdValue)
+
+        If expense Is Nothing OrElse Not expense.VatAmount.HasValue Then
+            txtVatAmount.Clear()
+            Return
+        End If
+
+        txtVatAmount.Text = expense.VatAmount.Value.ToString()
+    End Sub
+
+    Private Function GetExpenseDetailById(expenseIdValue As Object) As Global.ERSystem.Domain.ExpenseDetailDto
+        Dim expenseId As Long
+        If expenseIdValue Is Nothing OrElse Not Long.TryParse(expenseIdValue.ToString(), expenseId) Then
+            Return Nothing
+        End If
+
+        Dim repository As New Global.ERSystem.Infrastructure.Data.ExpenseDetailRepository()
+        Return repository.GetById(expenseId)
+    End Function
+
+    Private Sub txtExpenseAmount_KeyUp(sender As Object, e As KeyEventArgs) Handles txtExpenseAmount.KeyUp
+        If e.KeyCode = Keys.Enter Then
+            txtMultiplier.Focus()
+        End If
+    End Sub
+    Private Sub txtExpenseAmount_TextChanged(sender As Object, e As EventArgs) Handles txtExpenseAmount.TextChanged
+        If CBPerdiem.Checked = True Then
+            If txtCategory.SelectedIndex = 4 Or txtCategory.SelectedIndex = 2 Or txtCategory.SelectedIndex = 3 Then
+                txtTotal.Text = Math.Round(Val(txtExpenseAmount.Text)) * Val(txtMultiplier.Text)
+            ElseIf txtCategory.SelectedIndex <> -1 Then
+                txtTotal.Text = Val(txtExpenseAmount.Text) * Val(txtMultiplier.Text)
+                Dim particulars As String = ""
+                If CBPerdiem.Checked = True Then
+                    If txtMDays.Text <> "0" And txtMDays.Text <> "" Then
+                        particulars = particulars + " (" + txtTotalNumberOfDays.Text + "Days - " + txtMDays.Text + "Days) * " + txtExpenseAmount.Text
+                        txtMultiplier.Text = Val(txtTotalNumberOfDays.Text - txtMDays.Text)
+                    ElseIf txtMDays.Text = "" Then
+                        Dim result As DialogResult = MessageBox.Show("-Days is Empty. Make Value to 0?", "Default Value", MessageBoxButtons.OKCancel)
+                        If DialogResult.OK = result Then
+                            txtMDays.Text = 0
+                        End If
+                        Exit Sub
+                    Else
+                        particulars = particulars + " (" + txtTotalNumberOfDays.Text + "Days) * " + txtExpenseAmount.Text
+                        txtMultiplier.Text = Val(txtTotalNumberOfDays.Text - txtMDays.Text)
+                    End If
+                    txtComputation.Text = particulars
+                End If
+            End If
+        Else
+            If txtInvoice.Text <> "" And txtMultiplier.Text = 1 Then
+                txtTotal.Text = Val(txtExpenseAmount.Text) * Val(txtMultiplier.Text)
+            Else
+                txtTotal.Text = Math.Round(Val(txtExpenseAmount.Text) * Val(txtMultiplier.Text))
+            End If
+        End If
+    End Sub
+    Private Sub txtMultiplier_KeyUp(sender As Object, e As KeyEventArgs) Handles txtMultiplier.KeyUp
+        If e.KeyCode = Keys.Enter Then
+            txtInvoice.Focus()
+        End If
+    End Sub
+    Private Sub txtMultiplier_TextChanged(sender As Object, e As EventArgs) Handles txtMultiplier.TextChanged
+        If txtInvoice.Text <> "" And txtMultiplier.Text = 1 Then
+            txtTotal.Text = Val(txtExpenseAmount.Text) * Val(txtMultiplier.Text)
+        Else
+            txtTotal.Text = Math.Round(Val(txtExpenseAmount.Text) * Val(txtMultiplier.Text))
+        End If
+
+    End Sub
+    Private Sub btnExpenseSave_Click(sender As Object, e As EventArgs) Handles btnExpenseSave.Click
+        ApplyExpenseEntryResult(_presenter.AddExpense(CreateExpenseEntrySnapshot()))
+    End Sub
+
+    Private Function CreateExpenseEntrySnapshot() As EReportEntrySnapshot
+        Return New EReportEntrySnapshot With {
+            .Transdate = dtpExpenseDate.Value.Date,
+            .PerdiemChecked = CBPerdiem.Checked,
+            .Particulars = txtParticulars.Text,
+            .Invoice = txtInvoice.Text,
+            .Multiplier = txtMultiplier.Text,
+            .LocalChecked = RbLocal.Checked,
+            .ForeignChecked = RBForeign.Checked,
+            .Category = txtCategory.Text,
+            .CategorySelected = txtCategory.SelectedItem IsNot Nothing,
+            .Amount = txtExpenseAmount.Text,
+            .VatAmount = txtVatAmount.Text,
+            .Remarks = txtRemarks.Text,
+            .Status = If(txtStatus.SelectedItem Is Nothing, Nothing, txtStatus.SelectedItem.ToString()),
+            .TotalAmount = txtTotal.Text,
+            .Location = txtLocation.Text,
+            .WorkWith = txtWorkWith.Text,
+            .ServiceNumber = txtServiceNumber.Text,
+            .Instrument = txtInstrument.Text,
+            .SerialNumber = txtSerialNumber.Text,
+            .MDays = txtMDays.Text,
+            .Computation = txtComputation.Text,
+            .TotalDays = txtTotalNumberOfDays.Text
+        }
+    End Function
+
+    Private Sub ApplyExpenseEntryResult(result As EReportEntryResult)
+        If result Is Nothing Then
+            Return
+        End If
+
+        If Not result.Success Then
+            If Not String.IsNullOrEmpty(result.Message) Then
+                MsgBox(result.Message)
+            End If
+
+            Return
+        End If
+
+        Dim snapshotBeforeClear As EReportEntrySnapshot = CreateExpenseEntrySnapshot()
+        Dim clearWorkContext As Boolean = False
+        If result.ShouldAskClearDetails Then
+            clearWorkContext =
+                MessageBox.Show(
+                    "Data Saved. Do you Want to Clear the WorkWith, Hospital Name, Instrument and Serial Number above?",
+                    "Clear Details",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning,
+                    MessageBoxDefaultButton.Button2) = DialogResult.Yes
+
+            ApplySavedExpenseClearChoice(clearWorkContext, result.DeleteExpenseSettingsAfterClear)
+        End If
+
+        If result.ShouldRefreshExpenseGrid Then
+            Using dtLoadExpenseReport As DataTable = _presenter.LoadExpenseReport(result.RefreshReportId, result.RefreshUserId)
+                dgvExpense.DataSource = dtLoadExpenseReport
+            End Using
+        End If
+
+        If result.PersistWorkContext Then
+            _presenter.PersistWorkContext(snapshotBeforeClear)
+        End If
+
+        If result.FocusParticulars Then
+            txtParticulars.Focus()
+        End If
+
+        If result.EnableExpenseGrid Then
+            dgvExpense.Enabled = True
+        End If
+
+        comboClick = 0
+
+        If result.ResetTransactionId Then
+            transactionID = ""
+        End If
+
+        If result.ResetStatusIndex.HasValue Then
+            txtStatus.SelectedIndex = result.ResetStatusIndex.Value
+        End If
+
+        If result.EnableCategory Then
+            txtCategory.Enabled = True
+        End If
+
+        If result.ClearComputation Then
+            txtComputation.Clear()
+        End If
+
+        UpdateVatAmountState()
+    End Sub
+    Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
+        CancelCurrentExpenseEdit()
+    End Sub
+
+    Private Sub btnExpenseUpdate_Click(sender As Object, e As EventArgs) Handles btnExpenseUpdate.Click
+        ApplyExpenseEntryResult(_presenter.UpdateExpense(CreateExpenseEntrySnapshot()))
+    End Sub
+
+    Private Sub Button6_Click(sender As Object, e As EventArgs) Handles BTNUp.Click
+        Dim ClsData As New ClsLoadData
+        Dim myERData As String() = {}
+        If ClsData.TempFileValidation(Application.StartupPath + "\settings.txt") = True Then
+            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        End If
+        If LoadingExpenseCount(myERData(13)) = 0 Then
+        Else
+            If dgvExpense.Rows(0).Selected = True Then
+            Else
+                Try
+                    swapRows(mode.up)
+                    Sorting()
+                    SortNumber = Val(SortNumber - 1)
+                    dgvExpense.ClearSelection()
+                    dgvExpense.Rows(SortNumber).Selected = True
+                Catch ex As Exception
+                    MsgBox(ex.Message)
+                End Try
+            End If
+        End If
+    End Sub
+    Private Sub Button7_Click(sender As Object, e As EventArgs) Handles BTNDown.Click
+        Dim ClsData As New ClsLoadData
+        Dim myERData As String() = {}
+        If ClsData.TempFileValidation(Application.StartupPath + "\settings.txt") = True Then
+            myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+        End If
+        If LoadingExpenseCount(myERData(13)) = 0 Then
+        Else
+            Dim drows As Integer
+            drows = dgvExpense.Rows.Count - 1
+            If dgvExpense.Rows(drows).Selected = True Then
+            Else
+                Try
+                    swapRows(mode.down)
+                    Sorting()
+                    SortNumber = Val(SortNumber + 1)
+                    dgvExpense.ClearSelection()
+                    dgvExpense.Rows(SortNumber).Selected = True
+                Catch ex As Exception
+                    MsgBox(ex.Message)
+                End Try
+            End If
+        End If
+    End Sub
+    Private Sub Sorting()
+        Dim ClsData As New ClsLoadData
+        DBConnection()
+        Using sqlSaveSort As New SqlClient.SqlCommand
+            Using SQLConnection As SqlClient.SqlConnection = mConn.SQLConnection
+                With sqlSaveSort
+                    .Connection = SQLConnection
+                    For a = 0 To dgvExpense.Rows.Count - 1
+                        .CommandText = "update tbExpenseDetails set Sort ='" & a & "' where ID='" & dgvExpense.Rows(a).Cells(0).Value & "'"
+                        .CommandType = CommandType.Text
+                        .ExecuteNonQuery()
+                    Next
+                    Dim myERData As String()
+                    myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+                    Using LoadExpenseReport As DataTable = LoadingExpenseReport(myERData(13), GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0))
+                        dgvExpense.DataSource = LoadExpenseReport
+                    End Using
+                End With
+            End Using
+        End Using
+    End Sub
+    Private Sub CBPerdiem_CheckedChanged(sender As Object, e As EventArgs) Handles CBPerdiem.CheckedChanged
+        If CBPerdiem.Checked = True Then
+            Call ModDataStore.CBPerdiemStatusTrue(transactionID)
+            txtCategory.Items.Clear()
+            txtCategory.Items.Add("Transportation")
+            txtCategory.Items.Add("Meals")
+            txtCategory.Items.Add("Toll")
+            txtCategory.Items.Add("Parking")
+            txtCategory.Items.Add("Others")
+        Else
+            Call ModDataStore.CBPerdiemStatusFalse(transactionID)
+            txtCategory.Items.Clear()
+            txtCategory.Items.Add("Transportation")
+            txtCategory.Items.Add("Meals")
+            txtCategory.Items.Add("Toll")
+            txtCategory.Items.Add("Parking")
+            txtCategory.Items.Add("Others")
+        End If
+    End Sub
+    Private Sub txtInstrument_KeyUp(sender As Object, e As KeyEventArgs) Handles txtInstrument.KeyUp
+        If e.KeyCode = Keys.Enter Then
+            txtSerialNumber.Focus()
+        End If
+    End Sub
+    Private Sub txtSerialNumber_KeyUp(sender As Object, e As KeyEventArgs) Handles txtSerialNumber.KeyUp
+        If e.KeyCode = Keys.Enter Then
+            txtServiceNumber.Focus()
+        End If
+    End Sub
+    Private Sub txtParticulars_LostFocus(sender As Object, e As EventArgs)
+        If txtParticulars.Text Like "*MEAL*" Then
+            txtCategory.SelectedIndex = 1
+        ElseIf txtParticulars.Text Like "*TRANS*" Then
+            txtCategory.SelectedIndex = 0
+        Else
+            txtCategory.SelectedItem = Nothing
+        End If
+    End Sub
+    Private Sub txtType_KeyUp(sender As Object, e As KeyEventArgs)
+        If e.KeyCode = Keys.Enter Then
+            txtCategory.Focus()
+        End If
+    End Sub
+    Private Sub txtCategory_KeyUp(sender As Object, e As KeyEventArgs) Handles txtCategory.KeyUp
+        If e.KeyCode = Keys.Enter Then
+            txtExpenseAmount.Focus()
+        End If
+    End Sub
+    Private Sub txtServiceNumber_KeyUp(sender As Object, e As KeyEventArgs) Handles txtServiceNumber.KeyUp
+        If e.KeyCode = Keys.Enter Then
+            txtParticulars.Focus()
+        End If
+    End Sub
+
+    Private Sub btnFwmsLookup_Click(sender As Object, e As EventArgs) Handles btnFwmsLookup.Click
+        Using lookup As New frmFwmsTransactionLookup()
+            If lookup.ShowDialog(Me) = DialogResult.OK AndAlso lookup.SelectedTransaction IsNot Nothing Then
+                ApplyFwmsTransaction(lookup.SelectedTransaction)
+            End If
+        End Using
+    End Sub
+
+    Private Sub ApplyFwmsTransaction(transaction As Global.ERSystem.Domain.FwmsTransactionDto)
+        txtLocation.Text = If(transaction.ACCMNM, String.Empty)
+        txtInstrument.Text = If(transaction.TRDMDE, String.Empty)
+        txtServiceNumber.Text = If(transaction.TRDMTT, String.Empty)
+        txtSerialNumber.Text = If(transaction.TRDMMC, String.Empty)
+    End Sub
+
+    Private Sub txtInvoice_KeyUp(sender As Object, e As KeyEventArgs) Handles txtInvoice.KeyUp
+        If e.KeyCode = Keys.Enter Then
+            If txtVatAmount.Enabled Then
+                txtVatAmount.Focus()
+            Else
+                txtRemarks.Focus()
+            End If
+        End If
+    End Sub
+
+    Private Sub txtVatAmount_KeyUp(sender As Object, e As KeyEventArgs) Handles txtVatAmount.KeyUp
+        If e.KeyCode = Keys.Enter Then
+            txtRemarks.Focus()
+        End If
+    End Sub
+    Private Sub txtLocation_KeyUp1(sender As Object, e As KeyEventArgs)
+        If e.KeyCode = Keys.Enter Then
+            txtInstrument.Focus()
+        End If
+    End Sub
+    Private Sub btnInstrumentHistory_Click(sender As Object, e As EventArgs) Handles btnInstrumentHistory.Click
+        modLoadingData.DataToLoad = "Instrument"
+        frmHistory.Text = "Instrument"
+        Call FrmValidation(Me.txtLocation.Text)
+        frmHistory.txtName.Focus()
+        frmHistory.ShowDialog()
+    End Sub
+    Private Sub btnHospital_Click(sender As Object, e As EventArgs) Handles btnHospital.Click
+        modLoadingData.DataToLoad = "Hospital"
+        frmHistory.Text = "Hospital"
+        Call FrmValidation(Me.txtLocation.Text)
+        frmHistory.txtName.Focus()
+        frmHistory.ShowDialog()
+    End Sub
+    Private Sub btnWorkWith_Click(sender As Object, e As EventArgs) Handles btnWorkWith.Click
+        LoadUserWorkWith()
+        frmAdditionalInput.dgvUser.Columns(1).ReadOnly = True
+        frmAdditionalInput.dgvUser.Columns(2).ReadOnly = True
+        frmAdditionalInput.dgvUser.Columns(0).Width = 30
+        frmAdditionalInput.ShowDialog()
+        frmAdditionalInput.BringToFront()
+    End Sub
+
+    Private Sub Button1_Click(sender As Object, e As EventArgs)
+        If File.Exists(Application.StartupPath + "/ER.txt") = False Then
+            MsgBox("No Data Available")
+        Else
+            Dim str() As String = {""}
+            str = modReuse.GetTextFile().Split("/")
+            If str.Length <> 0 Then
+                txtWorkWith.Text = str(0)
+                txtLocation.Text = str(1)
+                txtInstrument.Text = str(2)
+                txtSerialNumber.Text = str(3)
+                txtServiceNumber.Text = str(4)
+            Else
+                MsgBox("No Data Available")
+            End If
+        End If
+    End Sub
+
+    Private Sub txtCategory_SelectedIndexChanged(sender As Object, e As EventArgs) Handles txtCategory.SelectedIndexChanged
+        Dim ClsData As New ClsLoadData
+        If txtCategory.SelectedItem <> Nothing Then
+            If CBPerdiem.Checked = True Then
+                ComputationLead()
+            Else
+                If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+                    Dim myERData As String()
+                    myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+                    Call OpeningLead(myERData(14), myERData(16))
+                    txtParticulars.Size = New Size(199, 68)
+                    LBLComputation.Visible = False
+                    txtComputation.Visible = False
+                Else
+                    Call OpeningLead(txtWorkWith.Text, "")
+                    txtParticulars.Size = New Size(199, 68)
+                    LBLComputation.Visible = False
+                    txtComputation.Visible = False
+                End If
+            End If
+        End If
+    End Sub
+    Private Sub ComputationLead()
+        Dim ClsData As New ClsLoadData
+        If txtCategory.SelectedIndex = 4 Then
+            txtParticulars.Enabled = True
+            txtExpenseAmount.Enabled = True
+            txtParticulars.Select()
+        ElseIf txtCategory.SelectedIndex = 2 Then
+            txtParticulars.Enabled = False
+            txtExpenseAmount.Enabled = True
+            txtParticulars.Text = txtCategory.SelectedItem
+            txtParticulars.Select()
+        ElseIf txtCategory.SelectedIndex = 3 Then
+            txtParticulars.Enabled = False
+            txtExpenseAmount.Enabled = True
+            txtParticulars.Text = txtCategory.SelectedItem
+            txtParticulars.Select()
+        Else
+            If comboClick = 1 And ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = False Then
+                txtParticulars.Size = New Size(199, 40)
+                LBLComputation.Visible = True
+                txtParticulars.Text = txtCategory.Text
+                txtExpenseAmount.Enabled = True
+                txtMultiplier.Enabled = False
+                txtMDays.Text = 0
+                txtComputation.Visible = True
+                If IsDBNull(GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)) = False Then
+                    txtTotalNumberOfDays.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)
+                End If
+                If txtCategory.SelectedIndex = 0 Then
+                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
+                ElseIf txtCategory.SelectedIndex = 1 Then
+                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
+                End If
+                ShowAllowanceComputationPopup()
+            ElseIf comboClick = 1 And ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+                txtParticulars.Size = New Size(199, 40)
+                If IsDBNull(GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)) = False Then
+                    txtTotalNumberOfDays.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)
+                End If
+                If txtCategory.SelectedIndex = 0 Then
+                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
+                ElseIf txtCategory.SelectedIndex = 1 Then
+                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
+                End If
+                ShowAllowanceComputationPopup()
+            ElseIf ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+                txtCategory.Enabled = False
+                BTNEditCategory.Enabled = True
+                txtMultiplier.Enabled = False
+                txtParticulars.Size = New Size(199, 40)
+                txtComputation.Visible = True
+                LBLComputation.Visible = True
+                If IsDBNull(GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)) = False Then
+                    txtTotalNumberOfDays.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TotalDays"})(0)
+                End If
+                If txtCategory.SelectedIndex = 0 Then
+                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
+                ElseIf txtCategory.SelectedIndex = 1 Then
+                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
+                End If
+            End If
+        End If
+    End Sub
+    Private Sub OpeningLead(Optional ByVal WorkWith As String = "", Optional ByVal ExpenseID As String = "")
+        If CBPerdiem.Checked = False Then
+            If comboClick = 1 Then
+                If txtCategory.SelectedIndex = 0 Then
+                    If WorkWith = "" Then
+                        MsgBox("Please fill WorkWith to Proceed")
+                        txtCategory.SelectedItem = Nothing
+                    Else
+                        Call ModDataStore.OnOffControl(False)
+                        GBMeals.Visible = False
+                        txtCategory.Enabled = False
+                        BTNEditCategory.Enabled = True
+                        btnExpenseUpdate.Visible = False
+                        btnExpenseSave.Visible = False
+                        Call TransportationDataValidation(ExpenseID)
+                        ShowTransportationPopup()
+                    End If
+                ElseIf txtCategory.SelectedIndex = 1 Then
+                    If WorkWith = "" Then
+                        MsgBox("Please fill WorkWith to Proceed")
+                        txtCategory.SelectedItem = Nothing
+                    Else
+                        Call ModDataStore.OnOffControl(False)
+                        GBTransportation.Visible = False
+                        Call MealDataValidation(WorkWith, ExpenseID)
+                        txtCategory.Enabled = False
+                        BTNEditCategory.Enabled = True
+                        btnExpenseUpdate.Visible = False
+                        btnExpenseSave.Visible = False
+                        ShowMealSelectionPopup(WorkWith)
+                    End If
+
+                ElseIf txtCategory.SelectedIndex = 4 Then
+                    txtParticulars.Enabled = True
+                    txtExpenseAmount.Enabled = True
+                    txtParticulars.Select()
+                ElseIf txtCategory.SelectedIndex = 2 Then
+                    txtParticulars.Enabled = False
+                    txtExpenseAmount.Enabled = True
+                    txtParticulars.Text = txtCategory.SelectedItem
+                    txtParticulars.Select()
+                ElseIf txtCategory.SelectedIndex = 3 Then
+                    txtParticulars.Enabled = False
+                    txtExpenseAmount.Enabled = True
+                    txtParticulars.Text = txtCategory.SelectedItem
+                    txtParticulars.Select()
+                Else
+                    txtExpenseAmount.Enabled = True
+                    txtParticulars.Text = txtCategory.SelectedItem
+                    GBMeals.Visible = False
+                    GBTransportation.Visible = False
+                    txtExpenseAmount.Select()
+                End If
+            Else
+                If txtCategory.SelectedIndex = 4 Then
+                    txtParticulars.Enabled = True
+                    txtExpenseAmount.Enabled = True
+                    txtParticulars.Select()
+                    BTNEditCategory.Enabled = False
+                    txtCategory.Enabled = True
+                ElseIf txtCategory.SelectedIndex = 2 Then
+                    txtParticulars.Enabled = False
+                    txtExpenseAmount.Enabled = True
+                    txtParticulars.Text = txtCategory.SelectedItem
+                    txtParticulars.Select()
+                    BTNEditCategory.Enabled = False
+                ElseIf txtCategory.SelectedIndex = 3 Then
+                    txtParticulars.Enabled = False
+                    txtExpenseAmount.Enabled = True
+                    txtParticulars.Text = txtCategory.SelectedItem
+                    txtParticulars.Select()
+                    BTNEditCategory.Enabled = False
+                End If
+            End If
+        Else
+            If txtCategory.SelectedIndex = 0 Then
+                If WorkWith = "" Then
+                    MsgBox("Please fill WorkWith to Proceed")
+                Else
+                    txtParticulars.Text = txtCategory.SelectedItem
+                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"TranspoRate"})(0)
+                    txtExpenseAmount.Enabled = False
+                    BTNEditCategory.Enabled = False
+                End If
+            ElseIf txtCategory.SelectedIndex = 1 Then
+                If WorkWith = "" Then
+                    MsgBox("Please fill WorkWith to Proceed")
+                Else
+                    txtParticulars.Text = txtCategory.SelectedItem
+                    txtExpenseAmount.Text = GetRegistryValue("Software\\ER System\\UserAccount", {"LunchRate"})(0)
+                    txtExpenseAmount.Enabled = False
+                    BTNEditCategory.Enabled = False
+                End If
+            End If
+        End If
+    End Sub
+    Private Sub TransportationDataValidation(ByVal ExpenseID As String)
+        Dim ClsData As New ClsLoadData
+        If ExpenseID <> Nothing Then
+            Dim myERData As String()
+            myERData = ClsData.GetEReportDetails(IIf(
+                ClsData.TempFileValidation(
+                Application.StartupPath + "\expenseTransSettingsTEMP.txt"),
+                Application.StartupPath + "\expenseTransSettingsTEMP.txt",
+                Application.StartupPath + "\expenseTransSettings.txt"))
+
+            If myERData.Length <> 0 Then
+                ModDataStore.MyFare()
+                If myERData(1) = 4 Then
+                    CBBFare.SelectedValue = myERData(1)
+                    txtFrom.Text = myERData(2)
+                    txtTo.Text = myERData(3)
+                    BTNEditCategory.Enabled = False
+                    txtFrom.Enabled = False
+                    txtTo.Enabled = False
+                Else
+                    CBBFare.SelectedValue = myERData(1)
+                    txtFrom.Text = myERData(2)
+                    txtTo.Text = myERData(3)
+                    BTNEditCategory.Enabled = False
+                    txtFrom.Enabled = True
+                    txtTo.Enabled = True
+                End If
+            Else
+                ModDataStore.MyFare()
+                CBBFare.SelectedIndex = 0
+                txtFrom.Clear()
+                txtTo.Clear()
+                BTNEditCategory.Enabled = False
+                txtFrom.Enabled = True
+                txtTo.Enabled = True
+            End If
+        Else
+            Dim myERData As String() = {}
+            If ClsData.TempFileValidation(Application.StartupPath + "\expenseTransSettingsTEMP.txt") = True Then
+                myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseTransSettingsTEMP.txt")
+            End If
+            If myERData.Length <> 0 Then
+                ModDataStore.MyFare()
+                CBBFare.SelectedValue = myERData(1)
+                txtFrom.Text = myERData(2)
+                txtTo.Text = myERData(3)
+            Else
+                ModDataStore.MyFare()
+                CBBFare.SelectedIndex = 0
+                txtFrom.Clear()
+                txtTo.Clear()
+                BTNEditCategory.Enabled = False
+            End If
+            txtExpenseAmount.Select()
+            txtTotal.Clear()
+        End If
+    End Sub
+    Private Sub MealDataValidation(ByVal WorkWith As String, ByVal ExpenseID As String)
+        Dim ClsData As New ClsLoadData
+        If WorkWith <> "NONE" And WorkWith <> "" Then
+            GetWorkWith(WorkWith)
+            If ExpenseID <> Nothing Then
+                Dim myERData As String()
+                myERData = ClsData.GetEReportDetails(IIf(
+                ClsData.TempFileValidation(
+                Application.StartupPath + "\expenseMealSettingsTEMP.txt") = True,
+                Application.StartupPath + "\expenseMealSettingsTEMP.txt",
+                Application.StartupPath + "\expenseMealSettings.txt"))
+                If ExpenseID.Length <> 0 Then
+                    SetUserMealExpenseItem(myERData)
+                Else
+                    If modLoadingData.GetUserMeal = "" Then
+                        ModDataStore.GetUserExpenseMeal()
+                        CBBPaidFor.Enabled = True
+                    Else
+                        SetUserMealExpenseItem(myERData)
+                    End If
+                End If
+            Else
+                Dim myERData As String() = {}
+                If ClsData.TempFileValidation(Application.StartupPath + "\expenseMealSettingsTEMP.txt") = True Then
+                    myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseMealSettingsTEMP.txt")
+                End If
+                If myERData.Length <> 0 Then
+                    SetUserMealExpenseItem(myERData)
+                Else
+                    ModDataStore.GetUserExpenseMeal()
+                End If
+                If CLBMeals.CheckedIndices.Count = 1 Then
+                    CBBPaidFor.Enabled = True
+                Else
+                    CBBPaidFor.Enabled = False
+                End If
+            End If
+            CBBPaidFor.Visible = True
+            CLBPaidBill.Visible = True
+        ElseIf WorkWith = "NONE" Then
+            GetWorkWith(WorkWith)
+            If ExpenseID <> Nothing Then
+                Dim myERData As String()
+                myERData = ClsData.GetEReportDetails(IIf(
+                ClsData.TempFileValidation(
+                Application.StartupPath + "\expenseMealSettingsTEMP.txt") = True,
+                Application.StartupPath + "\expenseMealSettingsTEMP.txt",
+                Application.StartupPath + "\expenseMealSettings.txt"))
+                If ExpenseID.Length <> 0 Then
+                    SetUserMealExpenseItem(myERData)
+                    Call SharedProcedure()
+                    Call UserMealSettingsWithOutWorkWith()
+                Else
+                    ModDataStore.GetUserExpenseMeal()
+                    Call UserMealSettingsWithOutWorkWith()
+                End If
+            Else
+                If ClsData.TempFileValidation(Application.StartupPath + "\expenseMealSettingsTEMP.txt") = True Then
+                    Dim myERData As String()
+                    myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseMealSettingsTEMP.txt")
+                    SetUserMealExpenseItem(myERData)
+                    Call SharedProcedure()
+                    Call UserMealSettingsWithOutWorkWith()
+                Else
+                    ModDataStore.GetUserExpenseMeal()
+                    Call UserMealSettingsWithOutWorkWith()
+                End If
+            End If
+        End If
+    End Sub
+    Private Sub UserMealSettingsWithOutWorkWith()
+        CBBPaidFor.Enabled = False
+        CBBPaidFor.Visible = False
+        CLBPaidBill.Visible = False
+        CLBMeals.Enabled = True
+    End Sub
+    Private Sub SetUserMealExpenseItem(ByVal myERData As String())
+        If myERData(1).Contains("&") = True Then
+            Call ResetMeal()
+            For x = 0 To myERData(1).Split("&").Count - 1
+                If myERData(1).Split("&")(x).Split("^")(1) = "Dinner" Then
+                    CBDinnerOTMeal.Checked = True
+                    RBDinner.Checked = True
+                ElseIf myERData(1).Split("&")(x).Split("^")(1) = "OT Meal" Then
+                    CBDinnerOTMeal.Checked = True
+                    RBOTMeal.Checked = True
+                Else
+                    CLBMeals.SetItemChecked(myERData(1).Split("&")(x).Split("^")(0), True)
+                End If
+            Next
+        ElseIf myERData(2) = 0 Then
+            Call ResetMeal()
+            If myERData(1).Split("^")(1) = "Dinner" Then
+                CBDinnerOTMeal.Checked = True
+                RBDinner.Checked = True
+                CBBPaidFor.Enabled = True
+            ElseIf myERData(1).Split("^")(1) = "OT Meal" Then
+                CBDinnerOTMeal.Checked = True
+                RBOTMeal.Checked = True
+                CBBPaidFor.Enabled = True
+            Else
+                CLBMeals.SetItemChecked(myERData(1).Split("^")(0), True)
+                CBBPaidFor.Enabled = True
+            End If
+
+        ElseIf myERData(2) = 1 Then
+            Call ResetMeal()
+            If myERData(1).Split("^")(1) = "Dinner" Then
+                CBDinnerOTMeal.Checked = True
+                RBDinner.Checked = True
+                CBBPaidFor.Checked = True
+                CBBPaidFor.Enabled = False
+            ElseIf myERData(1).Split("^")(1) = "OT Meal" Then
+                CBDinnerOTMeal.Checked = True
+                RBOTMeal.Checked = True
+                CBBPaidFor.Checked = True
+                CBBPaidFor.Enabled = False
+            Else
+                CLBMeals.SetItemChecked(myERData(1).Split("^")(0), True)
+                CBBPaidFor.Checked = True
+                CBBPaidFor.Enabled = False
+            End If
+
+            For x = 0 To myERData(3).Split("&").Count - 1
+                CLBPaidBill.SetItemChecked(myERData(3).Split("&")(x).Split("^")(0), True)
+            Next
+        Else
+            Call ModDataStore.GetUserExpenseMeal()
+        End If
+    End Sub
+    Private Sub ResetMeal()
+        CLBMeals.SetItemChecked(0, False)
+        CLBMeals.SetItemChecked(1, False)
+    End Sub
+    Private Sub GetWorkWith(ByVal WorkWith As String)
+        If WorkWith = "NONE" Then
+            CLBPaidBill.Items.Clear()
+        Else
+            CLBPaidBill.Items.Clear()
+            CLBPaidBill.BeginUpdate()
+            If WorkWith.Split("/").Length = 0 Then
+                CLBPaidBill.Items.Add(WorkWith)
+            Else
+                For Each item In WorkWith.Split("/")
+                    CLBPaidBill.Items.Add(item)
+                Next
+            End If
+            CLBPaidBill.EndUpdate()
+        End If
+    End Sub
+    Private Sub txtCategory_Click(sender As Object, e As EventArgs) Handles txtCategory.Click
+        comboClick = 1
+    End Sub
+    Private Sub BTNEditCategory_Click(sender As Object, e As EventArgs) Handles BTNEditCategory.Click
+        Dim ClsData As New ClsLoadData
+        comboClick = "1"
+        If CBPerdiem.Checked = True Then
+            ComputationLead()
+        Else
+            txtParticulars.Size = New Size(199, 68)
+            If ClsData.TempFileValidation(Application.StartupPath + "\expenseSettings.txt") = True Then
+                Dim myERData As String()
+                myERData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseSettings.txt")
+                Call OpeningLead(myERData(14), myERData(16))
+            Else
+                Call OpeningLead(txtWorkWith.Text, "")
+            End If
+        End If
+    End Sub
+
+    Private Sub txtInvoice_TextChanged(sender As Object, e As EventArgs) Handles txtInvoice.TextChanged
+        UpdateVatAmountState()
+
+        Dim ClsData As New ClsLoadData
+        Dim myExpenseData As String()
+        If ClsData.TempFileValidation(Application.StartupPath + "\expenseMealSettings.txt") = True Then
+            myExpenseData = ClsData.GetEReportDetails(Application.StartupPath + "\expenseMealSettings.txt")
+            If myExpenseData(2) = 1 Then
+                txtExpenseAmount.Enabled = True
+            Else
+                If txtCategory.SelectedIndex = 0 Then
+                    txtExpenseAmount.Enabled = True
+                Else
+                    txtExpenseAmount.Enabled = False
+                End If
+            End If
+        End If
+        If txtInvoice.Text <> "" And txtMultiplier.Text = 1 Then
+            txtTotal.Text = Val(txtExpenseAmount.Text)
+        End If
+    End Sub
+
+    Private Sub UpdateVatAmountState()
+        Dim hasInvoice As Boolean = Not String.IsNullOrWhiteSpace(txtInvoice.Text)
+        txtVatAmount.Enabled = hasInvoice
+
+        If Not hasInvoice Then
+            txtVatAmount.Clear()
+        End If
+    End Sub
+
+    Private Sub btnFileReport_Click(sender As Object, e As EventArgs) Handles btnFileReport.Click
+        Dim ClsData As New ClsLoadData
+        Dim myERData As String()
+        myERData = ClsData.GetEReportDetails(Application.StartupPath + "\settings.txt")
+
+        LoadingExpenseCount(myERData(13))
+        If LoadingOfficersToSign(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0)) = Nothing Then
+            MsgBox("Please Insert Your Signatory " & vbNewLine & " Go to Account Settings > Signatory", TopMost = True)
+        ElseIf LoadingExpenseCount(myERData(13)) = 0 Then
+            MsgBox("No Expense Data to File", TopMost = True)
+        ElseIf myERData(12) = "New" Or myERData(12) = "Returned" Then
+            Dim y As MsgBoxResult
+            y = MessageBox.Show("Are you sure you want to File your Expense Report?" + vbNewLine + "You can not update the expense once you file", "File", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2)
+            If y = MsgBoxResult.Yes Then
+                RefileER(myERData(13), "1")
+                Call UpdateEReportData()
+                ClsData.SetEReportDetails(myERData(13))
+                Call EReportOpenValidation()
+            Else
+                Exit Sub
+            End If
+        ElseIf myERData(12) = "Approved" Or myERData(12) = "For Approval" Then
+            Dim y As MsgBoxResult
+            y = MessageBox.Show(
+                "Are you sure you want to update your Expense Report?" & vbNewLine & vbNewLine &
+                "All Manager approval and Finance physical-receipt tracking will be permanently cleared. " &
+                "The report must complete approval again after it is refiled.",
+                "Update Report",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2)
+            If y = MsgBoxResult.Yes Then
+                Dim currentUserId As Integer
+                If Not Integer.TryParse(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0), currentUserId) Then
+                    MessageBox.Show("The current user account could not be identified. The report was not changed.",
+                                    "Update Report", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                    Exit Sub
+                End If
+
+                Try
+                    ReopenReportForEditing(currentUserId, myERData(13))
+                    ClsData.SetEReportDetails(myERData(13))
+                    Call UpdateEReportData()
+                    Call EReportOpenValidation()
+                Catch ex As Exception
+                    MessageBox.Show("The report could not be reopened. No workflow data was changed." & vbNewLine & vbNewLine & ex.Message,
+                                    "Update Report", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                End Try
+            Else
+                Exit Sub
+            End If
+        End If
+    End Sub
+
+    Private Sub btnPrintPreview_Click(sender As Object, e As EventArgs) Handles btnPrintPreview.Click
+        Dim selectedReport As Domain.Entities.SelectedReportContext = _selectedReportContextService.Load()
+
+        If LoadingOfficersToSign(GetRegistryValue("Software\\ER System\\UserAccount", {"UserID"})(0)) = Nothing Then
+            MsgBox("Please Insert Your Signatory " & vbNewLine & " Go to Account Settings > Signatory", TopMost = True)
+        Else
+            If Not selectedReport.HasSelection Then
+                MsgBox("No Report Selected")
+            ElseIf LoadingExpenseCount(selectedReport.ReportId) = 0 Then
+                MsgBox("No Expense Data to Load", TopMost = True)
+            Else
+                frmRpt.ShowDialog()
+            End If
+        End If
+    End Sub
+
+    Private Sub TextBox2_TextChanged(sender As Object, e As EventArgs) Handles txtTotalNumberOfDays.TextChanged
+        If txtExpenseAmount.Text <> "" And txtMDays.Text <> "" And txtMultiplier.Text <> "" And txtTotalNumberOfDays.Text <> "" Then
+            Dim particulars As String = ""
+            If CBPerdiem.Checked = True Then
+                If txtMDays.Text <> "0" And txtMDays.Text <> "" Then
+                    particulars = particulars + " (" + txtTotalNumberOfDays.Text + "Days - " + txtMDays.Text + "Days) * " + txtExpenseAmount.Text
+                    txtMultiplier.Text = Val(txtTotalNumberOfDays.Text - txtMDays.Text)
+                Else
+                    particulars = particulars + " (" + txtTotalNumberOfDays.Text + "Days) * " + txtExpenseAmount.Text
+                    txtMultiplier.Text = Val(txtTotalNumberOfDays.Text - txtMDays.Text)
+                End If
+                txtComputation.Text = particulars
+            End If
+        End If
+    End Sub
+
+    Private Sub txtMDays_TextChanged(sender As Object, e As EventArgs) Handles txtMDays.TextChanged
+        If txtExpenseAmount.Text <> "" And txtTotalNumberOfDays.Text <> "" And txtMultiplier.Text <> "" And txtMDays.Text <> "" Then
+            Dim particulars As String = ""
+            If CBPerdiem.Checked = True Then
+                If txtMDays.Text <> "0" And txtMDays.Text <> "" Then
+                    particulars = particulars + " (" + txtTotalNumberOfDays.Text + "Days - " + txtMDays.Text + "Days) * " + txtExpenseAmount.Text
+                    txtMultiplier.Text = Val(txtTotalNumberOfDays.Text - txtMDays.Text)
+                Else
+                    particulars = particulars + " (" + txtTotalNumberOfDays.Text + "Days) * " + txtExpenseAmount.Text
+                    txtMultiplier.Text = Val(txtTotalNumberOfDays.Text - txtMDays.Text)
+                End If
+                txtComputation.Text = particulars
+            End If
+        End If
+    End Sub
+End Class
