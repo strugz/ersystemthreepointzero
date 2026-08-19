@@ -25,17 +25,6 @@ public sealed class ReminderDatabaseCompatibilityValidator(
                    CASE WHEN COL_LENGTH(N'dbo.tbUserRegistration', N'EmailAdd') IS NULL THEN 0 ELSE 1 END,
                    CASE WHEN COL_LENGTH(N'dbo.tbUserRegistration', N'EmailPass') IS NULL THEN 0 ELSE 1 END,
                    CASE WHEN COL_LENGTH(N'dbo.tbUserRegistration', N'EmailTo') IS NULL THEN 0 ELSE 1 END,
-                   CASE WHEN OBJECT_ID(N'dbo.sp_Notify', N'P') IS NULL THEN 0 ELSE 1 END,
-                   CASE WHEN EXISTS
-                   (
-                       SELECT 1 FROM sys.parameters
-                       WHERE object_id = OBJECT_ID(N'dbo.sp_Notify') AND name = N'@ReminderApproverUsername'
-                   ) THEN 1 ELSE 0 END,
-                   CASE WHEN EXISTS
-                   (
-                       SELECT 1 FROM sys.parameters
-                       WHERE object_id = OBJECT_ID(N'dbo.sp_Notify') AND name = N'@ReminderMessage'
-                   ) THEN 1 ELSE 0 END,
                    CASE WHEN EXISTS
                    (
                        SELECT 1
@@ -46,6 +35,17 @@ public sealed class ReminderDatabaseCompatibilityValidator(
                          AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
                                  UPPER(definition), N' ', N''), N'(', N''), N')', N''), N'[', N''), N']', N'')
                              LIKE N'%REMINDERNUMBER>=0%'
+                   ) THEN 1 ELSE 0 END,
+                   CASE WHEN EXISTS
+                   (
+                       SELECT 1
+                       FROM sys.check_constraints
+                       WHERE parent_object_id = OBJECT_ID(N'dbo.tbReportApprovalReminderDelivery')
+                         AND name = N'CK_tbReportApprovalReminderDelivery_Channel'
+                         AND is_disabled = 0
+                         AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                                 UPPER(definition), N' ', N''), N'(', N''), N')', N''), N'[', N''), N']', N'')
+                             LIKE N'%SMSAPI%'
                    ) THEN 1 ELSE 0 END
             FROM sys.databases
             WHERE name = DB_NAME();
@@ -65,7 +65,7 @@ public sealed class ReminderDatabaseCompatibilityValidator(
             throw new InvalidOperationException("The reminder service requires database compatibility level 100.");
         }
 
-        for (var ordinal = 1; ordinal <= 9; ordinal++)
+        for (var ordinal = 1; ordinal <= 7; ordinal++)
         {
             if (reader.GetInt32(ordinal) == 0)
             {

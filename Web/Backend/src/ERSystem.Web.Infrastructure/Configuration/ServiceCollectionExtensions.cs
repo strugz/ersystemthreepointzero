@@ -74,6 +74,10 @@ public static class ServiceCollectionExtensions
                 "ApprovalReminders:InitialDelayDays must be greater than zero.")
             .Validate(options => options.ActivationPollIntervalSeconds is >= 10 and <= 3600,
                 "ApprovalReminders:ActivationPollIntervalSeconds must be between 10 and 3600.")
+            .Validate(options => !options.SmsEnabled || IsAbsoluteHttpUri(options.SmsApiUrl),
+                "ApprovalReminders:SmsApiUrl must be an absolute HTTP or HTTPS URL when SMS is enabled.")
+            .Validate(options => !options.SmsEnabled || options.SmsTimeoutSeconds is >= 5 and <= 120,
+                "ApprovalReminders:SmsTimeoutSeconds must be between 5 and 120 when SMS is enabled.")
             .Validate(options =>
                     Enum.TryParse<DayOfWeek>(options.ReminderDayOfWeek, true, out var reminderDay) &&
                     Enum.IsDefined(reminderDay),
@@ -97,7 +101,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEmployeeSmtpAccountStore, SqlEmployeeSmtpAccountStore>();
         services.AddScoped<IEmployeeSmtpAccountProvider, EmployeeSmtpAccountProvider>();
         services.AddScoped<IEmailReminderSender, SmtpReminderSender>();
-        services.AddSingleton<ISmsReminderSender, StoredProcedureSmsReminderSender>();
+        services.AddHttpClient<ISmsReminderSender, ApiSmsReminderSender>((serviceProvider, client) =>
+        {
+            var options = serviceProvider
+                .GetRequiredService<Microsoft.Extensions.Options.IOptions<ApprovalReminderOptions>>()
+                .Value;
+            client.BaseAddress = new Uri(options.SmsApiUrl, UriKind.Absolute);
+            client.Timeout = TimeSpan.FromSeconds(options.SmsTimeoutSeconds);
+        });
         services.AddHostedService<ReminderDatabaseCompatibilityValidator>();
         return services;
     }
@@ -118,5 +129,9 @@ public static class ServiceCollectionExtensions
             return false;
         }
     }
+
+    private static bool IsAbsoluteHttpUri(string value) =>
+        Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
 }

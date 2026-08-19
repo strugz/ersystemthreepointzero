@@ -127,53 +127,86 @@ public sealed class ApprovalReminderService(
 
             if (settings.SmsEnabled)
             {
-                var claim = await repository.TryClaimAsync(
+                var recipients = new[]
+                {
+                    new SmsRecipient(ReminderAudience.Manager, candidate.ManagerUserId, candidate.ManagerUsername)
+                };
+
+                await ProcessSmsBatchAsync(
                     candidate,
                     reminderNumber,
-                    ReminderChannel.SmsGateway,
-                    ReminderAudience.ManagerAndEmployee,
-                    null,
-                    Guid.NewGuid(),
+                    recipients,
+                    messages.SmsMessage,
+                    totals,
                     cancellationToken);
-
-                if (!claim.HasValue)
-                {
-                    totals.Increment(DeliveryOutcome.AlreadyClaimed);
-                    continue;
-                }
-
-                ReminderSendResult result;
-                try
-                {
-                    result = await smsSender.QueueAsync(candidate, messages.SmsMessage, cancellationToken);
-                }
-                catch (Exception) when (!cancellationToken.IsCancellationRequested)
-                {
-                    result = ReminderSendResult.Failed("SMS_QUEUE_UNEXPECTED");
-                }
-
-                if (result.Succeeded)
-                {
-                    await repository.CompleteAsync(
-                        claim.Value,
-                        ReminderDeliveryStatus.Queued,
-                        null,
-                        cancellationToken);
-                    totals.Increment(DeliveryOutcome.Queued);
-                }
-                else
-                {
-                    await repository.CompleteAsync(
-                        claim.Value,
-                        ReminderDeliveryStatus.Failed,
-                        NormalizeFailureCode(result.FailureCode, "SMS_QUEUE_FAILED"),
-                        cancellationToken);
-                    totals.Increment(DeliveryOutcome.Failed);
-                }
             }
         }
 
         return totals.ToSummary(candidates.Count, dueCandidates);
+    }
+
+    private async Task ProcessSmsBatchAsync(
+        ApprovalReminderCandidate candidate,
+        int reminderNumber,
+        IEnumerable<SmsRecipient> recipients,
+        string message,
+        DeliveryTotals totals,
+        CancellationToken cancellationToken)
+    {
+        var recipientList = recipients.ToArray();
+        var claims = new List<(long DeliveryId, string Username)>(recipientList.Length);
+        foreach (var recipient in recipientList)
+        {
+            var claim = await repository.TryClaimAsync(
+                candidate,
+                reminderNumber,
+                ReminderChannel.SmsApi,
+                recipient.Audience,
+                recipient.UserId,
+                Guid.NewGuid(),
+                cancellationToken);
+
+            if (claim.HasValue)
+            {
+                claims.Add((claim.Value, recipient.Username));
+            }
+            else
+            {
+                totals.Increment(DeliveryOutcome.AlreadyClaimed);
+            }
+        }
+
+        if (claims.Count == 0)
+        {
+            return;
+        }
+
+        ReminderSendResult result;
+        try
+        {
+            var receivers = string.Join(
+                '/',
+                claims.Select(claim => claim.Username).Distinct(StringComparer.OrdinalIgnoreCase));
+            result = await smsSender.SendAsync(
+                receivers,
+                candidate.EmployeeUsername,
+                message,
+                cancellationToken);
+        }
+        catch (Exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            result = ReminderSendResult.Failed("SMS_API_UNEXPECTED");
+        }
+
+        var status = result.Succeeded ? ReminderDeliveryStatus.Sent : ReminderDeliveryStatus.Failed;
+        var failureCode = result.Succeeded
+            ? null
+            : NormalizeFailureCode(result.FailureCode, "SMS_API_FAILED");
+        foreach (var claim in claims)
+        {
+            await repository.CompleteAsync(claim.DeliveryId, status, failureCode, cancellationToken);
+            totals.Increment(result.Succeeded ? DeliveryOutcome.SmsSent : DeliveryOutcome.Failed);
+        }
     }
 
     private async Task<DeliveryOutcome> ProcessEmailAsync(
@@ -230,7 +263,7 @@ public sealed class ApprovalReminderService(
                 ReminderDeliveryStatus.Sent,
                 null,
                 cancellationToken);
-            return DeliveryOutcome.Sent;
+            return DeliveryOutcome.EmailSent;
         }
 
         if (result.Outcome == ReminderSendOutcome.Skipped)
@@ -266,8 +299,8 @@ public sealed class ApprovalReminderService(
 
     private enum DeliveryOutcome
     {
-        Sent,
-        Queued,
+        EmailSent,
+        SmsSent,
         Failed,
         Skipped,
         AlreadyClaimed
@@ -275,8 +308,8 @@ public sealed class ApprovalReminderService(
 
     private sealed class DeliveryTotals
     {
-        private int Sent { get; set; }
-        private int Queued { get; set; }
+        private int EmailSent { get; set; }
+        private int SmsSent { get; set; }
         private int Failed { get; set; }
         private int Skipped { get; set; }
         private int AlreadyClaimed { get; set; }
@@ -285,11 +318,11 @@ public sealed class ApprovalReminderService(
         {
             switch (outcome)
             {
-                case DeliveryOutcome.Sent:
-                    Sent++;
+                case DeliveryOutcome.EmailSent:
+                    EmailSent++;
                     break;
-                case DeliveryOutcome.Queued:
-                    Queued++;
+                case DeliveryOutcome.SmsSent:
+                    SmsSent++;
                     break;
                 case DeliveryOutcome.Failed:
                     Failed++;
@@ -304,6 +337,8 @@ public sealed class ApprovalReminderService(
         }
 
         public ApprovalReminderRunSummary ToSummary(int candidatesFound, int dueCandidates) =>
-            new(candidatesFound, dueCandidates, Sent, Queued, Failed, Skipped, AlreadyClaimed);
+            new(candidatesFound, dueCandidates, EmailSent, SmsSent, Failed, Skipped, AlreadyClaimed);
     }
+
+    private sealed record SmsRecipient(ReminderAudience Audience, int UserId, string Username);
 }

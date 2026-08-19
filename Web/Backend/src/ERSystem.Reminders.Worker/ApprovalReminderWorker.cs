@@ -107,8 +107,8 @@ public sealed class ApprovalReminderWorker(
     private void LogSummary(string operation, ApprovalReminderRunSummary summary)
     {
         if (summary.CandidatesFound == 0 &&
-            summary.Sent == 0 &&
-            summary.Queued == 0 &&
+            summary.EmailSent == 0 &&
+            summary.SmsSent == 0 &&
             summary.Failed == 0 &&
             summary.Skipped == 0)
         {
@@ -117,13 +117,13 @@ public sealed class ApprovalReminderWorker(
         }
 
         logger.LogInformation(
-            "{Operation} completed: candidates {Candidates}, due {Due}, email sent {Sent}, " +
-            "SMS queued {Queued}, failed {Failed}, skipped {Skipped}, already claimed {AlreadyClaimed}",
+            "{Operation} completed: candidates {Candidates}, due {Due}, email sent {EmailSent}, " +
+            "SMS sent {SmsSent}, failed {Failed}, skipped {Skipped}, already claimed {AlreadyClaimed}",
             operation,
             summary.CandidatesFound,
             summary.DueCandidates,
-            summary.Sent,
-            summary.Queued,
+            summary.EmailSent,
+            summary.SmsSent,
             summary.Failed,
             summary.Skipped,
             summary.AlreadyClaimed);

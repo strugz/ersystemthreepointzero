@@ -37,4 +37,4 @@ if (-not (Test-Path -LiteralPath $executablePath -PathType Leaf)) {
 
 Write-Host "Reminder service published to $resolvedOutputPath"
 Write-Host "Executable: $executablePath"
-Write-Host 'Keep production SQL and SMTP secrets in a protected JSON file outside this publish directory.'
+Write-Host 'Keep production SQL, SMTP, and SMS settings in a protected JSON file outside this publish directory.'

@@ -19,6 +19,8 @@ This solution adds Manager approval and Finance physical-receipt tracking beside
 6. Retain `Database/20260720_RollbackApprovalReminderSupport.sql` for emergency rollback. It restores the prior two-parameter `dbo.sp_Notify` contract and removes the reminder delivery ledger, but deliberately preserves `NotificationEmail` contact data.
 7. Review and run `Database/20260724_AddApprovalActivationEmailSupport.sql`. It enables occurrence zero for one-time activation email and marks approvals already actionable during deployment so they do not receive a misleading filing email.
 8. Retain `Database/20260724_RollbackApprovalActivationEmailSupport.sql`. It removes only activation-email delivery records and restores the original positive reminder-number constraint.
+9. Review and run `Database/20260818_UseSmsApiForApprovalReminders.sql`. It changes scheduled SMS delivery claims to the direct API channel and fixes reminder-child cleanup when reopening a report.
+10. Retain `Database/20260818_RollbackSmsApiForApprovalReminders.sql` for transport rollback. It restores the legacy channel values but deliberately retains the reopen integrity fix.
 
 Never run `ER3.0.sql` as a migration. It is reference material for the current live schema.
 
@@ -41,7 +43,7 @@ When an employee files a report, the existing `sp2_RefileER` and `dbo.sp_Notify 
 
 For email delivery, `EmployeeUserID` on the actionable `tbReportApprovalTransaction` row identifies the employee's `tbUserRegistration` record. The worker decrypts that row's `EmailAdd` and `EmailPass` in application memory using the existing legacy encryption key. It uses the decrypted `EmailAdd` as the SMTP username, sender, and employee recipient. The employee row's plain-text `EmailTo` is the manager recipient. `ApproverUserID` continues to control approval ownership, manager naming, claim revalidation, and the SMS identity; it does not select the email address. The scoped mailbox lookup is discarded after each worker scan and no address, password, ciphertext, or key is logged or written to the reminder delivery table.
 
-The scheduled process runs daily at 8:00 AM Manila time. It sends manager email, employee email, and one combined `dbo.sp_Notify 'REMINDER'` SMS request on the third local calendar day, then on every Wednesday while the approval remains actionable. When day three is Wednesday, only the day-three occurrence is sent. A missed run sends only the latest due occurrence.
+The scheduled process runs daily at 8:00 AM Manila time. It sends manager email, employee email, and one direct SMS API request to the currently actionable approver on the third local calendar day, then on every Wednesday while the approval remains actionable. The SMS request uses the manager username as `RECEIVER` and the ERF employee username as `SENDER`. When day three is Wednesday, only the day-three occurrence is sent. A missed run sends only the latest due occurrence.
 
 Production secrets belong in an ACL-protected JSON file outside the repository and publish directory. Start from this shape:
 
@@ -58,6 +60,8 @@ The committed worker configuration contains a blank database connection string b
   "ApprovalReminders": {
     "EmailEnabled": false,
     "SmsEnabled": false,
+    "SmsApiUrl": "https://mdmpi.com.ph/lasius/api_sendsms",
+    "SmsTimeoutSeconds": 30,
     "ActivationPollIntervalSeconds": 60,
     "RunAtLocalTime": "08:00",
     "TimeZoneId": "Asia/Manila",
@@ -84,11 +88,11 @@ Publish and install from an elevated PowerShell session:
   -SettingsPath C:\ProgramData\ERSystem\ApprovalReminders\appsettings.Production.json
 ```
 
-The installation script creates a delayed automatic service under the dedicated `NT SERVICE\ERSystemApprovalReminders` virtual account, grants it read-only configuration access, registers the Event Log source, and configures process restart after unexpected failure. Grant the service identity only the required SQL permissions and network access to SQL Server and SMTP. It does not need access to `D:\ERSHARE`; `dbo.sp_Notify` writes the SMS gateway file on SQL Server.
+The installation script creates a delayed automatic service under the dedicated `NT SERVICE\ERSystemApprovalReminders` virtual account, grants it read-only configuration access, registers the Event Log source, and configures process restart after unexpected failure. Grant the service identity only the required SQL permissions and network access to SQL Server, SMTP, and outbound HTTPS to the configured SMS API host. Scheduled reminders do not use `D:\ERSHARE`; legacy desktop `FILE`, `DONE`, and `CANCEL` notifications continue using `dbo.sp_Notify` unchanged.
 
 `EmailEnabled` controls activation and scheduled email. `SmsEnabled` controls only scheduled `REMINDER` SMS; it deliberately does not disable the existing legacy `FILE` SMS. When email is disabled, activation occurrences are recorded as skipped so they are not sent later as stale filing messages. Scheduled scans still report real candidate and due counts when both reminder channels are disabled.
 
-Deploy initially with both reminder channels disabled. Verify a pilot employee's encrypted `EmailAdd` and `EmailPass` and plain-text `EmailTo`, then enable email for that controlled test. Enable SMS only after a staging `REMINDER` confirms the gateway payload. The delivery table records `Sent` for SMTP and `Queued` for the gateway; it does not claim carrier delivery acknowledgement. `NotificationEmail` remains in the database for backward compatibility but is not used by this reminder workflow.
+Deploy initially with both reminder channels disabled. Verify a pilot employee's encrypted `EmailAdd` and `EmailPass` and plain-text `EmailTo`, then enable email for that controlled test. The SMS API uses the current approver username as `RECEIVER` and the ERF employee username as `SENDER`; enable SMS only after a controlled staging request succeeds. HTTP 200 is recorded as `Sent`, meaning the API accepted the request; it does not claim carrier delivery acknowledgement. `NotificationEmail` remains in the database for backward compatibility but is not used by this reminder workflow.
 
 ## Local development
 

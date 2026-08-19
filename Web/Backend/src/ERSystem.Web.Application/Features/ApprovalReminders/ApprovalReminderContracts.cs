@@ -36,7 +36,7 @@ public sealed record ApprovalActivationMessages(
 public enum ReminderChannel
 {
     Email,
-    SmsGateway
+    SmsApi
 }
 
 public enum ReminderAudience
@@ -78,8 +78,8 @@ public sealed record ReminderSendResult(ReminderSendOutcome Outcome, string? Fai
 public sealed record ApprovalReminderRunSummary(
     int CandidatesFound,
     int DueCandidates,
-    int Sent,
-    int Queued,
+    int EmailSent,
+    int SmsSent,
     int Failed,
     int Skipped,
     int AlreadyClaimed);
@@ -115,8 +115,9 @@ public interface IEmailReminderSender
 
 public interface ISmsReminderSender
 {
-    Task<ReminderSendResult> QueueAsync(
-        ApprovalReminderCandidate candidate,
+    Task<ReminderSendResult> SendAsync(
+        string receiverUsername,
+        string senderUsername,
         string message,
         CancellationToken cancellationToken);
 }

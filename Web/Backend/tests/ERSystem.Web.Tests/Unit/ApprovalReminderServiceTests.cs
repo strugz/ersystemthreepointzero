@@ -94,7 +94,7 @@ public sealed class ApprovalReminderServiceTests
 
         Assert.Equal(1, summary.CandidatesFound);
         Assert.Equal(1, summary.DueCandidates);
-        Assert.Equal(2, summary.Sent);
+        Assert.Equal(2, summary.EmailSent);
         Assert.Equal(2, repository.Claims.Count);
         Assert.All(repository.Claims, claim => Assert.Equal(0, claim.ReminderNumber));
         Assert.All(repository.Claims, claim => Assert.Equal(ReminderChannel.Email, claim.Channel));
@@ -169,13 +169,15 @@ public sealed class ApprovalReminderServiceTests
         var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
 
         Assert.Equal(1, summary.DueCandidates);
-        Assert.Equal(2, summary.Sent);
-        Assert.Equal(1, summary.Queued);
+        Assert.Equal(2, summary.EmailSent);
+        Assert.Equal(1, summary.SmsSent);
         Assert.Equal(2, emailSender.Messages.Count);
-        Assert.Single(smsSender.Messages);
+        var sms = Assert.Single(smsSender.Messages);
+        Assert.Equal("MCRUZ", sms.ReceiverUsername);
+        Assert.Equal("JSMITH", sms.SenderUsername);
         Assert.Equal(3, repository.Claims.Count);
         Assert.All(repository.Claims, claim => Assert.Equal(1, claim.ReminderNumber));
-        Assert.Contains(repository.Completions, item => item.Status == ReminderDeliveryStatus.Queued);
+        Assert.Equal(3, repository.Completions.Count(item => item.Status == ReminderDeliveryStatus.Sent));
     }
 
     [Fact]
@@ -232,8 +234,8 @@ public sealed class ApprovalReminderServiceTests
         var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
 
         Assert.Equal(1, summary.Skipped);
-        Assert.Equal(1, summary.Sent);
-        Assert.Equal(1, summary.Queued);
+        Assert.Equal(1, summary.EmailSent);
+        Assert.Equal(1, summary.SmsSent);
         Assert.Equal(2, emailSender.Messages.Count);
         Assert.Single(smsSender.Messages);
     }
@@ -255,6 +257,47 @@ public sealed class ApprovalReminderServiceTests
         Assert.Equal(3, summary.AlreadyClaimed);
         Assert.Empty(emailSender.Messages);
         Assert.Empty(smsSender.Messages);
+    }
+
+    [Fact]
+    public async Task Matching_employee_and_manager_username_still_claims_only_manager_sms()
+    {
+        var candidate = CreateCandidate() with { ManagerUsername = "jsmith" };
+        var repository = new FakeRepository([candidate]);
+        var smsSender = new FakeSmsSender(ReminderSendResult.Success);
+        var service = CreateService(
+            repository,
+            new FakeEmailSender(ReminderSendResult.Success),
+            smsSender,
+            new DateTime(2026, 7, 23, 12, 0, 0, DateTimeKind.Utc),
+            emailEnabled: false);
+
+        var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
+
+        Assert.Single(smsSender.Messages);
+        Assert.Equal(1, summary.SmsSent);
+        var claim = Assert.Single(repository.Claims);
+        Assert.Equal(ReminderAudience.Manager, claim.Audience);
+    }
+
+    [Fact]
+    public async Task Manager_sms_failure_marks_manager_claim_failed()
+    {
+        var repository = new FakeRepository([CreateCandidate()]);
+        var smsSender = new FakeSmsSender(
+            ReminderSendResult.Failed("SMS_API_CONNECTION_FAILED"));
+        var service = CreateService(
+            repository,
+            new FakeEmailSender(ReminderSendResult.Success),
+            smsSender,
+            new DateTime(2026, 7, 23, 12, 0, 0, DateTimeKind.Utc),
+            emailEnabled: false);
+
+        var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
+
+        Assert.Single(smsSender.Messages);
+        Assert.Equal(0, summary.SmsSent);
+        Assert.Equal(1, summary.Failed);
     }
 
     private static ApprovalReminderService CreateService(
@@ -327,17 +370,30 @@ public sealed class ApprovalReminderServiceTests
         }
     }
 
-    private sealed class FakeSmsSender(ReminderSendResult result) : ISmsReminderSender
+    private sealed class FakeSmsSender : ISmsReminderSender
     {
-        public List<string> Messages { get; } = [];
+        private readonly Func<string, ReminderSendResult> _resultFactory;
 
-        public Task<ReminderSendResult> QueueAsync(
-            ApprovalReminderCandidate candidate,
+        public FakeSmsSender(ReminderSendResult result)
+            : this(_ => result)
+        {
+        }
+
+        public FakeSmsSender(Func<string, ReminderSendResult> resultFactory)
+        {
+            _resultFactory = resultFactory;
+        }
+
+        public List<(string ReceiverUsername, string SenderUsername, string Message)> Messages { get; } = [];
+
+        public Task<ReminderSendResult> SendAsync(
+            string receiverUsername,
+            string senderUsername,
             string message,
             CancellationToken cancellationToken)
         {
-            Messages.Add(message);
-            return Task.FromResult(result);
+            Messages.Add((receiverUsername, senderUsername, message));
+            return Task.FromResult(_resultFactory(receiverUsername));
         }
     }
 

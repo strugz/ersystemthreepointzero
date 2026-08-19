@@ -127,7 +127,7 @@ Use .NET user secrets for local development and protected environment or IIS con
 | `Services/WorkflowAuditWriter.cs` | Inserts parameterized audit rows into `dbo.tbWebWorkflowAudit` using the workflow transaction and correlation ID. |
 | `Services/EfTransactionRunner.cs` | Provides serializable transaction execution for use cases requiring an all-or-nothing boundary. |
 
-Approval reminder orchestration lives under `Application/Features/ApprovalReminders`, pure calendar scheduling under `Domain/ApprovalReminders`, and SQL/SMTP/`dbo.sp_Notify` implementations under `Infrastructure/Reminders`. The worker project only schedules runs, creates a scope, and records sanitized summaries. Preserve the unique delivery claim before external sends and revalidate the current approval step inside the claim transaction.
+Approval reminder orchestration lives under `Application/Features/ApprovalReminders`, pure calendar scheduling under `Domain/ApprovalReminders`, and SQL/SMTP/SMS API implementations under `Infrastructure/Reminders`. The worker project only schedules runs, creates a scope, and records sanitized summaries. Preserve the unique delivery claim before external sends and revalidate the current approval step inside the claim transaction.
 
 Manager approval and Finance receipt mutations are security- and data-integrity-sensitive. Preserve report-level authorization, serializable transactions, row-version checks, duplicate/out-of-order conflict checks, legacy stored-procedure behavior, audit writes, and the final-approval handoff to Finance.
 

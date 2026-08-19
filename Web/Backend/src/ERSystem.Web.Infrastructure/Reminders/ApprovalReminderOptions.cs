@@ -8,6 +8,8 @@ public sealed class ApprovalReminderOptions
 
     public bool EmailEnabled { get; set; }
     public bool SmsEnabled { get; set; }
+    public string SmsApiUrl { get; set; } = "https://mdmpi.com.ph/lasius/api_sendsms";
+    public int SmsTimeoutSeconds { get; set; } = 30;
     public int ActivationPollIntervalSeconds { get; set; } = 60;
     public string RunAtLocalTime { get; set; } = "08:00";
     public string TimeZoneId { get; set; } = "Asia/Manila";
