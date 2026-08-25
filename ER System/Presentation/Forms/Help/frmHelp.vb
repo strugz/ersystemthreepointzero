@@ -1,108 +1,175 @@
-﻿Public Class frmHelp
-    Dim status As String = "0"
-    Dim status1 As String = "0"
-    Dim status2 As String = "0"
-    Dim status3 As String = "0"
-    Dim status4 As String = "0"
-    Dim status5 As String = "0"
-    Dim status6 As String = "0"
-    Dim status7 As String = "0"
-    Dim status8 As String = "0"
-    Private Sub LinkLabel1_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles LinkLabel1.LinkClicked
+Imports System.Diagnostics
+Imports System.IO
 
-        If status = "0" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "AccountSettings-Signatory.png")
-            status = "1"
-        Else
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "Add Signatory.png")
-            status = "0"
-        End If
+Public Class frmHelp
+    Private Const TutorialRelativePath As String = "Internal Develop Application\ERSystem 3.5\ERF System Tutorial and Documentation\outputs\ERF Video Tutorial"
+
+    Private ReadOnly tutorialList As New ListBox()
+    Private ReadOnly playButton As New Button()
+    Private ReadOnly locationLabel As New Label()
+    Private tutorialDirectory As String
+
+    Private Sub frmHelp_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ConfigureTutorialHelp()
+        LoadTutorials()
     End Sub
 
-    Private Sub LinkLabel2_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles LinkLabel2.LinkClicked
-        If status1 = "0" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "AccountSettings-ChangePassword.png")
-            status1 = "1"
-        ElseIf status1 = "1" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "ChangePassword.png")
-            status1 = "2"
-        Else
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "ChangeEmailSettings.png")
-            status1 = "0"
-        End If
+    Private Sub ConfigureTutorialHelp()
+        Text = "Help - Video Tutorials"
+        MinimumSize = New Size(720, 480)
+        Size = New Size(900, 560)
+
+        Panel1.Visible = False
+        PictureBox1.Visible = False
+
+        Dim page As New TableLayoutPanel() With {
+            .Dock = DockStyle.Fill,
+            .BackColor = Color.White,
+            .ColumnCount = 1,
+            .RowCount = 5,
+            .Padding = New Padding(28)
+        }
+        page.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+        page.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+        page.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+        page.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+        page.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+
+        Dim titleLabel As New Label() With {
+            .AutoSize = True,
+            .Font = New Font("Segoe UI Semibold", 20.0F, FontStyle.Bold),
+            .ForeColor = Color.FromArgb(31, 55, 76),
+            .Margin = New Padding(0, 0, 0, 6),
+            .Text = "Video Tutorials"
+        }
+        Dim instructionLabel As New Label() With {
+            .AutoSize = True,
+            .Font = New Font("Segoe UI", 10.0F),
+            .ForeColor = Color.FromArgb(80, 92, 103),
+            .Margin = New Padding(0, 0, 0, 18),
+            .Text = "Select a tutorial below, then click Play Video."
+        }
+
+        tutorialList.Dock = DockStyle.Fill
+        tutorialList.Font = New Font("Segoe UI", 11.0F)
+        tutorialList.IntegralHeight = False
+        tutorialList.BorderStyle = BorderStyle.FixedSingle
+        tutorialList.Margin = New Padding(0, 0, 0, 16)
+
+        playButton.AutoSize = True
+        playButton.Anchor = AnchorStyles.Right
+        playButton.BackColor = Color.FromArgb(30, 99, 160)
+        playButton.FlatStyle = FlatStyle.Flat
+        playButton.FlatAppearance.BorderSize = 0
+        playButton.Font = New Font("Segoe UI Semibold", 10.0F, FontStyle.Bold)
+        playButton.ForeColor = Color.White
+        playButton.Padding = New Padding(18, 8, 18, 8)
+        playButton.Text = "Play Video"
+        AddHandler playButton.Click, AddressOf PlaySelectedTutorial
+
+        locationLabel.AutoSize = True
+        locationLabel.Font = New Font("Segoe UI", 8.5F)
+        locationLabel.ForeColor = Color.FromArgb(100, 110, 120)
+        locationLabel.Margin = New Padding(0, 12, 0, 0)
+
+        page.Controls.Add(titleLabel, 0, 0)
+        page.Controls.Add(instructionLabel, 0, 1)
+        page.Controls.Add(tutorialList, 0, 2)
+        page.Controls.Add(playButton, 0, 3)
+        page.Controls.Add(locationLabel, 0, 4)
+        Controls.Add(page)
+        page.BringToFront()
+
+        AcceptButton = playButton
+        AddHandler tutorialList.DoubleClick, AddressOf PlaySelectedTutorial
     End Sub
 
-    Private Sub LinkLabel3_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles LinkLabel3.LinkClicked
-        If status2 = "0" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "AddReport-Expense.png")
-            status2 = "1"
-        ElseIf status2 = "1" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "Add ER-Reimbursment Title.png")
-            status2 = "2"
-        ElseIf status2 = "2" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "ER-Reimbursment added.png")
-            status2 = "3"
-        ElseIf status2 = "3" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "Adding Expense.png")
-            status2 = "4"
-        Else
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "updateExpenseData.png")
-            status2 = "0"
+    Private Sub LoadTutorials()
+        tutorialDirectory = FindTutorialDirectory()
+        tutorialList.Items.Clear()
+
+        If String.IsNullOrEmpty(tutorialDirectory) Then
+            locationLabel.Text = "Tutorial folder was not found. Connect or sync the company OneDrive and reopen Help."
+            playButton.Enabled = False
+            Return
         End If
+
+        Try
+            For Each videoPath As String In Directory.GetFiles(tutorialDirectory, "*.mp4").OrderBy(Function(videoFilePath As String) System.IO.Path.GetFileName(videoFilePath))
+                tutorialList.Items.Add(New TutorialVideo(videoPath))
+            Next
+
+            playButton.Enabled = tutorialList.Items.Count > 0
+            If tutorialList.Items.Count > 0 Then
+                tutorialList.SelectedIndex = 0
+            End If
+
+            locationLabel.Text = If(tutorialList.Items.Count = 0,
+                                    "No MP4 tutorial videos were found in the tutorial folder.",
+                                    tutorialList.Items.Count.ToString() & " video tutorials available")
+        Catch ex As IOException
+            playButton.Enabled = False
+            locationLabel.Text = "The tutorial folder could not be read."
+        Catch ex As UnauthorizedAccessException
+            playButton.Enabled = False
+            locationLabel.Text = "You do not have permission to read the tutorial folder."
+        End Try
     End Sub
 
-    Private Sub LinkLabel7_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles LinkLabel7.LinkClicked
-        If status3 = "0" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "ER-Reimbursment added.png")
-            status3 = "1"
-        ElseIf status3 = "1" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "File the report.png")
-            status3 = "2"
-        Else
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "FiledReportDisplay.png")
-            status3 = "0"
+    Private Function FindTutorialDirectory() As String
+        Dim localTutorialPath As String = Path.Combine(Application.StartupPath, "Help", "Video Tutorials")
+        If Directory.Exists(localTutorialPath) Then
+            Return localTutorialPath
         End If
-    End Sub
-    Private Sub LinkLabel6_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles LinkLabel6.LinkClicked
-        If status4 = "0" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "ER-Reimbursment added.png")
-            status4 = "1"
-        Else
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "Sending your ER.png")
-            status4 = "0"
+
+        Dim oneDriveRoot As String = Environment.GetEnvironmentVariable("OneDriveCommercial")
+        If String.IsNullOrWhiteSpace(oneDriveRoot) Then
+            oneDriveRoot = Environment.GetEnvironmentVariable("OneDrive")
         End If
+
+        If Not String.IsNullOrWhiteSpace(oneDriveRoot) Then
+            Dim companyTutorialPath As String = Path.Combine(oneDriveRoot, TutorialRelativePath)
+            If Directory.Exists(companyTutorialPath) Then
+                Return companyTutorialPath
+            End If
+        End If
+
+        Return Nothing
+    End Function
+
+    Private Sub PlaySelectedTutorial(sender As Object, e As EventArgs)
+        Dim selectedVideo As TutorialVideo = TryCast(tutorialList.SelectedItem, TutorialVideo)
+        If selectedVideo Is Nothing Then
+            MessageBox.Show(Me, "Please select a video tutorial first.", "Help", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+
+        Try
+            Process.Start(selectedVideo.FilePath)
+        Catch ex As Exception
+            MessageBox.Show(Me,
+                            "The video could not be opened. Please verify that a video player is installed and the tutorial file is available.",
+                            "Help",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error)
+        End Try
     End Sub
 
-    Private Sub LinkLabel8_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles LinkLabel8.LinkClicked
-        If status5 = "0" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "ER-Reimbursment added.png")
-            status5 = "1"
-        Else
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "Approve report.png")
-            status5 = "0"
-        End If
-    End Sub
+    Private NotInheritable Class TutorialVideo
+        Private ReadOnly videoFilePath As String
 
-    Private Sub LinkLabel4_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles LinkLabel4.LinkClicked
-        If status6 = "0" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "PendingER.png")
-            status6 = "1"
-        ElseIf status6 = "1" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "PendingFiledER.png")
-            status6 = "2"
-        Else
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "Approved the FileER.png")
-            status6 = "0"
-        End If
-    End Sub
+        Public Sub New(filePath As String)
+            videoFilePath = filePath
+        End Sub
 
-    Private Sub LinkLabel9_LinkClicked(sender As Object, e As LinkLabelLinkClickedEventArgs) Handles LinkLabel9.LinkClicked
-        If status7 = "0" Then
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "PreviousER.png")
-            status7 = "1"
-        Else
-            PictureBox1.Image = Image.FromFile(Application.StartupPath + "\Help\" + "PreviousER2.png")
-            status7 = "0"
-        End If
-    End Sub
+        Public ReadOnly Property FilePath As String
+            Get
+                Return videoFilePath
+            End Get
+        End Property
+
+        Public Overrides Function ToString() As String
+            Return Path.GetFileNameWithoutExtension(FilePath)
+        End Function
+    End Class
 End Class
