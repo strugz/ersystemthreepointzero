@@ -270,3 +270,8 @@ ERSystem3.5Setup/[Rr]elease/
 # Local web deployment environment files
 Web/.env
 Web/Frontend/ersystem-web-client/.env.render
+
+# Claude Code: personal overrides only.
+# .claude/settings.json, .claude/skills/, and the CLAUDE.md files are committed.
+.claude/settings.local.json
+CLAUDE.local.md
