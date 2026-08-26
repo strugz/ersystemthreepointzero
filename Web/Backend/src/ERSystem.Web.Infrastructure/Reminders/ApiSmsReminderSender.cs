@@ -1,5 +1,7 @@
 using System.Net;
-using System.Text;
+using System.Net.Http.Headers;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using ERSystem.Web.Application.Features.ApprovalReminders;
 using Microsoft.Extensions.Logging;
 
@@ -10,6 +12,14 @@ public sealed class ApiSmsReminderSender(
     ILogger<ApiSmsReminderSender> logger)
     : ISmsReminderSender
 {
+    // Mirror the proven desktop client (ERSystem.AppServices SmsNotificationService): the
+    // endpoint expects a JSON body with upper-case keys and a bare application/json content
+    // type. Relaxed escaping keeps ordinary punctuation literal, as the desktop client sends it.
+    private static readonly JsonSerializerOptions PayloadSerializerOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     public async Task<ReminderSendResult> SendAsync(
         string receiverUsername,
         string senderUsername,
@@ -31,20 +41,25 @@ public sealed class ApiSmsReminderSender(
             return Failed("SMS_API_SENDER_MISSING");
         }
 
-        // The legacy endpoint substitutes GETPOST values without URL-decoding them.
-        // Send its expected raw form body so spaces and punctuation reach the SMS unchanged.
-        var requestBody =
-            $"RECEIVER={NormalizeFormValue(receiverUsername)}&" +
-            $"SENDER={NormalizeFormValue(senderUsername)}&" +
-            $"MESSAGE={NormalizeFormValue(message)}";
-        using var payload = new StringContent(
-            requestBody,
-            Encoding.UTF8,
-            "application/x-www-form-urlencoded");
+        var requestBody = JsonSerializer.Serialize(
+            new Dictionary<string, string>
+            {
+                ["RECEIVER"] = receiverUsername.Trim(),
+                ["SENDER"] = senderUsername.Trim(),
+                ["MESSAGE"] = message.Trim()
+            },
+            PayloadSerializerOptions);
+        using var payload = new StringContent(requestBody);
+        payload.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
         try
         {
-            using var response = await httpClient.PostAsync(string.Empty, payload, cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Post, (Uri?)null)
+            {
+                Content = payload
+            };
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+            using var response = await httpClient.SendAsync(request, cancellationToken);
             if (response.StatusCode == HttpStatusCode.OK)
             {
                 return ReminderSendResult.Success;
@@ -78,11 +93,4 @@ public sealed class ApiSmsReminderSender(
         logger.LogWarning("Approval reminder SMS delivery failed with code {FailureCode}", failureCode);
         return ReminderSendResult.Failed(failureCode);
     }
-
-    private static string NormalizeFormValue(string value) =>
-        value.Trim()
-            .Replace('&', ' ')
-            .Replace('=', ' ')
-            .Replace('\r', ' ')
-            .Replace('\n', ' ');
 }

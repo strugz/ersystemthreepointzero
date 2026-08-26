@@ -170,14 +170,14 @@ public sealed class ApprovalReminderServiceTests
 
         Assert.Equal(1, summary.DueCandidates);
         Assert.Equal(2, summary.EmailSent);
-        Assert.Equal(1, summary.SmsSent);
+        Assert.Equal(2, summary.SmsSent);
         Assert.Equal(2, emailSender.Messages.Count);
         var sms = Assert.Single(smsSender.Messages);
-        Assert.Equal("MCRUZ", sms.ReceiverUsername);
+        Assert.Equal("JSMITH/MCRUZ", sms.ReceiverUsername);
         Assert.Equal("JSMITH", sms.SenderUsername);
-        Assert.Equal(3, repository.Claims.Count);
+        Assert.Equal(4, repository.Claims.Count);
         Assert.All(repository.Claims, claim => Assert.Equal(1, claim.ReminderNumber));
-        Assert.Equal(3, repository.Completions.Count(item => item.Status == ReminderDeliveryStatus.Sent));
+        Assert.Equal(4, repository.Completions.Count(item => item.Status == ReminderDeliveryStatus.Sent));
     }
 
     [Fact]
@@ -235,7 +235,7 @@ public sealed class ApprovalReminderServiceTests
 
         Assert.Equal(1, summary.Skipped);
         Assert.Equal(1, summary.EmailSent);
-        Assert.Equal(1, summary.SmsSent);
+        Assert.Equal(2, summary.SmsSent);
         Assert.Equal(2, emailSender.Messages.Count);
         Assert.Single(smsSender.Messages);
     }
@@ -254,13 +254,35 @@ public sealed class ApprovalReminderServiceTests
 
         var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
 
-        Assert.Equal(3, summary.AlreadyClaimed);
+        Assert.Equal(4, summary.AlreadyClaimed);
         Assert.Empty(emailSender.Messages);
         Assert.Empty(smsSender.Messages);
     }
 
     [Fact]
-    public async Task Matching_employee_and_manager_username_still_claims_only_manager_sms()
+    public async Task Scheduled_sms_receiver_joins_employee_then_manager_usernames()
+    {
+        var repository = new FakeRepository([CreateCandidate()]);
+        var smsSender = new FakeSmsSender(ReminderSendResult.Success);
+        var service = CreateService(
+            repository,
+            new FakeEmailSender(ReminderSendResult.Success),
+            smsSender,
+            new DateTime(2026, 7, 23, 12, 0, 0, DateTimeKind.Utc),
+            emailEnabled: false);
+
+        var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
+
+        var sms = Assert.Single(smsSender.Messages);
+        Assert.Equal("JSMITH/MCRUZ", sms.ReceiverUsername);
+        Assert.Equal(2, summary.SmsSent);
+        Assert.Equal(2, repository.Claims.Count);
+        Assert.Contains(repository.Claims, claim => claim.Audience == ReminderAudience.Employee);
+        Assert.Contains(repository.Claims, claim => claim.Audience == ReminderAudience.Manager);
+    }
+
+    [Fact]
+    public async Task Matching_employee_and_manager_username_dedupes_the_sms_receiver()
     {
         var candidate = CreateCandidate() with { ManagerUsername = "jsmith" };
         var repository = new FakeRepository([candidate]);
@@ -274,14 +296,14 @@ public sealed class ApprovalReminderServiceTests
 
         var summary = await service.RunScheduledRemindersAsync(CancellationToken.None);
 
-        Assert.Single(smsSender.Messages);
-        Assert.Equal(1, summary.SmsSent);
-        var claim = Assert.Single(repository.Claims);
-        Assert.Equal(ReminderAudience.Manager, claim.Audience);
+        var sms = Assert.Single(smsSender.Messages);
+        Assert.Equal("JSMITH", sms.ReceiverUsername);
+        Assert.Equal(2, summary.SmsSent);
+        Assert.Equal(2, repository.Claims.Count);
     }
 
     [Fact]
-    public async Task Manager_sms_failure_marks_manager_claim_failed()
+    public async Task Sms_failure_marks_both_sms_claims_failed()
     {
         var repository = new FakeRepository([CreateCandidate()]);
         var smsSender = new FakeSmsSender(
@@ -297,7 +319,7 @@ public sealed class ApprovalReminderServiceTests
 
         Assert.Single(smsSender.Messages);
         Assert.Equal(0, summary.SmsSent);
-        Assert.Equal(1, summary.Failed);
+        Assert.Equal(2, summary.Failed);
     }
 
     private static ApprovalReminderService CreateService(

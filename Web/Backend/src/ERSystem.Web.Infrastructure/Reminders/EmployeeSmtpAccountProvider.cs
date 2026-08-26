@@ -9,12 +9,14 @@ namespace ERSystem.Web.Infrastructure.Reminders;
 public sealed record EncryptedEmployeeSmtpAccount(
     string? EncryptedEmailAddress,
     string? EncryptedPassword,
-    string? ManagerEmailAddress);
+    string? ManagerEmailAddress,
+    string? NotificationEmailAddress);
 
 public sealed record EmployeeSmtpAccount(
     string SenderAddress,
     string Password,
-    string? ManagerEmailAddress);
+    string? ManagerEmailAddress,
+    string? NotificationEmailAddress);
 
 public sealed record EmployeeSmtpAccountResolution(
     EmployeeSmtpAccount? Account,
@@ -49,7 +51,7 @@ public sealed class SqlEmployeeSmtpAccountStore(SqlConnectionStringBuilder conne
         CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT EmailAdd, EmailPass, EmailTo
+            SELECT EmailAdd, EmailPass, EmailTo, NotificationEmail
             FROM dbo.tbUserRegistration
             WHERE UserID = @EmployeeUserID;
             """;
@@ -69,7 +71,8 @@ public sealed class SqlEmployeeSmtpAccountStore(SqlConnectionStringBuilder conne
         return new EncryptedEmployeeSmtpAccount(
             GetNullableString(reader, 0),
             GetNullableString(reader, 1),
-            GetNullableString(reader, 2));
+            GetNullableString(reader, 2),
+            GetNullableString(reader, 3));
     }
 
     private static string? GetNullableString(SqlDataReader reader, int ordinal) =>
@@ -137,7 +140,8 @@ public sealed class EmployeeSmtpAccountProvider(
                 new EmployeeSmtpAccount(
                     senderAddress,
                     password,
-                    encrypted.ManagerEmailAddress));
+                    encrypted.ManagerEmailAddress,
+                    encrypted.NotificationEmailAddress));
         }
         catch (Exception exception) when (
             exception is FormatException or CryptographicException or ArgumentException)

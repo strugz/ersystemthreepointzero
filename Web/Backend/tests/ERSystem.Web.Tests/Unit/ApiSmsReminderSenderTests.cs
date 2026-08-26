@@ -8,13 +8,17 @@ namespace ERSystem.Web.Tests.Unit;
 public sealed class ApiSmsReminderSenderTests
 {
     [Fact]
-    public async Task Posts_finance_compatible_payload_and_accepts_http_200()
+    public async Task Posts_desktop_compatible_json_payload_and_accepts_http_200()
     {
         string? contentType = null;
+        string? charSet = null;
+        string? acceptHeader = null;
         string? requestBody = null;
         var handler = new StubHttpMessageHandler(async request =>
         {
             contentType = request.Content!.Headers.ContentType?.MediaType;
+            charSet = request.Content.Headers.ContentType?.CharSet;
+            acceptHeader = request.Headers.Accept.ToString();
             requestBody = await request.Content.ReadAsStringAsync();
             return new HttpResponseMessage(HttpStatusCode.OK);
         });
@@ -23,9 +27,34 @@ public sealed class ApiSmsReminderSenderTests
         var result = await sender.SendAsync("MCRUZ/JSMITH", "JSMITH", "Approval: reminder", CancellationToken.None);
 
         Assert.True(result.Succeeded);
-        Assert.Equal("application/x-www-form-urlencoded", contentType);
+        Assert.Equal("application/json", contentType);
+        Assert.Null(charSet);
+        Assert.Equal("*/*", acceptHeader);
         Assert.Equal(
-            "RECEIVER=MCRUZ/JSMITH&SENDER=JSMITH&MESSAGE=Approval: reminder",
+            """{"RECEIVER":"MCRUZ/JSMITH","SENDER":"JSMITH","MESSAGE":"Approval: reminder"}""",
+            requestBody);
+    }
+
+    [Fact]
+    public async Task Json_payload_preserves_message_punctuation_and_trims_values()
+    {
+        string? requestBody = null;
+        var handler = new StubHttpMessageHandler(async request =>
+        {
+            requestBody = await request.Content!.ReadAsStringAsync();
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        });
+        var sender = CreateSender(handler);
+
+        var result = await sender.SendAsync(
+            " MCRUZ ",
+            " JSMITH ",
+            """ ERF R&D = pending "now" """,
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(
+            """{"RECEIVER":"MCRUZ","SENDER":"JSMITH","MESSAGE":"ERF R&D = pending \"now\""}""",
             requestBody);
     }
 

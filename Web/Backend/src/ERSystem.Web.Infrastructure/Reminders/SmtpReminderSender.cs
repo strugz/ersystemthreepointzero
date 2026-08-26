@@ -35,7 +35,23 @@ public sealed class SmtpReminderSender(
         MailboxAddress recipient;
         if (audience == ReminderAudience.Employee)
         {
-            recipient = sender;
+            // The desktop "Reminder Email" field (tbUserRegistration.NotificationEmail) wins over
+            // the employee's own mailbox when configured; an unparseable configured value is a
+            // failure rather than a silent fallback so the misconfiguration surfaces in the ledger.
+            if (!string.IsNullOrWhiteSpace(account.NotificationEmailAddress))
+            {
+                if (!MailboxAddress.TryParse(account.NotificationEmailAddress, out var notificationRecipient) ||
+                    notificationRecipient is null)
+                {
+                    return Failed("NOTIFICATION_EMAIL_INVALID");
+                }
+
+                recipient = notificationRecipient;
+            }
+            else
+            {
+                recipient = sender;
+            }
         }
         else if (audience == ReminderAudience.Manager)
         {

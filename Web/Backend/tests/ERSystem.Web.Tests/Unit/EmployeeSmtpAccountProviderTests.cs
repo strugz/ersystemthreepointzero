@@ -14,7 +14,8 @@ public sealed class EmployeeSmtpAccountProviderTests
         var store = new FakeStore(new EncryptedEmployeeSmtpAccount(
             cipher.Encrypt("employee@example.test"),
             cipher.Encrypt("mailbox-password"),
-            "manager@example.test"));
+            "manager@example.test",
+            "reminder@example.test"));
         var provider = new EmployeeSmtpAccountProvider(store, cipher);
 
         var resolution = await provider.ResolveAsync(42, CancellationToken.None);
@@ -23,6 +24,24 @@ public sealed class EmployeeSmtpAccountProviderTests
         Assert.Equal("employee@example.test", resolution.Account?.SenderAddress);
         Assert.Equal("mailbox-password", resolution.Account?.Password);
         Assert.Equal("manager@example.test", resolution.Account?.ManagerEmailAddress);
+        Assert.Equal("reminder@example.test", resolution.Account?.NotificationEmailAddress);
+    }
+
+    [Fact]
+    public async Task Provider_preserves_missing_notification_email_as_null()
+    {
+        var cipher = CreateCipher();
+        var store = new FakeStore(new EncryptedEmployeeSmtpAccount(
+            cipher.Encrypt("employee@example.test"),
+            cipher.Encrypt("mailbox-password"),
+            "manager@example.test",
+            null));
+        var provider = new EmployeeSmtpAccountProvider(store, cipher);
+
+        var resolution = await provider.ResolveAsync(42, CancellationToken.None);
+
+        Assert.Null(resolution.Failure);
+        Assert.Null(resolution.Account?.NotificationEmailAddress);
     }
 
     [Fact]
@@ -32,7 +51,8 @@ public sealed class EmployeeSmtpAccountProviderTests
         var store = new FakeStore(new EncryptedEmployeeSmtpAccount(
             cipher.Encrypt("employee@example.test"),
             cipher.Encrypt("mailbox-password"),
-            "manager@example.test"));
+            "manager@example.test",
+            null));
         var provider = new EmployeeSmtpAccountProvider(store, cipher);
 
         await provider.ResolveAsync(42, CancellationToken.None);
@@ -55,7 +75,8 @@ public sealed class EmployeeSmtpAccountProviderTests
             new FakeStore(new EncryptedEmployeeSmtpAccount(
                 encryptedAddress,
                 encryptedPassword,
-                "manager@example.test")),
+                "manager@example.test",
+                null)),
             CreateCipher());
 
         var resolution = await provider.ResolveAsync(42, CancellationToken.None);
@@ -72,7 +93,8 @@ public sealed class EmployeeSmtpAccountProviderTests
             new FakeStore(new EncryptedEmployeeSmtpAccount(
                 "not-hex",
                 "also-not-hex",
-                "manager@example.test")),
+                "manager@example.test",
+                null)),
             CreateCipher());
 
         var resolution = await provider.ResolveAsync(42, CancellationToken.None);

@@ -1,7 +1,13 @@
 using ERSystem.Reminders.Worker;
 using ERSystem.Web.Infrastructure.Configuration;
 
-var builder = Host.CreateApplicationBuilder(args);
+// Under Windows Service Manager the process starts in System32; root the host at the
+// executable directory so the bundled appsettings.json is always loaded.
+var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory,
+});
 var protectedSettingsPath = GetProtectedSettingsPath(args);
 if (protectedSettingsPath is not null)
 {

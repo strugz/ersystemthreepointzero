@@ -127,8 +127,11 @@ public sealed class ApprovalReminderService(
 
             if (settings.SmsEnabled)
             {
+                // The SMS API RECEIVER is the legacy slash-joined pair: employee first, then the
+                // pending approver, matching the desktop FILE notification contract.
                 var recipients = new[]
                 {
+                    new SmsRecipient(ReminderAudience.Employee, candidate.EmployeeUserId, candidate.EmployeeUsername),
                     new SmsRecipient(ReminderAudience.Manager, candidate.ManagerUserId, candidate.ManagerUsername)
                 };
 
