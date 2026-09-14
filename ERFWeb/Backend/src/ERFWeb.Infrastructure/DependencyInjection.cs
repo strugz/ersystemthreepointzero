@@ -1,0 +1,59 @@
+using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Authentication;
+using ERFWeb.Application.Features.Expenses;
+using ERFWeb.Application.Features.Lookups;
+using ERFWeb.Application.Features.Reporting;
+using ERFWeb.Infrastructure.Authentication;
+using ERFWeb.Infrastructure.Authorization;
+using ERFWeb.Infrastructure.Expenses;
+using ERFWeb.Infrastructure.Lookups;
+using ERFWeb.Infrastructure.Notifications;
+using ERFWeb.Infrastructure.Persistence;
+using ERFWeb.Infrastructure.Reporting;
+using ERFWeb.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace ERFWeb.Infrastructure;
+
+public static class DependencyInjection
+{
+    /// <summary>Registers the EF Core context (Npgsql + snake_case) and infrastructure services.</summary>
+    public static IServiceCollection AddErfWebInfrastructure(this IServiceCollection services, string connectionString)
+    {
+        // EnableRetryOnFailure makes the transaction runner replay a whole unit of work when
+        // PostgreSQL reports a transient error — including serialization failures (40001) that two
+        // concurrent serializable transactions produce when they both bump the same counter row.
+        services.AddDbContext<ErfDbContext>(options =>
+            options.UseNpgsql(connectionString, npgsql => npgsql.EnableRetryOnFailure(maxRetryCount: 3))
+                .UseSnakeCaseNamingConvention());
+
+        // Cross-cutting
+        services.AddScoped<IClock, SystemClock>();
+        services.AddScoped<ITransactionRunner, EfTransactionRunner>();
+        services.AddScoped<IWorkflowAuditWriter, WorkflowAuditWriter>();
+        services.AddScoped<IUserAuthenticator, UserAuthenticator>();
+        services.AddScoped<IApprovalNotifier, LoggingApprovalNotifier>();
+
+        // Reporting (Phase 1)
+        services.AddOptions<R47ReportOptions>();
+        services.AddScoped<IExpenseReportDocumentLoader, ExpenseReportDocumentLoader>();
+        services.AddSingleton<IExpenseReportPdfRenderer, R47PdfRenderer>();
+        services.AddScoped<IReportAccessPolicy, ReportAccessPolicy>();
+
+        // Authoring & filing (Phase 2)
+        services.AddOptions<AttachmentOptions>();
+        services.AddOptions<ReferenceNumberOptions>();
+        services.AddScoped<IReferenceNumberGenerator, ReferenceNumberGenerator>();
+        services.AddScoped<ReportEditGate>();
+        services.AddScoped<ExpenseReportDetailLoader>();
+        services.AddScoped<IExpenseReportService, ExpenseReportService>();
+        services.AddScoped<IExpenseLineService, ExpenseLineService>();
+        services.AddScoped<ICashAdvanceService, CashAdvanceService>();
+        services.AddScoped<IReceiptAttachmentService, ReceiptAttachmentService>();
+        services.AddScoped<IReportFilingService, ReportFilingService>();
+        services.AddScoped<ILookupService, LookupService>();
+
+        return services;
+    }
+}

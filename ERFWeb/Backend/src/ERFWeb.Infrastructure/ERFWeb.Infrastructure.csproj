@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ERFWeb.Infrastructure</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Pin the EF Core family to one version so the naming-conventions and Npgsql
+         provider dependencies unify (avoids MSB3277 version conflicts). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.*" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.*" />
+    <PackageReference Include="EFCore.NamingConventions" Version="10.0.*" />
+    <PackageReference Include="QuestPDF" Version="2025.12.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Reporting\Assets\mdmpi-logo.png" LogicalName="ERFWeb.Infrastructure.Reporting.Assets.mdmpi-logo.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ERFWeb.Application\ERFWeb.Application.csproj" />
+    <ProjectReference Include="..\ERFWeb.Domain\ERFWeb.Domain.csproj" />
+  </ItemGroup>
+</Project>

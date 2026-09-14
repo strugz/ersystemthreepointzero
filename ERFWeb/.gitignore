@@ -1,0 +1,23 @@
+# Backend build output
+Backend/**/bin/
+Backend/**/obj/
+
+# Frontend
+Frontend/**/node_modules/
+Frontend/**/dist/
+Frontend/**/*.tsbuildinfo
+
+# Local env / secrets
+**/.env.local
+**/appsettings.*.local.json
+
+# Visual Studio / IDE artifacts
+Backend/.vs/
+**/*.user
+
+# Real configuration with connection strings/secrets — NEVER commit.
+# Keep the committed template (appsettings.Example.json) and the secret-free Development overlay.
+Backend/**/appsettings.json
+Backend/**/appsettings.Production.json
+Backend/**/appsettings.Staging.json
+!Backend/**/appsettings.Example.json

@@ -1,0 +1,322 @@
+/*
+ * ERFWeb design tokens — the "ledger" direction.
+ *  - Type: IBM Plex Sans for UI, IBM Plex Mono for every amount / reference number.
+ *  - Colour: warm paper + ink, MDMPI navy as the single accent (Vuetify theme carries the palette).
+ *  - Motion: Emil Kowalski's design-engineering standard — custom easing, short durations,
+ *    transform/opacity only, exits faster than enters, reduced-motion respected.
+ */
+:root {
+  --font-ui: 'IBM Plex Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', Consolas, 'Courier New', monospace;
+
+  --paper: #f4f3ef;
+  --card: #fffefb;
+  --ink: #1c1b19;
+  --ink-2: #5d5a53;
+  --ink-3: #8e8a80;
+  --line: #e5e1d8;
+  --line-2: #d3cec3;
+  --navy: #1f3864;
+  --navy-soft: #e8ecf4;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-press: 140ms;
+  --dur-fast: 180ms;
+  --dur-panel: 240ms;
+
+  --radius: 12px;
+  --shell-header: 64px;
+}
+
+/* Dark theme swaps the neutrals; the Vuetify palette handles component colours. */
+.v-theme--erDark {
+  --paper: #151513;
+  --card: #1e1e1b;
+  --ink: #ecebe6;
+  --ink-2: #b3afa6;
+  --ink-3: #8e8a80;
+  --line: #2a2a26;
+  --line-2: #3a3a35;
+  --navy: #9db4dc;
+  --navy-soft: #24304a;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+body {
+  font-family: var(--font-ui);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.v-application {
+  font-family: var(--font-ui) !important;
+  -webkit-font-smoothing: antialiased;
+}
+.v-application .text-h4,
+.v-application .text-h5,
+.v-application .text-h6,
+.v-application .text-subtitle-1,
+.v-application .text-subtitle-2,
+.v-application .text-body-1,
+.v-application .text-body-2,
+.v-application .text-caption,
+.v-application .text-overline,
+.v-application .text-button,
+.v-application .v-btn,
+.v-application .v-field,
+.v-application .v-label {
+  font-family: var(--font-ui) !important;
+}
+.v-btn {
+  text-transform: none !important;
+  letter-spacing: 0.005em !important;
+  font-weight: 500;
+}
+
+/* Outlined is the default card variant; Vuetify leaves it unfilled, which made dialog cards see-through. */
+.v-card.v-card--variant-outlined {
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+}
+
+/* ---------- Ledger vocabulary (shared by every feature) ---------- */
+
+.mono {
+  font-family: var(--font-mono) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Small uppercase label above a value or table column. */
+.lbl {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Definition-style field: label over an underlined value (the R47 header feel). */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.field .val {
+  font-size: 14px;
+  color: var(--ink);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-2);
+  min-height: 20px;
+  overflow-wrap: anywhere;
+}
+.field .val.muted {
+  color: var(--ink-3);
+}
+
+/* Card header row: title left, meta/action right. */
+.card-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.card-t {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.card-meta {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* Status pill (tonal, squared). */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pill--neutral {
+  background: var(--line);
+  color: var(--ink-2);
+}
+.pill--warning {
+  background: rgba(183, 121, 31, 0.14);
+  color: #8a5a12;
+}
+.pill--error {
+  background: rgba(178, 58, 46, 0.12);
+  color: #8f2d23;
+}
+.pill--success {
+  background: rgba(47, 122, 74, 0.14);
+  color: #226038;
+}
+.v-theme--erDark .pill--warning { color: #e0b36a; }
+.v-theme--erDark .pill--error { color: #e08a80; }
+.v-theme--erDark .pill--success { color: #7bc08f; }
+
+/* Ledger table. */
+.ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ledger th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-2);
+  white-space: nowrap;
+}
+.ledger td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.ledger tr.group td {
+  background: rgba(31, 56, 100, 0.04);
+  color: var(--ink-2);
+  font-weight: 500;
+  padding: 8px 12px;
+}
+.v-theme--erDark .ledger tr.group td {
+  background: rgba(157, 180, 220, 0.08);
+}
+.ledger .r {
+  text-align: right;
+}
+.ledger tfoot td {
+  border-bottom: 0;
+  border-top: 2px solid var(--line-2);
+  font-weight: 600;
+}
+
+/* Page title row. */
+.page-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+@media (max-width: 599.98px) {
+  .page-title {
+    font-size: 22px;
+  }
+}
+
+/* ---------- Motion ---------- */
+
+/* Press feedback for pressable elements — subtle scale, never from scale(0). */
+.press {
+  transition: transform var(--dur-press) var(--ease-out);
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* Page content enters once with a short lift (route change is occasional, not high-frequency). */
+.page-enter {
+  animation: page-in var(--dur-panel) var(--ease-out) both;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Staggered list entrance: 40ms steps, capped by the caller via --i; decorative, never blocks input. */
+.stagger-in {
+  animation: row-in 220ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Vuetify dialog: crisp enter (220ms), faster exit (150ms); modals stay centered, start at 0.96 not 0. */
+.dialog-transition-enter-active {
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out) !important;
+}
+.dialog-transition-leave-active {
+  transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out) !important;
+}
+.dialog-transition-enter-from,
+.dialog-transition-leave-to {
+  opacity: 0;
+  transform: scale(0.96) !important;
+}
+
+/* Toast: slides in from the bottom edge (spatially consistent with its position), exits faster. */
+.app-toast-enter-active {
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+.app-toast-leave-active {
+  transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out);
+}
+.app-toast-enter-from,
+.app-toast-leave-to {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
+
+/* Hover states only for pointer devices; touch taps must not leave a stuck hover. */
+@media (hover: hover) and (pointer: fine) {
+  .row-link {
+    transition: background-color 120ms ease;
+  }
+  .row-link:hover td {
+    background: rgba(31, 56, 100, 0.035);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press,
+  .dialog-transition-enter-active,
+  .dialog-transition-leave-active,
+  .app-toast-enter-active,
+  .app-toast-leave-active {
+    transition: opacity var(--dur-fast) linear !important;
+  }
+  .press:active,
+  .dialog-transition-enter-from,
+  .dialog-transition-leave-to,
+  .app-toast-enter-from,
+  .app-toast-leave-to {
+    transform: none !important;
+  }
+  .page-enter,
+  .stagger-in {
+    animation: fade-only var(--dur-fast) linear both;
+    animation-delay: 0ms;
+  }
+  @keyframes fade-only {
+    from {
+      opacity: 0;
+    }
+  }
+}
