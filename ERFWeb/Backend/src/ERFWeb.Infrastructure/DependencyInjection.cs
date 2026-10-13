@@ -1,8 +1,10 @@
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Authentication;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Application.Features.Reporting;
+using ERFWeb.Infrastructure.Administration;
 using ERFWeb.Infrastructure.Authentication;
 using ERFWeb.Infrastructure.Authorization;
 using ERFWeb.Infrastructure.Expenses;
@@ -53,6 +55,14 @@ public static class DependencyInjection
         services.AddScoped<IReceiptAttachmentService, ReceiptAttachmentService>();
         services.AddScoped<IReportFilingService, ReportFilingService>();
         services.AddScoped<ILookupService, LookupService>();
+
+        // Administration & accounts (Phase 1)
+        services.AddScoped<UserDetailReader>();
+        services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddScoped<IRoleGrantService, RoleGrantService>();
+        services.AddScoped<IMasterDataService, MasterDataService>();
+        services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+        services.AddScoped<IAdminAuditService, AdminAuditService>();
 
         return services;
     }

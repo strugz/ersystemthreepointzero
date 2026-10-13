@@ -1,0 +1,342 @@
+using System.Text.Json;
+using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
+using ERFWeb.Domain;
+using ERFWeb.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace ERFWeb.Infrastructure.Administration;
+
+/// <summary>
+/// Master data maintained by the System Administrator (departments, cost centers, currencies,
+/// sites). Rows are never deleted, only deactivated, because reports and users reference them.
+/// Every change writes an <c>Admin.MasterDataChanged</c> audit row in the same transaction.
+/// </summary>
+public sealed class MasterDataService(
+    ErfDbContext db,
+    ICurrentUser user,
+    ITransactionRunner tx,
+    IWorkflowAuditWriter audit) : IMasterDataService
+{
+    private const int MaxCode = 32;
+    private const int MaxName = 200;
+
+    // ---------- Departments ----------
+
+    public Task<IReadOnlyList<DepartmentDto>> ListDepartmentsAsync(bool includeInactive, CancellationToken ct = default) =>
+        Query(db.Departments.AsNoTracking().Where(d => includeInactive || d.IsActive).OrderBy(d => d.Name)
+            .Select(d => new DepartmentDto(d.Id, d.Code, d.Name, d.IsActive, EF.Property<uint>(d, DbContextExtensions.RowVersionProperty))), ct);
+
+    public async Task<DepartmentDto> CreateDepartmentAsync(SaveDepartmentRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateCodeName(request.Code, request.Name, codeRequired: false);
+        var code = Clean(request.Code);
+
+        var id = await tx.ExecuteAsync(async token =>
+        {
+            if (code is not null && await db.Departments.AnyAsync(d => d.Code == code, token))
+            {
+                throw new ValidationException("code", "A department with that code already exists.");
+            }
+
+            var entity = new Department { Code = code, Name = request.Name.Trim(), IsActive = request.IsActive };
+            db.Departments.Add(entity);
+            await db.SaveChangesAsync(token);
+            await AuditAsync("department", "created", entity.Id, new { entity.Code, entity.Name, entity.IsActive }, token);
+            return entity.Id;
+        }, ct);
+
+        return (await ListDepartmentsAsync(true, ct)).First(d => d.Id == id);
+    }
+
+    public async Task<DepartmentDto> UpdateDepartmentAsync(long id, SaveDepartmentRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateCodeName(request.Code, request.Name, codeRequired: false);
+        var code = Clean(request.Code);
+
+        await tx.ExecuteAsync(async token =>
+        {
+            var entity = await db.Departments.FirstOrDefaultAsync(d => d.Id == id, token)
+                ?? throw new NotFoundException("Department not found.");
+            if (code is not null && await db.Departments.AnyAsync(d => d.Code == code && d.Id != id, token))
+            {
+                throw new ValidationException("code", "A department with that code already exists.");
+            }
+
+            var before = new { entity.Code, entity.Name, entity.IsActive };
+            entity.Code = code;
+            entity.Name = request.Name.Trim();
+            entity.IsActive = request.IsActive;
+            db.SetRowVersion(entity, request.RowVersion ?? throw new ValidationException("rowVersion", "rowVersion is required for an update."));
+            await db.SaveWithConcurrencyAsync(token);
+            await AuditAsync("department", "updated", id, new { before, after = new { entity.Code, entity.Name, entity.IsActive } }, token);
+        }, ct);
+
+        return (await ListDepartmentsAsync(true, ct)).First(d => d.Id == id);
+    }
+
+    // ---------- Cost centers ----------
+
+    public Task<IReadOnlyList<CostCenterDto>> ListCostCentersAsync(bool includeInactive, CancellationToken ct = default) =>
+        Query(
+            from c in db.CostCenters.AsNoTracking()
+            where includeInactive || c.IsActive
+            join dj in db.Departments.AsNoTracking() on c.DepartmentId equals (long?)dj.Id into ds
+            from d in ds.DefaultIfEmpty()
+            orderby c.Code
+            select new CostCenterDto(c.Id, c.Code, c.Name, c.DepartmentId, d != null ? d.Name : null, c.IsActive,
+                EF.Property<uint>(c, DbContextExtensions.RowVersionProperty)), ct);
+
+    public async Task<CostCenterDto> CreateCostCenterAsync(SaveCostCenterRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateCodeName(request.Code, request.Name, codeRequired: true);
+        var code = request.Code.Trim();
+
+        var id = await tx.ExecuteAsync(async token =>
+        {
+            if (await db.CostCenters.AnyAsync(c => c.Code == code, token))
+            {
+                throw new ValidationException("code", "A cost center with that code already exists.");
+            }
+
+            await EnsureDepartmentAsync(request.DepartmentId, token);
+            var entity = new CostCenter { Code = code, Name = request.Name.Trim(), DepartmentId = request.DepartmentId, IsActive = request.IsActive };
+            db.CostCenters.Add(entity);
+            await db.SaveChangesAsync(token);
+            await AuditAsync("costCenter", "created", entity.Id, new { entity.Code, entity.Name, entity.DepartmentId, entity.IsActive }, token);
+            return entity.Id;
+        }, ct);
+
+        return (await ListCostCentersAsync(true, ct)).First(c => c.Id == id);
+    }
+
+    public async Task<CostCenterDto> UpdateCostCenterAsync(long id, SaveCostCenterRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateCodeName(request.Code, request.Name, codeRequired: true);
+        var code = request.Code.Trim();
+
+        await tx.ExecuteAsync(async token =>
+        {
+            var entity = await db.CostCenters.FirstOrDefaultAsync(c => c.Id == id, token)
+                ?? throw new NotFoundException("Cost center not found.");
+            if (await db.CostCenters.AnyAsync(c => c.Code == code && c.Id != id, token))
+            {
+                throw new ValidationException("code", "A cost center with that code already exists.");
+            }
+
+            await EnsureDepartmentAsync(request.DepartmentId, token);
+            var before = new { entity.Code, entity.Name, entity.DepartmentId, entity.IsActive };
+            entity.Code = code;
+            entity.Name = request.Name.Trim();
+            entity.DepartmentId = request.DepartmentId;
+            entity.IsActive = request.IsActive;
+            db.SetRowVersion(entity, request.RowVersion ?? throw new ValidationException("rowVersion", "rowVersion is required for an update."));
+            await db.SaveWithConcurrencyAsync(token);
+            await AuditAsync("costCenter", "updated", id, new { before, after = new { entity.Code, entity.Name, entity.DepartmentId, entity.IsActive } }, token);
+        }, ct);
+
+        return (await ListCostCentersAsync(true, ct)).First(c => c.Id == id);
+    }
+
+    // ---------- Currencies ----------
+
+    public Task<IReadOnlyList<CurrencyDto>> ListCurrenciesAsync(bool includeInactive, CancellationToken ct = default) =>
+        Query(db.Currencies.AsNoTracking().Where(c => includeInactive || c.IsActive).OrderByDescending(c => c.IsDefault).ThenBy(c => c.Code)
+            .Select(c => new CurrencyDto(c.Code, c.Name, c.IsDefault, c.IsActive, EF.Property<uint>(c, DbContextExtensions.RowVersionProperty))), ct);
+
+    public async Task<CurrencyDto> CreateCurrencyAsync(SaveCurrencyRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var code = ValidateCurrencyCode(request.Code);
+        ValidateCodeName(code, request.Name, codeRequired: true);
+
+        await tx.ExecuteAsync(async token =>
+        {
+            if (await db.Currencies.AnyAsync(c => c.Code == code, token))
+            {
+                throw new ValidationException("code", "That currency already exists.");
+            }
+
+            if (request.IsDefault)
+            {
+                await ClearDefaultCurrencyAsync(token);
+            }
+
+            db.Currencies.Add(new Currency { Code = code, Name = request.Name.Trim(), IsDefault = request.IsDefault, IsActive = request.IsActive });
+            await db.SaveChangesAsync(token);
+            await AuditAsync("currency", "created", code, new { code, request.Name, request.IsDefault, request.IsActive }, token);
+        }, ct);
+
+        return (await ListCurrenciesAsync(true, ct)).First(c => c.Code == code);
+    }
+
+    public async Task<CurrencyDto> UpdateCurrencyAsync(string code, SaveCurrencyRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var key = ValidateCurrencyCode(code);
+        ValidateCodeName(key, request.Name, codeRequired: true);
+
+        await tx.ExecuteAsync(async token =>
+        {
+            var entity = await db.Currencies.FirstOrDefaultAsync(c => c.Code == key, token)
+                ?? throw new NotFoundException("Currency not found.");
+            if (request.IsDefault && !entity.IsDefault)
+            {
+                await ClearDefaultCurrencyAsync(token);
+            }
+
+            if (!request.IsActive && entity.IsDefault)
+            {
+                throw new ValidationException("isActive", "The default currency cannot be deactivated. Choose another default first.");
+            }
+
+            var before = new { entity.Name, entity.IsDefault, entity.IsActive };
+            entity.Name = request.Name.Trim();
+            entity.IsDefault = request.IsDefault;
+            entity.IsActive = request.IsActive;
+            db.SetRowVersion(entity, request.RowVersion ?? throw new ValidationException("rowVersion", "rowVersion is required for an update."));
+            await db.SaveWithConcurrencyAsync(token);
+            await AuditAsync("currency", "updated", key, new { before, after = new { entity.Name, entity.IsDefault, entity.IsActive } }, token);
+        }, ct);
+
+        return (await ListCurrenciesAsync(true, ct)).First(c => c.Code == key);
+    }
+
+    // ---------- Sites ----------
+
+    public Task<IReadOnlyList<SiteDto>> ListSitesAsync(bool includeInactive, CancellationToken ct = default) =>
+        Query(db.Sites.AsNoTracking().Where(s => includeInactive || s.IsActive).OrderBy(s => s.Code)
+            .Select(s => new SiteDto(s.Id, s.Code, s.Name, s.IsActive, EF.Property<uint>(s, DbContextExtensions.RowVersionProperty))), ct);
+
+    public async Task<SiteDto> CreateSiteAsync(SaveSiteRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateCodeName(request.Code, request.Name, codeRequired: true);
+        var code = request.Code.Trim();
+
+        var id = await tx.ExecuteAsync(async token =>
+        {
+            if (await db.Sites.AnyAsync(s => s.Code == code, token))
+            {
+                throw new ValidationException("code", "A site with that code already exists.");
+            }
+
+            var entity = new Site { Code = code, Name = request.Name.Trim(), IsActive = request.IsActive };
+            db.Sites.Add(entity);
+            await db.SaveChangesAsync(token);
+            await AuditAsync("site", "created", entity.Id, new { entity.Code, entity.Name, entity.IsActive }, token);
+            return entity.Id;
+        }, ct);
+
+        return (await ListSitesAsync(true, ct)).First(s => s.Id == id);
+    }
+
+    public async Task<SiteDto> UpdateSiteAsync(long id, SaveSiteRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateCodeName(request.Code, request.Name, codeRequired: true);
+        var code = request.Code.Trim();
+
+        await tx.ExecuteAsync(async token =>
+        {
+            var entity = await db.Sites.FirstOrDefaultAsync(s => s.Id == id, token)
+                ?? throw new NotFoundException("Site not found.");
+            if (await db.Sites.AnyAsync(s => s.Code == code && s.Id != id, token))
+            {
+                throw new ValidationException("code", "A site with that code already exists.");
+            }
+
+            var before = new { entity.Code, entity.Name, entity.IsActive };
+            entity.Code = code;
+            entity.Name = request.Name.Trim();
+            entity.IsActive = request.IsActive;
+            db.SetRowVersion(entity, request.RowVersion ?? throw new ValidationException("rowVersion", "rowVersion is required for an update."));
+            await db.SaveWithConcurrencyAsync(token);
+            await AuditAsync("site", "updated", id, new { before, after = new { entity.Code, entity.Name, entity.IsActive } }, token);
+        }, ct);
+
+        return (await ListSitesAsync(true, ct)).First(s => s.Id == id);
+    }
+
+    // ---------- Expense categories (fixed by the R47 form) ----------
+
+    public IReadOnlyList<ExpenseCategoryDto> ListExpenseCategories() =>
+    [
+        new(ExpenseCategory.Meals, "Meals", "MEALS"),
+        new(ExpenseCategory.Transportation, "Transportation", "TRANSP."),
+        new(ExpenseCategory.Toll, "Toll", "TOLL"),
+        new(ExpenseCategory.Parking, "Parking", "PARKING"),
+        new(ExpenseCategory.Others, "Others", "OTHERS"),
+        new(ExpenseCategory.Representation, "Representation", "Representation"),
+    ];
+
+    // ---------- Helpers ----------
+
+    private static async Task<IReadOnlyList<T>> Query<T>(IQueryable<T> query, CancellationToken ct) =>
+        await query.ToListAsync(ct);
+
+    private Task AuditAsync(string entity, string action, object key, object detail, CancellationToken ct) =>
+        audit.WriteAsync(new WorkflowAuditEntry(
+            AdminAuditEvents.MasterDataChanged, null, user.UserId,
+            JsonSerializer.Serialize(new { entity, action, key, detail })), ct);
+
+    private async Task EnsureDepartmentAsync(long? departmentId, CancellationToken ct)
+    {
+        if (departmentId is { } d && !await db.Departments.AnyAsync(x => x.Id == d, ct))
+        {
+            throw new ValidationException("departmentId", "The department does not exist.");
+        }
+    }
+
+    private async Task ClearDefaultCurrencyAsync(CancellationToken ct)
+    {
+        foreach (var current in await db.Currencies.Where(c => c.IsDefault).ToListAsync(ct))
+        {
+            current.IsDefault = false;
+        }
+    }
+
+    private static string ValidateCurrencyCode(string? code)
+    {
+        var value = code?.Trim().ToUpperInvariant() ?? string.Empty;
+        if (value.Length != 3 || !value.All(char.IsAsciiLetterUpper))
+        {
+            throw new ValidationException("code", "Enter a three-letter ISO 4217 currency code, e.g. PHP.");
+        }
+
+        return value;
+    }
+
+    private static void ValidateCodeName(string? code, string? name, bool codeRequired)
+    {
+        var errors = new Dictionary<string, string[]>();
+        if (codeRequired && string.IsNullOrWhiteSpace(code))
+        {
+            errors["code"] = ["Code is required."];
+        }
+        else if (code is not null && code.Trim().Length > MaxCode)
+        {
+            errors["code"] = [$"Code must be at most {MaxCode} characters."];
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            errors["name"] = ["Name is required."];
+        }
+        else if (name.Trim().Length > MaxName)
+        {
+            errors["name"] = [$"Name must be at most {MaxName} characters."];
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+}

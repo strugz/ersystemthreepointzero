@@ -28,6 +28,8 @@ const emit = defineEmits<{
     <v-card class="pa-2">
       <v-card-title class="text-subtitle-1 font-weight-bold">{{ title }}</v-card-title>
       <v-card-text class="text-body-2" style="white-space: pre-line">{{ message }}</v-card-text>
+      <!-- Optional extra input (e.g. a note) rendered between the message and the actions. -->
+      <v-card-text v-if="$slots.default" class="pt-0"><slot /></v-card-text>
       <v-card-actions>
         <v-spacer />
         <v-btn class="press" variant="text" :disabled="loading" @click="emit('update:modelValue', false)">Cancel</v-btn>

@@ -47,6 +47,42 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/admin/users',
+    name: 'admin-users',
+    component: () => import('@/views/admin/UsersView.vue'),
+    meta: { requiresAuth: true, roles: ['SystemAdministrator'] },
+  },
+  {
+    path: '/admin/users/new',
+    name: 'admin-user-new',
+    component: () => import('@/views/admin/UserCreateView.vue'),
+    meta: { requiresAuth: true, roles: ['SystemAdministrator'] },
+  },
+  {
+    path: '/admin/users/:id',
+    name: 'admin-user',
+    component: () => import('@/views/admin/UserDetailView.vue'),
+    meta: { requiresAuth: true, roles: ['SystemAdministrator'] },
+  },
+  {
+    path: '/admin/master-data',
+    name: 'admin-master-data',
+    component: () => import('@/views/admin/MasterDataView.vue'),
+    meta: { requiresAuth: true, roles: ['SystemAdministrator'] },
+  },
+  {
+    path: '/admin/settings',
+    name: 'admin-settings',
+    component: () => import('@/views/admin/SettingsView.vue'),
+    meta: { requiresAuth: true, roles: ['SystemAdministrator'] },
+  },
+  {
+    path: '/admin/audit',
+    name: 'admin-audit',
+    component: () => import('@/views/admin/AuditView.vue'),
+    meta: { requiresAuth: true, roles: ['SystemAdministrator', 'Finance'] },
+  },
+  {
     path: '/forbidden',
     name: 'forbidden',
     component: () => import('@/views/ForbiddenView.vue'),

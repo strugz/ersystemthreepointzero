@@ -11,8 +11,13 @@ public sealed record EmployeeRatesDto(
     decimal DinnerRate,
     decimal OtMealRate);
 
-/// <summary>Whether the signed-in employee can file (signature on record, approvers configured).</summary>
-public sealed record MyFilingReadinessDto(bool HasSignature, int ApproverCount, IReadOnlyList<string> ApproverNames);
+/// <summary>Whether the signed-in employee can file (signature on record, approvers configured, cooling period over).</summary>
+public sealed record MyFilingReadinessDto(
+    bool HasSignature,
+    int ApproverCount,
+    IReadOnlyList<string> ApproverNames,
+    bool CoolingPeriodElapsed,
+    DateTimeOffset? CoolingPeriodEndsAt);
 
 public interface ILookupService
 {

@@ -7,8 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace ERFWeb.Infrastructure.Authorization;
 
 /// <summary>
-/// Report-level view authorization: Finance and Admin see all reports; an employee sees
-/// their own; an approver sees reports that have an approval step assigned to them.
+/// Report-level view authorization: Finance sees all reports; an employee sees their own;
+/// an approver sees reports that have an approval step assigned to them. A System
+/// Administrator holds no transacting role and never sees report contents (RBAC v0.6).
 /// </summary>
 public sealed class ReportAccessPolicy(ErfDbContext db, ICurrentUser user) : IReportAccessPolicy
 {
@@ -19,7 +20,7 @@ public sealed class ReportAccessPolicy(ErfDbContext db, ICurrentUser user) : IRe
             return false;
         }
 
-        if (user.IsInRole(UserRole.Admin) || user.IsInRole(UserRole.Finance))
+        if (user.IsInRole(UserRole.Finance))
         {
             return true;
         }

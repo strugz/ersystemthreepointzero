@@ -7,6 +7,60 @@ public class Department
     public long Id { get; set; }
     public string? Code { get; set; }
     public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+}
+
+public class CostCenter
+{
+    public long Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public long? DepartmentId { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class Currency
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsDefault { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class Site
+{
+    public long Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+}
+
+/// <summary>Key/value store for the System Administrator's workflow, business, and notification rules.</summary>
+public class AppSetting
+{
+    public string Key { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
+    public long? UpdatedByUserId { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+/// <summary>
+/// One additive role on an account (RBAC v0.6). Privileged roles start PendingActivation and
+/// become Active when countersigned; the Employee base role is never stored here.
+/// </summary>
+public class UserRoleGrant
+{
+    public long UserId { get; set; }
+    public UserRole Role { get; set; }
+    public RoleGrantStatus Status { get; set; } = RoleGrantStatus.PendingActivation;
+    public long? GrantedByUserId { get; set; }
+    public DateTimeOffset GrantedAt { get; set; }
+    public long? CountersignedByUserId { get; set; }
+    public DateTimeOffset? CountersignedAt { get; set; }
+    public long? RevokedByUserId { get; set; }
+    public DateTimeOffset? RevokedAt { get; set; }
+    public bool IsBootstrap { get; set; }
+    public string? Note { get; set; }
 }
 
 public class User
@@ -18,8 +72,9 @@ public class User
     public string? Position { get; set; }
     public string? Email { get; set; }
     public string? MobileNo { get; set; }
+    public string? JobGrade { get; set; }
     public long? DepartmentId { get; set; }
-    public UserRole Role { get; set; } = UserRole.Employee;
+    public long? CostCenterId { get; set; }
     public byte[]? Signature { get; set; }
     public bool WorkWithEnabled { get; set; }
     public bool IsActive { get; set; } = true;

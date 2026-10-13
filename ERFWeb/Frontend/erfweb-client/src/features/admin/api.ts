@@ -1,0 +1,87 @@
+import { api } from '@/shared/api/client';
+import type { UserRole } from '@/features/auth/types';
+import type {
+  AuditEntry,
+  AuditQuery,
+  CostCenter,
+  CostCenterInput,
+  CreateUserInput,
+  Currency,
+  CurrencyInput,
+  Department,
+  DepartmentInput,
+  ExpenseCategoryInfo,
+  GrantRoleInput,
+  PagedResult,
+  RoleActionInput,
+  SetActiveInput,
+  Site,
+  SiteInput,
+  SystemSettings,
+  SystemSettingsInput,
+  UpdateUserInput,
+  UserDetail,
+  UserListItem,
+  UserListQuery,
+} from './types';
+
+function qs(params: Record<string, string | number | boolean | undefined>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '') {
+      search.set(key, String(value));
+    }
+  }
+  const s = search.toString();
+  return s ? `?${s}` : '';
+}
+
+const u = (id: number) => `/admin/users/${id}`;
+const md = '/admin/master-data';
+
+export const adminApi = {
+  // ---- users ---------------------------------------------------------------
+  listUsers: (query: UserListQuery) => api.get<PagedResult<UserListItem>>(`/admin/users${qs({ ...query })}`),
+  getUser: (id: number) => api.get<UserDetail>(u(id)),
+  createUser: (input: CreateUserInput) => api.post<UserDetail>('/admin/users', input),
+  updateUser: (id: number, input: UpdateUserInput) => api.put<UserDetail>(u(id), input),
+  setActive: (id: number, input: SetActiveInput) => api.post<UserDetail>(`${u(id)}/active`, input),
+  resetPassword: (id: number, newPassword: string) => api.post<void>(`${u(id)}/password`, { newPassword }),
+  uploadSignature: (id: number, file: File) => {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return api.postForm<UserDetail>(`${u(id)}/signature`, form);
+  },
+  grantRole: (id: number, input: GrantRoleInput) => api.post<UserDetail>(`${u(id)}/roles`, input),
+  countersignRole: (id: number, role: UserRole, input: RoleActionInput) =>
+    api.post<UserDetail>(`${u(id)}/roles/${encodeURIComponent(role)}/countersign`, input),
+  revokeRole: (id: number, role: UserRole, input: RoleActionInput) =>
+    api.post<UserDetail>(`${u(id)}/roles/${encodeURIComponent(role)}/revoke`, input),
+
+  // ---- master data ---------------------------------------------------------
+  departments: (includeInactive = true) => api.get<Department[]>(`${md}/departments${qs({ includeInactive })}`),
+  createDepartment: (input: DepartmentInput) => api.post<Department>(`${md}/departments`, input),
+  updateDepartment: (id: number, input: DepartmentInput) => api.put<Department>(`${md}/departments/${id}`, input),
+
+  costCenters: (includeInactive = true) => api.get<CostCenter[]>(`${md}/cost-centers${qs({ includeInactive })}`),
+  createCostCenter: (input: CostCenterInput) => api.post<CostCenter>(`${md}/cost-centers`, input),
+  updateCostCenter: (id: number, input: CostCenterInput) => api.put<CostCenter>(`${md}/cost-centers/${id}`, input),
+
+  currencies: (includeInactive = true) => api.get<Currency[]>(`${md}/currencies${qs({ includeInactive })}`),
+  createCurrency: (input: CurrencyInput) => api.post<Currency>(`${md}/currencies`, input),
+  updateCurrency: (code: string, input: CurrencyInput) =>
+    api.put<Currency>(`${md}/currencies/${encodeURIComponent(code)}`, input),
+
+  sites: (includeInactive = true) => api.get<Site[]>(`${md}/sites${qs({ includeInactive })}`),
+  createSite: (input: SiteInput) => api.post<Site>(`${md}/sites`, input),
+  updateSite: (id: number, input: SiteInput) => api.put<Site>(`${md}/sites/${id}`, input),
+
+  expenseCategories: () => api.get<ExpenseCategoryInfo[]>(`${md}/expense-categories`),
+
+  // ---- settings ------------------------------------------------------------
+  settings: () => api.get<SystemSettings>('/admin/settings'),
+  updateSettings: (input: SystemSettingsInput) => api.put<SystemSettings>('/admin/settings', input),
+
+  // ---- audit ---------------------------------------------------------------
+  audit: (query: AuditQuery) => api.get<PagedResult<AuditEntry>>(`/admin/audit${qs({ ...query })}`),
+};

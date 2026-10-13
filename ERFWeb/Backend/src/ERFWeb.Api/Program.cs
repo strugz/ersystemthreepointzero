@@ -90,7 +90,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(Policies.Register);
 
 builder.Services.AddAntiforgery(options =>
 {

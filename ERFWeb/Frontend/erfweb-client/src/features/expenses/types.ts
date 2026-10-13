@@ -199,4 +199,8 @@ export interface FilingReadiness {
   hasSignature: boolean;
   approverCount: number;
   approverNames: string[];
+  /** False while a newly created account is still inside the configured cooling period. */
+  coolingPeriodElapsed: boolean;
+  /** ISO timestamp when the cooling period ends; null once elapsed or when none applies. */
+  coolingPeriodEndsAt: string | null;
 }

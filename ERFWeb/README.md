@@ -82,6 +82,7 @@ psql -d erfweb -f Database/002_seed_admin.sql        # dept + admin login (admin
 psql -d erfweb -f Database/003_reference_series.sql  # yearly ERF reference number counters
 psql -d erfweb -f Database/004_seed_test_users.sql  # optional: employee1 / manager1 / manager2 / finance1 (password Test!1234) for a filing walkthrough
 psql -d erfweb -f Database/005_cash_advance_lines.sql # cash advances become rows (replaces the one-row cash_advances table)
+psql -d erfweb -f Database/006_user_roles_and_administration.sql # Phase 1: additive roles (user_roles), master data, rules, second admin
 ```
 
 Both scripts are idempotent (safe to re-run). Do **not** also run `dotnet ef database update`
@@ -136,7 +137,7 @@ The dev proxy target is `VITE_API_TARGET` in `.env` (default `http://localhost:5
 `https://localhost:44387` instead; the proxy accepts the self-signed dev certificate (`secure: false`).
 Put a machine-specific value in `.env.local` (gitignored) rather than editing `.env`.
 
-## Reporting — R47 "EXPENSE REPORT" (Phase 1)
+## Reporting — R47 "EXPENSE REPORT" (plan Phase 3)
 
 `GET /api/reports/{reportId}/pdf` streams the R47 controlled form as PDF (inline; add `?download=true`
 for an attachment). Access: Finance/Admin see all; an employee sees their own; an approver sees reports
@@ -158,7 +159,7 @@ writes `R47-sample-page1.pdf` to the test output folder for side-by-side compari
 
 SPA: `/reports/:id/pdf` (view / print / download / open in new tab); the dashboard has a report-ID launcher.
 
-## Authoring & filing (Phase 2)
+## Authoring & filing (plan Phase 4)
 
 Employees create, edit, and file their own ERFs; everything is EF Core + LINQ inside the serializable
 `ITransactionRunner` (commit on success, rollback on any failure). Each transaction first publishes the
@@ -206,10 +207,47 @@ SPA: **My reports** (`/reports`, status/search filters, deep-linkable `?status=`
 add/edit line dialog with meal chips, fare legs and per-diem preview, receipts panel, approval timeline,
 filing checklist, file / re-file / reopen / delete with confirmations).
 
-## Auth (Phase 0)
+## Auth (plan Phase 0)
 
 Cookie session (`ERFWeb.Session`) + antiforgery (`X-CSRF-TOKEN`). Endpoints:
 `GET /api/auth/antiforgery`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`,
-`GET /api/health`. Passwords verify with PBKDF2; seed a user (with a `Pbkdf2PasswordHasher.Hash`
-value) to sign in. Lockout/rate-limiting and role-gated feature endpoints arrive in later phases.
+`GET /api/health`. Passwords verify with PBKDF2; the administration console (below) creates users, or seed one
+with a `Pbkdf2PasswordHasher.Hash` value. The session's Role claims are the account's **Active** grants in
+`user_roles` plus the implicit `Employee`. Lockout/rate-limiting arrives in a later phase.
+
+## Administration & accounts (plan Phase 1, RBAC v0.6)
+
+Roles are additive rows in `user_roles` (script `006`): `Employee` (implicit, everyone), `SignatoryLevel1`,
+`SignatoryLevel2`, `Finance`, `ExpenseVerifier`, `SystemAdministrator`, and `BusinessOwner` (the designated
+countersigner, CFO or HR Head, modelled as a grant so it gets the same dual-approval trail). The old
+`users.role` column is migrated by `006` (`Manager` → `SignatoryLevel1`, `Admin` → `SystemAdministrator`) and dropped.
+
+Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
+
+- **Dual approval (9.8).** A privileged grant saves as `PendingActivation`; it becomes `Active` only when the
+  Business Owner countersigns. While no Business Owner exists, a *second* System Administrator may countersign
+  and the grant is flagged `isBootstrap` (plan open item 12.3a). The granter can never countersign their own grant.
+- **No self-change (9.7).** An administrator cannot edit, deactivate, reset, or change roles on their own account,
+  which is why `006` seeds a second administrator (`admin2`).
+- **Stacking (section 3).** A System Administrator holds no transacting role; Finance cannot be a Signatory;
+  Finance cannot be an Expense Verifier. Violations return 400 with `errors.role`.
+- **Separation of duties.** A System Administrator never sees report contents (`ReportAccessPolicy`) and never
+  edits an ERF (`ReportEditGate` is owner-only; there is no proxy filing).
+- **Cooling period (9.11).** A new account can file only after `Business.CoolingPeriodDays` (default 3) have
+  passed since registration; `my-filing-readiness` reports `coolingPeriodElapsed` / `coolingPeriodEndsAt`.
+- Every change writes an `Admin.*` row in `workflow_audit` inside the same transaction; `GET /api/admin/audit`
+  is read-only for System Administrators **and Finance** (9.10).
+
+| Endpoint (policy) | Purpose |
+| --- | --- |
+| `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `…/signature` (SystemAdministrator) | Register and maintain accounts; load the signature printed on the R47 |
+| `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/countersign` (BusinessOwner or SystemAdministrator) · `POST …/roles/{role}/revoke` | Grant, countersign, revoke |
+| `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites}` · `GET …/expense-categories` | Master data (deactivate, never delete) |
+| `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches; stored in `app_settings` |
+| `GET /api/admin/audit?event&actorUserId&from&to` (SystemAdministrator, Finance) | Append-only audit trail |
+
+First-time setup (plan flow 1): sign in as `admin`, create accounts and master data, set the rules; grant the extra
+roles and have `admin2` countersign them until a Business Owner is active, after which only the Business Owner
+countersigns. Scope assignments and rate profiles (Level 2 only) are plan Phase 2; until then `approval_routes`,
+`employee_rates`, and `department_signatories` are still maintained by SQL (see `004_seed_test_users.sql`).
 ```

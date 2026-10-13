@@ -41,7 +41,7 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
         var attachments = await LoadAttachmentsAsync(reportId, ct);
 
         var rep = header.Report;
-        var isOwner = rep.EmployeeUserId == user.UserId || user.IsInRole(UserRole.Admin);
+        var isOwner = rep.EmployeeUserId == user.UserId;
 
         return new ExpenseReportDetailDto(
             rep.Id,

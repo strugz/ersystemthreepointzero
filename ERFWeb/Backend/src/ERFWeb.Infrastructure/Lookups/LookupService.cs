@@ -1,4 +1,6 @@
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
+using ERFWeb.Domain.Administration;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ERFWeb.Infrastructure.Lookups;
 
 /// <summary>Reference lookups for the report editor (LINQ read-only).</summary>
-public sealed class LookupService(ErfDbContext db, ICurrentUser user) : ILookupService
+public sealed class LookupService(ErfDbContext db, ICurrentUser user, ISystemSettingsService settings, IClock clock) : ILookupService
 {
     private const int MaxWorkWithResults = 50;
 
@@ -44,10 +46,15 @@ public sealed class LookupService(ErfDbContext db, ICurrentUser user) : ILookupS
 
     public async Task<MyFilingReadinessDto> MyFilingReadinessAsync(CancellationToken ct = default)
     {
-        var hasSignature = await db.Users.AsNoTracking()
+        var account = await db.Users.AsNoTracking()
             .Where(u => u.Id == user.UserId)
-            .Select(u => u.Signature != null && u.Signature.Length > 0)
+            .Select(u => new { HasSignature = u.Signature != null && u.Signature.Length > 0, u.CreatedAt })
             .FirstOrDefaultAsync(ct);
+        var hasSignature = account?.HasSignature ?? false;
+
+        var coolingDays = await settings.GetCoolingPeriodDaysAsync(ct);
+        var coolingElapsed = account is null || AccountRules.CoolingPeriodElapsed(account.CreatedAt, clock.UtcNow, coolingDays);
+        var coolingEndsAt = account is null || coolingElapsed ? (DateTimeOffset?)null : account.CreatedAt.AddDays(coolingDays);
 
         var approvers = await (
             from ar in db.ApprovalRoutes.AsNoTracking()
@@ -57,6 +64,6 @@ public sealed class LookupService(ErfDbContext db, ICurrentUser user) : ILookupS
             orderby ar.StepOrder
             select a.FullName).ToListAsync(ct);
 
-        return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers);
+        return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt);
     }
 }

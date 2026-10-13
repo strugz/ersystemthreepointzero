@@ -1,5 +1,4 @@
 using ERFWeb.Application.Common;
-using ERFWeb.Domain;
 using ERFWeb.Domain.Expenses;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +7,8 @@ namespace ERFWeb.Infrastructure.Expenses;
 
 /// <summary>
 /// Loads a report for mutation and enforces the employee-side rules: the caller must own the
-/// report (Admins may act on any), and the report must be in an editable status.
+/// report (there is no proxy filing; a System Administrator never touches an ERF), and the
+/// report must be in an editable status.
 /// </summary>
 public sealed class ReportEditGate(ErfDbContext db, ICurrentUser user)
 {
@@ -30,7 +30,7 @@ public sealed class ReportEditGate(ErfDbContext db, ICurrentUser user)
         var report = await db.ExpenseReports.FirstOrDefaultAsync(r => r.Id == reportId, ct)
             ?? throw new NotFoundException("Expense report not found.");
 
-        if (report.EmployeeUserId != user.UserId && !user.IsInRole(UserRole.Admin))
+        if (report.EmployeeUserId != user.UserId)
         {
             throw new ForbiddenException("You can only change your own expense reports.");
         }

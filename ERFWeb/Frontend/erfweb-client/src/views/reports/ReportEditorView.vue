@@ -311,6 +311,12 @@ const checklist = computed<ChecklistItem[]>(() => {
   if (readiness.value) {
     items.push({ ok: readiness.value.hasSignature, text: readiness.value.hasSignature ? 'Signature on file' : 'Signature not on file (Account settings)' });
     items.push({ ok: readiness.value.approverCount > 0, text: readiness.value.approverCount > 0 ? `Approval route: ${readiness.value.approverCount} approver${readiness.value.approverCount === 1 ? '' : 's'}` : 'No approval route is configured for you' });
+    items.push({
+      ok: readiness.value.coolingPeriodElapsed,
+      text: readiness.value.coolingPeriodElapsed
+        ? 'Cooling period over'
+        : `Account cooling period ends ${formatDateTime(readiness.value.coolingPeriodEndsAt)}`,
+    });
   }
   return items;
 });

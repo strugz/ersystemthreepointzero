@@ -1,7 +1,9 @@
 using System.Text.Json;
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Domain;
+using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Expenses;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +25,7 @@ public sealed class ReportFilingService(
     IReferenceNumberGenerator referenceNumbers,
     ReportEditGate gate,
     ExpenseReportDetailLoader loader,
+    ISystemSettingsService settings,
     ILogger<ReportFilingService> logger) : IReportFilingService
 {
     public async Task<FileReportResultDto> FileAsync(Guid reportId, CancellationToken ct = default)
@@ -33,8 +36,12 @@ public sealed class ReportFilingService(
 
             var employee = await db.Users.AsNoTracking()
                 .Where(u => u.Id == report.EmployeeUserId)
-                .Select(u => new { u.FullName, HasSignature = u.Signature != null && u.Signature.Length > 0 })
+                .Select(u => new { u.FullName, u.CreatedAt, HasSignature = u.Signature != null && u.Signature.Length > 0 })
                 .FirstAsync(token);
+
+            // Spec 9.11: a newly registered employee files only after the cooling period.
+            var coolingDays = await settings.GetCoolingPeriodDaysAsync(token);
+            var coolingElapsed = AccountRules.CoolingPeriodElapsed(employee.CreatedAt, clock.UtcNow, coolingDays);
 
             var route = await (
                 from ar in db.ApprovalRoutes.AsNoTracking()
@@ -50,7 +57,8 @@ public sealed class ReportFilingService(
                 .Where(c => c.ReportId == reportId).SumAsync(c => (decimal?)c.Amount, token) ?? 0m;
 
             var blockers = ReportWorkflowRules.FilingBlockers(
-                report.Status, lineCount, employee.HasSignature, route.Count, report.Purpose, report.ReportType, cashAmount, report.RevolvingFundAmount);
+                report.Status, lineCount, employee.HasSignature, route.Count, report.Purpose, report.ReportType, cashAmount, report.RevolvingFundAmount,
+                coolingElapsed);
             if (blockers.Count > 0)
             {
                 throw new ValidationException(new Dictionary<string, string[]> { ["report"] = blockers.ToArray() });

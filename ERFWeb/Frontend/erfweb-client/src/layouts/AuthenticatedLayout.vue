@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import { useSessionStore } from '@/app/stores/session';
+import { roleLabel } from '@/features/auth/labels';
 import AppSnackbar from '@/shared/ui/AppSnackbar.vue';
 
 /**
@@ -31,13 +32,42 @@ const props = withDefaults(
 
 const session = useSessionStore();
 const router = useRouter();
+const route = useRoute();
 const { xs } = useDisplay();
 
-const nav = [
+interface NavItem {
+  title: string;
+  icon: string;
+  to: RouteLocationRaw;
+  exact: boolean;
+}
+
+const nav: NavItem[] = [
   { title: 'Dashboard', icon: 'mdi-view-dashboard-outline', to: { name: 'home' }, exact: true },
   { title: 'My reports', icon: 'mdi-file-document-multiple-outline', to: { name: 'reports' }, exact: false },
   { title: 'New report', icon: 'mdi-plus', to: { name: 'report-new' }, exact: true },
 ];
+
+// Administration entries, gated by role. The API enforces access; this only decides what to show.
+const adminNav = computed<NavItem[]>(() => {
+  const items: NavItem[] = [];
+  const isAdmin = session.hasRole('SystemAdministrator');
+  if (isAdmin) {
+    items.push(
+      { title: 'Users', icon: 'mdi-account-multiple-outline', to: { name: 'admin-users' }, exact: false },
+      { title: 'Master data', icon: 'mdi-database-outline', to: { name: 'admin-master-data' }, exact: false },
+      { title: 'Rules', icon: 'mdi-tune-variant', to: { name: 'admin-settings' }, exact: false },
+    );
+  }
+  if (isAdmin || session.hasRole('Finance')) {
+    items.push({ title: 'Audit', icon: 'mdi-clipboard-text-clock-outline', to: { name: 'admin-audit' }, exact: false });
+  }
+  return items;
+});
+
+const roleSummary = computed(() => (session.user?.roles ?? []).map(roleLabel).join(' · '));
+const moreOpen = ref(false);
+const adminRouteActive = computed(() => String(route.name ?? '').startsWith('admin-'));
 
 const initials = computed(() =>
   (session.user?.fullName ?? '?')
@@ -88,6 +118,27 @@ async function logout() {
             </router-link>
           </template>
         </v-tooltip>
+
+        <template v-if="adminNav.length">
+          <div class="rail__sep" role="separator" aria-label="Administration" />
+          <v-tooltip v-for="item in adminNav" :key="item.title" :text="item.title" location="end" open-delay="300">
+            <template #activator="{ props: tip }">
+              <router-link v-bind="tip" :to="item.to" custom>
+                <template #default="{ navigate, isActive, isExactActive, href }">
+                  <a
+                    :href="href"
+                    class="rail__btn press"
+                    :class="{ 'rail__btn--on': item.exact ? isExactActive : isActive }"
+                    :aria-label="item.title"
+                    @click.prevent="navigate()"
+                  >
+                    <v-icon :icon="item.icon" size="22" />
+                  </a>
+                </template>
+              </router-link>
+            </template>
+          </v-tooltip>
+        </template>
       </nav>
 
       <v-menu location="end bottom" :offset="8">
@@ -98,7 +149,7 @@ async function logout() {
         </template>
         <v-card min-width="240" class="pa-1">
           <v-list density="compact" class="py-0">
-            <v-list-item :title="session.user?.fullName" :subtitle="session.user?.roles.join(' · ')" />
+            <v-list-item :title="session.user?.fullName" :subtitle="roleSummary" />
             <v-divider class="my-1" />
             <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="logout" />
           </v-list>
@@ -163,6 +214,24 @@ async function logout() {
       <v-icon :icon="item.icon" />
       <span class="text-caption">{{ item.title }}</span>
     </v-btn>
+    <!-- Phones have no rail or avatar menu, so administration and sign-out live behind "More". -->
+    <v-menu v-model="moreOpen" location="top end" :offset="8">
+      <template #activator="{ props: menu }">
+        <v-btn v-bind="menu" class="press" :active="adminRouteActive" aria-label="More" aria-haspopup="menu">
+          <v-icon icon="mdi-dots-horizontal" />
+          <span class="text-caption">More</span>
+        </v-btn>
+      </template>
+      <v-card min-width="220" class="pa-1">
+        <v-list density="compact" class="py-0">
+          <v-list-item :title="session.user?.fullName" :subtitle="roleSummary" />
+          <v-divider v-if="adminNav.length" class="my-1" />
+          <v-list-item v-for="item in adminNav" :key="item.title" :prepend-icon="item.icon" :title="item.title" :to="item.to" />
+          <v-divider class="my-1" />
+          <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="logout" />
+        </v-list>
+      </v-card>
+    </v-menu>
   </v-bottom-navigation>
 
   <AppSnackbar />
@@ -206,6 +275,12 @@ async function logout() {
   flex-direction: column;
   gap: 8px;
   flex: 1;
+}
+.rail__sep {
+  width: 28px;
+  height: 1px;
+  margin: 4px auto;
+  background: var(--line);
 }
 .rail__btn {
   width: 44px;

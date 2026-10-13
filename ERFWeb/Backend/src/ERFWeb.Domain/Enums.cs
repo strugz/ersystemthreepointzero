@@ -1,12 +1,28 @@
 namespace ERFWeb.Domain;
 
-/// <summary>Application roles that gate access to features and endpoints.</summary>
+/// <summary>
+/// Additive application roles (RBAC v0.6). Every user holds <see cref="Employee"/>; the other
+/// roles are granted separately and stack, subject to <c>RoleRules</c>. <see cref="BusinessOwner"/>
+/// is the designated countersigning authority (CFO or HR Head), modelled as a grant so that it
+/// gets the same Pending Activation and countersign path as the privileged roles.
+/// </summary>
 public enum UserRole
 {
     Employee,
-    Manager,
+    SignatoryLevel1,
+    SignatoryLevel2,
     Finance,
-    Admin,
+    ExpenseVerifier,
+    SystemAdministrator,
+    BusinessOwner,
+}
+
+/// <summary>Lifecycle of a role grant: privileged roles wait for a countersign before they apply.</summary>
+public enum RoleGrantStatus
+{
+    PendingActivation,
+    Active,
+    Revoked,
 }
 
 /// <summary>The kind of expense report, matching the official ERF categories.</summary>

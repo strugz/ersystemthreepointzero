@@ -41,9 +41,15 @@ public static class ReportWorkflowRules
         string? purpose,
         ReportType reportType,
         decimal cashAdvanceAmount,
-        decimal revolvingFundAmount)
+        decimal revolvingFundAmount,
+        bool coolingPeriodElapsed = true)
     {
         var reasons = new List<string>();
+
+        if (!coolingPeriodElapsed)
+        {
+            reasons.Add("Your account is still within its cooling period after registration. Filing opens once the period has elapsed.");
+        }
 
         if (!CanFile(status))
         {
