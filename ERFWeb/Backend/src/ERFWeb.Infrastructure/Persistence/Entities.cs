@@ -397,3 +397,30 @@ public class ReferenceSeries
     public int NextValue { get; set; } = 1;
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+/// <summary>
+/// One notification SMS sent through Lasius. The unique (sender, idempotency key) pair is what stops
+/// a retry from texting twice. The message text is never stored, only its SHA-256 so that a reused
+/// key with a different message can be refused.
+/// </summary>
+public class SmsDelivery
+{
+    public long Id { get; set; }
+    public long SenderUserId { get; set; }
+    public string IdempotencyKey { get; set; } = string.Empty;
+    public long RecipientUserId { get; set; }
+
+    /// <summary>The expense report the SMS is about, when there is one (its signatories are texted too).</summary>
+    public Guid? ReportId { get; set; }
+
+    public int RecipientCount { get; set; }
+    public string MessageSha256 { get; set; } = string.Empty;
+
+    /// <summary>Sending | Sent | Failed | Unconfirmed.</summary>
+    public string Status { get; set; } = string.Empty;
+
+    public int? GatewayHttpStatus { get; set; }
+    public int Attempts { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
+}

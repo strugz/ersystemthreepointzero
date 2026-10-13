@@ -30,6 +30,7 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
     public DbSet<ReceiptAttachment> ReceiptAttachments => Set<ReceiptAttachment>();
     public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
     public DbSet<ReminderDelivery> ReminderDeliveries => Set<ReminderDelivery>();
+    public DbSet<SmsDelivery> SmsDeliveries => Set<SmsDelivery>();
     public DbSet<LoginSecurity> LoginSecurities => Set<LoginSecurity>();
     public DbSet<WorkflowAudit> WorkflowAudits => Set<WorkflowAudit>();
     public DbSet<RecordHistory> RecordHistories => Set<RecordHistory>();
@@ -268,6 +269,21 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.Property(x => x.Audience).HasMaxLength(16);
             e.Property(x => x.Status).HasMaxLength(16);
             e.HasOne<ExpenseReport>().WithMany().HasForeignKey(x => x.ReportId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<SmsDelivery>(e =>
+        {
+            e.ToTable("sms_deliveries");
+            e.HasIndex(x => new { x.SenderUserId, x.IdempotencyKey }).IsUnique();
+            e.HasIndex(x => x.RecipientUserId);
+            e.HasIndex(x => x.ReportId);
+            e.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            e.Property(x => x.MessageSha256).HasMaxLength(64).IsFixedLength();
+            e.Property(x => x.Status).HasMaxLength(16);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.SenderUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.RecipientUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<ExpenseReport>().WithMany().HasForeignKey(x => x.ReportId).OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<LoginSecurity>(e =>

@@ -19,6 +19,7 @@ public static class Policies
     public const string RateManager = "RateManager";
     public const string Approver = "Approver";
     public const string ExpenseVerifier = "ExpenseVerifier";
+    public const string SmsSender = "SmsSender";
 
     public static void Register(AuthorizationOptions options)
     {
@@ -46,5 +47,10 @@ public static class Policies
 
         // Flow 6: the verifier pool; the service checks 9.16 (not your own report, not one you approved).
         options.AddPolicy(ExpenseVerifier, p => p.RequireRole(nameof(UserRole.ExpenseVerifier)));
+
+        // Spec permission matrix, "Send follow-up email / SMS": signatories, Finance, and the Expense Verifier.
+        options.AddPolicy(SmsSender, p => p.RequireRole(
+            nameof(UserRole.SignatoryLevel1), nameof(UserRole.SignatoryLevel2),
+            nameof(UserRole.Finance), nameof(UserRole.ExpenseVerifier)));
     }
 }

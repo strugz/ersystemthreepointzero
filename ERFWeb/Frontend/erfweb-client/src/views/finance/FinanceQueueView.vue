@@ -13,6 +13,8 @@ import type { FinanceStatus, PagedResult } from '@/features/expenses/types';
 import { financeApi } from '@/features/finance/api';
 import ReceiptsDialog from '@/features/finance/components/ReceiptsDialog.vue';
 import type { FinanceQueueItem, ReceiptStatus } from '@/features/finance/types';
+import { smsApi } from '@/features/notifications/api';
+import SendSmsDialog from '@/features/notifications/components/SendSmsDialog.vue';
 
 // The physical-receipt queue: approved reports wait here until Finance confirms the receipts and
 // clears them for payment. The API refuses out-of-order steps (409) and Finance's own reports (403).
@@ -140,16 +142,49 @@ async function confirmClear() {
 }
 
 // ---- follow-up ----------------------------------------------------------------------
-async function followUp(item: FinanceQueueItem) {
-  busyId.value = item.reportId;
+// Follow up = an SMS to the claimant and the report's Level 1 and Level 2 signatories (whoever has a
+// mobile number on file; the server picks them), then the follow-up is counted on the report. The SMS endpoint never sends the same message twice for one idempotency key, so a retry
+// from the dialog is safe.
+const followingUp = ref<FinanceQueueItem | null>(null);
+const sendingSms = ref(false);
+const smsError = ref<string | null>(null);
+
+function startFollowUp(item: FinanceQueueItem) {
+  smsError.value = null;
+  followingUp.value = item;
+}
+
+const followUpMessage = (item: FinanceQueueItem) =>
+  `Hi ${item.employeeName}, Finance has not yet received the original receipts for ${item.referenceNo ?? 'your expense report'}. Please submit them to Finance. Thank you.`;
+
+async function sendFollowUp(message: string, idempotencyKey: string) {
+  const item = followingUp.value;
+  if (!item) return;
+  sendingSms.value = true;
+  smsError.value = null;
   try {
-    const updated = await financeApi.followUp(item.reportId, null);
-    snack.info(`Reminder sent to ${item.employeeName} (${updated.followUpCount} so far).`);
+    const sent = await smsApi.send({ contactId: item.employeeUserId, message, idempotencyKey, reportId: item.reportId });
+    followingUp.value = null;
+    if (sent.replayed) {
+      snack.info(`That SMS was already sent to ${item.employeeName}.`);
+      return;
+    }
+    busyId.value = item.reportId;
+    try {
+      const updated = await financeApi.followUp(item.reportId, null);
+      snack.success(`SMS sent to ${sent.recipientCount} number${sent.recipientCount === 1 ? '' : 's'} (${updated.followUpCount} follow-up${updated.followUpCount === 1 ? '' : 's'} so far).`);
+    } catch (err) {
+      snack.info(`SMS sent to ${item.employeeName}, but the follow-up could not be recorded on the report.`);
+      await onActionError(err, 'Unable to record the follow-up.');
+    } finally {
+      busyId.value = null;
+    }
     await load();
   } catch (err) {
-    await onActionError(err, 'Unable to send the follow-up.');
+    // Keep the dialog open with the server's message (not configured, no mobile number, gateway down...).
+    smsError.value = describeError(err, 'Unable to send the SMS.');
   } finally {
-    busyId.value = null;
+    sendingSms.value = false;
   }
 }
 </script>
@@ -220,7 +255,7 @@ async function followUp(item: FinanceQueueItem) {
           <div class="item__side">
             <span class="mono item__amt">{{ formatMoney(item.totalAmount) }}</span>
             <div v-if="!item.isOwnReport" class="item__actions">
-              <v-btn v-if="awaitsReceipts(item)" class="press" size="small" variant="text" prepend-icon="mdi-bell-ring-outline" :disabled="busyId !== null" @click="followUp(item)">Follow up</v-btn>
+              <v-btn v-if="awaitsReceipts(item)" class="press" size="small" variant="text" prepend-icon="mdi-bell-ring-outline" :disabled="busyId !== null" @click="startFollowUp(item)">Follow up</v-btn>
               <v-btn v-if="awaitsReceipts(item)" class="press" size="small" variant="outlined" color="primary" :disabled="busyId !== null" @click="startReceipts(item)">Receipts</v-btn>
               <v-btn v-if="item.status === 'ReceiptsReceived' && !item.openVerifications" class="press" size="small" variant="flat" color="success" prepend-icon="mdi-cash-check" :loading="busyId === item.reportId" @click="startClear(item)">Clear for payment</v-btn>
               <span v-else-if="item.status === 'ReceiptsReceived'" class="text-caption text-medium-emphasis">Clear after the verification is resolved</span>
@@ -235,6 +270,18 @@ async function followUp(item: FinanceQueueItem) {
     </v-card>
 
     <ReceiptsDialog :item="recording" :saving="savingReceipts" :error="receiptsError" @close="recording = null" @save="saveReceipts" />
+
+    <SendSmsDialog
+      :open="followingUp !== null"
+      :recipient-name="followingUp?.employeeName ?? ''"
+      :context="followingUp?.referenceNo ?? null"
+      recipient-note="Also sent to the report's Level 1 and Level 2 signatories. Only people with a mobile number on file receive it."
+      :initial-message="followingUp ? followUpMessage(followingUp) : ''"
+      :sending="sendingSms"
+      :error="smsError"
+      @close="followingUp = null"
+      @send="sendFollowUp"
+    />
 
     <AppConfirmDialog
       :model-value="clearing !== null"

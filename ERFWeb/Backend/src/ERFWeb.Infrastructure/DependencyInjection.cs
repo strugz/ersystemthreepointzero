@@ -5,6 +5,7 @@ using ERFWeb.Application.Features.Authentication;
 using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Application.Features.Lookups;
+using ERFWeb.Application.Features.Notifications;
 using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Application.Features.Verification;
 using ERFWeb.Infrastructure.Administration;
@@ -21,6 +22,7 @@ using ERFWeb.Infrastructure.Services;
 using ERFWeb.Infrastructure.Verification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace ERFWeb.Infrastructure;
 
@@ -82,6 +84,12 @@ public static class DependencyInjection
         services.AddScoped<IFinanceService, FinanceService>();
         services.AddScoped<VerificationReader>();
         services.AddScoped<IVerificationService, VerificationService>();
+
+        // Notification SMS through the Lasius gateway; the URL and API key come from appsettings.json.
+        services.AddOptions<LasiusOptions>();
+        services.AddHttpClient<ISmsGateway, LasiusSmsGateway>((sp, client) =>
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(1, sp.GetRequiredService<IOptions<LasiusOptions>>().Value.TimeoutSeconds)));
+        services.AddScoped<ISmsService, SmsService>();
 
         return services;
     }

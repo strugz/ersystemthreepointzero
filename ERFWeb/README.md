@@ -382,3 +382,40 @@ do) and `finance.underVerification`; Finance queue rows carry `openVerifications
 **Verifications** (`/verifications`) for Expense Verifiers, a **Queries** tab in Approvals for Level 2, and a
 Verification card on the review and report pages. Events are written as `VerificationRequested`,
 `VerificationPickedUp`, `VerificationFound`, `QueryRaised`, and `QueryDecided`.
+
+## Notification SMS (Lasius gateway)
+
+Script `011` adds `sms_deliveries`; `012` links each row to its report (`report_id`). `POST /api/sms` (Level 1,
+Level 2, Finance, Expense Verifier) takes `{ contactId, message, idempotencyKey?, reportId? }`: `contactId` is the
+recipient's `users.id`, and the server texts the Philippine mobile numbers in that user's `mobile_no` (several may
+be separated by `,` `;` or `/`). With `reportId`, `contactId` must be the report's claimant, and the report's
+Level 1 and Level 2 signatories on the current approval cycle are texted in the same message. Whoever has a
+mobile number receives it, and a shared number is texted once. The client never supplies a phone number. The API
+posts `{ sender, recipients, message, application }` to Lasius, with `sender` set to the signed-in user's full
+name and the API key in a request header. The Finance queue's **Follow up** sends this SMS with the report, then
+counts the follow-up.
+
+Configure the gitignored `appsettings.json` (template in `appsettings.Example.json`):
+
+```json
+"Lasius": { "Url": "https://…", "ApiKey": "…", "ApiKeyHeaderName": "X-API-Key", "Application": "ERMS", "TimeoutSeconds": 30 }
+```
+
+Without `Url` and `ApiKey` the API still starts and the endpoint answers 503 `sms_not_configured`.
+
+| Outcome | HTTP | `code` |
+| --- | --- | --- |
+| Sent (or a retry of one already sent: `replayed: true`) | 200 `{ status, recipientCount, replayed }` | — |
+| Invalid request | 400 | `validation_failed` (with `errors`) |
+| User not found or inactive / report not found | 404 | `sms_user_not_found` / `sms_report_not_found` |
+| No one to text has a mobile number | 422 | `sms_no_text_group` |
+| SMS not configured | 503 | `sms_not_configured` |
+| Lasius refused the message | 502 | `sms_gateway_failed` (may be retried with the same key) |
+| Lasius did not answer | 502 | `sms_gateway_unconfirmed` (never resent under the same key) |
+| Same key still sending / key reused for another message | 409 | `sms_in_progress` / `sms_idempotency_key_reused` |
+
+Duplicate protection: a retry with the same `idempotencyKey` never texts twice. The key is claimed in
+`sms_deliveries` (unique per sender) before Lasius is called. Without a key, the same message to the same user
+from the same sender within a 10-minute window is treated as a retry. Once the call to Lasius starts, it
+finishes even if the browser leaves the page. The message text, phone numbers, and API key are never logged,
+stored, or returned. `workflow_audit` records `SmsSent`, `SmsFailed`, or `SmsUnconfirmed` with counts only.
