@@ -219,7 +219,8 @@ public sealed class ApprovalService(
                 _ => $"Approved by {user.FullName}; awaiting {nextName}",
             };
             var notification = new WorkflowEventNotification(auditEvent, reportId, report.ReferenceNo, employeeName,
-                recipients.Where(id => id != user.UserId).Distinct().ToList(), summary);
+                recipients.Where(id => id != user.UserId).Distinct().ToList(), summary,
+                ActorName: user.FullName, Note: reason, NextApproverName: nextName, Cycle: report.CurrentCycle, StepOrder: acting.StepOrder);
             return (report.Status, nextName, notification);
         }, ct);
 

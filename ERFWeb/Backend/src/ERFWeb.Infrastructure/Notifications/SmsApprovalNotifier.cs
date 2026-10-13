@@ -1,18 +1,20 @@
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Approvals;
 using ERFWeb.Application.Features.Notifications;
+using ERFWeb.Domain.Notifications;
 using Microsoft.Extensions.Logging;
 
 namespace ERFWeb.Infrastructure.Notifications;
 
 /// <summary>
-/// Adds the filing SMS to the logging notifier: when an employee files (or re-files) a report, one SMS
-/// goes to the employee and the report's Level 1 and Level 2 signatories, whoever has a mobile number.
-/// Other workflow events are only logged for now.
+/// Adds SMS to the logging notifier. Filing, re-filing, each approval and a return send one SMS to the
+/// employee and the report's Level 1 and Level 2 signatories, whoever has a mobile number. Other
+/// workflow events (reject, override, line adjustments, Finance steps) are only logged for now.
 /// <para>
-/// Runs after the filing has committed and never throws: an SMS problem is logged, never a failed
-/// filing. The key is fixed per report and approval cycle, so one filing texts once, and a re-file after
-/// a return (a new cycle) texts again. The send ignores the request's cancellation, so it still
-/// completes if the employee leaves the page.
+/// Runs after the workflow has committed and never throws: an SMS problem is logged, never a failed
+/// action. Each event has a fixed key per report, approval cycle and step, so it texts once; a new
+/// cycle after a return texts again. The send ignores the request's cancellation, so it still completes
+/// if the user leaves the page.
 /// </para>
 /// </summary>
 public sealed class SmsApprovalNotifier(
@@ -27,25 +29,90 @@ public sealed class SmsApprovalNotifier(
 
         var reference = notification.ReferenceNo ?? "An expense report";
         var message = $"{reference} was {(notification.IsRefile ? "re-filed" : "filed")} by {notification.EmployeeName} and is waiting for approval in ERFWeb.";
-        var key = $"filed:{notification.ReportId:N}:{notification.Cycle}";
+        await SendAsync(notification.ReportId, message, $"filed:{notification.ReportId:N}:{notification.Cycle}", "Filing");
+    }
+
+    public async Task NotifyWorkflowEventAsync(WorkflowEventNotification notification, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(notification);
+        await inner.NotifyWorkflowEventAsync(notification, ct);
+
+        if (ComposeWorkflowSms(notification) is { } sms)
+        {
+            await SendAsync(notification.ReportId, sms.Message, sms.Key, notification.Kind);
+        }
+    }
+
+    /// <summary>
+    /// The SMS for an approval decision, or null for events that do not text. Public for tests.
+    /// A return quotes the approver's note, shortened so the whole message fits one notification.
+    /// </summary>
+    public static (string Message, string Key)? ComposeWorkflowSms(WorkflowEventNotification n)
+    {
+        ArgumentNullException.ThrowIfNull(n);
+        if (n.Cycle is not { } cycle || n.StepOrder is not { } step)
+        {
+            return null;
+        }
+
+        var reference = n.ReferenceNo ?? "An expense report";
+        var actor = string.IsNullOrWhiteSpace(n.ActorName) ? "the approver" : n.ActorName;
+        var message = n.Kind switch
+        {
+            ApprovalAuditEvents.Approved => string.IsNullOrWhiteSpace(n.NextApproverName)
+                ? $"{reference} was approved by {actor} and is waiting for the next approval in ERFWeb."
+                : $"{reference} was approved by {actor} and is now waiting for {n.NextApproverName}'s approval in ERFWeb.",
+            ApprovalAuditEvents.FullyApproved => $"{reference} was fully approved by {actor}. Please submit the original receipts to Finance.",
+            ApprovalAuditEvents.Returned => ReturnMessage(reference, actor, n.Note),
+            _ => null,
+        };
+
+        return message is null ? null : (message, $"{n.Kind}:{n.ReportId:N}:{cycle}:{step}");
+    }
+
+    private static string ReturnMessage(string reference, string actor, string? note)
+    {
+        var head = $"{reference} was returned by {actor}";
+        const string Tail = ". Please update and re-file it in ERFWeb.";
+        var text = note?.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            return head + Tail;
+        }
+
+        // Quote as much of the note as fits: head + ': "' + note + '"' + tail.
+        var room = SmsRules.MaxMessageLength - head.Length - Tail.Length - 4;
+        if (room < 10)
+        {
+            return head + Tail;
+        }
+
+        if (text.Length > room)
+        {
+            // Plain dots: "…" is not in the GSM-7 SMS alphabet and would shrink every segment to 70 characters.
+            text = text[..(room - 3)].TrimEnd() + "...";
+        }
+
+        return $"{head}: \"{text}\"{Tail}";
+    }
+
+    private async Task SendAsync(Guid reportId, string message, string key, string label)
+    {
         try
         {
-            var result = await sms.SendAboutReportAsync(notification.ReportId, message, key, CancellationToken.None);
+            var result = await sms.SendAboutReportAsync(reportId, message, key, CancellationToken.None);
             if (result.Outcome == SmsSendOutcome.Sent)
             {
-                logger.LogInformation("Filing SMS for report {ReportId} sent to {RecipientCount} number(s).", notification.ReportId, result.RecipientCount);
+                logger.LogInformation("{Label} SMS for report {ReportId} sent to {RecipientCount} number(s).", label, reportId, result.RecipientCount);
             }
             else
             {
-                logger.LogWarning("Filing SMS for report {ReportId} not sent: {Outcome}.", notification.ReportId, result.Outcome);
+                logger.LogWarning("{Label} SMS for report {ReportId} not sent: {Outcome}.", label, reportId, result.Outcome);
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Filing SMS for report {ReportId} failed.", notification.ReportId);
+            logger.LogError(ex, "{Label} SMS for report {ReportId} failed.", label, reportId);
         }
     }
-
-    public Task NotifyWorkflowEventAsync(WorkflowEventNotification notification, CancellationToken ct = default) =>
-        inner.NotifyWorkflowEventAsync(notification, ct);
 }

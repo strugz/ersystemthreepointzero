@@ -1,4 +1,5 @@
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Approvals;
 using ERFWeb.Application.Features.Notifications;
 using ERFWeb.Domain.Notifications;
 using ERFWeb.Infrastructure.Notifications;
@@ -53,6 +54,58 @@ public class SmsApprovalNotifierTests
 
         Assert.Empty(sms.Calls);
     }
+
+    [Fact]
+    public async Task LevelOneApproval_SaysWhoIsNext()
+    {
+        var sms = new FakeSms();
+        await Create(sms).NotifyWorkflowEventAsync(Decision(ApprovalAuditEvents.Approved, step: 1, next: "Test Manager Two"));
+
+        var call = Assert.Single(sms.Calls);
+        Assert.Equal("ERF-2026-000001 was approved by Test Manager One and is now waiting for Test Manager Two's approval in ERFWeb.", call.Message);
+        Assert.Equal("ReportStepApproved:3f2b8c1e6a4d4f0e9b7a2c1d5e6f7a8b:1:1", call.Key);
+    }
+
+    [Fact]
+    public void FinalApproval_AsksForTheReceipts()
+    {
+        var sms = SmsApprovalNotifier.ComposeWorkflowSms(Decision(ApprovalAuditEvents.FullyApproved, step: 2, actor: "Test Manager Two"));
+
+        Assert.NotNull(sms);
+        Assert.Equal("ERF-2026-000001 was fully approved by Test Manager Two. Please submit the original receipts to Finance.", sms.Value.Message);
+        Assert.Equal("ReportApproved:3f2b8c1e6a4d4f0e9b7a2c1d5e6f7a8b:1:2", sms.Value.Key);
+    }
+
+    [Fact]
+    public void Return_QuotesTheNote()
+    {
+        var sms = SmsApprovalNotifier.ComposeWorkflowSms(Decision(ApprovalAuditEvents.Returned, step: 1, note: "Lunch on Oct 5 has no OR."));
+
+        Assert.Equal(
+            "ERF-2026-000001 was returned by Test Manager One: \"Lunch on Oct 5 has no OR.\". Please update and re-file it in ERFWeb.",
+            sms?.Message);
+    }
+
+    [Fact]
+    public void Return_ShortensALongNoteToFitOneNotification()
+    {
+        var sms = SmsApprovalNotifier.ComposeWorkflowSms(Decision(ApprovalAuditEvents.Returned, step: 1, note: new string('x', 1000)));
+
+        Assert.NotNull(sms);
+        Assert.Null(SmsRules.MessageError(sms.Value.Message));
+        Assert.Contains("...\". Please update and re-file it in ERFWeb.", sms.Value.Message);
+        Assert.Null(SmsRules.IdempotencyKeyError(sms.Value.Key));
+    }
+
+    [Theory]
+    [InlineData(ApprovalAuditEvents.Rejected)]
+    [InlineData(ApprovalAuditEvents.Overridden)]
+    [InlineData(ApprovalAuditEvents.LineAdjusted)]
+    public void OtherDecisions_DoNotText(string kind) =>
+        Assert.Null(SmsApprovalNotifier.ComposeWorkflowSms(Decision(kind, step: 1)));
+
+    private static WorkflowEventNotification Decision(string kind, int step, string actor = "Test Manager One", string? note = null, string? next = null) =>
+        new(kind, ReportId, "ERF-2026-000001", "Jay Bryan Abaoag", [], "summary", actor, note, next, Cycle: 1, StepOrder: step);
 
     private static SmsApprovalNotifier Create(ISmsService sms) =>
         new(new LoggingApprovalNotifier(NullLogger<LoggingApprovalNotifier>.Instance), sms, NullLogger<SmsApprovalNotifier>.Instance);

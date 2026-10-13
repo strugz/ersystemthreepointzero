@@ -398,7 +398,13 @@ counts the follow-up.
 **Filing SMS:** when an employee files (or re-files after a return) a report, `SmsApprovalNotifier` sends one SMS
 to the employee and the report's Level 1 and Level 2 signatories ("ERF-2026-000001 was filed by … and is waiting
 for approval in ERFWeb."). It runs after the filing commits and never fails a filing; the key
-`filed:{reportId}:{cycle}` texts once per approval cycle. Other workflow events are still only logged.
+`filed:{reportId}:{cycle}` texts once per approval cycle.
+
+**Approval SMS:** each approval step, the final approval and a return send the same three people one SMS, sent as
+the approver: "… was approved by X and is now waiting for Y's approval", "… was fully approved by X. Please submit
+the original receipts to Finance.", or "… was returned by X: "note". Please update and re-file it in ERFWeb." (a long
+note is shortened to fit). The key `{event}:{reportId}:{cycle}:{step}` texts once per decision. Reject, override,
+line adjustments and Finance steps are still only logged.
 
 Configure the gitignored `appsettings.json` (template in `appsettings.Example.json`):
 
