@@ -59,6 +59,7 @@ export const expensesApi = {
   removeAttachment: (id: string, attachmentId: number) => api.del<void>(`${r(id)}/attachments/${attachmentId}`),
 
   workWith: (search?: string) => api.get<WorkWithOption[]>(`/lookups/work-with${qs({ search })}`),
-  myRates: () => api.get<EmployeeRates>('/lookups/my-rates'),
+  /** The rates in force on the date (today when omitted). */
+  myRates: (date?: string) => api.get<EmployeeRates>(`/lookups/my-rates${qs({ date })}`),
   filingReadiness: () => api.get<FilingReadiness>('/lookups/my-filing-readiness'),
 };

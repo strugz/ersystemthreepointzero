@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import { useSessionStore } from '@/app/stores/session';
+import { roleLabel } from '@/features/auth/labels';
+import { entitlementReaderRoles, hasAnyRole, rateNavRoles } from '@/features/entitlements/access';
 import AppSnackbar from '@/shared/ui/AppSnackbar.vue';
 
 /**
  * Application shell.
- *  - Desktop / tablet (>= 600px): 72px icon rail on the left, 64px white header with a breadcrumb.
+ *  - Desktop / tablet (>= 600px): a left navigation pane the user opens or closes: a 72px icon rail
+ *    (closed) or a 248px pane with labels (open). The choice is remembered in this browser.
+ *    64px white header with a breadcrumb.
  *  - Phone (< 600px): no rail; a 56px header with a back button, and a bottom bar — either the
  *    page's own sticky actions (#bottom slot) or the global bottom navigation.
  */
@@ -31,13 +35,105 @@ const props = withDefaults(
 
 const session = useSessionStore();
 const router = useRouter();
+const route = useRoute();
 const { xs } = useDisplay();
 
-const nav = [
+interface NavItem {
+  title: string;
+  icon: string;
+  to: RouteLocationRaw;
+  exact: boolean;
+}
+
+const nav: NavItem[] = [
   { title: 'Dashboard', icon: 'mdi-view-dashboard-outline', to: { name: 'home' }, exact: true },
   { title: 'My reports', icon: 'mdi-file-document-multiple-outline', to: { name: 'reports' }, exact: false },
   { title: 'New report', icon: 'mdi-plus', to: { name: 'report-new' }, exact: true },
 ];
+
+// Administration entries, gated by role. The API enforces access; this only decides what to show.
+const adminNav = computed<NavItem[]>(() => {
+  const items: NavItem[] = [];
+  const isAdmin = session.hasRole('SystemAdministrator');
+  if (isAdmin) {
+    items.push(
+      { title: 'Users', icon: 'mdi-account-multiple-outline', to: { name: 'admin-users' }, exact: false },
+      { title: 'Master data', icon: 'mdi-database-outline', to: { name: 'admin-master-data' }, exact: false },
+      { title: 'Rules', icon: 'mdi-tune-variant', to: { name: 'admin-settings' }, exact: false },
+    );
+  }
+  if (isAdmin || session.hasRole('Finance')) {
+    items.push({ title: 'Audit', icon: 'mdi-clipboard-text-clock-outline', to: { name: 'admin-audit' }, exact: false });
+  }
+  return items;
+});
+
+// Work queues: approvals for signatories, the receipt queue for Finance, verifications for the
+// Expense Verifier. Gating is display only.
+const workNav = computed<NavItem[]>(() => {
+  const items: NavItem[] = [];
+  if (session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2')) {
+    items.push({ title: 'Approvals', icon: 'mdi-check-decagram-outline', to: { name: 'approvals' }, exact: false });
+  }
+  if (session.hasRole('Finance')) {
+    items.push({ title: 'Finance queue', icon: 'mdi-receipt-text-check-outline', to: { name: 'finance-queue' }, exact: false });
+  }
+  if (session.hasRole('ExpenseVerifier')) {
+    items.push({ title: 'Verifications', icon: 'mdi-magnify-scan', to: { name: 'verifications' }, exact: false });
+  }
+  return items;
+});
+
+// Signatory structure entries: scope for every entitlement reader; rates for all of them except a
+// System Administrator who holds no other reader role (they only manage scope). Gating is display only.
+const entitlementNav = computed<NavItem[]>(() => {
+  const roles = session.user?.roles;
+  const items: NavItem[] = [];
+  if (hasAnyRole(roles, entitlementReaderRoles)) {
+    items.push({ title: 'Scope', icon: 'mdi-account-supervisor-outline', to: { name: 'scope' }, exact: false });
+  }
+  if (hasAnyRole(roles, rateNavRoles)) {
+    items.push({ title: 'Rates', icon: 'mdi-cash-multiple', to: { name: 'rate-profiles' }, exact: false });
+  }
+  return items;
+});
+
+/** Groups shown after the main nav, each behind a separator on the rail and a divider in "More". */
+const navGroups = computed(() =>
+  [
+    { label: 'Work queues', items: workNav.value },
+    { label: 'Signatory structure', items: entitlementNav.value },
+    { label: 'Administration', items: adminNav.value },
+  ].filter((g) => g.items.length > 0),
+);
+
+const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'report-review', 'finance-queue', 'verifications']);
+
+const roleSummary = computed(() => (session.user?.roles ?? []).map(roleLabel).join(' · '));
+const moreOpen = ref(false);
+
+// Open/closed navigation pane: a per-browser convenience, so storage failures just fall back to closed.
+const NAV_KEY = 'erfweb.nav.expanded';
+function readExpanded(): boolean {
+  try {
+    return localStorage.getItem(NAV_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+const expanded = ref(readExpanded());
+function toggleNav() {
+  expanded.value = !expanded.value;
+  try {
+    localStorage.setItem(NAV_KEY, expanded.value ? '1' : '0');
+  } catch {
+    // Storage blocked (private window): the toggle still works for this page view.
+  }
+}
+const moreRouteActive = computed(() => {
+  const name = String(route.name ?? '');
+  return name.startsWith('admin-') || entitlementRouteNames.has(name);
+});
 
 const initials = computed(() =>
   (session.user?.fullName ?? '?')
@@ -63,15 +159,43 @@ async function logout() {
 </script>
 
 <template>
-  <!-- Icon rail: tablet and desktop -->
-  <v-navigation-drawer v-if="!xs" permanent rail rail-width="72" class="rail" color="surface">
+  <!-- Navigation pane: tablet and desktop. Closed = icon rail, open = icons with labels. -->
+  <v-navigation-drawer
+    v-if="!xs"
+    permanent
+    :rail="!expanded"
+    rail-width="72"
+    width="248"
+    class="rail"
+    :class="{ 'rail--open': expanded }"
+    color="surface"
+  >
     <div class="rail__inner">
-      <router-link :to="{ name: 'home' }" class="rail__logo press" aria-label="ERFWeb home">
-        <img src="/icon-192.png" alt="" class="rail__logo-img" />
-      </router-link>
+      <div class="rail__top">
+        <router-link :to="{ name: 'home' }" class="rail__logo press" aria-label="ERFWeb home">
+          <img src="/icon-192.png" alt="" class="rail__logo-img" />
+        </router-link>
+        <span v-if="expanded" class="rail__brand">ERFWeb</span>
+      </div>
+
+      <v-tooltip :text="expanded ? 'Close navigation' : 'Open navigation'" location="end" open-delay="300" :disabled="expanded">
+        <template #activator="{ props: tip }">
+          <button
+            v-bind="tip"
+            type="button"
+            class="rail__btn rail__toggle press"
+            :aria-label="expanded ? 'Close navigation' : 'Open navigation'"
+            :aria-expanded="expanded"
+            @click="toggleNav"
+          >
+            <v-icon :icon="expanded ? 'mdi-menu-open' : 'mdi-menu'" size="22" />
+            <span v-if="expanded" class="rail__label">Close menu</span>
+          </button>
+        </template>
+      </v-tooltip>
 
       <nav class="rail__nav" aria-label="Main">
-        <v-tooltip v-for="item in nav" :key="item.title" :text="item.title" location="end" open-delay="300">
+        <v-tooltip v-for="item in nav" :key="item.title" :text="item.title" location="end" open-delay="300" :disabled="expanded">
           <template #activator="{ props: tip }">
             <router-link v-bind="tip" :to="item.to" custom>
               <template #default="{ navigate, isActive, isExactActive, href }">
@@ -83,22 +207,50 @@ async function logout() {
                   @click.prevent="navigate()"
                 >
                   <v-icon :icon="item.icon" size="22" />
+                  <span v-if="expanded" class="rail__label">{{ item.title }}</span>
                 </a>
               </template>
             </router-link>
           </template>
         </v-tooltip>
+
+        <template v-for="group in navGroups" :key="group.label">
+          <div v-if="expanded" class="rail__group">{{ group.label }}</div>
+          <div v-else class="rail__sep" role="separator" :aria-label="group.label" />
+          <v-tooltip v-for="item in group.items" :key="item.title" :text="item.title" location="end" open-delay="300" :disabled="expanded">
+            <template #activator="{ props: tip }">
+              <router-link v-bind="tip" :to="item.to" custom>
+                <template #default="{ navigate, isActive, isExactActive, href }">
+                  <a
+                    :href="href"
+                    class="rail__btn press"
+                    :class="{ 'rail__btn--on': item.exact ? isExactActive : isActive }"
+                    :aria-label="item.title"
+                    @click.prevent="navigate()"
+                  >
+                    <v-icon :icon="item.icon" size="22" />
+                    <span v-if="expanded" class="rail__label">{{ item.title }}</span>
+                  </a>
+                </template>
+              </router-link>
+            </template>
+          </v-tooltip>
+        </template>
       </nav>
 
       <v-menu location="end bottom" :offset="8">
         <template #activator="{ props: menu }">
-          <button v-bind="menu" class="rail__avatar press" type="button" :aria-label="`Account: ${session.user?.fullName ?? ''}`">
-            {{ initials }}
+          <button v-bind="menu" class="rail__account press" type="button" :aria-label="`Account: ${session.user?.fullName ?? ''}`">
+            <span class="rail__avatar">{{ initials }}</span>
+            <span v-if="expanded" class="rail__who">
+              <span class="rail__who-name">{{ session.user?.fullName }}</span>
+              <span class="rail__who-roles">{{ roleSummary }}</span>
+            </span>
           </button>
         </template>
         <v-card min-width="240" class="pa-1">
           <v-list density="compact" class="py-0">
-            <v-list-item :title="session.user?.fullName" :subtitle="session.user?.roles.join(' · ')" />
+            <v-list-item :title="session.user?.fullName" :subtitle="roleSummary" />
             <v-divider class="my-1" />
             <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="logout" />
           </v-list>
@@ -163,6 +315,27 @@ async function logout() {
       <v-icon :icon="item.icon" />
       <span class="text-caption">{{ item.title }}</span>
     </v-btn>
+    <!-- Phones have no rail or avatar menu, so scope, rates, administration and sign-out live behind "More". -->
+    <v-menu v-model="moreOpen" location="top end" :offset="8">
+      <template #activator="{ props: menu }">
+        <v-btn v-bind="menu" class="press" :active="moreRouteActive" aria-label="More" aria-haspopup="menu">
+          <v-icon icon="mdi-dots-horizontal" />
+          <span class="text-caption">More</span>
+        </v-btn>
+      </template>
+      <v-card min-width="220" class="pa-1">
+        <v-list density="compact" class="py-0">
+          <v-list-item :title="session.user?.fullName" :subtitle="roleSummary" />
+          <template v-for="group in navGroups" :key="group.label">
+            <v-divider class="my-1" />
+            <v-list-subheader class="more__group">{{ group.label }}</v-list-subheader>
+            <v-list-item v-for="item in group.items" :key="item.title" :prepend-icon="item.icon" :title="item.title" :to="item.to" />
+          </template>
+          <v-divider class="my-1" />
+          <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="logout" />
+        </v-list>
+      </v-card>
+    </v-menu>
   </v-bottom-navigation>
 
   <AppSnackbar />
@@ -180,7 +353,20 @@ async function logout() {
   padding: 16px 0;
   gap: 8px;
 }
+.rail__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.rail__brand {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--navy);
+  white-space: nowrap;
+}
 .rail__logo {
+  flex: none;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -188,7 +374,6 @@ async function logout() {
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  margin-bottom: 16px;
 }
 .rail__logo-img {
   width: 100%;
@@ -207,6 +392,12 @@ async function logout() {
   gap: 8px;
   flex: 1;
 }
+.rail__sep {
+  width: 28px;
+  height: 1px;
+  margin: 4px auto;
+  background: var(--line);
+}
 .rail__btn {
   width: 44px;
   height: 44px;
@@ -214,6 +405,12 @@ async function logout() {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
+  flex: none;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
   color: var(--ink-3);
   text-decoration: none;
   transition: background-color 120ms ease, color 120ms ease, transform var(--dur-press) var(--ease-out);
@@ -233,21 +430,95 @@ async function logout() {
   }
 }
 .rail__btn:focus-visible,
-.rail__avatar:focus-visible,
 .rail__logo:focus-visible {
   outline: 2px solid var(--navy);
   outline-offset: 2px;
 }
+.rail__toggle {
+  margin-bottom: 4px;
+}
+.rail__account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.rail__account:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
 .rail__avatar {
+  flex: none;
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 0;
   background: var(--navy-soft);
   color: var(--navy);
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rail__label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rail__group {
+  margin: 12px 12px 2px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.rail__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rail__who-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rail__who-roles {
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Open pane: rows span the width, icon then label. */
+.rail--open .rail__inner {
+  align-items: stretch;
+  padding: 16px 12px;
+}
+.rail--open .rail__top {
+  padding: 0 2px;
+}
+.rail--open .rail__btn {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 0 10px;
+}
+.rail--open .rail__account {
+  padding: 4px;
 }
 
 .shell-header {
@@ -310,6 +581,12 @@ async function logout() {
   flex: 1;
   height: 48px;
   font-size: 15px;
+}
+.more__group {
+  min-height: 28px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .bottom-nav {
   border-top: 1px solid var(--line) !important;

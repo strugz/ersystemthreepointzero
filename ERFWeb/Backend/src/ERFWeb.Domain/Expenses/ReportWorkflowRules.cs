@@ -14,11 +14,13 @@ public static class ReportWorkflowRules
     public static bool CanFile(ReportStatus status) => CanEdit(status);
 
     /// <summary>
-    /// A filed or approved report can be pulled back for correction. This supersedes the
-    /// current approval cycle, so approval restarts from step 1 when it is filed again.
+    /// The claimant may pull a filed report back only before any approver has acted (plan
+    /// "claimant cancel before L1 approval"); once an approver has acted, amounts are locked (9.6)
+    /// and only a return by an approver reopens it. Reopening supersedes the current cycle, so
+    /// approval restarts from step 1 when it is filed again.
     /// </summary>
-    public static bool CanReopen(ReportStatus status) =>
-        status is ReportStatus.ForApproval or ReportStatus.Approved;
+    public static bool CanReopen(ReportStatus status, bool anyApproverActed) =>
+        status == ReportStatus.ForApproval && !anyApproverActed;
 
     /// <summary>Only a never-filed report can be deleted outright.</summary>
     public static bool CanDelete(ReportStatus status, DateTimeOffset? filedAt) =>
@@ -41,9 +43,16 @@ public static class ReportWorkflowRules
         string? purpose,
         ReportType reportType,
         decimal cashAdvanceAmount,
-        decimal revolvingFundAmount)
+        decimal revolvingFundAmount,
+        bool coolingPeriodElapsed = true,
+        string? routingProblem = null)
     {
         var reasons = new List<string>();
+
+        if (!coolingPeriodElapsed)
+        {
+            reasons.Add("Your account is still within its cooling period after registration. Filing opens once the period has elapsed.");
+        }
 
         if (!CanFile(status))
         {
@@ -62,7 +71,7 @@ public static class ReportWorkflowRules
 
         if (approverCount == 0)
         {
-            reasons.Add("No approval route is configured for your account. Ask an administrator to assign your approvers.");
+            reasons.Add(routingProblem ?? "No approval route is configured for your account. Ask an administrator to assign your approvers.");
         }
 
         if (string.IsNullOrWhiteSpace(purpose))

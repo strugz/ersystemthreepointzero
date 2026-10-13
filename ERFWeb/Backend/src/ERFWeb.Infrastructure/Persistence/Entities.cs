@@ -7,6 +7,60 @@ public class Department
     public long Id { get; set; }
     public string? Code { get; set; }
     public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+}
+
+public class CostCenter
+{
+    public long Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public long? DepartmentId { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class Currency
+{
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsDefault { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class Site
+{
+    public long Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+}
+
+/// <summary>Key/value store for the System Administrator's workflow, business, and notification rules.</summary>
+public class AppSetting
+{
+    public string Key { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
+    public long? UpdatedByUserId { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+/// <summary>
+/// One additive role on an account (RBAC v0.6). Privileged roles start PendingActivation and
+/// become Active when countersigned; the Employee base role is never stored here.
+/// </summary>
+public class UserRoleGrant
+{
+    public long UserId { get; set; }
+    public UserRole Role { get; set; }
+    public RoleGrantStatus Status { get; set; } = RoleGrantStatus.PendingActivation;
+    public long? GrantedByUserId { get; set; }
+    public DateTimeOffset GrantedAt { get; set; }
+    public long? CountersignedByUserId { get; set; }
+    public DateTimeOffset? CountersignedAt { get; set; }
+    public long? RevokedByUserId { get; set; }
+    public DateTimeOffset? RevokedAt { get; set; }
+    public bool IsBootstrap { get; set; }
+    public string? Note { get; set; }
 }
 
 public class User
@@ -18,8 +72,9 @@ public class User
     public string? Position { get; set; }
     public string? Email { get; set; }
     public string? MobileNo { get; set; }
+    public string? JobGrade { get; set; }
     public long? DepartmentId { get; set; }
-    public UserRole Role { get; set; } = UserRole.Employee;
+    public long? CostCenterId { get; set; }
     public byte[]? Signature { get; set; }
     public bool WorkWithEnabled { get; set; }
     public bool IsActive { get; set; } = true;
@@ -114,6 +169,13 @@ public class ExpenseLine
     public string? Remarks { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
+
+    /// <summary>Amount and total as filed, kept when an approver lowers the line (null when never adjusted).</summary>
+    public decimal? OriginalAmount { get; set; }
+    public decimal? OriginalTotalAmount { get; set; }
+    public long? AdjustedByUserId { get; set; }
+    public DateTimeOffset? AdjustedAt { get; set; }
+    public string? AdjustmentReason { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
@@ -142,6 +204,9 @@ public class ApprovalStep
     public Guid ReportId { get; set; }
     public int Cycle { get; set; } = 1;
     public int StepOrder { get; set; }
+
+    /// <summary>Signatory level (1 or 2) the step was routed at; null for steps filed before scope routing.</summary>
+    public short? SignatoryLevel { get; set; }
     public long ApproverUserId { get; set; }
     public ApprovalStatus Status { get; set; } = ApprovalStatus.Pending;
     public DateTimeOffset? ActedAt { get; set; }
@@ -157,6 +222,44 @@ public class FinanceTracking
     public long? ReceivedByUserId { get; set; }
     public DateTimeOffset? ReceivedAt { get; set; }
     public string? Remarks { get; set; }
+    public long? ClearedByUserId { get; set; }
+    public DateTimeOffset? ClearedAt { get; set; }
+    public int FollowUpCount { get; set; }
+    public DateTimeOffset? LastFollowUpAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
+/// <summary>
+/// Finance's request to an Expense Verifier to fact-check one line of an approved report (plan
+/// Flow 6), and the follow-on query to Level 2 when the finding is Not Verified. Findings and
+/// decisions are written once; the row only moves forward through <see cref="VerificationStatus"/>.
+/// </summary>
+public class VerificationRequest
+{
+    public long Id { get; set; }
+    public Guid ReportId { get; set; }
+    public long ExpenseLineId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public VerificationStatus Status { get; set; } = VerificationStatus.Open;
+    public long RequestedByUserId { get; set; }
+    public DateTimeOffset RequestedAt { get; set; }
+    public long? VerifierUserId { get; set; }
+    public DateTimeOffset? PickedUpAt { get; set; }
+    public VerificationFinding? Finding { get; set; }
+    public string? FindingNote { get; set; }
+    public DateTimeOffset? FoundAt { get; set; }
+    public long? QueryToUserId { get; set; }
+    public long? QueriedByUserId { get; set; }
+    public string? QueryNote { get; set; }
+    public DateTimeOffset? QueriedAt { get; set; }
+    public QueryDisposition? Disposition { get; set; }
+    public string? DispositionNote { get; set; }
+    public long? DecidedByUserId { get; set; }
+    public DateTimeOffset? DecidedAt { get; set; }
+    public DateTimeOffset? ClosedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
 }
 
 public class ReceiptAttachment
@@ -215,10 +318,109 @@ public class RecordHistory
     public string? NewData { get; set; }
 }
 
+/// <summary>Who signs for whom (RBAC v0.6 section 4). Replaces <c>approval_routes</c>.</summary>
+public class ScopeAssignment
+{
+    public long Id { get; set; }
+    public long HolderUserId { get; set; }
+    public short SignatoryLevel { get; set; }
+    public ScopeAssignmentType AssignmentType { get; set; }
+    public long? DepartmentId { get; set; }
+    public decimal? ApprovalLimit { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsBootstrap { get; set; }
+    public string? Note { get; set; }
+    public long CreatedByUserId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>Named people on an Individual (covered) or Exclusion (carved out) assignment.</summary>
+public class ScopeAssignmentMember
+{
+    public long ScopeAssignmentId { get; set; }
+    public long UserId { get; set; }
+}
+
+/// <summary>A named, effective-dated entitlement set (RBAC v0.6 section 5). Replaces <c>employee_rates</c>.</summary>
+public class RateProfile
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public long CreatedByUserId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>One version of one category rate. Closed by setting EffectiveTo, never edited otherwise.</summary>
+public class RateProfileLine
+{
+    public long Id { get; set; }
+    public long RateProfileId { get; set; }
+    public ExpenseCategory Category { get; set; }
+    public string? SubCategory { get; set; }
+    public RateType RateType { get; set; }
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "PHP";
+    public int? FrequencyCap { get; set; }
+    public bool RequiresReceipt { get; set; } = true;
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public long ChangedByUserId { get; set; }
+    public string? ChangeReason { get; set; }
+    public bool BackdateOverride { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>Who a profile applies to, by person, job grade, department, or company-wide.</summary>
+public class RateProfileAssignment
+{
+    public long Id { get; set; }
+    public long RateProfileId { get; set; }
+    public RateTargetType TargetType { get; set; }
+    public long? UserId { get; set; }
+    public string? JobGrade { get; set; }
+    public long? DepartmentId { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public bool IsBootstrap { get; set; }
+    public string? ChangeReason { get; set; }
+    public long AssignedByUserId { get; set; }
+    public DateTimeOffset AssignedAt { get; set; }
+}
+
 /// <summary>Per-year counter behind the ERF reference number series (<c>ERF-2026-000142</c>).</summary>
 public class ReferenceSeries
 {
     public string SeriesKey { get; set; } = string.Empty;
     public int NextValue { get; set; } = 1;
     public DateTimeOffset UpdatedAt { get; set; }
+}
+
+/// <summary>
+/// One notification SMS sent through Lasius. The unique (sender, idempotency key) pair is what stops
+/// a retry from texting twice. The message text is never stored, only its SHA-256 so that a reused
+/// key with a different message can be refused.
+/// </summary>
+public class SmsDelivery
+{
+    public long Id { get; set; }
+    public long SenderUserId { get; set; }
+    public string IdempotencyKey { get; set; } = string.Empty;
+    public long RecipientUserId { get; set; }
+
+    /// <summary>The expense report the SMS is about, when there is one (its signatories are texted too).</summary>
+    public Guid? ReportId { get; set; }
+
+    public int RecipientCount { get; set; }
+    public string MessageSha256 { get; set; } = string.Empty;
+
+    /// <summary>Sending | Sent | Failed | Unconfirmed.</summary>
+    public string Status { get; set; } = string.Empty;
+
+    public int? GatewayHttpStatus { get; set; }
+    public int Attempts { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
 }

@@ -1,18 +1,28 @@
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
+using ERFWeb.Application.Features.Approvals;
 using ERFWeb.Application.Features.Authentication;
+using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Application.Features.Lookups;
+using ERFWeb.Application.Features.Notifications;
 using ERFWeb.Application.Features.Reporting;
+using ERFWeb.Application.Features.Verification;
+using ERFWeb.Infrastructure.Administration;
+using ERFWeb.Infrastructure.Approvals;
 using ERFWeb.Infrastructure.Authentication;
 using ERFWeb.Infrastructure.Authorization;
+using ERFWeb.Infrastructure.Entitlements;
 using ERFWeb.Infrastructure.Expenses;
 using ERFWeb.Infrastructure.Lookups;
 using ERFWeb.Infrastructure.Notifications;
 using ERFWeb.Infrastructure.Persistence;
 using ERFWeb.Infrastructure.Reporting;
 using ERFWeb.Infrastructure.Services;
+using ERFWeb.Infrastructure.Verification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace ERFWeb.Infrastructure;
 
@@ -53,6 +63,33 @@ public static class DependencyInjection
         services.AddScoped<IReceiptAttachmentService, ReceiptAttachmentService>();
         services.AddScoped<IReportFilingService, ReportFilingService>();
         services.AddScoped<ILookupService, LookupService>();
+
+        // Administration & accounts (Phase 1)
+        services.AddScoped<UserDetailReader>();
+        services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddScoped<IRoleGrantService, RoleGrantService>();
+        services.AddScoped<IMasterDataService, MasterDataService>();
+        services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+        services.AddScoped<IAdminAuditService, AdminAuditService>();
+
+        // Scope & rates, Level 2 only (Phase 2)
+        services.AddScoped<EntitlementContext>();
+        services.AddScoped<IApprovalRouter, ApprovalRouter>();
+        services.AddScoped<IScopeService, ScopeService>();
+        services.AddScoped<IRateService, RateService>();
+        services.AddScoped<IEntitlementChangeNotifier, LoggingEntitlementChangeNotifier>();
+
+        // Two-level approval & Finance (Phase 5)
+        services.AddScoped<IApprovalService, ApprovalService>();
+        services.AddScoped<IFinanceService, FinanceService>();
+        services.AddScoped<VerificationReader>();
+        services.AddScoped<IVerificationService, VerificationService>();
+
+        // Notification SMS through the Lasius gateway; the URL and API key come from appsettings.json.
+        services.AddOptions<LasiusOptions>();
+        services.AddHttpClient<ISmsGateway, LasiusSmsGateway>((sp, client) =>
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(1, sp.GetRequiredService<IOptions<LasiusOptions>>().Value.TimeoutSeconds)));
+        services.AddScoped<ISmsService, SmsService>();
 
         return services;
     }

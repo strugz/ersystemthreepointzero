@@ -4,6 +4,7 @@ using ERFWeb.Api.Security;
 using ERFWeb.Application.Common;
 using ERFWeb.Infrastructure;
 using ERFWeb.Infrastructure.Expenses;
+using ERFWeb.Infrastructure.Notifications;
 using ERFWeb.Infrastructure.Reporting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
@@ -59,6 +60,10 @@ _ = Required(config, "ReferenceNumber:Prefix");
 _ = int.Parse(Required(config, "ReferenceNumber:Digits"));
 builder.Services.Configure<ReferenceNumberOptions>(config.GetSection(ReferenceNumberOptions.SectionName));
 
+// Lasius SMS gateway: deliberately optional. Without Lasius:Url and Lasius:ApiKey the API still starts and
+// the SMS endpoint answers "SMS is not configured" (503) rather than failing the whole application.
+builder.Services.Configure<LasiusOptions>(config.GetSection(LasiusOptions.SectionName));
+
 // Keep Kestrel/form limits in step with the configured attachment size (plus headroom for the multipart envelope).
 builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = (attachmentMaxMb + 1) * 1024L * 1024L);
 builder.WebHost.ConfigureKestrel(k => k.Limits.MaxRequestBodySize = (attachmentMaxMb + 1) * 1024L * 1024L);
@@ -90,7 +95,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(Policies.Register);
 
 builder.Services.AddAntiforgery(options =>
 {

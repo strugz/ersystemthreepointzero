@@ -1,4 +1,5 @@
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Verification;
 using ERFWeb.Domain;
 
 namespace ERFWeb.Application.Features.Expenses;
@@ -58,7 +59,11 @@ public sealed record ExpenseLineDto(
     int SortOrder,
     uint RowVersion,
     IReadOnlyList<ExpenseMealItemDto> Meals,
-    IReadOnlyList<ExpenseTransportItemDto> Transports);
+    IReadOnlyList<ExpenseTransportItemDto> Transports,
+    LineAdjustmentDto? Adjustment = null);
+
+/// <summary>An approver lowered this line before the first approval; the original amount is kept.</summary>
+public sealed record LineAdjustmentDto(decimal OriginalAmount, decimal OriginalTotal, string? AdjustedByName, DateTimeOffset AdjustedAt, string? Reason);
 
 public sealed record ApprovalStepDto(
     int StepOrder,
@@ -66,7 +71,8 @@ public sealed record ApprovalStepDto(
     string ApproverName,
     ApprovalStatus Status,
     DateTimeOffset? ActedAt,
-    string? Note);
+    string? Note,
+    int? Level = null);
 
 public sealed record AttachmentDto(
     long Id,
@@ -104,7 +110,16 @@ public sealed record ExpenseReportDetailDto(
     IReadOnlyList<CashAdvanceLineDto> CashAdvances,
     IReadOnlyList<ExpenseLineDto> Lines,
     IReadOnlyList<ApprovalStepDto> ApprovalSteps,
-    IReadOnlyList<AttachmentDto> Attachments);
+    IReadOnlyList<AttachmentDto> Attachments,
+    ReviewActionsDto? Review = null,
+    FinanceSummaryDto? Finance = null,
+    VerificationPanelDto? Verification = null);
+
+/// <summary>What the viewer may do on the report as an approver. Computed by the same rules the actions enforce.</summary>
+public sealed record ReviewActionsDto(bool CanApprove, bool CanReturn, bool CanReject, bool CanOverride, bool CanAdjustLines);
+
+/// <summary>Finance receipt tracking for an approved report.</summary>
+public sealed record FinanceSummaryDto(FinanceStatus Status, string? Remarks, DateTimeOffset? ReceivedAt, DateTimeOffset? ClearedAt, bool UnderVerification = false);
 
 /// <summary>Downloaded attachment bytes.</summary>
 public sealed record AttachmentContentDto(string FileName, string ContentType, byte[] Content);

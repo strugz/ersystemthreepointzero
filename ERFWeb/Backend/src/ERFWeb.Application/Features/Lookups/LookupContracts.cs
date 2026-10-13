@@ -11,12 +11,22 @@ public sealed record EmployeeRatesDto(
     decimal DinnerRate,
     decimal OtMealRate);
 
-/// <summary>Whether the signed-in employee can file (signature on record, approvers configured).</summary>
-public sealed record MyFilingReadinessDto(bool HasSignature, int ApproverCount, IReadOnlyList<string> ApproverNames);
+/// <summary>Whether the signed-in employee can file (signature on record, approvers configured, cooling period over).</summary>
+public sealed record MyFilingReadinessDto(
+    bool HasSignature,
+    int ApproverCount,
+    IReadOnlyList<string> ApproverNames,
+    bool CoolingPeriodElapsed,
+    DateTimeOffset? CoolingPeriodEndsAt,
+    string? RoutingProblem);
+
+/// <summary>An active department, for pickers.</summary>
+public sealed record DepartmentOptionDto(long Id, string? Code, string Name);
 
 public interface ILookupService
 {
+    Task<IReadOnlyList<DepartmentOptionDto>> DepartmentsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<WorkWithOptionDto>> WorkWithAsync(string? search, CancellationToken ct = default);
-    Task<EmployeeRatesDto> MyRatesAsync(CancellationToken ct = default);
+    Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, CancellationToken ct = default);
     Task<MyFilingReadinessDto> MyFilingReadinessAsync(CancellationToken ct = default);
 }

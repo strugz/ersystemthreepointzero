@@ -21,9 +21,13 @@ public class ReportWorkflowRulesTests
     [InlineData(ReportStatus.New, false)]
     [InlineData(ReportStatus.Returned, false)]
     [InlineData(ReportStatus.ForApproval, true)]
-    [InlineData(ReportStatus.Approved, true)]
+    [InlineData(ReportStatus.Approved, false)]
     public void CanReopen_OnlyFromPipelineStates(ReportStatus status, bool expected) =>
-        Assert.Equal(expected, ReportWorkflowRules.CanReopen(status));
+        Assert.Equal(expected, ReportWorkflowRules.CanReopen(status, anyApproverActed: false));
+
+    [Fact]
+    public void CanReopen_NotAfterAnApproverActed() =>
+        Assert.False(ReportWorkflowRules.CanReopen(ReportStatus.ForApproval, anyApproverActed: true));
 
     [Fact]
     public void CanDelete_OnlyNeverFiledNewReport()

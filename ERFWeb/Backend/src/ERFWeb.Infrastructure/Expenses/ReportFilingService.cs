@@ -1,7 +1,10 @@
 using System.Text.Json;
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
+using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Domain;
+using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Expenses;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +26,9 @@ public sealed class ReportFilingService(
     IReferenceNumberGenerator referenceNumbers,
     ReportEditGate gate,
     ExpenseReportDetailLoader loader,
+    ISystemSettingsService settings,
+    IApprovalRouter router,
+    Entitlements.EntitlementContext calendar,
     ILogger<ReportFilingService> logger) : IReportFilingService
 {
     public async Task<FileReportResultDto> FileAsync(Guid reportId, CancellationToken ct = default)
@@ -33,24 +39,25 @@ public sealed class ReportFilingService(
 
             var employee = await db.Users.AsNoTracking()
                 .Where(u => u.Id == report.EmployeeUserId)
-                .Select(u => new { u.FullName, HasSignature = u.Signature != null && u.Signature.Length > 0 })
+                .Select(u => new { u.FullName, u.CreatedAt, HasSignature = u.Signature != null && u.Signature.Length > 0 })
                 .FirstAsync(token);
 
-            var route = await (
-                from ar in db.ApprovalRoutes.AsNoTracking()
-                where ar.EmployeeUserId == report.EmployeeUserId
-                join a in db.Users.AsNoTracking() on ar.ApproverUserId equals a.Id
-                where a.IsActive
-                orderby ar.StepOrder
-                select new { ar.StepOrder, a.Id, a.FullName, a.Email, a.MobileNo })
-                .ToListAsync(token);
+            // Spec 9.11: a newly registered employee files only after the cooling period.
+            var coolingDays = await settings.GetCoolingPeriodDaysAsync(token);
+            var coolingElapsed = AccountRules.CoolingPeriodElapsed(employee.CreatedAt, clock.UtcNow, coolingDays);
 
             var lineCount = await db.ExpenseLines.CountAsync(l => l.ReportId == reportId && l.IsActive, token);
+            var reportTotal = await db.ExpenseLines.Where(l => l.ReportId == reportId && l.IsActive).SumAsync(l => (decimal?)l.TotalAmount, token) ?? 0m;
+
+            // Spec 9.3: the approvers are resolved from scope now and snapshotted, so later scope edits never re-route this report.
+            var routing = await router.RouteAsync(report.EmployeeUserId, reportTotal, calendar.Today, token);
+            var route = routing.Approvers;
             var cashAmount = await db.CashAdvanceLines.AsNoTracking()
                 .Where(c => c.ReportId == reportId).SumAsync(c => (decimal?)c.Amount, token) ?? 0m;
 
             var blockers = ReportWorkflowRules.FilingBlockers(
-                report.Status, lineCount, employee.HasSignature, route.Count, report.Purpose, report.ReportType, cashAmount, report.RevolvingFundAmount);
+                report.Status, lineCount, employee.HasSignature, route.Count, report.Purpose, report.ReportType, cashAmount, report.RevolvingFundAmount,
+                coolingElapsed, routing.Problem);
             if (blockers.Count > 0)
             {
                 throw new ValidationException(new Dictionary<string, string[]> { ["report"] = blockers.ToArray() });
@@ -73,7 +80,8 @@ public sealed class ReportFilingService(
                     ReportId = reportId,
                     Cycle = report.CurrentCycle,
                     StepOrder = step.StepOrder,
-                    ApproverUserId = step.Id,
+                    SignatoryLevel = (short)step.Level,
+                    ApproverUserId = step.UserId,
                     Status = ApprovalStatus.Pending,
                 });
             }
@@ -89,7 +97,7 @@ public sealed class ReportFilingService(
             report.UpdatedAt = now;
             await db.SaveWithConcurrencyAsync(token);
 
-            var detail = JsonSerializer.Serialize(new { cycle = report.CurrentCycle, referenceNo = report.ReferenceNo, approvers = route.Select(r => r.Id), refile = isRefile });
+            var detail = JsonSerializer.Serialize(new { cycle = report.CurrentCycle, referenceNo = report.ReferenceNo, approvers = route.Select(r => new { r.UserId, r.Level }), refile = isRefile });
             await audit.WriteAsync(new WorkflowAuditEntry(isRefile ? "ReportRefiled" : "ReportFiled", reportId, user.UserId, detail), token);
 
             var first = route[0];
@@ -97,7 +105,7 @@ public sealed class ReportFilingService(
             {
                 Result = new FileReportResultDto(reportId, report.Status, report.CurrentCycle, first.FullName),
                 Notification = new ReportFiledNotification(
-                    reportId, report.ReferenceNo, employee.FullName, first.Id, first.FullName, first.Email, first.MobileNo,
+                    reportId, report.ReferenceNo, employee.FullName, first.UserId, first.FullName, first.Email, first.MobileNo,
                     report.CurrentCycle, isRefile),
             };
         }, ct);
@@ -120,9 +128,13 @@ public sealed class ReportFilingService(
         await tx.ExecuteAsync(async token =>
         {
             var report = await gate.LoadOwnedAsync(reportId, token);
-            if (!ReportWorkflowRules.CanReopen(report.Status))
+            var anyApproverActed = await db.ApprovalSteps.AnyAsync(s => s.ReportId == reportId && s.Cycle == report.CurrentCycle
+                && (s.Status == ApprovalStatus.Approved || s.Status == ApprovalStatus.Overridden), token);
+            if (!ReportWorkflowRules.CanReopen(report.Status, anyApproverActed))
             {
-                throw new ConflictException($"A report in status '{report.Status}' cannot be reopened.");
+                throw new ConflictException(anyApproverActed
+                    ? "An approver has already acted, so the amounts are locked. Ask your approver to return the report."
+                    : $"A report in status '{report.Status}' cannot be reopened.");
             }
 
             var now = clock.UtcNow;

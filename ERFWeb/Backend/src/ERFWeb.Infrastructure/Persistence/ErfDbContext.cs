@@ -11,7 +11,12 @@ namespace ERFWeb.Infrastructure.Persistence;
 public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(options)
 {
     public DbSet<Department> Departments => Set<Department>();
+    public DbSet<CostCenter> CostCenters => Set<CostCenter>();
+    public DbSet<Currency> Currencies => Set<Currency>();
+    public DbSet<Site> Sites => Set<Site>();
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserRoleGrant> UserRoleGrants => Set<UserRoleGrant>();
     public DbSet<ApprovalRoute> ApprovalRoutes => Set<ApprovalRoute>();
     public DbSet<DepartmentSignatory> DepartmentSignatories => Set<DepartmentSignatory>();
     public DbSet<EmployeeRate> EmployeeRates => Set<EmployeeRate>();
@@ -23,20 +28,34 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
     public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
     public DbSet<FinanceTracking> FinanceTrackings => Set<FinanceTracking>();
     public DbSet<ReceiptAttachment> ReceiptAttachments => Set<ReceiptAttachment>();
+    public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
     public DbSet<ReminderDelivery> ReminderDeliveries => Set<ReminderDelivery>();
+    public DbSet<SmsDelivery> SmsDeliveries => Set<SmsDelivery>();
     public DbSet<LoginSecurity> LoginSecurities => Set<LoginSecurity>();
     public DbSet<WorkflowAudit> WorkflowAudits => Set<WorkflowAudit>();
     public DbSet<RecordHistory> RecordHistories => Set<RecordHistory>();
     public DbSet<ReferenceSeries> ReferenceSeries => Set<ReferenceSeries>();
+    public DbSet<ScopeAssignment> ScopeAssignments => Set<ScopeAssignment>();
+    public DbSet<ScopeAssignmentMember> ScopeAssignmentMembers => Set<ScopeAssignmentMember>();
+    public DbSet<RateProfile> RateProfiles => Set<RateProfile>();
+    public DbSet<RateProfileLine> RateProfileLines => Set<RateProfileLine>();
+    public DbSet<RateProfileAssignment> RateProfileAssignments => Set<RateProfileAssignment>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder builder)
     {
         // Store enums as readable text (e.g. 'ForApproval') rather than native PG enums.
-        builder.Properties<UserRole>().HaveConversion<string>().HaveMaxLength(16);
+        builder.Properties<UserRole>().HaveConversion<string>().HaveMaxLength(32);
+        builder.Properties<RoleGrantStatus>().HaveConversion<string>().HaveMaxLength(24);
+        builder.Properties<ScopeAssignmentType>().HaveConversion<string>().HaveMaxLength(16);
+        builder.Properties<RateType>().HaveConversion<string>().HaveMaxLength(24);
+        builder.Properties<RateTargetType>().HaveConversion<string>().HaveMaxLength(16);
         builder.Properties<ReportType>().HaveConversion<string>().HaveMaxLength(32);
         builder.Properties<ReportStatus>().HaveConversion<string>().HaveMaxLength(16);
         builder.Properties<ApprovalStatus>().HaveConversion<string>().HaveMaxLength(16);
         builder.Properties<FinanceStatus>().HaveConversion<string>().HaveMaxLength(24);
+        builder.Properties<VerificationStatus>().HaveConversion<string>().HaveMaxLength(16);
+        builder.Properties<VerificationFinding>().HaveConversion<string>().HaveMaxLength(24);
+        builder.Properties<QueryDisposition>().HaveConversion<string>().HaveMaxLength(16);
         builder.Properties<ExpenseType>().HaveConversion<string>().HaveMaxLength(16);
         builder.Properties<ExpenseCategory>().HaveConversion<string>().HaveMaxLength(24);
 
@@ -46,14 +65,76 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
 
     protected override void OnModelCreating(ModelBuilder b)
     {
-        b.Entity<Department>(e => e.HasIndex(x => x.Code).IsUnique());
+        b.Entity<Department>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+            e.Property(x => x.IsActive).HasDefaultValue(true);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<CostCenter>(e =>
+        {
+            e.ToTable("cost_centers");
+            e.Property(x => x.Code).HasMaxLength(32);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Code).IsUnique();
+            e.Property(x => x.IsActive).HasDefaultValue(true);
+            e.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<Currency>(e =>
+        {
+            e.ToTable("currencies");
+            e.HasKey(x => x.Code);
+            e.Property(x => x.Code).HasMaxLength(3).ValueGeneratedNever();
+            e.Property(x => x.Name).HasMaxLength(100);
+            e.Property(x => x.IsActive).HasDefaultValue(true);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<Site>(e =>
+        {
+            e.ToTable("sites");
+            e.Property(x => x.Code).HasMaxLength(32);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Code).IsUnique();
+            e.Property(x => x.IsActive).HasDefaultValue(true);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<AppSetting>(e =>
+        {
+            e.ToTable("app_settings");
+            e.HasKey(x => x.Key);
+            e.Property(x => x.Key).HasMaxLength(64).ValueGeneratedNever();
+            e.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UpdatedByUserId).OnDelete(DeleteBehavior.SetNull);
+        });
 
         b.Entity<User>(e =>
         {
             e.HasIndex(x => x.Username).IsUnique();
             e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
             e.Property(x => x.IsActive).HasDefaultValue(true);
+            e.Property(x => x.JobGrade).HasMaxLength(32);
             e.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId);
+            e.HasOne<CostCenter>().WithMany().HasForeignKey(x => x.CostCenterId);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<UserRoleGrant>(e =>
+        {
+            e.ToTable("user_roles");
+            e.HasKey(x => new { x.UserId, x.Role });
+            e.Property(x => x.GrantedAt).HasDefaultValueSql("now()");
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.HasIndex(x => new { x.Role, x.Status });
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.GrantedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.CountersignedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.RevokedByUserId).OnDelete(DeleteBehavior.Restrict);
+            AddConcurrencyToken(e);
         });
 
         b.Entity<ApprovalRoute>(e =>
@@ -138,6 +219,39 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.Property(x => x.ReportId).ValueGeneratedNever();
             e.Property(x => x.Status).HasDefaultValue(FinanceStatus.Pending);
             e.HasOne<ExpenseReport>().WithOne().HasForeignKey<FinanceTracking>(x => x.ReportId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(x => x.Remarks).HasMaxLength(1000);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+            e.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.ReceivedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.ClearedByUserId).OnDelete(DeleteBehavior.Restrict);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<VerificationRequest>(e =>
+        {
+            e.ToTable("verification_requests");
+            e.HasIndex(x => x.ReportId);
+            e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.VerifierUserId);
+            e.HasIndex(x => x.QueryToUserId);
+
+            // One unresolved request per line; a closed one may be followed by a new request.
+            e.HasIndex(x => x.ExpenseLineId).IsUnique().HasFilter("status <> 'Closed'");
+            e.Property(x => x.Status).HasDefaultValue(VerificationStatus.Open);
+            e.Property(x => x.Reason).HasMaxLength(2000);
+            e.Property(x => x.FindingNote).HasMaxLength(2000);
+            e.Property(x => x.QueryNote).HasMaxLength(2000);
+            e.Property(x => x.DispositionNote).HasMaxLength(2000);
+            e.Property(x => x.RequestedAt).HasDefaultValueSql("now()");
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+            e.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
+            e.HasOne<ExpenseReport>().WithMany().HasForeignKey(x => x.ReportId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<ExpenseLine>().WithMany().HasForeignKey(x => x.ExpenseLineId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.RequestedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.VerifierUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.QueryToUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.QueriedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.DecidedByUserId).OnDelete(DeleteBehavior.Restrict);
             AddConcurrencyToken(e);
         });
 
@@ -155,6 +269,21 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.Property(x => x.Audience).HasMaxLength(16);
             e.Property(x => x.Status).HasMaxLength(16);
             e.HasOne<ExpenseReport>().WithMany().HasForeignKey(x => x.ReportId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<SmsDelivery>(e =>
+        {
+            e.ToTable("sms_deliveries");
+            e.HasIndex(x => new { x.SenderUserId, x.IdempotencyKey }).IsUnique();
+            e.HasIndex(x => x.RecipientUserId);
+            e.HasIndex(x => x.ReportId);
+            e.Property(x => x.IdempotencyKey).HasMaxLength(100);
+            e.Property(x => x.MessageSha256).HasMaxLength(64).IsFixedLength();
+            e.Property(x => x.Status).HasMaxLength(16);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.SenderUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.RecipientUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<ExpenseReport>().WithMany().HasForeignKey(x => x.ReportId).OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<LoginSecurity>(e =>
@@ -180,6 +309,70 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.Property(x => x.SeriesKey).HasMaxLength(32).ValueGeneratedNever();
             e.Property(x => x.NextValue).HasDefaultValue(1);
             e.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<ScopeAssignment>(e =>
+        {
+            e.ToTable("scope_assignments");
+            e.Property(x => x.EffectiveFrom).HasDefaultValueSql("current_date");
+            e.Property(x => x.IsActive).HasDefaultValue(true);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+            e.Property(x => x.Note).HasMaxLength(500);
+            e.HasIndex(x => x.HolderUserId);
+            e.HasIndex(x => new { x.DepartmentId, x.SignatoryLevel });
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.HolderUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<ScopeAssignmentMember>(e =>
+        {
+            e.ToTable("scope_assignment_members");
+            e.HasKey(x => new { x.ScopeAssignmentId, x.UserId });
+            e.HasIndex(x => x.UserId);
+            e.HasOne<ScopeAssignment>().WithMany().HasForeignKey(x => x.ScopeAssignmentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<RateProfile>(e =>
+        {
+            e.ToTable("rate_profiles");
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Name).IsUnique();
+            e.Property(x => x.IsActive).HasDefaultValue(true);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<RateProfileLine>(e =>
+        {
+            e.ToTable("rate_profile_lines");
+            e.Property(x => x.SubCategory).HasMaxLength(32);
+            e.Property(x => x.Currency).HasMaxLength(3).HasDefaultValue("PHP");
+            e.Property(x => x.RequiresReceipt).HasDefaultValue(true);
+            e.Property(x => x.ChangeReason).HasMaxLength(500);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+            e.HasIndex(x => new { x.RateProfileId, x.Category, x.SubCategory, x.EffectiveFrom });
+            e.HasOne<RateProfile>().WithMany().HasForeignKey(x => x.RateProfileId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.ChangedByUserId).OnDelete(DeleteBehavior.Restrict);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<RateProfileAssignment>(e =>
+        {
+            e.ToTable("rate_profile_assignments");
+            e.Property(x => x.JobGrade).HasMaxLength(32);
+            e.Property(x => x.EffectiveFrom).HasDefaultValueSql("current_date");
+            e.Property(x => x.AssignedAt).HasDefaultValueSql("now()");
+            e.Property(x => x.ChangeReason).HasMaxLength(500);
+            e.HasIndex(x => new { x.TargetType, x.UserId, x.JobGrade, x.DepartmentId });
+            e.HasOne<RateProfile>().WithMany().HasForeignKey(x => x.RateProfileId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.AssignedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId);
             AddConcurrencyToken(e);
         });
 

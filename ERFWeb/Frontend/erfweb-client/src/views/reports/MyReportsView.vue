@@ -19,7 +19,7 @@ const { xs } = useDisplay();
 const page = ref(1);
 const pageSize = 15;
 // Dashboard tiles deep-link here with ?status=...
-const allowedStatuses: ReportStatus[] = ['New', 'ForApproval', 'Returned', 'Approved'];
+const allowedStatuses: ReportStatus[] = ['New', 'ForApproval', 'Returned', 'Approved', 'Rejected'];
 const initialStatus =
   typeof route.query.status === 'string' && allowedStatuses.includes(route.query.status as ReportStatus)
     ? (route.query.status as ReportStatus)

@@ -27,6 +27,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   save: [input: SaveExpenseLineInput];
+  /** Rates depend on the expense date; the parent refetches them for the date shown. */
+  'date-change': [date: string];
 }>();
 
 const blank = (): SaveExpenseLineInput => ({
@@ -101,6 +103,16 @@ watch(
     }
     selectedMeals.value = form.meals.map((m) => m.mealType);
     showDetails.value = !!(form.instrument || form.serialNumber || form.serviceNumber);
+  },
+);
+
+// Fires on open (initial date) and on every date edit while open; the parent debounces the fetch.
+watch(
+  () => [props.modelValue, form.transactionDate] as const,
+  ([open, date]) => {
+    if (open && date) {
+      emit('date-change', date);
+    }
   },
 );
 
