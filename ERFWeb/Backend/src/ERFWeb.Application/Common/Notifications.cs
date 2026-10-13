@@ -25,10 +25,20 @@ public interface IApprovalNotifier
 }
 
 /// <summary>A workflow event for the people who need to hear about it (email and SMS when delivery lands).</summary>
+/// <param name="ActorName">Who acted (approval decisions); used to word the SMS.</param>
+/// <param name="Note">The approver's remark, e.g. why a report was returned.</param>
+/// <param name="NextApproverName">Who the report now waits for, after a Level 1 approval.</param>
+/// <param name="Cycle">Approval cycle the decision belongs to; with <paramref name="StepOrder"/> it makes the SMS key.</param>
+/// <param name="StepOrder">The step that acted.</param>
 public sealed record WorkflowEventNotification(
     string Kind,
     Guid ReportId,
     string? ReferenceNo,
     string EmployeeName,
     IReadOnlyList<long> RecipientUserIds,
-    string Summary);
+    string Summary,
+    string? ActorName = null,
+    string? Note = null,
+    string? NextApproverName = null,
+    int? Cycle = null,
+    int? StepOrder = null);
