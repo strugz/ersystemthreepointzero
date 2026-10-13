@@ -86,6 +86,26 @@ export const expenseTypeOptions: { value: ExpenseType; title: string }[] = [
 
 export const mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'OT Meal'] as const;
 
+/**
+ * What a new expense line starts with for each category, so the employee only changes what differs.
+ * Meals also preselects meal types (their configured rates become the amount); Transportation opens one
+ * fare leg. Same for everyone; edit this table to change the defaults.
+ */
+export interface CategoryDefaults {
+  particulars: string;
+  meals: readonly (typeof mealTypes)[number][];
+  fareLeg: boolean;
+}
+
+export const categoryDefaults: Record<ExpenseCategory, CategoryDefaults> = {
+  Meals: { particulars: 'Meals', meals: ['Lunch'], fareLeg: false },
+  Transportation: { particulars: 'Transportation', meals: [], fareLeg: true },
+  Toll: { particulars: 'Toll', meals: [], fareLeg: false },
+  Parking: { particulars: 'Parking', meals: [], fareLeg: false },
+  Representation: { particulars: 'Representation', meals: [], fareLeg: false },
+  Others: { particulars: '', meals: [], fareLeg: false },
+};
+
 /** Only a Liquidation of Cash Advance carries the CASH ADVANCE RECEIVED block. */
 export const usesCashAdvance = (type: ReportType) => type === 'CashAdvanceLiquidation';
 /** Only a Replenishment of Revolving Fund carries the "IF WITH REVOLVING FUND" amount. */
