@@ -84,6 +84,7 @@ psql -d erfweb -f Database/004_seed_test_users.sql  # optional: employee1 / mana
 psql -d erfweb -f Database/005_cash_advance_lines.sql # cash advances become rows (replaces the one-row cash_advances table)
 psql -d erfweb -f Database/006_user_roles_and_administration.sql # Phase 1: additive roles (user_roles), master data, rules, second admin
 psql -d erfweb -f Database/007_scope_and_rate_profiles.sql # Phase 2: scope assignments and rate profiles (migrates routes and rates)
+psql -d erfweb -f Database/008_approvals_and_finance.sql # Phase 5: line adjustments and Finance receipt tracking columns
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -298,4 +299,44 @@ Finance and Level 1 read scope and rates; every change is in the audit trail Fin
 
 Change notifications to affected employees (9.14) go through `IEntitlementChangeNotifier`; like the filing
 notifier it only logs until SMTP delivery lands.
-```
+
+## Approvals & Finance receipts (plan Phase 5)
+
+Script `008` adds the line-adjustment columns to `expense_lines` (`original_amount`, `original_total_amount`,
+`adjusted_by_user_id`, `adjusted_at`, `adjustment_reason`) and the clearance and follow-up columns to
+`finance_tracking`. New status text needs no schema change: reports can be `Rejected`; steps can be `Rejected`
+or `Overridden`.
+
+**Approver actions** (Domain `ApprovalWorkflow`, one serializable transaction with the audit row):
+
+- **Approve**: the current step only; steps go in order, so acting out of turn or twice is 409. The last
+  approval approves the report and opens its Finance tracking row.
+- **Return** (reason required): the report goes back to the employee; later steps are superseded and approval
+  restarts from the first approver when it is re-filed.
+- **Reject** (reason required): final. The report cannot be re-filed or reopened.
+- **Override** (Level 2 only, reason required): approves past a pending Level 1, which is marked `Overridden`.
+- **Lower a line** (`PUT /api/approvals/{id}/lines/{lineId}`): only the current Level 1, only before the first
+  approval, only downwards, with a reason. The filed amount is kept and shown to everyone. Amounts lock after
+  the first approval.
+
+Nobody acts on their own report (9.1). Each action sends the report's `rowVersion` (a line adjustment sends the
+line's), so a stale screen gets 409 and reloads. The employee can reopen a filed report only until an approver
+acts; after that they ask the approver to return it.
+
+**Finance receipt queue** (Domain `FinanceRules`): `Pending` → `ReceiptsIncomplete` (remarks name what is
+missing) → `ReceiptsReceived` (one-time, never reverted) → `ClearedForPayment` (final). Follow-ups are allowed
+while receipts are outstanding and are counted. Finance never processes its own report (403), and out-of-order
+steps are 409.
+
+| Endpoint (policy) | Purpose |
+| --- | --- |
+| `GET /api/approvals?view=Pending\|Acted&search&page` (Level 1, Level 2) | Approver inbox: my turn, waiting for an earlier step, or already acted |
+| `POST /api/approvals/{id}/approve` · `/return` · `/reject` · `/override` (Level 1, Level 2; service decides) | Body `{ note, rowVersion }` |
+| `PUT /api/approvals/{id}/lines/{lineId}` (current Level 1) | Body `{ amount, reason, rowVersion }` |
+| `GET /api/finance/queue?status&openOnly&search&page` (Finance) | Approved reports awaiting receipts or clearance |
+| `POST /api/finance/{id}/receipts` · `/clear` · `/follow-up` (Finance) | Record receipts `{ status, remarks, rowVersion }`, clear `{ remarks, rowVersion }`, follow up `{ message }` |
+
+`GET /api/reports/{id}` now also returns `review` (what the viewer may do as an approver, from the same rules)
+and `finance` (receipt status). SPA screens: **Approvals** (`/approvals`) and the review page (`/review/{id}`)
+for signatories, **Finance queue** (`/finance`) for Finance. Workflow notifications go through
+`IApprovalNotifier.NotifyWorkflowEventAsync`; like the other notifiers it only logs until SMTP delivery lands.

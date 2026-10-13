@@ -9,6 +9,7 @@ const tone: Record<ReportStatus, string> = {
   ForApproval: 'pill--warning',
   Returned: 'pill--error',
   Approved: 'pill--success',
+  Rejected: 'pill--error',
 };
 </script>
 

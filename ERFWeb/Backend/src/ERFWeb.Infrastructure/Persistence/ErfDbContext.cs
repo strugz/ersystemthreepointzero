@@ -214,6 +214,11 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.Property(x => x.ReportId).ValueGeneratedNever();
             e.Property(x => x.Status).HasDefaultValue(FinanceStatus.Pending);
             e.HasOne<ExpenseReport>().WithOne().HasForeignKey<FinanceTracking>(x => x.ReportId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(x => x.Remarks).HasMaxLength(1000);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+            e.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.ReceivedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.ClearedByUserId).OnDelete(DeleteBehavior.Restrict);
             AddConcurrencyToken(e);
         });
 

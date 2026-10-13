@@ -1,11 +1,13 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
+using ERFWeb.Application.Features.Approvals;
 using ERFWeb.Application.Features.Authentication;
 using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Infrastructure.Administration;
+using ERFWeb.Infrastructure.Approvals;
 using ERFWeb.Infrastructure.Authentication;
 using ERFWeb.Infrastructure.Authorization;
 using ERFWeb.Infrastructure.Entitlements;
@@ -72,6 +74,10 @@ public static class DependencyInjection
         services.AddScoped<IScopeService, ScopeService>();
         services.AddScoped<IRateService, RateService>();
         services.AddScoped<IEntitlementChangeNotifier, LoggingEntitlementChangeNotifier>();
+
+        // Two-level approval & Finance (Phase 5)
+        services.AddScoped<IApprovalService, ApprovalService>();
+        services.AddScoped<IFinanceService, FinanceService>();
 
         return services;
     }

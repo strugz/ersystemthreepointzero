@@ -169,6 +169,13 @@ public class ExpenseLine
     public string? Remarks { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
+
+    /// <summary>Amount and total as filed, kept when an approver lowers the line (null when never adjusted).</summary>
+    public decimal? OriginalAmount { get; set; }
+    public decimal? OriginalTotalAmount { get; set; }
+    public long? AdjustedByUserId { get; set; }
+    public DateTimeOffset? AdjustedAt { get; set; }
+    public string? AdjustmentReason { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
@@ -215,6 +222,12 @@ public class FinanceTracking
     public long? ReceivedByUserId { get; set; }
     public DateTimeOffset? ReceivedAt { get; set; }
     public string? Remarks { get; set; }
+    public long? ClearedByUserId { get; set; }
+    public DateTimeOffset? ClearedAt { get; set; }
+    public int FollowUpCount { get; set; }
+    public DateTimeOffset? LastFollowUpAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
 }
 
 public class ReceiptAttachment

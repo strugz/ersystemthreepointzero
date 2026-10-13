@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { formatDateTime } from '@/shared/format';
+import { approvalStatusLabel } from '../labels';
 import type { ApprovalStep, ReportStatus } from '../types';
 
 defineProps<{ steps: ApprovalStep[]; status: ReportStatus; cycle: number }>();
@@ -9,6 +10,8 @@ const tone: Record<string, string> = {
   Approved: 'step--approved',
   Returned: 'step--returned',
   Superseded: 'step--superseded',
+  Rejected: 'step--returned',
+  Overridden: 'step--superseded',
 };
 </script>
 
@@ -31,9 +34,9 @@ const tone: Record<string, string> = {
             <template v-else>{{ s.stepOrder }}</template>
           </span>
           <div class="step__body">
-            <div class="step__name">{{ s.approverName }}</div>
+            <div class="step__name">{{ s.approverName }}<span v-if="s.level" class="step__level"> · Level {{ s.level }}</span></div>
             <div class="step__meta">
-              {{ s.status }}<span v-if="s.actedAt"> · {{ formatDateTime(s.actedAt) }}</span>
+              {{ approvalStatusLabel[s.status] }}<span v-if="s.actedAt"> · {{ formatDateTime(s.actedAt) }}</span>
             </div>
             <div v-if="s.note" class="step__note">{{ s.note }}</div>
           </div>
@@ -91,6 +94,11 @@ const tone: Record<string, string> = {
 }
 .step__name {
   font-weight: 500;
+}
+.step__level {
+  font-weight: 400;
+  color: var(--ink-3);
+  font-size: 12px;
 }
 .step__meta {
   color: var(--ink-3);

@@ -1,4 +1,4 @@
-import type { ApprovalStatus, ExpenseCategory, ExpenseType, ReportStatus, ReportType } from './types';
+import type { ApprovalStatus, ExpenseCategory, ExpenseType, FinanceStatus, ReportStatus, ReportType } from './types';
 
 export const reportTypeLabel: Record<ReportType, string> = {
   RevolvingFund: 'Replenishment of Revolving Fund',
@@ -16,6 +16,7 @@ export const reportStatusLabel: Record<ReportStatus, string> = {
   ForApproval: 'For Approval',
   Returned: 'Returned',
   Approved: 'Approved',
+  Rejected: 'Rejected',
 };
 
 export const reportStatusColor: Record<ReportStatus, string> = {
@@ -23,6 +24,7 @@ export const reportStatusColor: Record<ReportStatus, string> = {
   ForApproval: 'warning',
   Returned: 'error',
   Approved: 'success',
+  Rejected: 'error',
 };
 
 export const reportStatusOptions = (Object.keys(reportStatusLabel) as ReportStatus[]).map((value) => ({
@@ -35,6 +37,32 @@ export const approvalStatusColor: Record<ApprovalStatus, string> = {
   Approved: 'success',
   Returned: 'error',
   Superseded: 'grey-lighten-1',
+  Rejected: 'error',
+  Overridden: 'grey-lighten-1',
+};
+
+export const approvalStatusLabel: Record<ApprovalStatus, string> = {
+  Pending: 'Pending',
+  Approved: 'Approved',
+  Returned: 'Returned',
+  Superseded: 'Superseded',
+  Rejected: 'Rejected',
+  Overridden: 'Overridden by Level 2',
+};
+
+export const financeStatusLabel: Record<FinanceStatus, string> = {
+  Pending: 'Receipts not yet received',
+  ReceiptsIncomplete: 'Receipts incomplete',
+  ReceiptsReceived: 'Receipts received',
+  ClearedForPayment: 'Cleared for payment',
+};
+
+/** Pill tone per Finance status (classes from main.css). */
+export const financeStatusTone: Record<FinanceStatus, string> = {
+  Pending: 'pill--neutral',
+  ReceiptsIncomplete: 'pill--error',
+  ReceiptsReceived: 'pill--warning',
+  ClearedForPayment: 'pill--success',
 };
 
 export const categoryLabel: Record<ExpenseCategory, string> = {

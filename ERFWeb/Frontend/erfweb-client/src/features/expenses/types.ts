@@ -1,8 +1,9 @@
 // Mirrors ERFWeb.Application.Features.Expenses contracts. Enums travel as strings.
 
 export type ReportType = 'RevolvingFund' | 'CashAdvanceLiquidation' | 'Reimbursement';
-export type ReportStatus = 'New' | 'ForApproval' | 'Returned' | 'Approved';
-export type ApprovalStatus = 'Pending' | 'Approved' | 'Returned' | 'Superseded';
+export type ReportStatus = 'New' | 'ForApproval' | 'Returned' | 'Approved' | 'Rejected';
+export type ApprovalStatus = 'Pending' | 'Approved' | 'Returned' | 'Superseded' | 'Rejected' | 'Overridden';
+export type FinanceStatus = 'Pending' | 'ReceiptsIncomplete' | 'ReceiptsReceived' | 'ClearedForPayment';
 export type ExpenseType = 'Local' | 'Foreign';
 export type ExpenseCategory = 'Meals' | 'Transportation' | 'Toll' | 'Parking' | 'Others' | 'Representation';
 
@@ -83,6 +84,16 @@ export interface ExpenseLine {
   rowVersion: number;
   meals: ExpenseMealItem[];
   transports: ExpenseTransportItem[];
+  /** Set when an approver lowered the line before the first approval. */
+  adjustment?: LineAdjustment | null;
+}
+
+export interface LineAdjustment {
+  originalAmount: number;
+  originalTotal: number;
+  adjustedByName: string | null;
+  adjustedAt: string;
+  reason: string | null;
 }
 
 export interface ApprovalStep {
@@ -92,6 +103,24 @@ export interface ApprovalStep {
   status: ApprovalStatus;
   actedAt: string | null;
   note: string | null;
+  /** Signatory level (1 or 2) snapshotted when the report was filed. */
+  level?: number | null;
+}
+
+/** What the viewer may do as an approver; computed by the same rules the API enforces. */
+export interface ReviewActions {
+  canApprove: boolean;
+  canReturn: boolean;
+  canReject: boolean;
+  canOverride: boolean;
+  canAdjustLines: boolean;
+}
+
+export interface FinanceSummary {
+  status: FinanceStatus;
+  remarks: string | null;
+  receivedAt: string | null;
+  clearedAt: string | null;
 }
 
 export interface Attachment {
@@ -131,6 +160,8 @@ export interface ExpenseReportDetail {
   lines: ExpenseLine[];
   approvalSteps: ApprovalStep[];
   attachments: Attachment[];
+  review?: ReviewActions | null;
+  finance?: FinanceSummary | null;
 }
 
 export interface FileReportResult {

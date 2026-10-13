@@ -48,6 +48,24 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/approvals',
+    name: 'approvals',
+    component: () => import('@/views/approvals/ApprovalInboxView.vue'),
+    meta: { requiresAuth: true, roles: ['SignatoryLevel1', 'SignatoryLevel2'] },
+  },
+  {
+    path: '/review/:id',
+    name: 'report-review',
+    component: () => import('@/views/approvals/ReportReviewView.vue'),
+    meta: { requiresAuth: true, roles: ['SignatoryLevel1', 'SignatoryLevel2', 'Finance'] },
+  },
+  {
+    path: '/finance',
+    name: 'finance-queue',
+    component: () => import('@/views/finance/FinanceQueueView.vue'),
+    meta: { requiresAuth: true, roles: ['Finance'] },
+  },
+  {
     path: '/admin/users',
     name: 'admin-users',
     component: () => import('@/views/admin/UsersView.vue'),

@@ -8,15 +8,25 @@ import type { ExpenseLine } from '../types';
 
 // Lines grouped the way the R47 prints them: by date, then by Work With.
 // Tablet/desktop render a ledger table; phones render the same groups as a list.
-const props = withDefaults(defineProps<{ lines: ExpenseLine[]; editable: boolean; busyLineId?: number | null }>(), {
-  busyLineId: null,
-});
+// `adjustable` is the approver's mode: the only change offered is lowering a line amount (with a reason).
+const props = withDefaults(
+  defineProps<{ lines: ExpenseLine[]; editable: boolean; adjustable?: boolean; busyLineId?: number | null }>(),
+  { adjustable: false, busyLineId: null },
+);
 
 const emit = defineEmits<{
   add: [];
   edit: [line: ExpenseLine];
   remove: [line: ExpenseLine];
+  adjust: [line: ExpenseLine];
 }>();
+
+const hasActions = computed(() => props.editable || props.adjustable);
+
+function openLine(line: ExpenseLine) {
+  if (props.editable) emit('edit', line);
+  else if (props.adjustable) emit('adjust', line);
+}
 
 const { xs, smAndDown } = useDisplay();
 
@@ -57,6 +67,13 @@ function subline(line: ExpenseLine): string | null {
   if (line.multiplier > 1) return `${formatMoney(line.amount)} × ${line.multiplier}`;
   return null;
 }
+
+function adjustmentNote(line: ExpenseLine): string | null {
+  const a = line.adjustment;
+  if (!a) return null;
+  const by = a.adjustedByName ? ` by ${a.adjustedByName}` : '';
+  return `Lowered from ${formatMoney(a.originalTotal)}${by}${a.reason ? `: ${a.reason}` : ''}`;
+}
 </script>
 
 <template>
@@ -78,13 +95,14 @@ function subline(line: ExpenseLine): string | null {
           <span class="mono">{{ formatMoney(g.total) }}</span>
         </div>
         <div v-for="line in g.lines" :key="line.id" class="list__row" :class="{ 'list__row--busy': busyLineId === line.id }">
-          <button type="button" class="list__main press" :disabled="!editable" @click="editable && emit('edit', line)">
+          <button type="button" class="list__main press" :disabled="!hasActions" @click="openLine(line)">
             <span class="list__title">{{ line.particulars }}</span>
             <span class="list__sub">
               <span v-if="line.invoiceOrNo" class="mono">OR {{ line.invoiceOrNo }}</span>
               <span v-else>{{ categoryLabel[line.category] }}</span>
               <span v-if="subline(line)"> · {{ subline(line) }}</span>
             </span>
+            <span v-if="line.adjustment" class="adj">{{ adjustmentNote(line) }}</span>
           </button>
           <span class="mono list__amt">{{ formatMoney(line.totalAmount) }}</span>
           <v-btn
@@ -116,7 +134,7 @@ function subline(line: ExpenseLine): string | null {
             <th v-if="!smAndDown" style="width: 120px">Column</th>
             <th class="r" style="width: 96px">VAT</th>
             <th class="r" style="width: 120px">Total</th>
-            <th v-if="editable" style="width: 84px"></th>
+            <th v-if="hasActions" style="width: 84px"></th>
           </tr>
         </thead>
         <tbody>
@@ -125,7 +143,7 @@ function subline(line: ExpenseLine): string | null {
               <td>{{ formatDate(g.date) }}</td>
               <td :colspan="smAndDown ? 3 : 4">{{ groupLabel(g) }}</td>
               <td class="r mono">{{ formatMoney(g.total) }}</td>
-              <td v-if="editable"></td>
+              <td v-if="hasActions"></td>
             </tr>
             <tr v-for="line in g.lines" :key="line.id" class="line" :class="{ 'line--busy': busyLineId === line.id }">
               <td></td>
@@ -135,14 +153,21 @@ function subline(line: ExpenseLine): string | null {
                   <span v-if="smAndDown" class="pill pill--neutral col-pill">{{ r47Column(line.category, line.expenseType) }}</span>
                 </div>
                 <div v-if="subline(line)" class="text-caption text-medium-emphasis">{{ subline(line) }}</div>
+                <div v-if="line.adjustment" class="adj">{{ adjustmentNote(line) }}</div>
               </td>
               <td class="mono text-medium-emphasis">{{ line.invoiceOrNo || '—' }}</td>
               <td v-if="!smAndDown">
                 <span class="pill pill--neutral col-pill">{{ r47Column(line.category, line.expenseType) }}</span>
               </td>
               <td class="r mono text-medium-emphasis">{{ line.vatAmount ? formatMoney(line.vatAmount) : '—' }}</td>
-              <td class="r mono">{{ formatMoney(line.totalAmount) }}</td>
-              <td v-if="editable" class="r text-no-wrap">
+              <td class="r mono">
+                <div v-if="line.adjustment" class="adj-was">{{ formatMoney(line.adjustment.originalTotal) }}</div>
+                {{ formatMoney(line.totalAmount) }}
+              </td>
+              <td v-if="adjustable && !editable" class="r text-no-wrap">
+                <v-btn class="press" icon="mdi-arrow-down-bold-circle-outline" size="x-small" variant="text" aria-label="Lower amount" :loading="busyLineId === line.id" @click="emit('adjust', line)" />
+              </td>
+              <td v-else-if="editable" class="r text-no-wrap">
                 <v-btn class="press" icon="mdi-pencil-outline" size="x-small" variant="text" aria-label="Edit line" :disabled="busyLineId === line.id" @click="emit('edit', line)" />
                 <v-btn class="press" icon="mdi-close" size="x-small" variant="text" aria-label="Remove line" :loading="busyLineId === line.id" @click="emit('remove', line)" />
               </td>
@@ -154,7 +179,7 @@ function subline(line: ExpenseLine): string | null {
             <td :colspan="smAndDown ? 3 : 4" class="r">Grand total</td>
             <td class="r mono">{{ vatTotal ? formatMoney(vatTotal) : '—' }}</td>
             <td class="r mono">{{ formatMoney(grandTotal) }}</td>
-            <td v-if="editable"></td>
+            <td v-if="hasActions"></td>
           </tr>
         </tfoot>
       </table>
@@ -171,6 +196,16 @@ function subline(line: ExpenseLine): string | null {
 }
 .ledger tr.line--busy td {
   opacity: 0.5;
+}
+.adj {
+  display: block;
+  font-size: 12px;
+  color: rgb(var(--v-theme-warning));
+}
+.adj-was {
+  font-size: 11px;
+  color: var(--ink-3);
+  text-decoration: line-through;
 }
 .col-pill {
   height: 20px;

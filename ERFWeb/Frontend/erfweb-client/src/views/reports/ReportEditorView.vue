@@ -22,6 +22,7 @@ import CashAdvanceDialog from '@/features/expenses/components/CashAdvanceDialog.
 import AttachmentsPanel from '@/features/expenses/components/AttachmentsPanel.vue';
 import { compressImage } from '@/shared/images';
 import ApprovalTimeline from '@/features/expenses/components/ApprovalTimeline.vue';
+import FinanceSummaryCard from '@/features/expenses/components/FinanceSummaryCard.vue';
 import type {
   Attachment,
   CashAdvanceLine,
@@ -460,9 +461,22 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
           <div class="text-body-2" style="white-space: pre-line">{{ report.cancelNote || 'No reason was given.' }}</div>
           <div class="text-caption mt-1">Correct the report and re-file it. Approval restarts from the first approver.</div>
         </v-alert>
-        <v-alert v-else-if="!report.canEdit && report.canReopen" type="info" density="compact">
-          This report is {{ report.status === 'Approved' ? 'approved' : 'awaiting approval' }} and is read-only. Reopen it to make changes — all approvals so far will be cleared.
+        <v-alert v-else-if="report.status === 'Rejected'" type="error" icon="mdi-close-octagon-outline">
+          <div class="font-weight-medium">Rejected by your approver</div>
+          <div class="text-body-2" style="white-space: pre-line">{{ report.cancelNote || 'No reason was given.' }}</div>
+          <div class="text-caption mt-1">A rejected report is final and cannot be re-filed.</div>
         </v-alert>
+        <v-alert v-else-if="!report.canEdit && report.canReopen" type="info" density="compact">
+          This report is awaiting approval and is read-only. No approver has acted yet, so you can still reopen it to make changes.
+        </v-alert>
+        <v-alert v-else-if="report.status === 'ForApproval'" type="info" density="compact">
+          An approver has already acted, so the amounts are locked. Ask your approver to return the report if something must change.
+        </v-alert>
+        <template v-for="line in report.lines.filter((l) => l.adjustment)" :key="`adj-${line.id}`">
+          <v-alert type="warning" variant="tonal" density="compact" icon="mdi-arrow-down-bold-circle-outline">
+            {{ line.particulars }}: lowered from {{ formatMoney(line.adjustment!.originalTotal) }} to {{ formatMoney(line.totalAmount) }}<span v-if="line.adjustment!.adjustedByName"> by {{ line.adjustment!.adjustedByName }}</span><span v-if="line.adjustment!.reason"> ({{ line.adjustment!.reason }})</span>.
+          </v-alert>
+        </template>
 
         <!-- Totals move above the document when there is no side column -->
         <ReportTotalsCard v-if="!lgAndUp" :total="report.totalAmount" :cash-advance="report.cashAdvanceTotal" :variant="xs ? 'card' : 'strip'" />
@@ -495,6 +509,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         <div v-if="!lgAndUp" class="editor__two-up">
           <FilingChecklist v-if="report.canFile" :items="checklist" :approver-names="readiness?.approverNames ?? []" />
           <ApprovalTimeline :steps="report.approvalSteps" :status="report.status" :cycle="report.currentCycle" />
+          <FinanceSummaryCard v-if="report.finance" :finance="report.finance" />
           <AttachmentsPanel
             class="editor__span"
             :report-id="report.id"
@@ -513,6 +528,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         <ReportTotalsCard :total="report.totalAmount" :cash-advance="report.cashAdvanceTotal" />
         <FilingChecklist v-if="report.canFile" :items="checklist" :approver-names="readiness?.approverNames ?? []" />
         <ApprovalTimeline :steps="report.approvalSteps" :status="report.status" :cycle="report.currentCycle" />
+        <FinanceSummaryCard v-if="report.finance" :finance="report.finance" />
         <AttachmentsPanel
           :report-id="report.id"
           :attachments="report.attachments"
@@ -580,7 +596,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
       <AppConfirmDialog
         v-model="reopenDialog"
         title="Reopen this report for editing?"
-        message="All manager approvals so far (and Finance receipt tracking, if any) will be cleared. The report must complete approval again after you re-file it."
+        message="The report goes back to draft so you can change it. Approval starts again from the first approver when you re-file it."
         confirm-text="Reopen"
         confirm-color="warning"
         :loading="acting"

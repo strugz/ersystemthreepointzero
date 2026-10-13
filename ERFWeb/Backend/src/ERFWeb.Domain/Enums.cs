@@ -40,6 +40,9 @@ public enum ReportStatus
     ForApproval,
     Returned,
     Approved,
+
+    /// <summary>Refused on merit by an approver. Final: the claimant cannot edit, re-file, or reopen it.</summary>
+    Rejected,
 }
 
 /// <summary>Status of a single approval step in an approval cycle.</summary>
@@ -49,13 +52,26 @@ public enum ApprovalStatus
     Approved,
     Returned,
     Superseded,
+    Rejected,
+
+    /// <summary>A Level 1 step a Level 2 approved past with a recorded reason.</summary>
+    Overridden,
 }
 
 /// <summary>Finance physical-receipt tracking status for an approved report.</summary>
 public enum FinanceStatus
 {
+    /// <summary>Approved; physical receipts not received yet.</summary>
     Pending,
+
+    /// <summary>Some receipts arrived; Finance is waiting for the rest.</summary>
+    ReceiptsIncomplete,
+
+    /// <summary>All receipts received. Confirmed once and never reverted.</summary>
     ReceiptsReceived,
+
+    /// <summary>Released for payment. Final.</summary>
+    ClearedForPayment,
 }
 
 /// <summary>Whether an expense line is local travel or foreign.</summary>

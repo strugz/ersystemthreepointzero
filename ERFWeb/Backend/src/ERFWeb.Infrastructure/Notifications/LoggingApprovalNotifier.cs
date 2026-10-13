@@ -19,4 +19,13 @@ public sealed class LoggingApprovalNotifier(ILogger<LoggingApprovalNotifier> log
             n.Cycle, !string.IsNullOrWhiteSpace(n.ApproverEmail), !string.IsNullOrWhiteSpace(n.ApproverMobileNo));
         return Task.CompletedTask;
     }
+
+    public Task NotifyWorkflowEventAsync(WorkflowEventNotification n, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(n);
+        logger.LogInformation(
+            "Report {ReportId} ({ReferenceNo}) of {Employee}: {Kind}. {Summary}. {RecipientCount} recipient(s) to notify.",
+            n.ReportId, n.ReferenceNo ?? "no ref", n.EmployeeName, n.Kind, n.Summary, n.RecipientUserIds.Count);
+        return Task.CompletedTask;
+    }
 }

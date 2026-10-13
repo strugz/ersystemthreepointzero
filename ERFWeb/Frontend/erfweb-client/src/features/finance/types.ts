@@ -1,0 +1,39 @@
+// Mirrors the Finance contracts in ERFWeb.Application.Features.Approvals. Enums travel as strings.
+import type { FinanceStatus, ReportType } from '@/features/expenses/types';
+
+export interface FinanceQueueItem {
+  reportId: string;
+  referenceNo: string | null;
+  employeeUserId: number;
+  employeeName: string;
+  departmentName: string | null;
+  reportType: ReportType;
+  purpose: string | null;
+  totalAmount: number;
+  approvedAt: string | null;
+  status: FinanceStatus;
+  remarks: string | null;
+  receivedByName: string | null;
+  receivedAt: string | null;
+  clearedByName: string | null;
+  clearedAt: string | null;
+  followUpCount: number;
+  lastFollowUpAt: string | null;
+  attachmentCount: number;
+  daysSinceApproval: number;
+  /** Finance never processes its own report; the API refuses it too. */
+  isOwnReport: boolean;
+  rowVersion: number;
+}
+
+export interface FinanceQueueQuery {
+  page: number;
+  pageSize: number;
+  status?: FinanceStatus;
+  search?: string;
+  /** Leave out reports already cleared for payment (the default). */
+  openOnly: boolean;
+}
+
+/** The receipt statuses Finance records; clearing for payment is its own action. */
+export type ReceiptStatus = Exclude<FinanceStatus, 'ClearedForPayment'>;

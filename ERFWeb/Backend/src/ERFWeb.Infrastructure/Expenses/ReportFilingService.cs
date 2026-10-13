@@ -128,9 +128,13 @@ public sealed class ReportFilingService(
         await tx.ExecuteAsync(async token =>
         {
             var report = await gate.LoadOwnedAsync(reportId, token);
-            if (!ReportWorkflowRules.CanReopen(report.Status))
+            var anyApproverActed = await db.ApprovalSteps.AnyAsync(s => s.ReportId == reportId && s.Cycle == report.CurrentCycle
+                && (s.Status == ApprovalStatus.Approved || s.Status == ApprovalStatus.Overridden), token);
+            if (!ReportWorkflowRules.CanReopen(report.Status, anyApproverActed))
             {
-                throw new ConflictException($"A report in status '{report.Status}' cannot be reopened.");
+                throw new ConflictException(anyApproverActed
+                    ? "An approver has already acted, so the amounts are locked. Ask your approver to return the report."
+                    : $"A report in status '{report.Status}' cannot be reopened.");
             }
 
             var now = clock.UtcNow;

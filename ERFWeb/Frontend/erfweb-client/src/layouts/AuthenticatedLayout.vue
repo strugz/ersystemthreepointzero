@@ -66,6 +66,18 @@ const adminNav = computed<NavItem[]>(() => {
   return items;
 });
 
+// Work queues: approvals for signatories, the receipt queue for Finance. Gating is display only.
+const workNav = computed<NavItem[]>(() => {
+  const items: NavItem[] = [];
+  if (session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2')) {
+    items.push({ title: 'Approvals', icon: 'mdi-check-decagram-outline', to: { name: 'approvals' }, exact: false });
+  }
+  if (session.hasRole('Finance')) {
+    items.push({ title: 'Finance queue', icon: 'mdi-receipt-text-check-outline', to: { name: 'finance-queue' }, exact: false });
+  }
+  return items;
+});
+
 // Signatory structure entries: scope for every entitlement reader; rates for all of them except a
 // System Administrator who holds no other reader role (they only manage scope). Gating is display only.
 const entitlementNav = computed<NavItem[]>(() => {
@@ -83,12 +95,13 @@ const entitlementNav = computed<NavItem[]>(() => {
 /** Groups shown after the main nav, each behind a separator on the rail and a divider in "More". */
 const navGroups = computed(() =>
   [
+    { label: 'Work queues', items: workNav.value },
     { label: 'Signatory structure', items: entitlementNav.value },
     { label: 'Administration', items: adminNav.value },
   ].filter((g) => g.items.length > 0),
 );
 
-const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile']);
+const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'report-review', 'finance-queue']);
 
 const roleSummary = computed(() => (session.user?.roles ?? []).map(roleLabel).join(' · '));
 const moreOpen = ref(false);
