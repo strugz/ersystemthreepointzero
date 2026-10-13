@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
+using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Administration;
@@ -26,6 +27,8 @@ public sealed class ReportFilingService(
     ReportEditGate gate,
     ExpenseReportDetailLoader loader,
     ISystemSettingsService settings,
+    IApprovalRouter router,
+    Entitlements.EntitlementContext calendar,
     ILogger<ReportFilingService> logger) : IReportFilingService
 {
     public async Task<FileReportResultDto> FileAsync(Guid reportId, CancellationToken ct = default)
@@ -43,22 +46,18 @@ public sealed class ReportFilingService(
             var coolingDays = await settings.GetCoolingPeriodDaysAsync(token);
             var coolingElapsed = AccountRules.CoolingPeriodElapsed(employee.CreatedAt, clock.UtcNow, coolingDays);
 
-            var route = await (
-                from ar in db.ApprovalRoutes.AsNoTracking()
-                where ar.EmployeeUserId == report.EmployeeUserId
-                join a in db.Users.AsNoTracking() on ar.ApproverUserId equals a.Id
-                where a.IsActive
-                orderby ar.StepOrder
-                select new { ar.StepOrder, a.Id, a.FullName, a.Email, a.MobileNo })
-                .ToListAsync(token);
-
             var lineCount = await db.ExpenseLines.CountAsync(l => l.ReportId == reportId && l.IsActive, token);
+            var reportTotal = await db.ExpenseLines.Where(l => l.ReportId == reportId && l.IsActive).SumAsync(l => (decimal?)l.TotalAmount, token) ?? 0m;
+
+            // Spec 9.3: the approvers are resolved from scope now and snapshotted, so later scope edits never re-route this report.
+            var routing = await router.RouteAsync(report.EmployeeUserId, reportTotal, calendar.Today, token);
+            var route = routing.Approvers;
             var cashAmount = await db.CashAdvanceLines.AsNoTracking()
                 .Where(c => c.ReportId == reportId).SumAsync(c => (decimal?)c.Amount, token) ?? 0m;
 
             var blockers = ReportWorkflowRules.FilingBlockers(
                 report.Status, lineCount, employee.HasSignature, route.Count, report.Purpose, report.ReportType, cashAmount, report.RevolvingFundAmount,
-                coolingElapsed);
+                coolingElapsed, routing.Problem);
             if (blockers.Count > 0)
             {
                 throw new ValidationException(new Dictionary<string, string[]> { ["report"] = blockers.ToArray() });
@@ -81,7 +80,8 @@ public sealed class ReportFilingService(
                     ReportId = reportId,
                     Cycle = report.CurrentCycle,
                     StepOrder = step.StepOrder,
-                    ApproverUserId = step.Id,
+                    SignatoryLevel = (short)step.Level,
+                    ApproverUserId = step.UserId,
                     Status = ApprovalStatus.Pending,
                 });
             }
@@ -97,7 +97,7 @@ public sealed class ReportFilingService(
             report.UpdatedAt = now;
             await db.SaveWithConcurrencyAsync(token);
 
-            var detail = JsonSerializer.Serialize(new { cycle = report.CurrentCycle, referenceNo = report.ReferenceNo, approvers = route.Select(r => r.Id), refile = isRefile });
+            var detail = JsonSerializer.Serialize(new { cycle = report.CurrentCycle, referenceNo = report.ReferenceNo, approvers = route.Select(r => new { r.UserId, r.Level }), refile = isRefile });
             await audit.WriteAsync(new WorkflowAuditEntry(isRefile ? "ReportRefiled" : "ReportFiled", reportId, user.UserId, detail), token);
 
             var first = route[0];
@@ -105,7 +105,7 @@ public sealed class ReportFilingService(
             {
                 Result = new FileReportResultDto(reportId, report.Status, report.CurrentCycle, first.FullName),
                 Notification = new ReportFiledNotification(
-                    reportId, report.ReferenceNo, employee.FullName, first.Id, first.FullName, first.Email, first.MobileNo,
+                    reportId, report.ReferenceNo, employee.FullName, first.UserId, first.FullName, first.Email, first.MobileNo,
                     report.CurrentCycle, isRefile),
             };
         }, ct);

@@ -17,11 +17,16 @@ public sealed record MyFilingReadinessDto(
     int ApproverCount,
     IReadOnlyList<string> ApproverNames,
     bool CoolingPeriodElapsed,
-    DateTimeOffset? CoolingPeriodEndsAt);
+    DateTimeOffset? CoolingPeriodEndsAt,
+    string? RoutingProblem);
+
+/// <summary>An active department, for pickers.</summary>
+public sealed record DepartmentOptionDto(long Id, string? Code, string Name);
 
 public interface ILookupService
 {
+    Task<IReadOnlyList<DepartmentOptionDto>> DepartmentsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<WorkWithOptionDto>> WorkWithAsync(string? search, CancellationToken ct = default);
-    Task<EmployeeRatesDto> MyRatesAsync(CancellationToken ct = default);
+    Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, CancellationToken ct = default);
     Task<MyFilingReadinessDto> MyFilingReadinessAsync(CancellationToken ct = default);
 }

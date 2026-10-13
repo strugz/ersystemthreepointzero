@@ -49,3 +49,12 @@ export function todayIso(): string {
   const dd = String(now.getDate()).padStart(2, '0');
   return `${now.getFullYear()}-${mm}-${dd}`;
 }
+
+/** Shifts a DateOnly string by whole days (negative for earlier), on the local calendar. */
+export function addDaysIso(value: string, days: number): string {
+  const [y, m, d] = value.split('-').map(Number);
+  const date = new Date(y, m - 1, d + days);
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${mm}-${dd}`;
+}

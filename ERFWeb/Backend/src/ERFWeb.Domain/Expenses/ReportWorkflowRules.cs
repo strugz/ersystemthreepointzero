@@ -42,7 +42,8 @@ public static class ReportWorkflowRules
         ReportType reportType,
         decimal cashAdvanceAmount,
         decimal revolvingFundAmount,
-        bool coolingPeriodElapsed = true)
+        bool coolingPeriodElapsed = true,
+        string? routingProblem = null)
     {
         var reasons = new List<string>();
 
@@ -68,7 +69,7 @@ public static class ReportWorkflowRules
 
         if (approverCount == 0)
         {
-            reasons.Add("No approval route is configured for your account. Ask an administrator to assign your approvers.");
+            reasons.Add(routingProblem ?? "No approval route is configured for your account. Ask an administrator to assign your approvers.");
         }
 
         if (string.IsNullOrWhiteSpace(purpose))

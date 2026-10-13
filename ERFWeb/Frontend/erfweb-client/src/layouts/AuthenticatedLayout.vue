@@ -5,6 +5,7 @@ import type { RouteLocationRaw } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import { useSessionStore } from '@/app/stores/session';
 import { roleLabel } from '@/features/auth/labels';
+import { entitlementReaderRoles, hasAnyRole, rateNavRoles } from '@/features/entitlements/access';
 import AppSnackbar from '@/shared/ui/AppSnackbar.vue';
 
 /**
@@ -65,9 +66,36 @@ const adminNav = computed<NavItem[]>(() => {
   return items;
 });
 
+// Signatory structure entries: scope for every entitlement reader; rates for all of them except a
+// System Administrator who holds no other reader role (they only manage scope). Gating is display only.
+const entitlementNav = computed<NavItem[]>(() => {
+  const roles = session.user?.roles;
+  const items: NavItem[] = [];
+  if (hasAnyRole(roles, entitlementReaderRoles)) {
+    items.push({ title: 'Scope', icon: 'mdi-account-supervisor-outline', to: { name: 'scope' }, exact: false });
+  }
+  if (hasAnyRole(roles, rateNavRoles)) {
+    items.push({ title: 'Rates', icon: 'mdi-cash-multiple', to: { name: 'rate-profiles' }, exact: false });
+  }
+  return items;
+});
+
+/** Groups shown after the main nav, each behind a separator on the rail and a divider in "More". */
+const navGroups = computed(() =>
+  [
+    { label: 'Signatory structure', items: entitlementNav.value },
+    { label: 'Administration', items: adminNav.value },
+  ].filter((g) => g.items.length > 0),
+);
+
+const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile']);
+
 const roleSummary = computed(() => (session.user?.roles ?? []).map(roleLabel).join(' · '));
 const moreOpen = ref(false);
-const adminRouteActive = computed(() => String(route.name ?? '').startsWith('admin-'));
+const moreRouteActive = computed(() => {
+  const name = String(route.name ?? '');
+  return name.startsWith('admin-') || entitlementRouteNames.has(name);
+});
 
 const initials = computed(() =>
   (session.user?.fullName ?? '?')
@@ -119,9 +147,9 @@ async function logout() {
           </template>
         </v-tooltip>
 
-        <template v-if="adminNav.length">
-          <div class="rail__sep" role="separator" aria-label="Administration" />
-          <v-tooltip v-for="item in adminNav" :key="item.title" :text="item.title" location="end" open-delay="300">
+        <template v-for="group in navGroups" :key="group.label">
+          <div class="rail__sep" role="separator" :aria-label="group.label" />
+          <v-tooltip v-for="item in group.items" :key="item.title" :text="item.title" location="end" open-delay="300">
             <template #activator="{ props: tip }">
               <router-link v-bind="tip" :to="item.to" custom>
                 <template #default="{ navigate, isActive, isExactActive, href }">
@@ -214,10 +242,10 @@ async function logout() {
       <v-icon :icon="item.icon" />
       <span class="text-caption">{{ item.title }}</span>
     </v-btn>
-    <!-- Phones have no rail or avatar menu, so administration and sign-out live behind "More". -->
+    <!-- Phones have no rail or avatar menu, so scope, rates, administration and sign-out live behind "More". -->
     <v-menu v-model="moreOpen" location="top end" :offset="8">
       <template #activator="{ props: menu }">
-        <v-btn v-bind="menu" class="press" :active="adminRouteActive" aria-label="More" aria-haspopup="menu">
+        <v-btn v-bind="menu" class="press" :active="moreRouteActive" aria-label="More" aria-haspopup="menu">
           <v-icon icon="mdi-dots-horizontal" />
           <span class="text-caption">More</span>
         </v-btn>
@@ -225,8 +253,11 @@ async function logout() {
       <v-card min-width="220" class="pa-1">
         <v-list density="compact" class="py-0">
           <v-list-item :title="session.user?.fullName" :subtitle="roleSummary" />
-          <v-divider v-if="adminNav.length" class="my-1" />
-          <v-list-item v-for="item in adminNav" :key="item.title" :prepend-icon="item.icon" :title="item.title" :to="item.to" />
+          <template v-for="group in navGroups" :key="group.label">
+            <v-divider class="my-1" />
+            <v-list-subheader class="more__group">{{ group.label }}</v-list-subheader>
+            <v-list-item v-for="item in group.items" :key="item.title" :prepend-icon="item.icon" :title="item.title" :to="item.to" />
+          </template>
           <v-divider class="my-1" />
           <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="logout" />
         </v-list>
@@ -385,6 +416,12 @@ async function logout() {
   flex: 1;
   height: 48px;
   font-size: 15px;
+}
+.more__group {
+  min-height: 28px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 .bottom-nav {
   border-top: 1px solid var(--line) !important;

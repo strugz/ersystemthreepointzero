@@ -1,12 +1,14 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Authentication;
+using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Infrastructure.Administration;
 using ERFWeb.Infrastructure.Authentication;
 using ERFWeb.Infrastructure.Authorization;
+using ERFWeb.Infrastructure.Entitlements;
 using ERFWeb.Infrastructure.Expenses;
 using ERFWeb.Infrastructure.Lookups;
 using ERFWeb.Infrastructure.Notifications;
@@ -63,6 +65,13 @@ public static class DependencyInjection
         services.AddScoped<IMasterDataService, MasterDataService>();
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddScoped<IAdminAuditService, AdminAuditService>();
+
+        // Scope & rates, Level 2 only (Phase 2)
+        services.AddScoped<EntitlementContext>();
+        services.AddScoped<IApprovalRouter, ApprovalRouter>();
+        services.AddScoped<IScopeService, ScopeService>();
+        services.AddScoped<IRateService, RateService>();
+        services.AddScoped<IEntitlementChangeNotifier, LoggingEntitlementChangeNotifier>();
 
         return services;
     }

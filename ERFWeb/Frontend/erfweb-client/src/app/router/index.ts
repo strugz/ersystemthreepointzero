@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 import { useSessionStore } from '@/app/stores/session';
 import type { UserRole } from '@/features/auth/types';
+import { entitlementReaderRoles } from '@/features/entitlements/access';
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -81,6 +82,24 @@ const routes: RouteRecordRaw[] = [
     name: 'admin-audit',
     component: () => import('@/views/admin/AuditView.vue'),
     meta: { requiresAuth: true, roles: ['SystemAdministrator', 'Finance'] },
+  },
+  {
+    path: '/scope',
+    name: 'scope',
+    component: () => import('@/views/entitlements/ScopeView.vue'),
+    meta: { requiresAuth: true, roles: entitlementReaderRoles },
+  },
+  {
+    path: '/rates',
+    name: 'rate-profiles',
+    component: () => import('@/views/entitlements/RateProfilesView.vue'),
+    meta: { requiresAuth: true, roles: entitlementReaderRoles },
+  },
+  {
+    path: '/rates/:id',
+    name: 'rate-profile',
+    component: () => import('@/views/entitlements/RateProfileDetailView.vue'),
+    meta: { requiresAuth: true, roles: entitlementReaderRoles },
   },
   {
     path: '/forbidden',

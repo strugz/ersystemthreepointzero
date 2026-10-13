@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
@@ -67,11 +67,39 @@ async function load() {
 }
 
 async function loadLookups() {
-  const [ww, r, fr] = await Promise.allSettled([expensesApi.workWith(), expensesApi.myRates(), expensesApi.filingReadiness()]);
+  const [ww, fr] = await Promise.allSettled([expensesApi.workWith(), expensesApi.filingReadiness()]);
   if (ww.status === 'fulfilled') workWith.value = ww.value;
-  if (r.status === 'fulfilled') rates.value = r.value;
   if (fr.status === 'fulfilled') readiness.value = fr.value;
 }
+
+// Rates are versioned by date, so they follow the line dialog's date. Debounced while typing; a
+// failed fetch keeps the last good rates, and a late response for an older date is ignored.
+let ratesTimer: ReturnType<typeof setTimeout> | undefined;
+let ratesRequest = 0;
+let ratesDate: string | null = null;
+
+function onLineDateChange(date: string) {
+  clearTimeout(ratesTimer);
+  if (date === ratesDate && rates.value) {
+    ratesRequest++; // Drop any in-flight fetch for a date the user has moved away from.
+    return;
+  }
+  // The first fetch (dialog just opened) goes out immediately; edits while typing are debounced.
+  const delay = rates.value ? 300 : 0;
+  ratesTimer = setTimeout(async () => {
+    const request = ++ratesRequest;
+    try {
+      const result = await expensesApi.myRates(date);
+      if (request === ratesRequest) {
+        rates.value = result;
+        ratesDate = date;
+      }
+    } catch {
+      // Keep the last good rates: they only pre-fill amounts, and the server validates the line.
+    }
+  }, delay);
+}
+onBeforeUnmount(() => clearTimeout(ratesTimer));
 
 onMounted(async () => {
   await load();
@@ -310,7 +338,13 @@ const checklist = computed<ChecklistItem[]>(() => {
   }
   if (readiness.value) {
     items.push({ ok: readiness.value.hasSignature, text: readiness.value.hasSignature ? 'Signature on file' : 'Signature not on file (Account settings)' });
-    items.push({ ok: readiness.value.approverCount > 0, text: readiness.value.approverCount > 0 ? `Approval route: ${readiness.value.approverCount} approver${readiness.value.approverCount === 1 ? '' : 's'}` : 'No approval route is configured for you' });
+    const routeOk = readiness.value.approverCount > 0 && !readiness.value.routingProblem;
+    items.push({
+      ok: routeOk,
+      text: routeOk
+        ? `Approval route: ${readiness.value.approverCount} approver${readiness.value.approverCount === 1 ? '' : 's'}`
+        : (readiness.value.routingProblem ?? 'No approval route is configured for you'),
+    });
     items.push({
       ok: readiness.value.coolingPeriodElapsed,
       text: readiness.value.coolingPeriodElapsed
@@ -500,6 +534,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :saving="savingLine"
         :errors="lineErrors"
         @save="saveLine"
+        @date-change="onLineDateChange"
       />
 
       <CashAdvanceDialog

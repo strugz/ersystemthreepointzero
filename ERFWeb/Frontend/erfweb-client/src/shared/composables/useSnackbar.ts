@@ -35,7 +35,8 @@ export function describeError(err: unknown, fallback = 'Something went wrong. Pl
       return err.message || 'This record changed elsewhere. Reload and try again.';
     }
     if (err.status === 403) {
-      return 'You are not allowed to do that.';
+      // A policy refusal has no body; a service refusal carries the reason in the title.
+      return err.problem?.title || 'You are not allowed to do that.';
     }
     return err.message || fallback;
   }

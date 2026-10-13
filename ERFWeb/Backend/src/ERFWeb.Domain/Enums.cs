@@ -75,3 +75,34 @@ public enum ExpenseCategory
     Others,
     Representation,
 }
+
+/// <summary>How a scope assignment selects the employees a signatory signs for (RBAC v0.6 section 4).</summary>
+public enum ScopeAssignmentType
+{
+    /// <summary>Everyone in the department.</summary>
+    Department,
+
+    /// <summary>The named members only, regardless of department.</summary>
+    Individual,
+
+    /// <summary>Everyone in the department except the named members.</summary>
+    Exclusion,
+}
+
+/// <summary>How a rate profile line's amount is applied (RBAC v0.6 section 5).</summary>
+public enum RateType
+{
+    FixedPerDay,
+    PerKm,
+    CapPerTransaction,
+    ActualWithCeiling,
+}
+
+/// <summary>Who a rate profile assignment targets. Resolution order: Individual, Grade, Department, Company.</summary>
+public enum RateTargetType
+{
+    Individual,
+    Grade,
+    Department,
+    Company,
+}

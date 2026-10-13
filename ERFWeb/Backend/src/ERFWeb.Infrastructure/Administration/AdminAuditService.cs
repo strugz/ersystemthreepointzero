@@ -1,5 +1,6 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
+using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +20,9 @@ public sealed class AdminAuditService(ErfDbContext db) : IAdminAuditService
         var rows = db.WorkflowAudits.AsNoTracking().AsQueryable();
         if (query.AdministrationOnly)
         {
-            rows = rows.Where(a => a.Event.StartsWith(AdminAuditEvents.Prefix));
+            rows = rows.Where(a => a.Event.StartsWith(AdminAuditEvents.Prefix)
+                || a.Event.StartsWith(EntitlementAuditEvents.ScopePrefix)
+                || a.Event.StartsWith(EntitlementAuditEvents.RatesPrefix));
         }
 
         if (!string.IsNullOrWhiteSpace(query.Event))

@@ -14,6 +14,9 @@ public static class Policies
     public const string Finance = "Finance";
     public const string AuditReader = "AuditReader";
     public const string Countersigner = "Countersigner";
+    public const string EntitlementReader = "EntitlementReader";
+    public const string ScopeManager = "ScopeManager";
+    public const string RateManager = "RateManager";
 
     public static void Register(AuthorizationOptions options)
     {
@@ -26,5 +29,14 @@ public static class Policies
         // Spec 9.8: the Business Owner countersigns; a second System Administrator may do so only
         // while no Business Owner exists (the service enforces that bootstrap condition).
         options.AddPolicy(Countersigner, p => p.RequireRole(nameof(UserRole.BusinessOwner), nameof(UserRole.SystemAdministrator)));
+
+        // Flow 8: signatories, the Business Owner, and Finance read scope and rates; the System
+        // Administrator reads scope for the first-time-setup bootstrap. The services decide who may change what.
+        options.AddPolicy(EntitlementReader, p => p.RequireRole(
+            nameof(UserRole.SignatoryLevel1), nameof(UserRole.SignatoryLevel2), nameof(UserRole.BusinessOwner),
+            nameof(UserRole.Finance), nameof(UserRole.SystemAdministrator)));
+        options.AddPolicy(ScopeManager, p => p.RequireRole(
+            nameof(UserRole.SignatoryLevel2), nameof(UserRole.BusinessOwner), nameof(UserRole.SystemAdministrator)));
+        options.AddPolicy(RateManager, p => p.RequireRole(nameof(UserRole.SignatoryLevel2), nameof(UserRole.BusinessOwner)));
     }
 }

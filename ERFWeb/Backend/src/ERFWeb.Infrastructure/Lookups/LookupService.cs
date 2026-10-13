@@ -1,5 +1,6 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
+using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Domain.Administration;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Infrastructure.Persistence;
@@ -8,7 +9,14 @@ using Microsoft.EntityFrameworkCore;
 namespace ERFWeb.Infrastructure.Lookups;
 
 /// <summary>Reference lookups for the report editor (LINQ read-only).</summary>
-public sealed class LookupService(ErfDbContext db, ICurrentUser user, ISystemSettingsService settings, IClock clock) : ILookupService
+public sealed class LookupService(
+    ErfDbContext db,
+    ICurrentUser user,
+    ISystemSettingsService settings,
+    IClock clock,
+    IApprovalRouter router,
+    IRateService rates,
+    Entitlements.EntitlementContext calendar) : ILookupService
 {
     private const int MaxWorkWithResults = 50;
 
@@ -34,15 +42,16 @@ public sealed class LookupService(ErfDbContext db, ICurrentUser user, ISystemSet
             .ToListAsync(ct);
     }
 
-    public async Task<EmployeeRatesDto> MyRatesAsync(CancellationToken ct = default)
-    {
-        var rate = await db.EmployeeRates.AsNoTracking()
-            .Where(r => r.UserId == user.UserId)
-            .Select(r => new EmployeeRatesDto(r.TransportRate, r.BreakfastRate, r.LunchRate, r.DinnerRate, r.OtMealRate))
-            .FirstOrDefaultAsync(ct);
+    public async Task<IReadOnlyList<DepartmentOptionDto>> DepartmentsAsync(CancellationToken ct = default) =>
+        await db.Departments.AsNoTracking()
+            .Where(d => d.IsActive)
+            .OrderBy(d => d.Name)
+            .Select(d => new DepartmentOptionDto(d.Id, d.Code, d.Name))
+            .ToListAsync(ct);
 
-        return rate ?? new EmployeeRatesDto(0m, 0m, 0m, 0m, 0m);
-    }
+    /// <summary>The rates in force on the expense date (spec section 5); today when no date is given.</summary>
+    public Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, CancellationToken ct = default) =>
+        rates.EditorRatesAsync(user.UserId, date ?? calendar.Today, ct);
 
     public async Task<MyFilingReadinessDto> MyFilingReadinessAsync(CancellationToken ct = default)
     {
@@ -56,14 +65,10 @@ public sealed class LookupService(ErfDbContext db, ICurrentUser user, ISystemSet
         var coolingElapsed = account is null || AccountRules.CoolingPeriodElapsed(account.CreatedAt, clock.UtcNow, coolingDays);
         var coolingEndsAt = account is null || coolingElapsed ? (DateTimeOffset?)null : account.CreatedAt.AddDays(coolingDays);
 
-        var approvers = await (
-            from ar in db.ApprovalRoutes.AsNoTracking()
-            where ar.EmployeeUserId == user.UserId
-            join a in db.Users.AsNoTracking() on ar.ApproverUserId equals a.Id
-            where a.IsActive
-            orderby ar.StepOrder
-            select a.FullName).ToListAsync(ct);
+        // A zero total shows the base route; a larger report may still add a Level 2 step at filing.
+        var routing = await router.RouteAsync(user.UserId, 0m, calendar.Today, ct);
+        var approvers = routing.Approvers.Select(a => a.FullName).ToList();
 
-        return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt);
+        return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt, routing.Problem);
     }
 }

@@ -197,6 +197,9 @@ public class ApprovalStep
     public Guid ReportId { get; set; }
     public int Cycle { get; set; } = 1;
     public int StepOrder { get; set; }
+
+    /// <summary>Signatory level (1 or 2) the step was routed at; null for steps filed before scope routing.</summary>
+    public short? SignatoryLevel { get; set; }
     public long ApproverUserId { get; set; }
     public ApprovalStatus Status { get; set; } = ApprovalStatus.Pending;
     public DateTimeOffset? ActedAt { get; set; }
@@ -268,6 +271,78 @@ public class RecordHistory
     public long? ChangedBy { get; set; }
     public string? OldData { get; set; }
     public string? NewData { get; set; }
+}
+
+/// <summary>Who signs for whom (RBAC v0.6 section 4). Replaces <c>approval_routes</c>.</summary>
+public class ScopeAssignment
+{
+    public long Id { get; set; }
+    public long HolderUserId { get; set; }
+    public short SignatoryLevel { get; set; }
+    public ScopeAssignmentType AssignmentType { get; set; }
+    public long? DepartmentId { get; set; }
+    public decimal? ApprovalLimit { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsBootstrap { get; set; }
+    public string? Note { get; set; }
+    public long CreatedByUserId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>Named people on an Individual (covered) or Exclusion (carved out) assignment.</summary>
+public class ScopeAssignmentMember
+{
+    public long ScopeAssignmentId { get; set; }
+    public long UserId { get; set; }
+}
+
+/// <summary>A named, effective-dated entitlement set (RBAC v0.6 section 5). Replaces <c>employee_rates</c>.</summary>
+public class RateProfile
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public long CreatedByUserId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>One version of one category rate. Closed by setting EffectiveTo, never edited otherwise.</summary>
+public class RateProfileLine
+{
+    public long Id { get; set; }
+    public long RateProfileId { get; set; }
+    public ExpenseCategory Category { get; set; }
+    public string? SubCategory { get; set; }
+    public RateType RateType { get; set; }
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "PHP";
+    public int? FrequencyCap { get; set; }
+    public bool RequiresReceipt { get; set; } = true;
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public long ChangedByUserId { get; set; }
+    public string? ChangeReason { get; set; }
+    public bool BackdateOverride { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>Who a profile applies to, by person, job grade, department, or company-wide.</summary>
+public class RateProfileAssignment
+{
+    public long Id { get; set; }
+    public long RateProfileId { get; set; }
+    public RateTargetType TargetType { get; set; }
+    public long? UserId { get; set; }
+    public string? JobGrade { get; set; }
+    public long? DepartmentId { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public bool IsBootstrap { get; set; }
+    public string? ChangeReason { get; set; }
+    public long AssignedByUserId { get; set; }
+    public DateTimeOffset AssignedAt { get; set; }
 }
 
 /// <summary>Per-year counter behind the ERF reference number series (<c>ERF-2026-000142</c>).</summary>

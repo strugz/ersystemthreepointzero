@@ -83,7 +83,11 @@ psql -d erfweb -f Database/003_reference_series.sql  # yearly ERF reference numb
 psql -d erfweb -f Database/004_seed_test_users.sql  # optional: employee1 / manager1 / manager2 / finance1 (password Test!1234) for a filing walkthrough
 psql -d erfweb -f Database/005_cash_advance_lines.sql # cash advances become rows (replaces the one-row cash_advances table)
 psql -d erfweb -f Database/006_user_roles_and_administration.sql # Phase 1: additive roles (user_roles), master data, rules, second admin
+psql -d erfweb -f Database/007_scope_and_rate_profiles.sql # Phase 2: scope assignments and rate profiles (migrates routes and rates)
 ```
+
+Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
+cannot be run on its own after `006`; on an existing database, add test users through the administration console.
 
 Both scripts are idempotent (safe to re-run). Do **not** also run `dotnet ef database update`
 against the same database unless you first baseline the migration history.
@@ -248,6 +252,50 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 
 First-time setup (plan flow 1): sign in as `admin`, create accounts and master data, set the rules; grant the extra
 roles and have `admin2` countersign them until a Business Owner is active, after which only the Business Owner
-countersigns. Scope assignments and rate profiles (Level 2 only) are plan Phase 2; until then `approval_routes`,
-`employee_rates`, and `department_signatories` are still maintained by SQL (see `004_seed_test_users.sql`).
+countersigns. `department_signatories` (the initials printed on the R47 footer) is still maintained by SQL.
+
+## Scope & rate profiles (plan Phase 2, Level 2 only)
+
+Script `007` adds `scope_assignments` (+ `scope_assignment_members`) and `rate_profiles`, `rate_profile_lines`,
+`rate_profile_assignments`, and copies the old `approval_routes` and `employee_rates` rows across as bootstrap
+records, so existing employees keep their approvers and rates. The old tables are kept but no longer read.
+
+**Scope: who signs for whom.** An assignment gives a signatory (holder) a Level 1 or Level 2 scope over a
+department (`Department`), named people (`Individual`), or a department minus named people (`Exclusion`), with an
+optional approval limit and effective dates. Domain `ScopeRules` resolves an employee on a date: a by-name
+assignment beats a by-department one, and within the winning tier there must be exactly one holder. A save that
+would give anyone two signatories at one level is refused (400 `errors.scope`). `GET /api/scope/coverage` lists
+every active employee with their resolved Level 1 and Level 2, or the problem.
+
+**Routing at filing** (Domain `ApprovalRouting`, replaces `approval_routes`). Level 1 comes from scope. A Level 2
+step is added when the rules say Level 2 is always required (the default), when the total reaches the Level 2
+threshold, when the total exceeds the Level 1 approval limit, or when the claimant is a signatory. A Level 1 who
+files their own report goes to their Level 2 alone, and nobody is ever routed to their own report (9.1). The steps
+are snapshotted into `approval_steps` (with `signatory_level`) so later scope changes never re-route a filed report
+(9.3). Zero matches or an ambiguous match block filing with the reason.
+
+**Rate profiles.** A profile holds versioned lines per category (Meals per meal: Breakfast, Lunch, Dinner, OTMeal).
+A change never edits a line: it adds a version and closes the open one the day before, so a report always uses the
+rate in force on its expense date. A profile reaches a person by assignment, resolved Individual > Grade >
+Department > Company on the expense date. A change that starts before today needs `backdateOverride` and a reason.
+`GET /api/lookups/my-rates?date=` gives the line editor the rates in force on that date. A person assigned a
+profile gets only that profile's lines; categories it does not define are zero.
+
+**Authority** (Domain `EntitlementAuthority`). Level 1 scope: a Level 2 Signatory or the Business Owner. Level 2
+scope: the Business Owner; before one exists, another Level 2 may set it, and a System Administrator may create it
+only while no Level 2 covers the area; both are flagged `isBootstrap`. Nobody changes a scope they hold (9.13).
+Rates: a Level 2 Signatory or the Business Owner (9.15), never for a target that includes themselves, by person,
+grade, or department (9.12); the company default is the Business Owner's (a Level 2 bootstrap before one exists).
+Finance and Level 1 read scope and rates; every change is in the audit trail Finance reviews.
+
+| Endpoint (policy) | Purpose |
+| --- | --- |
+| `GET /api/scope/assignments` · `GET …/{id}` · `GET /api/scope/coverage?date` (signatories, Business Owner, Finance, System Administrator) | Read scope and who covers whom |
+| `POST /api/scope/assignments` · `PUT …/{id}` (Level 2, Business Owner, System Administrator; service decides) | Create; change members, limit, end date, active |
+| `GET /api/rates/profiles` · `GET …/{id}` · `GET /api/rates/assignments` · `GET /api/rates/resolve?userId&date` | Read profiles, versions, assignments, what applies to a person on a date |
+| `POST/PUT /api/rates/profiles` · `POST …/{id}/lines` · `POST /api/rates/assignments` · `POST …/{id}/end` (Level 2, Business Owner) | Maintain profiles, add rate versions, assign and end |
+| `GET /api/lookups/departments` (any signed-in user) | Department picker |
+
+Change notifications to affected employees (9.14) go through `IEntitlementChangeNotifier`; like the filing
+notifier it only logs until SMTP delivery lands.
 ```

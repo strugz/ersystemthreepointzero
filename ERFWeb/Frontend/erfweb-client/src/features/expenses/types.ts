@@ -203,4 +203,6 @@ export interface FilingReadiness {
   coolingPeriodElapsed: boolean;
   /** ISO timestamp when the cooling period ends; null once elapsed or when none applies. */
   coolingPeriodEndsAt: string | null;
+  /** Why no approval route resolves (missing or ambiguous scope); null when routing is fine. */
+  routingProblem: string | null;
 }
