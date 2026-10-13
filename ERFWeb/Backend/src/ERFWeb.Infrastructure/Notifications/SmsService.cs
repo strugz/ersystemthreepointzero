@@ -127,6 +127,17 @@ public sealed class SmsService(
         return await DeliverAsync(deliveryId, claimant.Id, request.ReportId, numbers, message);
     }
 
+    public async Task<SmsSendResult> SendAboutReportAsync(Guid reportId, string message, string idempotencyKey, CancellationToken ct = default)
+    {
+        var claimantId = await db.ExpenseReports.AsNoTracking()
+            .Where(r => r.Id == reportId)
+            .Select(r => (long?)r.EmployeeUserId)
+            .FirstOrDefaultAsync(ct);
+        return claimantId is { } id
+            ? await SendAsync(new SendSmsRequest(id, message, idempotencyKey, reportId), ct)
+            : new SmsSendResult(SmsSendOutcome.ReportNotFound);
+    }
+
     /// <summary>
     /// Mobile numbers of the active Level 1 and Level 2 signatories on the report's current approval cycle,
     /// in step order. Steps filed before scope routing have no level; their first two steps stand in.

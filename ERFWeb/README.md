@@ -395,6 +395,11 @@ posts `{ sender, recipients, message, application }` to Lasius, with `sender` se
 name and the API key in a request header. The Finance queue's **Follow up** sends this SMS with the report, then
 counts the follow-up.
 
+**Filing SMS:** when an employee files (or re-files after a return) a report, `SmsApprovalNotifier` sends one SMS
+to the employee and the report's Level 1 and Level 2 signatories ("ERF-2026-000001 was filed by … and is waiting
+for approval in ERFWeb."). It runs after the filing commits and never fails a filing; the key
+`filed:{reportId}:{cycle}` texts once per approval cycle. Other workflow events are still only logged.
+
 Configure the gitignored `appsettings.json` (template in `appsettings.Example.json`):
 
 ```json

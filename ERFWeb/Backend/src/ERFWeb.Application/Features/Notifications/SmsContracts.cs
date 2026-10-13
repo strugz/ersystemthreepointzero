@@ -50,6 +50,12 @@ public interface ISmsService
     /// call starts it runs to completion even if the caller's request is aborted.
     /// </summary>
     Task<SmsSendResult> SendAsync(SendSmsRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Server-initiated SMS about a report (e.g. on filing): texts its claimant and its Level 1 and Level 2
+    /// signatories, sent as the signed-in user. Same outcomes and once-per-key guarantee as <see cref="SendAsync"/>.
+    /// </summary>
+    Task<SmsSendResult> SendAboutReportAsync(Guid reportId, string message, string idempotencyKey, CancellationToken ct = default);
 }
 
 /// <summary>One message for the SMS gateway. Never log <see cref="Message"/>.</summary>
