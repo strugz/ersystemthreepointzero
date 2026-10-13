@@ -43,7 +43,9 @@ public static class DependencyInjection
         services.AddScoped<ITransactionRunner, EfTransactionRunner>();
         services.AddScoped<IWorkflowAuditWriter, WorkflowAuditWriter>();
         services.AddScoped<IUserAuthenticator, UserAuthenticator>();
-        services.AddScoped<IApprovalNotifier, LoggingApprovalNotifier>();
+        // Logs every workflow event; filing also sends an SMS through Lasius (see SmsApprovalNotifier).
+        services.AddScoped<LoggingApprovalNotifier>();
+        services.AddScoped<IApprovalNotifier, SmsApprovalNotifier>();
 
         // Reporting (Phase 1)
         services.AddOptions<R47ReportOptions>();
