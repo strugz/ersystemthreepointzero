@@ -74,6 +74,42 @@ public enum FinanceStatus
     ClearedForPayment,
 }
 
+/// <summary>
+/// Lifecycle of a verification request (plan Flow 6). Open waits for a verifier; InProgress is
+/// picked up; Found holds a Not Verified finding waiting for Finance to query Level 2; Queried waits
+/// for Level 2's decision; Closed is resolved. While any request is unresolved the report cannot
+/// be cleared for payment.
+/// </summary>
+public enum VerificationStatus
+{
+    Open,
+    InProgress,
+    Found,
+    Queried,
+    Closed,
+}
+
+/// <summary>The Expense Verifier's finding. Recorded once and never changed (9.17).</summary>
+public enum VerificationFinding
+{
+    Verified,
+    VerifiedWithNote,
+    NotVerified,
+}
+
+/// <summary>Level 2's decision on a query about a Not Verified finding.</summary>
+public enum QueryDisposition
+{
+    /// <summary>Let the expense through; Finance carries on.</summary>
+    Resume,
+
+    /// <summary>Send the report back to the employee for correction; approval restarts on re-filing.</summary>
+    Return,
+
+    /// <summary>Refuse the report. Final.</summary>
+    Reject,
+}
+
 /// <summary>Whether an expense line is local travel or foreign.</summary>
 public enum ExpenseType
 {

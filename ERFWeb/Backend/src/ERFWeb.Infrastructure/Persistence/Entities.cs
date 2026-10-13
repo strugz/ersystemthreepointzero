@@ -230,6 +230,38 @@ public class FinanceTracking
     public DateTimeOffset UpdatedAt { get; set; }
 }
 
+/// <summary>
+/// Finance's request to an Expense Verifier to fact-check one line of an approved report (plan
+/// Flow 6), and the follow-on query to Level 2 when the finding is Not Verified. Findings and
+/// decisions are written once; the row only moves forward through <see cref="VerificationStatus"/>.
+/// </summary>
+public class VerificationRequest
+{
+    public long Id { get; set; }
+    public Guid ReportId { get; set; }
+    public long ExpenseLineId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public VerificationStatus Status { get; set; } = VerificationStatus.Open;
+    public long RequestedByUserId { get; set; }
+    public DateTimeOffset RequestedAt { get; set; }
+    public long? VerifierUserId { get; set; }
+    public DateTimeOffset? PickedUpAt { get; set; }
+    public VerificationFinding? Finding { get; set; }
+    public string? FindingNote { get; set; }
+    public DateTimeOffset? FoundAt { get; set; }
+    public long? QueryToUserId { get; set; }
+    public long? QueriedByUserId { get; set; }
+    public string? QueryNote { get; set; }
+    public DateTimeOffset? QueriedAt { get; set; }
+    public QueryDisposition? Disposition { get; set; }
+    public string? DispositionNote { get; set; }
+    public long? DecidedByUserId { get; set; }
+    public DateTimeOffset? DecidedAt { get; set; }
+    public DateTimeOffset? ClosedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
 public class ReceiptAttachment
 {
     public long Id { get; set; }

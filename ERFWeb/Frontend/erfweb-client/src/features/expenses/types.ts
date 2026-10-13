@@ -1,4 +1,5 @@
 // Mirrors ERFWeb.Application.Features.Expenses contracts. Enums travel as strings.
+import type { VerificationPanel } from '@/features/verification/types';
 
 export type ReportType = 'RevolvingFund' | 'CashAdvanceLiquidation' | 'Reimbursement';
 export type ReportStatus = 'New' | 'ForApproval' | 'Returned' | 'Approved' | 'Rejected';
@@ -121,6 +122,8 @@ export interface FinanceSummary {
   remarks: string | null;
   receivedAt: string | null;
   clearedAt: string | null;
+  /** A verification request is unresolved, so the report cannot be cleared yet. */
+  underVerification?: boolean;
 }
 
 export interface Attachment {
@@ -162,6 +165,8 @@ export interface ExpenseReportDetail {
   attachments: Attachment[];
   review?: ReviewActions | null;
   finance?: FinanceSummary | null;
+  /** Present when there are requests or the viewer (Finance) may raise one. */
+  verification?: VerificationPanel | null;
 }
 
 export interface FileReportResult {

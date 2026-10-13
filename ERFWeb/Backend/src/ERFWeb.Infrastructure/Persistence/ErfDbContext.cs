@@ -28,6 +28,7 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
     public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
     public DbSet<FinanceTracking> FinanceTrackings => Set<FinanceTracking>();
     public DbSet<ReceiptAttachment> ReceiptAttachments => Set<ReceiptAttachment>();
+    public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
     public DbSet<ReminderDelivery> ReminderDeliveries => Set<ReminderDelivery>();
     public DbSet<LoginSecurity> LoginSecurities => Set<LoginSecurity>();
     public DbSet<WorkflowAudit> WorkflowAudits => Set<WorkflowAudit>();
@@ -51,6 +52,9 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
         builder.Properties<ReportStatus>().HaveConversion<string>().HaveMaxLength(16);
         builder.Properties<ApprovalStatus>().HaveConversion<string>().HaveMaxLength(16);
         builder.Properties<FinanceStatus>().HaveConversion<string>().HaveMaxLength(24);
+        builder.Properties<VerificationStatus>().HaveConversion<string>().HaveMaxLength(16);
+        builder.Properties<VerificationFinding>().HaveConversion<string>().HaveMaxLength(24);
+        builder.Properties<QueryDisposition>().HaveConversion<string>().HaveMaxLength(16);
         builder.Properties<ExpenseType>().HaveConversion<string>().HaveMaxLength(16);
         builder.Properties<ExpenseCategory>().HaveConversion<string>().HaveMaxLength(24);
 
@@ -219,6 +223,34 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
             e.HasOne<User>().WithMany().HasForeignKey(x => x.ReceivedByUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<User>().WithMany().HasForeignKey(x => x.ClearedByUserId).OnDelete(DeleteBehavior.Restrict);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<VerificationRequest>(e =>
+        {
+            e.ToTable("verification_requests");
+            e.HasIndex(x => x.ReportId);
+            e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.VerifierUserId);
+            e.HasIndex(x => x.QueryToUserId);
+
+            // One unresolved request per line; a closed one may be followed by a new request.
+            e.HasIndex(x => x.ExpenseLineId).IsUnique().HasFilter("status <> 'Closed'");
+            e.Property(x => x.Status).HasDefaultValue(VerificationStatus.Open);
+            e.Property(x => x.Reason).HasMaxLength(2000);
+            e.Property(x => x.FindingNote).HasMaxLength(2000);
+            e.Property(x => x.QueryNote).HasMaxLength(2000);
+            e.Property(x => x.DispositionNote).HasMaxLength(2000);
+            e.Property(x => x.RequestedAt).HasDefaultValueSql("now()");
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+            e.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
+            e.HasOne<ExpenseReport>().WithMany().HasForeignKey(x => x.ReportId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<ExpenseLine>().WithMany().HasForeignKey(x => x.ExpenseLineId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.RequestedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.VerifierUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.QueryToUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.QueriedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.DecidedByUserId).OnDelete(DeleteBehavior.Restrict);
             AddConcurrencyToken(e);
         });
 

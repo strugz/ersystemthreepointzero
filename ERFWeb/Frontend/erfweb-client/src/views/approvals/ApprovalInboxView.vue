@@ -11,19 +11,29 @@ import type { ApprovalInboxItem, ApprovalInboxView } from '@/features/approvals/
 import { approvalStatusLabel, reportTypeLabel } from '@/features/expenses/labels';
 import ReportStatusChip from '@/features/expenses/components/ReportStatusChip.vue';
 import type { PagedResult } from '@/features/expenses/types';
+import { useSessionStore } from '@/app/stores/session';
+import { verificationApi } from '@/features/verification/api';
+import VerificationList from '@/features/verification/components/VerificationList.vue';
+import type { VerificationQueueItem } from '@/features/verification/types';
 
 const router = useRouter();
 const route = useRoute();
 const snack = useSnackbar();
 const { xs } = useDisplay();
 
-const view = ref<ApprovalInboxView>(route.query.view === 'Acted' ? 'Acted' : 'Pending');
+// "Queries" is the Level 2's list of Not verified findings Finance referred to them (plan Flow 6).
+type InboxTab = ApprovalInboxView | 'Queries';
+const session = useSessionStore();
+const isLevel2 = session.hasRole('SignatoryLevel2');
+const initialTab: InboxTab = route.query.view === 'Acted' ? 'Acted' : route.query.view === 'Queries' && isLevel2 ? 'Queries' : 'Pending';
+const view = ref<InboxTab>(initialTab);
 const page = ref(1);
 const pageSize = 15;
 const search = ref('');
 const loading = ref(true);
 const error = ref<string | null>(null);
 const result = ref<PagedResult<ApprovalInboxItem> | null>(null);
+const queries = ref<PagedResult<VerificationQueueItem> | null>(null);
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -31,7 +41,13 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
-    result.value = await approvalsApi.inbox({ view: view.value, page: page.value, pageSize, search: search.value.trim() || undefined });
+    if (view.value === 'Queries') {
+      result.value = null;
+      queries.value = await verificationApi.queries('Pending', page.value, pageSize);
+    } else {
+      queries.value = null;
+      result.value = await approvalsApi.inbox({ view: view.value, page: page.value, pageSize, search: search.value.trim() || undefined });
+    }
   } catch (err) {
     error.value = 'Unable to load your approvals.';
     snack.fromError(err, error.value);
@@ -44,7 +60,7 @@ onMounted(load);
 watch(page, load);
 watch(view, () => {
   page.value = 1;
-  void router.replace({ query: view.value === 'Acted' ? { view: 'Acted' } : {} });
+  void router.replace({ query: view.value === 'Pending' ? {} : { view: view.value } });
   void load();
 });
 watch(search, () => {
@@ -54,6 +70,10 @@ watch(search, () => {
     void load();
   }, 250);
 });
+
+function openQuery(item: VerificationQueueItem) {
+  router.push({ name: 'report-review', params: { id: item.reportId }, query: { from: 'queries' } });
+}
 
 function open(item: ApprovalInboxItem) {
   router.push({ name: 'report-review', params: { id: item.reportId } });
@@ -79,8 +99,10 @@ function waitingFor(item: ApprovalInboxItem): string {
         <v-btn-toggle v-model="view" mandatory density="comfortable" variant="outlined" divided color="primary">
           <v-btn value="Pending" class="press">To review</v-btn>
           <v-btn value="Acted" class="press">Acted on</v-btn>
+          <v-btn v-if="isLevel2" value="Queries" class="press">Queries</v-btn>
         </v-btn-toggle>
         <v-text-field
+          v-if="view !== 'Queries'"
           v-model="search"
           density="compact"
           hide-details
@@ -100,6 +122,19 @@ function waitingFor(item: ApprovalInboxItem): string {
         {{ error }}
         <template #append><v-btn class="press" size="small" variant="text" @click="load">Retry</v-btn></template>
       </v-alert>
+
+      <template v-else-if="view === 'Queries'">
+        <AppEmptyState
+          v-if="queries && queries.items.length === 0 && !loading"
+          icon="mdi-magnify-scan"
+          title="No queries for you"
+          hint="When a verifier cannot verify a line, Finance asks the Level 2 Signatory to decide. Those queries appear here."
+        />
+        <VerificationList v-else-if="queries" :items="queries.items" show-query @open="openQuery" />
+        <div v-if="queries && queries.totalPages > 1" class="d-flex justify-center py-2">
+          <v-pagination v-model="page" :length="queries.totalPages" density="comfortable" :total-visible="xs ? 5 : 7" />
+        </div>
+      </template>
 
       <AppEmptyState
         v-else-if="result && result.items.length === 0 && !loading"

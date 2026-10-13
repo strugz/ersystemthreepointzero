@@ -23,6 +23,7 @@ import AttachmentsPanel from '@/features/expenses/components/AttachmentsPanel.vu
 import { compressImage } from '@/shared/images';
 import ApprovalTimeline from '@/features/expenses/components/ApprovalTimeline.vue';
 import FinanceSummaryCard from '@/features/expenses/components/FinanceSummaryCard.vue';
+import VerificationCard from '@/features/verification/components/VerificationCard.vue';
 import type {
   Attachment,
   CashAdvanceLine,
@@ -510,6 +511,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
           <FilingChecklist v-if="report.canFile" :items="checklist" :approver-names="readiness?.approverNames ?? []" />
           <ApprovalTimeline :steps="report.approvalSteps" :status="report.status" :cycle="report.currentCycle" />
           <FinanceSummaryCard v-if="report.finance" :finance="report.finance" />
+          <VerificationCard v-if="report.verification?.requests.length" :panel="report.verification" />
           <AttachmentsPanel
             class="editor__span"
             :report-id="report.id"
@@ -529,6 +531,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         <FilingChecklist v-if="report.canFile" :items="checklist" :approver-names="readiness?.approverNames ?? []" />
         <ApprovalTimeline :steps="report.approvalSteps" :status="report.status" :cycle="report.currentCycle" />
         <FinanceSummaryCard v-if="report.finance" :finance="report.finance" />
+        <VerificationCard v-if="report.verification?.requests.length" :panel="report.verification" />
         <AttachmentsPanel
           :report-id="report.id"
           :attachments="report.attachments"

@@ -17,6 +17,9 @@ defineProps<{ finance: FinanceSummary }>();
       <p v-if="finance.status === 'Pending'" class="text-body-2 text-medium-emphasis mb-0">
         Submit the original receipts to Finance. The report is paid once Finance confirms them.
       </p>
+      <v-alert v-if="finance.underVerification" type="warning" variant="tonal" density="compact" icon="mdi-magnify-scan">
+        A line is being verified. Payment waits until the check is done.
+      </v-alert>
       <div v-if="finance.remarks" class="fin__remarks">{{ finance.remarks }}</div>
       <div class="fin__meta">
         <span v-if="finance.receivedAt">Received {{ formatDateTime(finance.receivedAt) }}</span>

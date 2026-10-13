@@ -24,6 +24,10 @@ export interface FinanceQueueItem {
   /** Finance never processes its own report; the API refuses it too. */
   isOwnReport: boolean;
   rowVersion: number;
+  /** Unresolved verification requests; clearance waits until there are none. */
+  openVerifications: number;
+  /** A Not verified finding waits for Finance to query Level 2. */
+  needsQuery: boolean;
 }
 
 export interface FinanceQueueQuery {

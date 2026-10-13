@@ -68,7 +68,8 @@ const adminNav = computed<NavItem[]>(() => {
   return items;
 });
 
-// Work queues: approvals for signatories, the receipt queue for Finance. Gating is display only.
+// Work queues: approvals for signatories, the receipt queue for Finance, verifications for the
+// Expense Verifier. Gating is display only.
 const workNav = computed<NavItem[]>(() => {
   const items: NavItem[] = [];
   if (session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2')) {
@@ -76,6 +77,9 @@ const workNav = computed<NavItem[]>(() => {
   }
   if (session.hasRole('Finance')) {
     items.push({ title: 'Finance queue', icon: 'mdi-receipt-text-check-outline', to: { name: 'finance-queue' }, exact: false });
+  }
+  if (session.hasRole('ExpenseVerifier')) {
+    items.push({ title: 'Verifications', icon: 'mdi-magnify-scan', to: { name: 'verifications' }, exact: false });
   }
   return items;
 });
@@ -103,7 +107,7 @@ const navGroups = computed(() =>
   ].filter((g) => g.items.length > 0),
 );
 
-const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'report-review', 'finance-queue']);
+const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'report-review', 'finance-queue', 'verifications']);
 
 const roleSummary = computed(() => (session.user?.roles ?? []).map(roleLabel).join(' · '));
 const moreOpen = ref(false);

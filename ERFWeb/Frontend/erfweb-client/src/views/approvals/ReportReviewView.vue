@@ -24,9 +24,15 @@ import { approvalActionCopy } from '@/features/approvals/labels';
 import ApprovalActionDialog from '@/features/approvals/components/ApprovalActionDialog.vue';
 import AdjustLineDialog from '@/features/approvals/components/AdjustLineDialog.vue';
 import type { ApprovalActionKind } from '@/features/approvals/types';
+import { verificationApi } from '@/features/verification/api';
+import VerificationCard from '@/features/verification/components/VerificationCard.vue';
+import VerificationActionDialog from '@/features/verification/components/VerificationActionDialog.vue';
+import type { VerificationActionMode, VerificationActionPayload } from '@/features/verification/components/VerificationActionDialog.vue';
+import type { Verification } from '@/features/verification/types';
 
-// Read-only review of someone else's report, for approvers and Finance. The API decides what the
-// viewer may do (report.review); these buttons only mirror it, and every refusal is surfaced.
+// Read-only review of someone else's report, for approvers, Finance, and Expense Verifiers. The API
+// decides what the viewer may do (report.review, report.verification); these buttons only mirror it,
+// and every refusal is surfaced.
 const route = useRoute();
 const router = useRouter();
 const snack = useSnackbar();
@@ -58,9 +64,14 @@ async function load() {
 
 onMounted(load);
 
-const fromFinance = computed(() => route.query.from === 'finance');
 const crumbs = computed<Crumb[]>(() => [
-  fromFinance.value ? { title: 'Finance queue', to: { name: 'finance-queue' } } : { title: 'Approvals', to: { name: 'approvals' } },
+  route.query.from === 'finance'
+    ? { title: 'Finance queue', to: { name: 'finance-queue' } }
+    : route.query.from === 'verifications'
+      ? { title: 'Verifications', to: { name: 'verifications' } }
+      : route.query.from === 'queries'
+        ? { title: 'Approvals', to: { name: 'approvals', query: { view: 'Queries' } } }
+        : { title: 'Approvals', to: { name: 'approvals' } },
   { title: report.value?.referenceNo || 'Expense report', mono: !!report.value?.referenceNo },
 ]);
 
@@ -116,6 +127,71 @@ async function confirmAction(note: string | null) {
     }
   } finally {
     acting.value = false;
+  }
+}
+
+// ---- verification (Finance raises and queries, verifier finds, Level 2 decides) ----
+const vMode = ref<VerificationActionMode | null>(null);
+const vRequest = ref<Verification | null>(null);
+const vSaving = ref(false);
+const vError = ref<string | null>(null);
+const vBusyId = ref<number | null>(null);
+
+function startVerification(mode: VerificationActionMode, request: Verification | null = null) {
+  vError.value = null;
+  vRequest.value = request;
+  vMode.value = mode;
+}
+
+function closeVerification() {
+  vMode.value = null;
+  vRequest.value = null;
+}
+
+async function pickUp(request: Verification) {
+  vBusyId.value = request.id;
+  try {
+    report.value = await verificationApi.pickUp(request.id, request.rowVersion);
+    snack.success('Picked up. Check the facts, then record your finding.');
+  } catch (err) {
+    snack.fromError(err, 'Unable to pick up the request.');
+    await load();
+  } finally {
+    vBusyId.value = null;
+  }
+}
+
+async function saveVerification(payload: VerificationActionPayload) {
+  const mode = vMode.value;
+  const request = vRequest.value;
+  if (!mode) return;
+  vSaving.value = true;
+  vError.value = null;
+  try {
+    if (mode === 'raise' && payload.lineId !== undefined) {
+      report.value = await verificationApi.raise(reportId, payload.lineId, payload.note ?? '');
+      snack.success('Sent to the verifiers. Clearance waits until the check is done.');
+    } else if (mode === 'finding' && request && payload.finding) {
+      report.value = await verificationApi.recordFinding(request.id, payload.finding, payload.note, request.rowVersion);
+      snack.success('Finding recorded and sent to Finance.');
+    } else if (mode === 'query' && request) {
+      report.value = await verificationApi.query(request.id, payload.note ?? '', request.rowVersion);
+      snack.success('Query sent to the Level 2 Signatory.');
+    } else if (mode === 'decide' && request && payload.disposition) {
+      report.value = await verificationApi.decide(request.id, payload.disposition, payload.note, request.rowVersion);
+      snack.success('Decision saved.');
+    }
+    closeVerification();
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 400) {
+      vError.value = describeError(err);
+    } else {
+      closeVerification();
+      snack.fromError(err, 'Unable to complete the verification step.');
+      await load();
+    }
+  } finally {
+    vSaving.value = false;
   }
 }
 
@@ -241,6 +317,17 @@ async function saveAdjust(amount: number, reason: string) {
           />
         </v-card>
 
+        <VerificationCard
+          v-if="report.verification"
+          :panel="report.verification"
+          :busy-id="vBusyId"
+          @request="startVerification('raise')"
+          @pick-up="pickUp"
+          @finding="startVerification('finding', $event)"
+          @query="startVerification('query', $event)"
+          @decide="startVerification('decide', $event)"
+        />
+
         <div v-if="!lgAndUp" class="review__two-up">
           <ApprovalTimeline :steps="report.approvalSteps" :status="report.status" :cycle="report.currentCycle" />
           <FinanceSummaryCard v-if="report.finance" :finance="report.finance" />
@@ -256,6 +343,15 @@ async function saveAdjust(amount: number, reason: string) {
       </aside>
 
       <ApprovalActionDialog :action="action" :loading="acting" :error="actionError" @close="action = null" @confirm="confirmAction" />
+      <VerificationActionDialog
+        :mode="vMode"
+        :request="vRequest"
+        :lines="report.lines"
+        :saving="vSaving"
+        :error="vError"
+        @close="closeVerification"
+        @save="saveVerification"
+      />
       <AdjustLineDialog :line="adjusting" :saving="savingAdjust" :error="adjustError" @close="adjusting = null" @save="saveAdjust" />
     </div>
   </AuthenticatedLayout>

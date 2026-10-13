@@ -4,6 +4,7 @@ using ERFWeb.Domain;
 using ERFWeb.Domain.Approval;
 using ERFWeb.Domain.Expenses;
 using ERFWeb.Infrastructure.Persistence;
+using ERFWeb.Infrastructure.Verification;
 using Microsoft.EntityFrameworkCore;
 
 namespace ERFWeb.Infrastructure.Expenses;
@@ -12,7 +13,7 @@ namespace ERFWeb.Infrastructure.Expenses;
 /// LINQ read model for the report editor: header + employee, cash advance, active lines with
 /// their meal/transport children, approval steps of the current cycle, and attachment metadata.
 /// </summary>
-public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user)
+public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user, VerificationReader verification)
 {
     public async Task<ExpenseReportDetailDto> LoadAsync(Guid reportId, CancellationToken ct)
     {
@@ -54,6 +55,12 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
         var attachments = await LoadAttachmentsAsync(reportId, ct);
 
         var rep = header.Report;
+        var panel = await verification.PanelAsync(reportId, rep.EmployeeUserId, rep.Status, finance?.Status, ct);
+        if (finance is not null)
+        {
+            finance = finance with { UnderVerification = panel.UnderVerification };
+        }
+
         var isOwner = rep.EmployeeUserId == user.UserId;
         var review = ApprovalWorkflow.Permissions(rep.Status, workflowSteps, rep.EmployeeUserId, user.UserId);
 
@@ -86,7 +93,8 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
             steps,
             attachments,
             new ReviewActionsDto(review.CanApprove, review.CanReturn, review.CanReject, review.CanOverride, review.CanAdjustLines),
-            finance);
+            finance,
+            panel.Requests.Count > 0 || panel.CanRequest ? panel : null);
     }
 
     public async Task<IReadOnlyList<ExpenseLineDto>> LoadLinesAsync(Guid reportId, CancellationToken ct)

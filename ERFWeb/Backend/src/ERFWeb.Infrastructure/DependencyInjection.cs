@@ -6,6 +6,7 @@ using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Application.Features.Reporting;
+using ERFWeb.Application.Features.Verification;
 using ERFWeb.Infrastructure.Administration;
 using ERFWeb.Infrastructure.Approvals;
 using ERFWeb.Infrastructure.Authentication;
@@ -17,6 +18,7 @@ using ERFWeb.Infrastructure.Notifications;
 using ERFWeb.Infrastructure.Persistence;
 using ERFWeb.Infrastructure.Reporting;
 using ERFWeb.Infrastructure.Services;
+using ERFWeb.Infrastructure.Verification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -78,6 +80,8 @@ public static class DependencyInjection
         // Two-level approval & Finance (Phase 5)
         services.AddScoped<IApprovalService, ApprovalService>();
         services.AddScoped<IFinanceService, FinanceService>();
+        services.AddScoped<VerificationReader>();
+        services.AddScoped<IVerificationService, VerificationService>();
 
         return services;
     }

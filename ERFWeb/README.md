@@ -85,6 +85,8 @@ psql -d erfweb -f Database/005_cash_advance_lines.sql # cash advances become row
 psql -d erfweb -f Database/006_user_roles_and_administration.sql # Phase 1: additive roles (user_roles), master data, rules, second admin
 psql -d erfweb -f Database/007_scope_and_rate_profiles.sql # Phase 2: scope assignments and rate profiles (migrates routes and rates)
 psql -d erfweb -f Database/008_approvals_and_finance.sql # Phase 5: line adjustments and Finance receipt tracking columns
+psql -d erfweb -f Database/009_verification_requests.sql # Phase 6: verification requests and queries
+psql -d erfweb -f Database/010_seed_test_verifier.sql   # optional, dev/UAT only: verifier1 / Test!1234 (needs 004)
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -340,3 +342,43 @@ steps are 409.
 and `finance` (receipt status). SPA screens: **Approvals** (`/approvals`) and the review page (`/review/{id}`)
 for signatories, **Finance queue** (`/finance`) for Finance. Workflow notifications go through
 `IApprovalNotifier.NotifyWorkflowEventAsync`; like the other notifiers it only logs until SMTP delivery lands.
+
+## Verification & queries (plan Phase 6, Flow 6)
+
+Script `009` adds `verification_requests` (row history through `fn_record_history`, one unresolved request per
+line by a partial unique index). The optional `010` seeds a test Expense Verifier, `verifier1`, for walkthroughs.
+
+**Flow** (Domain `VerificationRules`, each step one serializable transaction with its audit row):
+
+1. **Finance raises** a request on one line of an **approved** report that is not yet cleared (9.18), with the
+   reason. The report stays in the Finance queue marked *Under verification*; receipts can still be recorded,
+   but **clearing for payment is refused (409)** while any request is unresolved.
+2. **An Expense Verifier picks it up** from the pool. Nobody verifies their own report, one they approved, or
+   one they raised (9.16); those requests are left out of their pool and refused (403).
+3. **The verifier records a finding**, once (9.17): *Verified* (closes the request), *Verified with note*
+   (closes it; note required), or *Not verified* (note required; goes back to Finance). The verifier never
+   changes amounts, approves, or rejects.
+4. **Finance queries Level 2** on a Not verified finding. The query goes to the Level 2 who approved the report,
+   or, for a route without a Level 2 step, to whoever holds Level 2 scope over the employee today.
+5. **Level 2 decides** (9.4, Finance never rejects on merit): *let it through* (Finance carries on), *return*
+   (reason required; the report goes back to the employee, leaves the Finance queue, and approval restarts on
+   re-filing), or *reject* (reason required; final). Returning or rejecting closes the report's other requests.
+
+**Visibility.** A verifier sees a report only while it has a request in the open pool or one they picked up. A
+Level 2 sees reports they were queried about. The claimant sees which line is under verification, its status,
+the finding, and Level 2's decision, but not Finance's reason, the verifier's notes, or the query (open decision
+9c, defaulted to not showing findings to the claimant until it is decided).
+
+| Endpoint (policy) | Purpose |
+| --- | --- |
+| `POST /api/verifications` (Finance) | Raise `{ reportId, lineId, reason }` |
+| `GET /api/verifications?view=Open\|Mine\|Done` (Expense Verifier) | The pool, my requests in progress, my findings |
+| `POST /api/verifications/{id}/pick-up` · `/finding` (Expense Verifier) | `{ rowVersion }` · `{ finding, note, rowVersion }` |
+| `POST /api/verifications/{id}/query` (Finance) | Refer a Not verified finding to Level 2 `{ note, rowVersion }` |
+| `GET /api/verifications/queries?view=Pending\|Decided` · `POST /api/verifications/{id}/decision` (signatories; service checks it is addressed to you) | Level 2's queries; decide `{ disposition: Resume\|Return\|Reject, note, rowVersion }` |
+
+Every action returns the report detail, which now carries `verification` (the requests with what the viewer may
+do) and `finance.underVerification`; Finance queue rows carry `openVerifications` and `needsQuery`. SPA:
+**Verifications** (`/verifications`) for Expense Verifiers, a **Queries** tab in Approvals for Level 2, and a
+Verification card on the review and report pages. Events are written as `VerificationRequested`,
+`VerificationPickedUp`, `VerificationFound`, `QueryRaised`, and `QueryDecided`.

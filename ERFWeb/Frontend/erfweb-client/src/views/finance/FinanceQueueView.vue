@@ -199,6 +199,8 @@ async function followUp(item: FinanceQueueItem) {
             <div class="item__top">
               <span class="mono item__ref">{{ item.referenceNo }}</span>
               <span class="pill" :class="financeStatusTone[item.status]">{{ financeStatusLabel[item.status] }}</span>
+              <span v-if="item.needsQuery" class="pill pill--error">Not verified: query Level 2</span>
+              <span v-else-if="item.openVerifications" class="pill pill--warning">Under verification</span>
               <span v-if="item.isOwnReport" class="pill pill--neutral">Your report</span>
             </div>
             <div class="item__who">
@@ -220,7 +222,8 @@ async function followUp(item: FinanceQueueItem) {
             <div v-if="!item.isOwnReport" class="item__actions">
               <v-btn v-if="awaitsReceipts(item)" class="press" size="small" variant="text" prepend-icon="mdi-bell-ring-outline" :disabled="busyId !== null" @click="followUp(item)">Follow up</v-btn>
               <v-btn v-if="awaitsReceipts(item)" class="press" size="small" variant="outlined" color="primary" :disabled="busyId !== null" @click="startReceipts(item)">Receipts</v-btn>
-              <v-btn v-if="item.status === 'ReceiptsReceived'" class="press" size="small" variant="flat" color="success" prepend-icon="mdi-cash-check" :loading="busyId === item.reportId" @click="startClear(item)">Clear for payment</v-btn>
+              <v-btn v-if="item.status === 'ReceiptsReceived' && !item.openVerifications" class="press" size="small" variant="flat" color="success" prepend-icon="mdi-cash-check" :loading="busyId === item.reportId" @click="startClear(item)">Clear for payment</v-btn>
+              <span v-else-if="item.status === 'ReceiptsReceived'" class="text-caption text-medium-emphasis">Clear after the verification is resolved</span>
             </div>
           </div>
         </div>

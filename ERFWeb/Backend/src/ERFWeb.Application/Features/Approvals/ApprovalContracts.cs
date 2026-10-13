@@ -85,7 +85,9 @@ public sealed record FinanceQueueItemDto(
     int AttachmentCount,
     int DaysSinceApproval,
     bool IsOwnReport,
-    uint RowVersion);
+    uint RowVersion,
+    int OpenVerifications = 0,
+    bool NeedsQuery = false);
 
 public sealed record FinanceQueueQuery : PagedRequest
 {

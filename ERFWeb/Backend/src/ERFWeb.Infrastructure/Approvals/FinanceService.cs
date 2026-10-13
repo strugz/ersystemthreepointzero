@@ -4,6 +4,7 @@ using ERFWeb.Application.Features.Approvals;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Finance;
 using ERFWeb.Infrastructure.Persistence;
+using ERFWeb.Infrastructure.Verification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -21,6 +22,7 @@ public sealed class FinanceService(
     ITransactionRunner tx,
     IWorkflowAuditWriter audit,
     IApprovalNotifier notifier,
+    VerificationReader verification,
     ILogger<FinanceService> logger) : IFinanceService
 {
     public async Task<PagedResult<FinanceQueueItemDto>> QueueAsync(FinanceQueueQuery query, CancellationToken ct = default)
@@ -112,6 +114,13 @@ public sealed class FinanceService(
         var notification = await tx.ExecuteAsync(async token =>
         {
             var (tracking, report) = await LoadForActionAsync(reportId, token);
+
+            // Flow 6: an unresolved verification request pauses clearance.
+            if (await db.VerificationRequests.AnyAsync(v => v.ReportId == reportId && v.Status != VerificationStatus.Closed, token))
+            {
+                throw new ConflictException("The report is under verification. Clear it once the verification is resolved.");
+            }
+
             if (FinanceRules.ClearError(tracking.Status, remarks) is { } error)
             {
                 // Only the remarks length is a bad request; anything else is out of order (409).
@@ -213,6 +222,7 @@ public sealed class FinanceService(
             .ToDictionaryAsync(x => x.ReportId, x => x.RowVersion, ct);
         var peopleIds = rows.SelectMany(r => new[] { r.Tracking.ReceivedByUserId, r.Tracking.ClearedByUserId }).OfType<long>().Distinct().ToList();
         var people = await db.Users.AsNoTracking().Where(u => peopleIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+        var open = await verification.OpenByReportAsync(ids, ct);
 
         var now = clock.UtcNow;
         return rows.Select(x => new FinanceQueueItemDto(
@@ -223,7 +233,9 @@ public sealed class FinanceService(
             x.Tracking.FollowUpCount, x.Tracking.LastFollowUpAt, attachments.GetValueOrDefault(x.Report.Id),
             x.Report.ApprovedAt is { } at ? Math.Max(0, (int)(now - at).TotalDays) : 0,
             IsOwnReport: x.Report.EmployeeUserId == user.UserId,
-            versions.GetValueOrDefault(x.Report.Id))).ToList();
+            versions.GetValueOrDefault(x.Report.Id),
+            open.GetValueOrDefault(x.Report.Id).Open,
+            open.GetValueOrDefault(x.Report.Id).NeedsQuery)).ToList();
     }
 
     private async Task<(FinanceTracking Tracking, ExpenseReport Report)> LoadForActionAsync(Guid reportId, CancellationToken ct)

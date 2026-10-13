@@ -18,6 +18,7 @@ public static class Policies
     public const string ScopeManager = "ScopeManager";
     public const string RateManager = "RateManager";
     public const string Approver = "Approver";
+    public const string ExpenseVerifier = "ExpenseVerifier";
 
     public static void Register(AuthorizationOptions options)
     {
@@ -42,5 +43,8 @@ public static class Policies
 
         // The inbox is for signatories; the service checks that the step is theirs and it is their turn.
         options.AddPolicy(Approver, p => p.RequireRole(nameof(UserRole.SignatoryLevel1), nameof(UserRole.SignatoryLevel2)));
+
+        // Flow 6: the verifier pool; the service checks 9.16 (not your own report, not one you approved).
+        options.AddPolicy(ExpenseVerifier, p => p.RequireRole(nameof(UserRole.ExpenseVerifier)));
     }
 }

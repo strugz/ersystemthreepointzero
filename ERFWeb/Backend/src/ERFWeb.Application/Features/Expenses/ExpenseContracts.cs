@@ -1,4 +1,5 @@
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Verification;
 using ERFWeb.Domain;
 
 namespace ERFWeb.Application.Features.Expenses;
@@ -111,13 +112,14 @@ public sealed record ExpenseReportDetailDto(
     IReadOnlyList<ApprovalStepDto> ApprovalSteps,
     IReadOnlyList<AttachmentDto> Attachments,
     ReviewActionsDto? Review = null,
-    FinanceSummaryDto? Finance = null);
+    FinanceSummaryDto? Finance = null,
+    VerificationPanelDto? Verification = null);
 
 /// <summary>What the viewer may do on the report as an approver. Computed by the same rules the actions enforce.</summary>
 public sealed record ReviewActionsDto(bool CanApprove, bool CanReturn, bool CanReject, bool CanOverride, bool CanAdjustLines);
 
 /// <summary>Finance receipt tracking for an approved report.</summary>
-public sealed record FinanceSummaryDto(FinanceStatus Status, string? Remarks, DateTimeOffset? ReceivedAt, DateTimeOffset? ClearedAt);
+public sealed record FinanceSummaryDto(FinanceStatus Status, string? Remarks, DateTimeOffset? ReceivedAt, DateTimeOffset? ClearedAt, bool UnderVerification = false);
 
 /// <summary>Downloaded attachment bytes.</summary>
 public sealed record AttachmentContentDto(string FileName, string ContentType, byte[] Content);
