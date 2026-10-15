@@ -27,6 +27,8 @@ export interface ApprovalInboxItem {
   /** A Level 2 may approve past a pending Level 1, with a reason. */
   canOverride: boolean;
   daysWaiting: number;
+  /** Set when the step is a signatory's I stand in for (pending) or acted on for them (acted). */
+  onBehalfOfName?: string | null;
 }
 
 export interface ApprovalInboxQuery {

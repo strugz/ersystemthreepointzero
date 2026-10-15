@@ -36,7 +36,8 @@ public sealed record ApprovalInboxItemDto(
     string? CurrentApproverName,
     bool IsMyTurn,
     bool CanOverride,
-    int DaysWaiting);
+    int DaysWaiting,
+    string? OnBehalfOfName = null);
 
 public sealed record ApprovalInboxQuery : PagedRequest
 {
@@ -125,4 +126,13 @@ public static class ApprovalAuditEvents
     public const string ReceiptsRecorded = "FinanceReceiptsRecorded";
     public const string Cleared = "FinanceClearedForPayment";
     public const string FollowUp = "FinanceFollowUpSent";
+}
+
+/// <summary>
+/// The signatories the current user stands in for today, each mapped to the delegation that allows
+/// it. Used by the inbox, the actions, the review permissions, and report view access.
+/// </summary>
+public interface IDelegationLookup
+{
+    Task<IReadOnlyDictionary<long, long>> ActingForAsync(CancellationToken ct = default);
 }

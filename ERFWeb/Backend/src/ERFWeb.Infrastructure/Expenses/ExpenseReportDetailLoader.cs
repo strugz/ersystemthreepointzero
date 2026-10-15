@@ -1,4 +1,5 @@
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Approvals;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Approval;
@@ -13,7 +14,7 @@ namespace ERFWeb.Infrastructure.Expenses;
 /// LINQ read model for the report editor: header + employee, cash advance, active lines with
 /// their meal/transport children, approval steps of the current cycle, and attachment metadata.
 /// </summary>
-public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user, VerificationReader verification)
+public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user, VerificationReader verification, IDelegationLookup delegations)
 {
     public async Task<ExpenseReportDetailDto> LoadAsync(Guid reportId, CancellationToken ct)
     {
@@ -36,11 +37,16 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
             from s in db.ApprovalSteps.AsNoTracking()
             where s.ReportId == reportId && s.Cycle == header.Report.CurrentCycle
             join a in db.Users.AsNoTracking() on s.ApproverUserId equals a.Id
+            join bj in db.Users.AsNoTracking() on s.ActedByUserId equals (long?)bj.Id into bs
+            from b in bs.DefaultIfEmpty()
             orderby s.StepOrder
-            select new { Step = s, ApproverName = a.FullName })
+            select new { Step = s, ApproverName = a.FullName, ActedByName = b != null ? b.FullName : null })
             .ToListAsync(ct);
+
+        // ActedByName is set only when a delegate acted, so the step reads "by X on behalf of Y".
         var steps = stepRows
-            .Select(x => new ApprovalStepDto(x.Step.StepOrder, x.Step.ApproverUserId, x.ApproverName, x.Step.Status, x.Step.ActedAt, x.Step.Note, x.Step.SignatoryLevel))
+            .Select(x => new ApprovalStepDto(x.Step.StepOrder, x.Step.ApproverUserId, x.ApproverName, x.Step.Status, x.Step.ActedAt, x.Step.Note,
+                x.Step.SignatoryLevel, x.Step.ActedByUserId is { } by && by != x.Step.ApproverUserId ? x.ActedByName : null))
             .ToList();
         var workflowSteps = stepRows
             .Select(x => new WorkflowStep(x.Step.Id, x.Step.StepOrder, x.Step.SignatoryLevel, x.Step.ApproverUserId, x.Step.Status))
@@ -62,7 +68,8 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
         }
 
         var isOwner = rep.EmployeeUserId == user.UserId;
-        var review = ApprovalWorkflow.Permissions(rep.Status, workflowSteps, rep.EmployeeUserId, user.UserId);
+        var actingFor = (await delegations.ActingForAsync(ct)).Keys.ToHashSet();
+        var review = ApprovalWorkflow.Permissions(rep.Status, workflowSteps, rep.EmployeeUserId, user.UserId, actingFor);
 
         return new ExpenseReportDetailDto(
             rep.Id,

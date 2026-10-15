@@ -36,7 +36,7 @@ const tone: Record<string, string> = {
           <div class="step__body">
             <div class="step__name">{{ s.approverName }}<span v-if="s.level" class="step__level"> · Level {{ s.level }}</span></div>
             <div class="step__meta">
-              {{ approvalStatusLabel[s.status] }}<span v-if="s.actedAt"> · {{ formatDateTime(s.actedAt) }}</span>
+              {{ approvalStatusLabel[s.status] }}<span v-if="s.actedByName"> by {{ s.actedByName }} on behalf of {{ s.approverName }}</span><span v-if="s.actedAt"> · {{ formatDateTime(s.actedAt) }}</span>
             </div>
             <div v-if="s.note" class="step__note">{{ s.note }}</div>
           </div>

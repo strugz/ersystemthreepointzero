@@ -16,7 +16,8 @@ namespace ERFWeb.Infrastructure.Approvals;
 /// Approver actions (plan Phase 5, RBAC v0.6 flow 5). Each action runs in one serializable
 /// transaction: the report row version is checked (stale → 409), the step changes and the report
 /// status are written together with a <c>workflow_audit</c> row, and notifications go out after
-/// commit so a delivery failure never undoes a decision.
+/// commit so a delivery failure never undoes a decision. A delegate acts on the steps of the
+/// signatories they stand in for today; the step records who acted and under which delegation.
 /// </summary>
 public sealed class ApprovalService(
     ErfDbContext db,
@@ -26,6 +27,7 @@ public sealed class ApprovalService(
     IWorkflowAuditWriter audit,
     ExpenseReportDetailLoader loader,
     IApprovalNotifier notifier,
+    IDelegationLookup delegations,
     ILogger<ApprovalService> logger) : IApprovalService
 {
     // ---------- Inbox ----------
@@ -35,10 +37,15 @@ public sealed class ApprovalService(
         ArgumentNullException.ThrowIfNull(query);
         var me = user.UserId;
         var pendingView = query.View == ApprovalInboxView.Pending;
+        var actingFor = (await delegations.ActingForAsync(ct)).Keys.ToList();
 
+        // Pending: my steps, plus the steps of signatories I stand in for today. Acted: steps I acted
+        // on myself, whether mine or as a delegate (a step a delegate acted on is theirs, not mine).
         var mine =
             from s in db.ApprovalSteps.AsNoTracking()
-            where s.ApproverUserId == me
+            where pendingView
+                ? s.ApproverUserId == me || actingFor.Contains(s.ApproverUserId)
+                : (s.ApproverUserId == me && (s.ActedByUserId == null || s.ActedByUserId == me)) || s.ActedByUserId == me
             join r in db.ExpenseReports.AsNoTracking() on s.ReportId equals r.Id
             where pendingView
                 ? s.Status == ApprovalStatus.Pending && s.Cycle == r.CurrentCycle && r.Status == ReportStatus.ForApproval
@@ -46,7 +53,8 @@ public sealed class ApprovalService(
             join e in db.Users.AsNoTracking() on r.EmployeeUserId equals e.Id
             join dj in db.Departments.AsNoTracking() on e.DepartmentId equals (long?)dj.Id into ds
             from d in ds.DefaultIfEmpty()
-            select new { Step = s, Report = r, EmployeeName = e.FullName, DepartmentName = d != null ? d.Name : null };
+            join a in db.Users.AsNoTracking() on s.ApproverUserId equals a.Id
+            select new { Step = s, Report = r, EmployeeName = e.FullName, DepartmentName = d != null ? d.Name : null, SignatoryName = a.FullName };
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -57,6 +65,17 @@ public sealed class ApprovalService(
         }
 
         var rows = await mine.ToListAsync(ct);
+        if (pendingView)
+        {
+            // Same rule as the actions: an approver on a report never stands in for another step of it.
+            var ownReports = rows.Where(x => x.Step.ApproverUserId == me).Select(x => x.Report.Id).ToHashSet();
+            rows = rows
+                .Where(x => x.Step.ApproverUserId == me || !ownReports.Contains(x.Report.Id))
+                .GroupBy(x => x.Report.Id)
+                .Select(g => g.OrderBy(x => x.Step.StepOrder).First())
+                .ToList();
+        }
+
         var reportIds = rows.Select(x => x.Report.Id).Distinct().ToList();
 
         var totals = await db.ExpenseLines.AsNoTracking()
@@ -87,7 +106,8 @@ public sealed class ApprovalService(
                 x.Report.FiledAt, x.Step.Cycle, x.Step.StepOrder, x.Step.SignatoryLevel, x.Step.Status, x.Step.ActedAt,
                 current?.StepOrder, current?.ApproverName, isMyTurn,
                 CanOverride: pendingView && !isMyTurn && x.Step.SignatoryLevel == 2,
-                DaysWaiting: since is { } t ? Math.Max(0, (int)(now - t).TotalDays) : 0);
+                DaysWaiting: since is { } t ? Math.Max(0, (int)(now - t).TotalDays) : 0,
+                OnBehalfOfName: x.Step.ApproverUserId != me ? x.SignatoryName : null);
         });
 
         // Oldest first for work to do; most recent first for history.
@@ -117,6 +137,7 @@ public sealed class ApprovalService(
     {
         ArgumentNullException.ThrowIfNull(request);
         var reason = Clean(request.Note);
+        var actingFor = await delegations.ActingForAsync(ct);
 
         var outcome = await tx.ExecuteAsync(async token =>
         {
@@ -127,8 +148,15 @@ public sealed class ApprovalService(
                 .OrderBy(s => s.StepOrder)
                 .ToListAsync(token);
 
-            var decision = ApprovalWorkflow.Decide(report.Status, ToWorkflow(steps), report.EmployeeUserId, user.UserId, action, reason);
+            var decision = ApprovalWorkflow.Decide(report.Status, ToWorkflow(steps), report.EmployeeUserId, user.UserId, action, reason,
+                actingFor.Keys.ToHashSet());
             ThrowIfRefused(decision);
+
+            var acting = steps.First(s => s.Id == decision.ActingStepId);
+            var onBehalfOf = acting.ApproverUserId != user.UserId
+                ? await db.Users.AsNoTracking().Where(u => u.Id == acting.ApproverUserId).Select(u => u.FullName).FirstAsync(token)
+                : null;
+            var actor = onBehalfOf is null ? user.FullName : $"{user.FullName} on behalf of {onBehalfOf}";
 
             var now = clock.UtcNow;
             var signature = await db.Users.AsNoTracking().Where(u => u.Id == user.UserId).Select(u => u.Signature).FirstOrDefaultAsync(token);
@@ -141,6 +169,8 @@ public sealed class ApprovalService(
                 if (isActing)
                 {
                     step.Note = reason;
+                    step.ActedByUserId = user.UserId;
+                    step.DelegationId = onBehalfOf is null ? null : actingFor[step.ApproverUserId];
                     if (status == ApprovalStatus.Approved)
                     {
                         step.Signature = signature;
@@ -148,7 +178,7 @@ public sealed class ApprovalService(
                 }
                 else if (status == ApprovalStatus.Overridden)
                 {
-                    step.Note = $"Overridden by {user.FullName}: {reason}";
+                    step.Note = $"Overridden by {actor}: {reason}";
                 }
             }
 
@@ -171,7 +201,6 @@ public sealed class ApprovalService(
             db.SetRowVersion(report, request.RowVersion);
             await db.SaveWithConcurrencyAsync(token);
 
-            var acting = steps.First(s => s.Id == decision.ActingStepId);
             var auditEvent = action switch
             {
                 ApprovalAction.Return => ApprovalAuditEvents.Returned,
@@ -184,6 +213,8 @@ public sealed class ApprovalService(
                 cycle = report.CurrentCycle,
                 step = acting.StepOrder,
                 level = acting.SignatoryLevel,
+                onBehalfOfUserId = onBehalfOf is null ? (long?)null : acting.ApproverUserId,
+                delegationId = acting.DelegationId,
                 action = action.ToString(),
                 reason,
                 changes = decision.StepChanges.ToDictionary(c => steps.First(s => s.Id == c.Key).StepOrder.ToString(), c => c.Value.ToString()),
@@ -203,6 +234,11 @@ public sealed class ApprovalService(
                 ? await db.UserRoleGrants.AsNoTracking().Where(g => g.Role == UserRole.Finance && g.Status == RoleGrantStatus.Active).Select(g => g.UserId).ToListAsync(token)
                 : [];
             var recipients = new List<long> { report.EmployeeUserId };
+            if (onBehalfOf is not null)
+            {
+                recipients.Add(acting.ApproverUserId);
+            }
+
             recipients.AddRange(overridden);
             recipients.AddRange(finance);
             if (next is not null)
@@ -212,15 +248,15 @@ public sealed class ApprovalService(
 
             var summary = action switch
             {
-                ApprovalAction.Return => $"Returned by {user.FullName}: {reason}",
-                ApprovalAction.Reject => $"Rejected by {user.FullName}: {reason}",
-                ApprovalAction.Override => $"{user.FullName} overrode the earlier step: {reason}",
-                _ when decision.CompletesApproval => $"Approved by {user.FullName}; sent to Finance for receipts",
-                _ => $"Approved by {user.FullName}; awaiting {nextName}",
+                ApprovalAction.Return => $"Returned by {actor}: {reason}",
+                ApprovalAction.Reject => $"Rejected by {actor}: {reason}",
+                ApprovalAction.Override => $"{actor} overrode the earlier step: {reason}",
+                _ when decision.CompletesApproval => $"Approved by {actor}; sent to Finance for receipts",
+                _ => $"Approved by {actor}; awaiting {nextName}",
             };
             var notification = new WorkflowEventNotification(auditEvent, reportId, report.ReferenceNo, employeeName,
                 recipients.Where(id => id != user.UserId).Distinct().ToList(), summary,
-                ActorName: user.FullName, Note: reason, NextApproverName: nextName, Cycle: report.CurrentCycle, StepOrder: acting.StepOrder);
+                ActorName: actor, Note: reason, NextApproverName: nextName, Cycle: report.CurrentCycle, StepOrder: acting.StepOrder);
             return (report.Status, nextName, notification);
         }, ct);
 
@@ -235,6 +271,7 @@ public sealed class ApprovalService(
     {
         ArgumentNullException.ThrowIfNull(request);
         var reason = Clean(request.Reason);
+        var actingFor = (await delegations.ActingForAsync(ct)).Keys.ToHashSet();
 
         var notification = await tx.ExecuteAsync(async token =>
         {
@@ -244,9 +281,10 @@ public sealed class ApprovalService(
                 .Where(s => s.ReportId == reportId && s.Cycle == report.CurrentCycle)
                 .ToListAsync(token);
 
-            if (ApprovalWorkflow.AdjustmentError(report.Status, ToWorkflow(steps), report.EmployeeUserId, user.UserId) is { } adjustError)
+            var workflow = ToWorkflow(steps);
+            if (ApprovalWorkflow.AdjustmentError(report.Status, workflow, report.EmployeeUserId, user.UserId, actingFor) is { } adjustError)
             {
-                throw steps.Any(s => s.ApproverUserId == user.UserId) && user.UserId != report.EmployeeUserId
+                throw ApprovalWorkflow.ActorSteps(workflow, user.UserId, actingFor).Count > 0 && user.UserId != report.EmployeeUserId
                     ? new ConflictException(adjustError)
                     : new ForbiddenException(adjustError);
             }
