@@ -2,8 +2,16 @@ using ERFWeb.Domain.Reporting;
 
 namespace ERFWeb.Application.Features.Reporting;
 
-/// <summary>The signatory initials printed in the R47 footer.</summary>
-public sealed record R47Signatories(string? EndorsedBy, string? ReviewedBy, string? ApprovedBy);
+/// <summary>
+/// The signatory names printed in the R47 footer, with the signature each approver
+/// gave when approving (null until that step is approved).
+/// </summary>
+public sealed record R47Signatories(
+    string? EndorsedBy,
+    string? ReviewedBy,
+    string? ApprovedBy,
+    byte[]? EndorserSignature = null,
+    byte[]? ApproverSignature = null);
 
 /// <summary>One row of the CASH ADVANCE RECEIVED block.</summary>
 public sealed record R47CashAdvanceRow(

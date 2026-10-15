@@ -147,11 +147,15 @@ async function resetPassword(newPassword: string) {
 
 // ---- signature --------------------------------------------------------------
 const uploadingSignature = ref(false);
+// Bumped after each upload so the preview <img> fetches the new image instead of a cached one.
+const signatureVersion = ref(0);
+const signatureUrl = computed(() => (user.value?.hasSignature ? adminApi.signatureUrl(userId, signatureVersion.value) : null));
 
 async function uploadSignature(file: File) {
   uploadingSignature.value = true;
   try {
     user.value = await adminApi.uploadSignature(userId, file);
+    signatureVersion.value += 1;
     snack.success('Signature saved.');
   } catch (err) {
     await handleMutationError(err, 'Unable to upload the signature.');
@@ -300,7 +304,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
             @clear-grant-errors="grantErrors = null"
           />
 
-          <SignatureUpload v-if="!lgAndUp" :has-signature="user.hasSignature" :uploading="uploadingSignature" :disabled="isSelf" @upload="uploadSignature" />
+          <SignatureUpload v-if="!lgAndUp" :has-signature="user.hasSignature" :image-url="signatureUrl" :uploading="uploadingSignature" :disabled="isSelf" @upload="uploadSignature" />
         </div>
 
         <aside v-if="lgAndUp" class="detail__side">
@@ -312,7 +316,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
               <div class="field"><span class="lbl">Cooling period</span><span class="val">{{ user.coolingPeriodElapsed ? 'Over' : 'In progress' }}</span></div>
             </div>
           </v-card>
-          <SignatureUpload :has-signature="user.hasSignature" :uploading="uploadingSignature" :disabled="isSelf" @upload="uploadSignature" />
+          <SignatureUpload :has-signature="user.hasSignature" :image-url="signatureUrl" :uploading="uploadingSignature" :disabled="isSelf" @upload="uploadSignature" />
         </aside>
       </div>
 

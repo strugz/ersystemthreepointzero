@@ -43,7 +43,7 @@ async function submit() {
         class="login__mark"
       />
       <h1 class="login__title">Sign in</h1>
-      <p class="login__sub">Expense Report Forms · MDMPI</p>
+      <p class="login__sub">Expense Report · MDMPI</p>
 
       <v-form class="login__form" @submit.prevent="submit">
         <v-alert v-if="session.unavailable && !error" type="warning" density="compact" class="mb-2">

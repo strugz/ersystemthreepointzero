@@ -29,6 +29,12 @@ internal sealed class R47Document(
     // Grid column widths (pt); sum = 740 = page width − margins.
     private static readonly float[] GridColumns = [42, 146, 52, 50, 52, 52, 50, 52, 65, 52, 15, 60, 52];
 
+    // The DATE stamp and the blank box under it sit over the last four grid columns
+    // (Representation, Oth, VAT, Grand Total) so their lines continue the grid's; the
+    // DATE label spans Representation + Oth so its divider meets the VAT column line.
+    private static readonly float DateBoxWidth = GridColumns[^4..].Sum();
+    private static readonly float DateLabelWidth = GridColumns[^4] + GridColumns[^3];
+
     public DocumentMetadata GetMetadata() => new()
     {
         Title = $"{opt.Title} — {dto.EmployeeFullName}",
@@ -123,9 +129,9 @@ internal sealed class R47Document(
         var stamp = string.Create(CultureInfo.InvariantCulture,
             $"{local:MM/dd/yyyy}   {local:h:mm:ss}{local.ToString("tt", CultureInfo.InvariantCulture).ToLowerInvariant()}");
 
-        c.AlignRight().Width(183).Border(Border).Row(r =>
+        c.AlignRight().Width(DateBoxWidth).Border(Border).Row(r =>
         {
-            r.ConstantItem(55).BorderRight(Border).PaddingLeft(4).PaddingVertical(1).Text("DATE").Bold().FontSize(7.5f);
+            r.ConstantItem(DateLabelWidth).BorderRight(Border).PaddingLeft(4).PaddingVertical(1).Text("DATE").Bold().FontSize(7.5f);
             r.RelativeItem().PaddingLeft(4).PaddingVertical(1).Text(stamp).FontSize(7.5f);
         });
     }
@@ -149,7 +155,7 @@ internal sealed class R47Document(
             });
 
             // Blank box under the DATE stamp, as printed by the legacy report.
-            row.ConstantItem(183);
+            row.ConstantItem(DateBoxWidth);
         });
     }
 
@@ -375,7 +381,9 @@ internal sealed class R47Document(
                 {
                     if (dto.EmployeeSignature is { Length: > 0 } bytes)
                     {
-                        e.Image(bytes).FitArea();
+                        // FitArea keeps the aspect ratio but pins the image to the left of the box;
+                        // align it so a wide or short signature sits centred over the line.
+                        e.AlignCenter().AlignMiddle().Image(bytes).FitArea();
                     }
                 });
                 col.Item().AlignCenter().Width(120).LineHorizontal(0.8f);
@@ -385,22 +393,33 @@ internal sealed class R47Document(
             row.RelativeItem().Column(col =>
             {
                 col.Item().PaddingLeft(20).PaddingTop(3).Text("(Signature Over Printed Name)").FontSize(7).FontColor(Red);
-                SignatoryLine(col, "ENDORSED BY :", sig.EndorsedBy, topBorder: false);
-                SignatoryLine(col, "REVIEWED BY :", sig.ReviewedBy, topBorder: true);
-                SignatoryLine(col, "APPROVED BY :", sig.ApprovedBy, topBorder: true, tall: true);
+                SignatoryLine(col, "ENDORSED BY :", sig.EndorsedBy, sig.EndorserSignature, topBorder: false);
+                SignatoryLine(col, "REVIEWED BY :", sig.ReviewedBy, null, topBorder: true);
+                SignatoryLine(col, "APPROVED BY :", sig.ApprovedBy, sig.ApproverSignature, topBorder: true, tall: true);
             });
         });
     }
 
-    private static void SignatoryLine(ColumnDescriptor col, string label, string? initials, bool topBorder, bool tall = false)
+    /// <summary>A signatory row: the approver's signature is drawn over the printed name.</summary>
+    private static void SignatoryLine(ColumnDescriptor col, string label, string? name, byte[]? signature, bool topBorder, bool tall = false)
     {
         var item = col.Item();
         if (topBorder) item = item.BorderTop(Border);
 
         item.MinHeight(tall ? 28 : 18).PaddingLeft(20).AlignMiddle().Row(r =>
         {
-            r.ConstantItem(70).Text(label).Bold().FontSize(7.5f);
-            r.RelativeItem().Text(initials ?? string.Empty);
+            r.ConstantItem(70).AlignMiddle().Text(label).Bold().FontSize(7.5f);
+            r.RelativeItem().Height(tall ? 28 : 22).Layers(layers =>
+            {
+                // Signature first so the name is drawn on top: a JPEG (or a PNG without
+                // transparency) has an opaque background that would otherwise hide the name.
+                if (signature is { Length: > 0 } bytes)
+                {
+                    layers.Layer().PaddingLeft(10).AlignMiddle().Width(90).Image(bytes).FitArea();
+                }
+
+                layers.PrimaryLayer().AlignMiddle().Text(name ?? string.Empty);
+            });
         });
     }
 
