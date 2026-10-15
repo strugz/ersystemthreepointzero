@@ -2,6 +2,7 @@ using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Approvals;
 using ERFWeb.Application.Features.Authentication;
+using ERFWeb.Application.Features.Delegations;
 using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Application.Features.Lookups;
@@ -83,6 +84,8 @@ public static class DependencyInjection
 
         // Two-level approval & Finance (Phase 5)
         services.AddScoped<IApprovalService, ApprovalService>();
+        services.AddScoped<IDelegationLookup, DelegationLookup>();
+        services.AddScoped<IDelegationService, DelegationService>();
         services.AddScoped<IFinanceService, FinanceService>();
         services.AddScoped<VerificationReader>();
         services.AddScoped<IVerificationService, VerificationService>();

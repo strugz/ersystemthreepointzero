@@ -87,6 +87,9 @@ psql -d erfweb -f Database/007_scope_and_rate_profiles.sql # Phase 2: scope assi
 psql -d erfweb -f Database/008_approvals_and_finance.sql # Phase 5: line adjustments and Finance receipt tracking columns
 psql -d erfweb -f Database/009_verification_requests.sql # Phase 6: verification requests and queries
 psql -d erfweb -f Database/010_seed_test_verifier.sql   # optional, dev/UAT only: verifier1 / Test!1234 (needs 004)
+psql -d erfweb -f Database/011_sms_deliveries.sql        # Lasius SMS delivery log
+psql -d erfweb -f Database/012_sms_deliveries_report.sql # SMS deliveries linked to a report
+psql -d erfweb -f Database/013_approval_delegations.sql  # Phase 7: approval delegation and "on behalf of" steps
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
