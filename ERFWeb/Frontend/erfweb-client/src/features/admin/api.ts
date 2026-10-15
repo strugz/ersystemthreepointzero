@@ -52,6 +52,8 @@ export const adminApi = {
     form.append('file', file, file.name);
     return api.postForm<UserDetail>(`${u(id)}/signature`, form);
   },
+  /** Direct URL of the signature on file, for an <img>; the browser sends the session cookie. */
+  signatureUrl: (id: number, version = 0) => `/api${u(id)}/signature?v=${version}`,
   grantRole: (id: number, input: GrantRoleInput) => api.post<UserDetail>(`${u(id)}/roles`, input),
   countersignRole: (id: number, role: UserRole, input: RoleActionInput) =>
     api.post<UserDetail>(`${u(id)}/roles/${encodeURIComponent(role)}/countersign`, input),

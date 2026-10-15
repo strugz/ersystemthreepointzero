@@ -97,6 +97,9 @@ public sealed record ResetPasswordRequest(string NewPassword);
 
 public sealed record SetSignatureRequest(string FileName, string ContentType, Stream Content);
 
+/// <summary>A user's signature image on file, for the administrator's preview.</summary>
+public sealed record SignatureImageDto(string ContentType, byte[] Content);
+
 public sealed record GrantRoleRequest(UserRole Role, string? Note);
 
 public sealed record RoleGrantActionRequest(string? Note, uint RowVersion);
@@ -111,6 +114,9 @@ public interface IUserAdminService
     Task<UserDetailDto> SetActiveAsync(long userId, SetUserActiveRequest request, CancellationToken ct = default);
     Task ResetPasswordAsync(long userId, ResetPasswordRequest request, CancellationToken ct = default);
     Task<UserDetailDto> SetSignatureAsync(long userId, SetSignatureRequest request, CancellationToken ct = default);
+
+    /// <summary>The signature image on file; throws <c>NotFoundException</c> when there is none.</summary>
+    Task<SignatureImageDto> GetSignatureAsync(long userId, CancellationToken ct = default);
 }
 
 /// <summary>Role grants with dual approval: grant, countersign, revoke (spec 9.7, 9.8, stacking rules).</summary>

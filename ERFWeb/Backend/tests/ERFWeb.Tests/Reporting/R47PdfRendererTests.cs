@@ -79,6 +79,77 @@ public class R47PdfRendererTests
         Assert.Equal(1, CountPages(pdf));
     }
 
+    [Fact]
+    public void Render_Signatures_StaysOnOnePage()
+    {
+        var signature = SignaturePng();
+        var doc = SampleDocument() with
+        {
+            Signatories = new R47Signatories("Test Manager One", null, "Test Manager Two", signature, signature),
+            EmployeeSignature = signature,
+        };
+
+        var pdf = Renderer().Render(doc, DateTimeOffset.UtcNow);
+
+        Assert.Equal(1, CountPages(pdf));
+        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, "R47-sample-signed.pdf"), pdf);
+    }
+
+    /// <summary>A 160x40 RGBA PNG with a wavy blue stroke, standing in for an uploaded signature.</summary>
+    private static byte[] SignaturePng()
+    {
+        const int w = 160, h = 40;
+        var raw = new byte[h * (1 + w * 4)];
+        for (var x = 4; x < w - 4; x++)
+        {
+            var y = (int)(h / 2 + Math.Sin(x / 9.0) * 12);
+            for (var dy = -1; dy <= 1; dy++)
+            {
+                var i = (y + dy) * (1 + w * 4) + 1 + x * 4;
+                raw[i + 2] = 160;
+                raw[i + 3] = 255;
+            }
+        }
+
+        using var idat = new MemoryStream();
+        using (var z = new System.IO.Compression.ZLibStream(idat, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true))
+        {
+            z.Write(raw);
+        }
+
+        using var png = new MemoryStream();
+        png.Write([137, 80, 78, 71, 13, 10, 26, 10]);
+        WriteChunk(png, "IHDR", [0, 0, 0, w, 0, 0, 0, h, 8, 6, 0, 0, 0]);
+        WriteChunk(png, "IDAT", idat.ToArray());
+        WriteChunk(png, "IEND", []);
+        return png.ToArray();
+    }
+
+    private static void WriteChunk(Stream s, string type, byte[] data)
+    {
+        var typed = Encoding.ASCII.GetBytes(type).Concat(data).ToArray();
+        s.Write(BigEndian((uint)data.Length));
+        s.Write(typed);
+        s.Write(BigEndian(Crc32(typed)));
+    }
+
+    private static byte[] BigEndian(uint v) => [(byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v];
+
+    private static uint Crc32(byte[] data)
+    {
+        var crc = 0xFFFFFFFFu;
+        foreach (var b in data)
+        {
+            crc ^= b;
+            for (var k = 0; k < 8; k++)
+            {
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320u : crc >> 1;
+            }
+        }
+
+        return ~crc;
+    }
+
     private static int CountPages(byte[] pdf) =>
         Regex.Matches(Encoding.Latin1.GetString(pdf), @"/Type\s*/Page[^s]").Count;
 }
