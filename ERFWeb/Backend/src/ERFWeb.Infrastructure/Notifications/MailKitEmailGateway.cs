@@ -70,28 +70,10 @@ public sealed class MailKitEmailGateway(IOptions<SmtpOptions> options, ILogger<M
         }
     }
 
-    /// <summary>
-    /// Public for tests. With <see cref="EmailMessage.From"/> the email is from the signed-in user, with the
-    /// configured mailbox as <c>Sender</c> ("on behalf of"). MailKit uses <c>Sender</c> as the SMTP envelope
-    /// sender, so the server authenticates and SPF-checks the system mailbox, not the user's.
-    /// </summary>
-    public MimeMessage Compose(EmailMessage message)
+    private MimeMessage Compose(EmailMessage message)
     {
-        ArgumentNullException.ThrowIfNull(message);
         var mime = new MimeMessage();
-        var system = new MailboxAddress(_options.FromName, _options.FromAddress!);
-        if (message.From is { } from)
-        {
-            var user = new MailboxAddress(from.Name, from.Address);
-            mime.From.Add(user);
-            mime.ReplyTo.Add(user);
-            mime.Sender = system;
-        }
-        else
-        {
-            mime.From.Add(system);
-        }
-
+        mime.From.Add(new MailboxAddress(_options.FromName, _options.FromAddress!));
         foreach (var address in message.To)
         {
             mime.To.Add(MailboxAddress.Parse(address));

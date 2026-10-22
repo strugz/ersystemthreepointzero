@@ -76,17 +76,12 @@ public interface IReportEmailService
 
 public sealed record EmailAttachment(string FileName, string ContentType, byte[] Content);
 
-/// <summary>Who an email is from: the signed-in user's name and address on file.</summary>
-public sealed record EmailSender(string Name, string Address);
-
 /// <summary>One message for the SMTP server. Never log <see cref="To"/>, <see cref="Body"/> or the attachment.</summary>
-/// <param name="From">The signed-in user, sent on behalf of by the configured mailbox; null sends from the mailbox itself.</param>
 public sealed record EmailMessage(
     IReadOnlyList<string> To,
     string Subject,
     string Body,
-    IReadOnlyList<EmailAttachment> Attachments,
-    EmailSender? From = null);
+    IReadOnlyList<EmailAttachment> Attachments);
 
 public enum EmailGatewayStatus
 {
