@@ -102,7 +102,7 @@ public sealed class VerificationService(
             var claimants = await db.ExpenseReports.AsNoTracking().Where(r => reportIds.Contains(r.Id))
                 .ToDictionaryAsync(r => r.Id, r => r.EmployeeUserId, ct);
             var approvedBy = await db.ApprovalSteps.AsNoTracking()
-                .Where(s => reportIds.Contains(s.ReportId) && s.Status == ApprovalStatus.Approved && s.ApproverUserId == me)
+                .Where(s => reportIds.Contains(s.ReportId) && s.Status == ApprovalStatus.Approved && (s.ApproverUserId == me || s.ActedByUserId == me))
                 .Select(s => s.ReportId).Distinct().ToListAsync(ct);
             var requesters = await db.VerificationRequests.AsNoTracking()
                 .Where(v => v.Status == VerificationStatus.Open && v.RequestedByUserId == me).Select(v => v.Id).ToListAsync(ct);

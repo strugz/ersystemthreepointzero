@@ -1,4 +1,4 @@
-import { api } from '@/shared/api/client';
+import { api, apiUrl } from '@/shared/api/client';
 import type {
   Attachment,
   CashAdvanceLine,
@@ -55,7 +55,7 @@ export const expensesApi = {
     return api.postForm<Attachment>(`${r(id)}/attachments`, form);
   },
   attachmentUrl: (id: string, attachmentId: number, download = false) =>
-    `/api${r(id)}/attachments/${attachmentId}/content${download ? '?download=true' : ''}`,
+    apiUrl(`${r(id)}/attachments/${attachmentId}/content${download ? '?download=true' : ''}`),
   removeAttachment: (id: string, attachmentId: number) => api.del<void>(`${r(id)}/attachments/${attachmentId}`),
 
   workWith: (search?: string) => api.get<WorkWithOption[]>(`/lookups/work-with${qs({ search })}`),

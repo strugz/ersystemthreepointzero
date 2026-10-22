@@ -3,50 +3,54 @@ import { createVuetify } from 'vuetify';
 import * as components from 'vuetify/components';
 import * as directives from 'vuetify/directives';
 import { aliases, mdi } from 'vuetify/iconsets/mdi';
+import { initialThemeName } from '@/app/theme';
 
-// "Ledger" palette: warm paper, ink text, MDMPI navy as the single accent.
-// Status hues are deliberately muted so the navy stays the loudest colour on screen.
+// "Ledger" palette: cool paper, ink text, MDMPI navy as the primary accent and brass as the
+// secondary highlight (active nav, hero rules). Status hues stay muted so navy and brass lead.
 const erLight = {
   dark: false,
   colors: {
     primary: '#1f3864',
     'on-primary': '#ffffff',
-    secondary: '#5d5a53',
-    background: '#f4f3ef',
-    surface: '#fffefb',
-    'on-surface': '#1c1b19',
-    'surface-variant': '#ecebe6',
-    'on-surface-variant': '#5d5a53',
+    secondary: '#a8741f',
+    'on-secondary': '#ffffff',
+    background: '#f3f4f7',
+    surface: '#ffffff',
+    'on-surface': '#161a23',
+    'surface-variant': '#eceef3',
+    'on-surface-variant': '#555b69',
     error: '#b23a2e',
     success: '#2f7a4a',
     warning: '#b7791f',
     info: '#2a4a80',
   },
   variables: {
-    'border-color': '#1c1b19',
+    'border-color': '#161a23',
     'border-opacity': 0.1,
     'medium-emphasis-opacity': 0.62,
   },
 };
 
+// "Midnight ledger": deep navy-ink surfaces rather than neutral grey, so dark mode keeps the brand.
 const erDark = {
   dark: true,
   colors: {
-    primary: '#9db4dc',
-    'on-primary': '#0f1c33',
-    secondary: '#b3afa6',
-    background: '#151513',
-    surface: '#1e1e1b',
-    'on-surface': '#ecebe6',
-    'surface-variant': '#2a2a26',
-    'on-surface-variant': '#b3afa6',
-    error: '#e08a80',
-    success: '#7bc08f',
-    warning: '#e0b36a',
-    info: '#9db4dc',
+    primary: '#9cb8ef',
+    'on-primary': '#0b1530',
+    secondary: '#e2b765',
+    'on-secondary': '#2a1d05',
+    background: '#0a0f1a',
+    surface: '#111827',
+    'on-surface': '#e6e9f0',
+    'surface-variant': '#1a2335',
+    'on-surface-variant': '#a3abbd',
+    error: '#ef8f84',
+    success: '#7fcf9a',
+    warning: '#e9bc6c',
+    info: '#9cb8ef',
   },
   variables: {
-    'border-color': '#ecebe6',
+    'border-color': '#e6e9f0',
     'border-opacity': 0.12,
   },
 };
@@ -58,7 +62,8 @@ export default createVuetify({
   directives,
   icons: { defaultSet: 'mdi', aliases, sets: { mdi } },
   theme: {
-    defaultTheme: 'erLight',
+    // Resolved from the saved preference before mount so the first paint is already in the right theme.
+    defaultTheme: initialThemeName(),
     themes: { erLight, erDark },
   },
   defaults: {

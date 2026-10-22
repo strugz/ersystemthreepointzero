@@ -40,10 +40,12 @@ const balanceLabel = computed(() => `Balance due to ${balanceDueTo(balance.value
 
 <style scoped>
 .totals {
-  background: var(--navy);
-  color: #fff;
+  /* Brand surface in both themes: a navy gradient with white figures, ruled in brass. */
+  background: linear-gradient(155deg, var(--brand-2), var(--brand-1));
+  color: var(--on-brand);
   border-radius: var(--radius);
   padding: 20px;
+  box-shadow: var(--shadow-2);
 }
 .totals__lbl {
   color: rgba(255, 255, 255, 0.7);
@@ -56,7 +58,8 @@ const balanceLabel = computed(() => `Balance due to ${balanceDueTo(balance.value
 }
 .totals__rule {
   height: 1px;
-  background: rgba(255, 255, 255, 0.18);
+  background: linear-gradient(90deg, var(--brand-accent), transparent);
+  opacity: 0.6;
   margin: 16px 0 12px;
 }
 .totals__row {
@@ -105,16 +108,5 @@ const balanceLabel = computed(() => `Balance due to ${balanceDueTo(balance.value
   .totals__cell:first-child .totals__val {
     font-size: 30px;
   }
-}
-.v-theme--erDark .totals {
-  color: #0f1c33;
-}
-.v-theme--erDark .totals__lbl {
-  color: rgba(15, 28, 51, 0.7);
-}
-.v-theme--erDark .totals__rule,
-.v-theme--erDark .totals__cell + .totals__cell {
-  border-color: rgba(15, 28, 51, 0.18);
-  background: rgba(15, 28, 51, 0.18);
 }
 </style>
