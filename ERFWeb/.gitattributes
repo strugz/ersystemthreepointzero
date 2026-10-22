@@ -1,0 +1,2 @@
+# Windows batch files must keep CRLF line endings (Deploy-ErfWeb.cmd, Publish-ErfWeb.cmd).
+*.cmd text eol=crlf

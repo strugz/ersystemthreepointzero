@@ -9,6 +9,8 @@ solution `ER System.sln` or the installer, and separate from the existing `Web/`
 
 See `../ER System 3.0/CLAUDE.md` context and the project documentation for the full plan.
 
+**Putting a change live?** Follow the [Deployment guide](#deployment-guide) at the end of this file.
+
 ## Layout
 
 ```
@@ -69,7 +71,8 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Lasius:*` (optional) | Notification SMS gateway URL, API key and header (see Notification SMS) |
 | `Smtp:*` (optional) | Mail server, sender mailbox and login for report email (see Report email) |
 | `Kestrel:*` (server) | Endpoint the API listens on behind nginx |
-| `Logging:*`, `AllowedHosts` | Standard ASP.NET Core |
+| `Logging:File:Directory` (optional, default `logs`) | Folder for the daily log files `erfweb-yyyyMMdd.log` (30 kept, 50 MB each at most); relative to the install folder |
+| `Logging:*`, `AllowedHosts` | Standard ASP.NET Core; `Logging:LogLevel` filters the console and the log files alike |
 
 Which environment overlay applies is chosen by `ASPNETCORE_ENVIRONMENT` (set in
 `Properties/launchSettings.json` for local runs) — that selects the file; it never supplies values itself.
@@ -427,7 +430,9 @@ preview.
 approval inbox and Finance queue CSV, Finance aging). SPA: **Summary** page and export buttons on the Approvals and
 Finance pages. No database script.
 
-**Health and theme:** `GET /api/health` (anonymous) for monitoring and the dev proxy; the SPA has a
+**Health and theme:** `GET /api/health` (anonymous) returns `{ status, service, version, database }`: 200 when the database
+answers within 5 seconds, 503 `degraded` when it does not; `version` is `Version` in `Directory.Build.props` plus the
+build commit (e.g. `0.1.0+edadad9`). Used by monitoring, deploy smoke tests and the dev proxy; the SPA has a
 light / dark / system theme switch.
 
 ## Notification SMS (Lasius gateway)
@@ -523,42 +528,199 @@ called; without a key, a second send of the same report within 10 minutes is a r
 and the PDF are never logged or stored. `workflow_audit` records `EmailSent`, `EmailFailed` or `EmailUnconfirmed`
 with the kind and counts only.
 
-## Deployment (sr.mdmpi.com.ph)
+## Deployment guide
 
-The API is published as a framework-dependent folder and served behind nginx at **https://sr.mdmpi.com.ph/erf/**.
-nginx strips the prefix and forwards `/erf/*` to the API's `/api/*`, so `/erf/auth/me` is `/api/auth/me` and the
-health check is `/erf/health`. It is deployed separately from the desktop installer and from the old `Web/` portal.
+Step-by-step instructions for putting a change live. Read **How it is set up** once; after that, find your kind
+of change in **Which steps do I follow?** and do only those steps.
 
-1. **Database first.** Apply every `Database/NNN_*.sql` script the server has not had yet, in order, against the
-   production database (`erms_db`). Scripts are forward-only and idempotent; never run `dotnet ef database update`
-   against it. Back up first and keep each script's commented rollback at hand.
-2. **Publish** with the `erf-backend` folder profile (Visual Studio), or from `ERFWeb/`:
-   ```bash
-   dotnet publish Backend/src/ERFWeb.Api -c Release -o Backend/src/ERFWeb.Api/bin/Release/net10.0/publish
+### How it is set up
+
+| Part | Where it runs | How it is updated |
+| --- | --- | --- |
+| **Frontend** (Vue SPA) | Render static site **https://ersystemthreepointzero.onrender.com** | Render builds it from the `master` branch of GitHub |
+| **Backend** (ERFWeb API) | Windows server, folder `C:\inetpub\wwwroot\erf_web-app`, Windows Service **ERFWeb.Api** | `Publish-ErfWeb.cmd` on your PC, then `Deploy-ErfWeb.cmd` on the server |
+| **Public API address** | nginx at **https://sr.mdmpi.com.ph/erf** → the service at `http://192.168.4.206:5080/5081` | nginx forwards `/erf/*` to the API's `/api/*`, so the health check is `/erf/health` |
+| **Database** | PostgreSQL `erms_db` | SQL scripts in `ERFWeb/Database/`, run by hand |
+| **Server settings** | `C:\inetpub\wwwroot\erf_web-app\appsettings.json` on the server only | Edited by hand on the server; never in git, never in a release |
+
+The backend and the frontend are deployed separately, and Render deploys as soon as `master` changes. Always put
+the **backend live first**, so the new screens never call an API that does not exist yet.
+
+### Which steps do I follow?
+
+| What you changed | Steps |
+| --- | --- |
+| Backend code (`ERFWeb/Backend/...`) | [A](#a-before-you-start) → [C](#c-build-the-backend-release-on-your-pc) → [D](#d-deploy-the-backend-on-the-server) → [F](#f-check-that-it-works) |
+| Frontend code (`ERFWeb/Frontend/...`) | [A](#a-before-you-start) → [E](#e-deploy-the-frontend-render) → [F](#f-check-that-it-works) |
+| Backend and frontend | [A](#a-before-you-start) → [C](#c-build-the-backend-release-on-your-pc) → [D](#d-deploy-the-backend-on-the-server) → [E](#e-deploy-the-frontend-render) → [F](#f-check-that-it-works) |
+| A new database script (`ERFWeb/Database/NNN_*.sql`) | [A](#a-before-you-start) → [B](#b-update-the-database-only-when-there-is-a-new-script) → then the backend steps |
+| Server settings only (`appsettings.json` on the server) | [Change a server setting](#change-a-server-setting) |
+
+### A. Before you start
+
+1. **Verify on your PC.** From `ERFWeb/Backend`: `dotnet build ERFWeb.sln`, `dotnet test ERFWeb.sln`,
+   `dotnet format ERFWeb.sln --verify-no-changes`. From `ERFWeb/Frontend/erfweb-client`: `npm run lint`,
+   `npm run build`.
+2. **Commit your changes.** The release name, `/erf/health` and the page footer all show the last commit, so an
+   uncommitted change cannot be identified once it is live.
+3. **For a real release, raise the version** in both places, keeping them equal:
+   `<Version>` in `ERFWeb/Backend/Directory.Build.props` and `"version"` in
+   `ERFWeb/Frontend/erfweb-client/package.json`.
+4. **New setting?** If `appsettings.Example.json` gained a key, add it to the server's `appsettings.json` before
+   deploying (see [Change a server setting](#change-a-server-setting)). A missing required key stops the API.
+
+### B. Update the database (only when there is a new script)
+
+1. **Back up first** (pgAdmin → right-click `erms_db` → Backup, or `pg_dump`).
+2. Run each new script in `ERFWeb/Database/` **in number order**, once, against `erms_db` (pgAdmin Query Tool, or
+   `psql -d erms_db -f Database/NNN_name.sql`). Scripts are safe to re-run.
+3. Each script ends with a commented **Rollback** block; keep it at hand.
+4. Never run `dotnet ef database update` against this database.
+
+### C. Build the backend release on your PC
+
+1. Double-click **`ERFWeb\Backend\tools\Publish-ErfWeb.cmd`**.
+2. When it finishes it prints the folder it made, for example:
    ```
-3. **Copy the whole publish folder** to the server, not only the files with today's date. A package added since
-   the last deploy (for email: `MailKit.dll`, `MimeKit.dll`, `BouncyCastle.Cryptography.dll`,
-   `System.Security.Cryptography.Pkcs.dll`) can carry an older timestamp but must be there, together with the new
-   `ERFWeb.Api.deps.json`. A missing assembly fails only the requests that use it, with a 500.
-4. **`appsettings.json` on the server** is the server's own file (gitignored, never in the repo). The publish folder
-   carries your local copy, so check that `ConnectionStrings:Postgres`, `Kestrel`, `Lasius` and `Smtp` hold the
-   server's values before copying it over, then restart the API.
-5. **Smoke test:** `https://sr.mdmpi.com.ph/erf/health` answers 200 and an unauthenticated `/erf/auth/me` answers
-   401; then sign in and exercise the changed feature.
+   ERFWeb\releases\ERFWeb-Api-0.1.0-b1b0da4
+       ERFWeb-Api.zip              every file of the API (no appsettings.json)
+       release.txt                 the version it contains, e.g. 0.1.0+b1b0da4
+       Deploy-ErfWeb.cmd           double-click this on the server to update it
+       Install-ErfWebService.cmd   first install on a new server only
+       appsettings.Example.json    template for the server's appsettings.json
+       HOW-TO-DEPLOY.txt           these steps in short, for whoever is at the server
+       *.ps1                       the scripts the .cmd files run
+   ```
+   The folder holds everything the server needs; nothing has to be copied from the repo by hand.
+3. A warning about uncommitted changes means step A2 was skipped; commit and run it again.
 
-For local development the SPA can point at the deployed API (`.env` / `.env.local`):
-`VITE_API_TARGET=https://sr.mdmpi.com.ph/erf` and `VITE_API_PROXY_STRIP_PREFIX=true`. A new endpoint answers 404
-through that proxy until the API that has it is deployed.
+### D. Deploy the backend on the server
 
-### Frontend on Render
+1. **Copy the whole release folder** from step C to the server, anywhere (for example `C:\inetpub\erf-releases\`).
+2. Open it and **double-click `Deploy-ErfWeb.cmd`**. Click **Yes** on the administrator prompt.
+3. Watch the window. It:
+   1. stops the ERFWeb.Api service (ERFWeb is unavailable for about half a minute);
+   2. backs up the current version to `C:\inetpub\wwwroot\erf_web-app-backups\<date-time>` (last 3 kept);
+   3. extracts the new version over the app folder, keeping the server's `appsettings.json`;
+   4. starts the service and waits for `/api/health` to report the new version with database `ok`.
+4. The last line tells you the result:
+   * **Green "Deployed: version …"**: done. Go to step F.
+   * **Yellow "Rolled back to version …"**: the new version did not start, so the previous one was put back and
+     ERFWeb keeps working. Look at the newest file in `C:\inetpub\wwwroot\erf_web-app\logs\` to see why (see
+     [Find an error](#find-an-error)).
+   * **Red**: even the previous version is not healthy. See [Troubleshooting](#troubleshooting) now.
 
-The SPA is a Render static site at **https://ersystemthreepointzero.onrender.com**, built from
-`ERFWeb/Frontend/erfweb-client` (`npm ci && npm run build`, publish `dist`) with a `/*` → `/index.html` rewrite and
-`VITE_API_BASE_URL=https://sr.mdmpi.com.ph/erf`. Because `onrender.com` and `sr.mdmpi.com.ph` are different sites,
-the server's `appsettings.json` needs that origin in `Cors:AllowedOrigins` and `Authentication:CrossSiteCookies: true`;
-without it sign-in fails with 400 (`antiforgery_validation_failed`). Safari (iPhone, iPad, Mac) blocks cross-site
-cookies, so Safari users cannot sign in this way. A Render custom domain under `mdmpi.com.ph` (e.g.
-`erf.mdmpi.com.ph`) is the same site as the API and works in every browser with `CrossSiteCookies: false`.
-A Render rewrite of `/erf/*` to the API was tried and is not forwarded (it serves `index.html`).
+Never copy single DLLs by hand: a missed file stops the API (`Could not load file or assembly ...`).
 
-Every error response carries a `correlationId`; search the API log on the server for it to find the exception.
+### E. Deploy the frontend (Render)
+
+1. Merge your branch into `master` on GitHub.
+2. Render builds and publishes the site automatically. If it does not, open the Render dashboard → the
+   `ersystemthreepointzero` static site → **Manual Deploy → Deploy latest commit**.
+3. Only when you changed a Render **environment variable**, use **Manual Deploy → Clear build cache & deploy**:
+   Vite bakes `VITE_*` values in at build time.
+
+Render settings for reference: root directory `ERFWeb/Frontend/erfweb-client`, build command
+`npm ci && npm run build`, publish directory `dist`, rewrite `/*` → `/index.html`, environment variable
+`VITE_API_BASE_URL=https://sr.mdmpi.com.ph/erf`.
+
+### F. Check that it works
+
+1. **https://sr.mdmpi.com.ph/erf/health** shows
+   `{"status":"ok","service":"ERFWeb.Api","version":"<new version>","database":"ok"}`.
+2. **https://ersystemthreepointzero.onrender.com**: the footer at the bottom of the sign-in page shows the new
+   version (`ERFWeb v0.1.0 · <commit>`). Press **Ctrl+Shift+R** if it still shows the old one.
+3. **Sign in** (Chrome or Edge) and try the feature you changed.
+
+### Change a server setting
+
+1. On the server, open `C:\inetpub\wwwroot\erf_web-app\appsettings.json` in Notepad and make the change. Keep the
+   commas and quotes valid JSON. `appsettings.Example.json` next to it lists every key.
+2. In an administrator PowerShell: `Restart-Service ERFWeb.Api`.
+3. Check https://sr.mdmpi.com.ph/erf/health (step F1).
+
+Settings that matter for the live site:
+
+| Setting | Live value / note |
+| --- | --- |
+| `Cors:AllowedOrigins` | `https://ersystemthreepointzero.onrender.com` (the Render address; no `localhost` on the server) |
+| `Authentication:CrossSiteCookies` | `true` while the frontend is on `onrender.com`; `false` once it moves to a `mdmpi.com.ph` address |
+| `Kestrel` | the address the service listens on (`http://192.168.4.206:5080/5081`), which nginx forwards to |
+| `Smtp`, `Lasius` | email and SMS; without them those features are skipped, not broken |
+| `Logging:File:Directory` | where log files go (default `logs`) |
+
+### Go back to the previous version
+
+* **Backend:** a failed deploy rolls back by itself. To go back later, double-click `Deploy-ErfWeb.cmd` in the
+  **previous release folder**. (Copies of the last 3 versions are also in `C:\inetpub\wwwroot\erf_web-app-backups\`.)
+* **Frontend:** Render dashboard → the static site → **Events** → pick the previous deploy → **Rollback**.
+* **Database:** run the commented Rollback block at the end of the script, only after the backend that needs the
+  script has been rolled back.
+
+### Manage the service
+
+The backend runs as the Windows Service **ERFWeb.Api**: it starts with Windows and restarts itself if it crashes.
+Manage it in **Services** (`services.msc`, "ERFWeb API") or in an administrator PowerShell:
+
+```powershell
+Get-Service ERFWeb.Api
+```
+```powershell
+Restart-Service ERFWeb.Api
+```
+```powershell
+Stop-Service ERFWeb.Api
+```
+```powershell
+Start-Service ERFWeb.Api
+```
+
+**First-time install (once per server; already done on the live server).**
+
+1. Stop any console copy of the API (Ctrl+C in its window).
+2. Create `C:\inetpub\wwwroot\erf_web-app\appsettings.json` from the release folder's `appsettings.Example.json`
+   with the server's values.
+3. Copy a release folder to the server and double-click **`Install-ErfWebService.cmd`** in it (click **Yes**). It
+   extracts `ERFWeb-Api.zip` into `C:\inetpub\wwwroot\erf_web-app`, registers and starts the service, and checks
+   `/api/health`.
+
+The same from PowerShell: `Install-ErfWebService.ps1 -InstallPath C:\inetpub\wwwroot\erf_web-app -ReleaseZip
+<release folder>\ERFWeb-Api.zip`. `Backend/tools/Install-ErfWebService.ps1` runs the service as the virtual account `NT SERVICE\ERFWeb.Api` (read
+access to the app folder, write access to `logs\` only), sets restart on failure (5 s, 5 s, 30 s), registers the
+event log source, starts the service and checks `/api/health`. `-Uninstall` removes the service.
+
+### Find an error
+
+Every error the website shows has a **correlation id** (in the error response and the `X-Correlation-ID` header).
+Every log line written for that request carries the same id.
+
+* Log files: `C:\inetpub\wwwroot\erf_web-app\logs\erfweb-yyyyMMdd.log` (one per day, 30 kept).
+* Warnings and errors also appear in **Event Viewer → Windows Logs → Application**, source `ERFWeb.Api`.
+* Search the logs for an id:
+  ```powershell
+  Select-String -Path C:\inetpub\wwwroot\erf_web-app\logs\*.log -Pattern '<correlation id>' -Context 0,20
+  ```
+
+### Troubleshooting
+
+| What you see | Cause | Fix |
+| --- | --- | --- |
+| `Could not load file or assembly '...'` in the log or console | A file of the release is missing (single files were copied) | Deploy the whole release folder again with `Deploy-ErfWeb.cmd` |
+| Service will not start (`Cannot start service ERFWeb.Api`) | A missing file, a bad `appsettings.json`, or the port is taken | Run `C:\inetpub\wwwroot\erf_web-app\ERFWeb.Api.exe` in a console to see the error; `netstat -ano \| findstr ":5080 :5081"` shows what holds the port |
+| `/erf/health` shows `"database":"unreachable"` (503) | The API cannot reach PostgreSQL | Check the PostgreSQL service and the connection string in `appsettings.json` |
+| `/erf/health` shows the old version | The deploy rolled back, or the release was not deployed | Read the deploy window's last line and the newest log file |
+| Sign-in fails with 400 `antiforgery_validation_failed` | Cross-site cookies are off, or the frontend address is not allowed | `CrossSiteCookies: true` and the Render address in `Cors:AllowedOrigins`, then `Restart-Service ERFWeb.Api` |
+| Browser console: CORS error | The frontend's address is missing from `Cors:AllowedOrigins` | Add it exactly (`https://…`, no trailing `/`), then restart |
+| Sign-in impossible on iPhone, iPad or Mac Safari | Safari blocks cross-site cookies on `onrender.com` | Move the frontend to a `mdmpi.com.ph` address on Render (e.g. `erf.mdmpi.com.ph`), then `CrossSiteCookies: false` |
+| `AntiforgeryOptions.Cookie.SecurePolicy = Always, but the current request is not an SSL request` | The API is older than the cross-site cookie fix | Deploy a current release |
+| A new feature answers 404 | The frontend went live before the backend that has the endpoint | Deploy the backend (step D) |
+| An image or link loads the website page instead | The frontend builds that address without `VITE_API_BASE_URL` | Use `apiUrl(...)` from `shared/api/client.ts` for every API address |
+| Email not sent | `Smtp` settings wrong, or the server cannot reach the mail server | `email_deliveries.status` and `smtp_status_code` in the database, and the log file |
+
+### Local development against the live API
+
+The SPA on your PC can use the deployed API: `.env` / `.env.local` with
+`VITE_API_TARGET=https://sr.mdmpi.com.ph/erf` and `VITE_API_PROXY_STRIP_PREFIX=true`, then `npm run dev`. A new
+endpoint answers 404 through that proxy until the backend that has it is deployed. A Render rewrite of `/erf/*` to
+the API was tried and is not forwarded (Render serves `index.html`), which is why the frontend calls
+`https://sr.mdmpi.com.ph/erf` directly.

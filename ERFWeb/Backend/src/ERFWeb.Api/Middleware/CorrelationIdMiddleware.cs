@@ -1,13 +1,22 @@
+using System.Text.RegularExpressions;
+
 namespace ERFWeb.Api.Middleware;
 
-/// <summary>Ensures every request has a correlation id, echoed on the response.</summary>
-public sealed class CorrelationIdMiddleware(RequestDelegate next)
+/// <summary>
+/// Ensures every request has a correlation id, echoed on the response and attached to every log line
+/// written while the request runs, so an id a user reports can be found in the log files.
+/// </summary>
+public sealed partial class CorrelationIdMiddleware(RequestDelegate next, ILogger<CorrelationIdMiddleware> logger)
 {
     public const string HeaderName = "X-Correlation-ID";
 
+    /// <summary>Log property name; the file log template prints it.</summary>
+    public const string LogProperty = "CorrelationId";
+
     public async Task Invoke(HttpContext context)
     {
-        var correlationId = context.Request.Headers.TryGetValue(HeaderName, out var value) && !string.IsNullOrWhiteSpace(value)
+        // A caller-supplied id is kept only when it is short and plain, so it cannot inject text into the logs.
+        var correlationId = context.Request.Headers.TryGetValue(HeaderName, out var value) && SafeId().IsMatch(value.ToString())
             ? value.ToString()
             : Guid.NewGuid().ToString("N");
 
@@ -18,6 +27,12 @@ public sealed class CorrelationIdMiddleware(RequestDelegate next)
             return Task.CompletedTask;
         });
 
-        await next(context);
+        using (logger.BeginScope(new Dictionary<string, object> { [LogProperty] = correlationId }))
+        {
+            await next(context);
+        }
     }
+
+    [GeneratedRegex("^[A-Za-z0-9-]{1,64}$")]
+    private static partial Regex SafeId();
 }

@@ -7,5 +7,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- The release version /api/health reports; keep it in step with the SPA's package.json. -->
+    <Version>0.1.0</Version>
   </PropertyGroup>
 </Project>

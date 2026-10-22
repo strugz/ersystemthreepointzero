@@ -21,3 +21,6 @@ Backend/**/appsettings.json
 Backend/**/appsettings.Production.json
 Backend/**/appsettings.Staging.json
 !Backend/**/appsettings.Example.json
+
+# Release folders made by Backend/tools/Publish-ErfWeb.ps1
+releases/
