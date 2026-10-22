@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "erfweb-client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "ERFWeb/Frontend/erfweb-client", "run", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "erfweb-client-local-api",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set VITE_API_TARGET=http://localhost:5081&& set VITE_API_PROXY_STRIP_PREFIX=false&& npm --prefix ERFWeb/Frontend/erfweb-client run dev -- --port 5179 --strictPort"],
+      "port": 5179
+    }
+  ]
+}
