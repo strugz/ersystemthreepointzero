@@ -1,4 +1,4 @@
-import { api } from '@/shared/api/client';
+import { api, apiUrl } from '@/shared/api/client';
 import type { UserRole } from '@/features/auth/types';
 import type {
   AuditEntry,
@@ -53,7 +53,7 @@ export const adminApi = {
     return api.postForm<UserDetail>(`${u(id)}/signature`, form);
   },
   /** Direct URL of the signature on file, for an <img>; the browser sends the session cookie. */
-  signatureUrl: (id: number, version = 0) => `/api${u(id)}/signature?v=${version}`,
+  signatureUrl: (id: number, version = 0) => apiUrl(`${u(id)}/signature?v=${version}`),
   grantRole: (id: number, input: GrantRoleInput) => api.post<UserDetail>(`${u(id)}/roles`, input),
   countersignRole: (id: number, role: UserRole, input: RoleActionInput) =>
     api.post<UserDetail>(`${u(id)}/roles/${encodeURIComponent(role)}/countersign`, input),
