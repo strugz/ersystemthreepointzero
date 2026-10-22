@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useSessionStore } from '@/app/stores/session';
 import { useThemeStore } from '@/app/stores/theme';
 import { ApiError } from '@/shared/api/client';
+import { appVersionLabel } from '@/shared/appVersion';
 
 const session = useSessionStore();
 const theme = useThemeStore();
@@ -82,6 +83,8 @@ async function submit() {
           <v-btn type="submit" class="press mt-2" color="primary" variant="flat" block size="large" :loading="loading">Sign in</v-btn>
         </v-form>
       </div>
+
+      <p class="login__version">{{ appVersionLabel }}</p>
     </section>
   </v-main>
 </template>
@@ -153,6 +156,17 @@ async function submit() {
   align-items: center;
   justify-content: center;
   padding: 24px;
+}
+.login__version {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  margin: 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  font-variant-numeric: tabular-nums;
 }
 .login__theme {
   position: absolute;

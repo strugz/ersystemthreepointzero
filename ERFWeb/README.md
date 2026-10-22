@@ -155,6 +155,10 @@ When the target is a reverse proxy that already maps to the API's `/api` root (t
 forwards `/erf/*` to `/api/*`), set `VITE_API_PROXY_STRIP_PREFIX=true` so the dev proxy drops the SPA's `/api`
 prefix. For a production build served behind that rule, set `VITE_API_BASE_URL` to the public prefix (e.g. `/erf`).
 
+**Version shown to users:** the sign-in page and the bottom of every page show `ERFWeb v<version> · <commit>`. The
+version is `"version"` in `package.json` (bump it for each release, e.g. `npm version minor --no-git-tag-version`);
+the commit comes from `RENDER_GIT_COMMIT` on Render, otherwise `git rev-parse --short HEAD`, otherwise `local`.
+
 ## Reporting — R47 "EXPENSE REPORT" (plan Phase 3)
 
 `GET /api/reports/{reportId}/pdf` streams the R47 controlled form as PDF (inline; add `?download=true`
