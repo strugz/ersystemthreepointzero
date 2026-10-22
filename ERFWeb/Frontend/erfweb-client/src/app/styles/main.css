@@ -9,15 +9,33 @@
   --font-ui: 'IBM Plex Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono: 'IBM Plex Mono', Consolas, 'Courier New', monospace;
 
-  --paper: #f4f3ef;
-  --card: #fffefb;
-  --ink: #1c1b19;
-  --ink-2: #5d5a53;
-  --ink-3: #8e8a80;
-  --line: #e5e1d8;
-  --line-2: #d3cec3;
+  --paper: #f3f4f7;
+  --card: #ffffff;
+  --ink: #161a23;
+  --ink-2: #555b69;
+  --ink-3: #868c99;
+  --line: #e3e6ec;
+  --line-2: #cfd4de;
   --navy: #1f3864;
-  --navy-soft: #e8ecf4;
+  --navy-soft: #e7ecf6;
+  --brass: #a8741f;
+  --brass-soft: #f6ecd9;
+
+  /* Brand surfaces stay navy in both themes: the sidebar and hero banners carry the identity. */
+  --brand-1: #16294a;
+  --brand-2: #23417a;
+  --on-brand: #ffffff;
+  --on-brand-2: rgba(255, 255, 255, 0.68);
+  --brand-line: rgba(255, 255, 255, 0.1);
+  --brand-accent: #e2b765;
+  /* Rail gradient: keyed off <html data-theme> only, because the rail itself always renders inside
+     the dark Vuetify theme and must still look brighter when the page is light. */
+  --rail-1: #1b3260;
+  --rail-2: #12223f;
+
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-2: 0 4px 12px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.05);
+  --glow: radial-gradient(1200px 420px at 70% -120px, rgba(31, 56, 100, 0.08), transparent 70%);
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -31,16 +49,32 @@
 }
 
 /* Dark theme swaps the neutrals; the Vuetify palette handles component colours. */
-.v-theme--erDark {
-  --paper: #151513;
-  --card: #1e1e1b;
-  --ink: #ecebe6;
-  --ink-2: #b3afa6;
-  --ink-3: #8e8a80;
-  --line: #2a2a26;
-  --line-2: #3a3a35;
-  --navy: #9db4dc;
-  --navy-soft: #24304a;
+.v-theme--erDark,
+html[data-theme='dark'] {
+  --paper: #0a0f1a;
+  --card: #111827;
+  --ink: #e6e9f0;
+  --ink-2: #a3abbd;
+  --ink-3: #737c90;
+  --line: #1f2940;
+  --line-2: #2c3852;
+  --navy: #9cb8ef;
+  --navy-soft: #1b2a48;
+  --brass: #e2b765;
+  --brass-soft: #3a2d14;
+
+  --brand-1: #0d1526;
+  --brand-2: #142242;
+  --brand-line: rgba(255, 255, 255, 0.07);
+
+  --shadow-1: 0 0 0 1px rgba(255, 255, 255, 0.02);
+  --shadow-2: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
+  --glow: radial-gradient(1200px 460px at 70% -140px, rgba(80, 120, 210, 0.16), transparent 70%);
+}
+
+html[data-theme='dark'] {
+  --rail-1: #0f1a30;
+  --rail-2: #0a1222;
 }
 
 html,
@@ -48,10 +82,26 @@ body,
 #app {
   height: 100%;
 }
+html {
+  background: var(--paper);
+}
 body {
   font-family: var(--font-ui);
   background: var(--paper);
   color: var(--ink);
+}
+
+/* Soft navy glow behind the top of every page; fixed so it never scrolls with long tables. */
+.v-application {
+  background: var(--glow), rgb(var(--v-theme-background)) !important;
+  background-attachment: fixed !important;
+}
+
+/* Theme switch crossfade (View Transitions API); short, and skipped for reduced motion in the store. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: var(--ease-out);
 }
 
 .v-application {
@@ -83,6 +133,23 @@ body {
 .v-card.v-card--variant-outlined {
   background: rgb(var(--v-theme-surface));
   color: rgb(var(--v-theme-on-surface));
+  border-color: var(--line);
+  box-shadow: var(--shadow-1);
+}
+/* Menus and popovers float: lift them off the page instead of relying on a hairline border. */
+.v-overlay__content > .v-card.v-card--variant-outlined,
+.v-menu > .v-overlay__content > .v-card {
+  box-shadow: var(--shadow-2);
+}
+
+/* Primary flat buttons get a faint top highlight so they read as pressable, not as flat stickers. */
+.v-btn--variant-flat.bg-primary {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 1px 2px rgba(16, 24, 40, 0.12);
+}
+
+/* Keyboard focus uses the brand navy everywhere, not the browser default. */
+:focus-visible {
+  outline-color: var(--navy);
 }
 
 /* ---------- Ledger vocabulary (shared by every feature) ---------- */
@@ -167,9 +234,9 @@ body {
   background: rgba(47, 122, 74, 0.14);
   color: #226038;
 }
-.v-theme--erDark .pill--warning { color: #e0b36a; }
-.v-theme--erDark .pill--error { color: #e08a80; }
-.v-theme--erDark .pill--success { color: #7bc08f; }
+.v-theme--erDark .pill--warning { color: #e9bc6c; background: rgba(233, 188, 108, 0.12); }
+.v-theme--erDark .pill--error { color: #ef8f84; background: rgba(239, 143, 132, 0.12); }
+.v-theme--erDark .pill--success { color: #7fcf9a; background: rgba(127, 207, 154, 0.12); }
 
 /* Ledger table. */
 .ledger {
@@ -200,7 +267,7 @@ body {
   padding: 8px 12px;
 }
 .v-theme--erDark .ledger tr.group td {
-  background: rgba(157, 180, 220, 0.08);
+  background: rgba(156, 184, 239, 0.07);
 }
 .ledger .r {
   text-align: right;
@@ -216,8 +283,9 @@ body {
   margin: 0;
   font-size: 26px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   line-height: 1.2;
+  color: var(--ink);
 }
 @media (max-width: 599.98px) {
   .page-title {
@@ -291,6 +359,9 @@ body {
   }
   .row-link:hover td {
     background: rgba(31, 56, 100, 0.035);
+  }
+  .v-theme--erDark .row-link:hover td {
+    background: rgba(156, 184, 239, 0.05);
   }
 }
 

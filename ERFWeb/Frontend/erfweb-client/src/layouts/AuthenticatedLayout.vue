@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import { useSessionStore } from '@/app/stores/session';
+import { useThemeStore } from '@/app/stores/theme';
+import type { ThemePreference } from '@/app/theme';
 import { roleLabel } from '@/features/auth/labels';
 import { entitlementReaderRoles, hasAnyRole, rateNavRoles } from '@/features/entitlements/access';
 import AppSnackbar from '@/shared/ui/AppSnackbar.vue';
@@ -34,6 +36,7 @@ const props = withDefaults(
 );
 
 const session = useSessionStore();
+const theme = useThemeStore();
 const router = useRouter();
 const route = useRoute();
 const { xs } = useDisplay();
@@ -153,6 +156,12 @@ const backTarget = computed<RouteLocationRaw | undefined>(() => {
 
 const lastCrumb = computed(() => props.crumbs[props.crumbs.length - 1]);
 
+const themeOptions: { value: ThemePreference; label: string; icon: string }[] = [
+  { value: 'light', label: 'Light', icon: 'mdi-white-balance-sunny' },
+  { value: 'dark', label: 'Dark', icon: 'mdi-weather-night' },
+  { value: 'system', label: 'System', icon: 'mdi-monitor' },
+];
+
 async function logout() {
   await session.logout();
   await router.push({ name: 'login' });
@@ -169,7 +178,7 @@ async function logout() {
     width="248"
     class="rail"
     :class="{ 'rail--open': expanded }"
-    color="surface"
+    theme="erDark"
   >
     <div class="rail__inner">
       <div class="rail__top">
@@ -239,7 +248,7 @@ async function logout() {
         </template>
       </nav>
 
-      <v-menu location="end bottom" :offset="8">
+      <v-menu location="end bottom" :offset="8" :theme="theme.isDark ? 'erDark' : 'erLight'">
         <template #activator="{ props: menu }">
           <button v-bind="menu" class="rail__account press" type="button" :aria-label="`Account: ${session.user?.fullName ?? ''}`">
             <span class="rail__avatar">{{ initials }}</span>
@@ -252,6 +261,25 @@ async function logout() {
         <v-card min-width="240" class="pa-1">
           <v-list density="compact" class="py-0">
             <v-list-item :title="session.user?.fullName" :subtitle="roleSummary" />
+            <v-divider class="my-1" />
+            <div class="theme-pick" role="radiogroup" aria-label="Appearance">
+              <span class="lbl theme-pick__lbl">Appearance</span>
+              <div class="theme-pick__seg">
+                <button
+                  v-for="o in themeOptions"
+                  :key="o.value"
+                  type="button"
+                  role="radio"
+                  class="theme-pick__opt press"
+                  :class="{ 'theme-pick__opt--on': theme.preference === o.value }"
+                  :aria-checked="theme.preference === o.value"
+                  @click="theme.setPreference(o.value)"
+                >
+                  <v-icon :icon="o.icon" size="16" />
+                  <span>{{ o.label }}</span>
+                </button>
+              </div>
+            </div>
             <v-divider class="my-1" />
             <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="logout" />
           </v-list>
@@ -292,9 +320,22 @@ async function logout() {
         </template>
       </nav>
       <v-spacer />
-      <span v-if="session.user" class="text-body-2 text-medium-emphasis mr-4 d-none d-md-inline">
+      <span v-if="session.user" class="text-body-2 text-medium-emphasis mr-3 d-none d-md-inline">
         {{ session.user.fullName }}
       </span>
+      <v-tooltip :text="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'" location="bottom" open-delay="300">
+        <template #activator="{ props: tip }">
+          <button
+            v-bind="tip"
+            type="button"
+            class="theme-btn press mr-3"
+            :aria-label="theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+            @click="theme.toggle()"
+          >
+            <v-icon :icon="theme.isDark ? 'mdi-white-balance-sunny' : 'mdi-weather-night'" size="20" />
+          </button>
+        </template>
+      </v-tooltip>
       <div class="d-flex align-center ga-2 mr-8">
         <slot name="actions" />
       </div>
@@ -333,6 +374,17 @@ async function logout() {
             <v-list-item v-for="item in group.items" :key="item.title" :prepend-icon="item.icon" :title="item.title" :to="item.to" />
           </template>
           <v-divider class="my-1" />
+          <v-list-subheader class="more__group">Appearance</v-list-subheader>
+          <v-list-item
+            v-for="o in themeOptions"
+            :key="o.value"
+            :prepend-icon="o.icon"
+            :title="o.label"
+            :active="theme.preference === o.value"
+            color="primary"
+            @click.stop="theme.setPreference(o.value)"
+          />
+          <v-divider class="my-1" />
           <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="logout" />
         </v-list>
       </v-card>
@@ -343,8 +395,12 @@ async function logout() {
 </template>
 
 <style scoped>
+/* The rail is a navy brand surface in both themes (rendered with the dark Vuetify theme so icons,
+   tooltips and ripples read on it); --rail-* tokens keep it a touch brighter in light mode. */
 .rail {
-  border-right: 1px solid var(--line) !important;
+  background: linear-gradient(180deg, var(--rail-1), var(--rail-2)) !important;
+  border-right: 1px solid var(--brand-line) !important;
+  color: var(--on-brand);
 }
 .rail__inner {
   height: 100%;
@@ -363,14 +419,27 @@ async function logout() {
 .rail__brand {
   font-weight: 600;
   font-size: 16px;
-  color: var(--navy);
+  letter-spacing: -0.01em;
+  color: var(--on-brand);
   white-space: nowrap;
+}
+.rail__brand::after {
+  content: '';
+  display: block;
+  width: 18px;
+  height: 2px;
+  margin-top: 3px;
+  border-radius: 2px;
+  background: var(--brand-accent);
 }
 .rail__logo {
   flex: none;
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -385,21 +454,26 @@ async function logout() {
 .rail__logo--sm {
   width: 32px;
   height: 32px;
+  border-radius: 9px;
+  padding: 3px;
+  box-shadow: none;
+  border: 1px solid var(--line);
   margin-bottom: 0;
 }
 .rail__nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
 }
 .rail__sep {
   width: 28px;
   height: 1px;
-  margin: 4px auto;
-  background: var(--line);
+  margin: 6px auto;
+  background: var(--brand-line);
 }
 .rail__btn {
+  position: relative;
   width: 44px;
   height: 44px;
   border-radius: 10px;
@@ -412,27 +486,37 @@ async function logout() {
   background: none;
   cursor: pointer;
   font: inherit;
-  color: var(--ink-3);
+  color: var(--on-brand-2);
   text-decoration: none;
   transition: background-color 120ms ease, color 120ms ease, transform var(--dur-press) var(--ease-out);
 }
 .rail__btn--on {
-  background: var(--navy-soft);
-  color: var(--navy);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--on-brand);
+}
+/* Brass marker on the active entry (inside the button, since the drawer clips overflow). */
+.rail__btn--on::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand-accent);
 }
 @media (hover: hover) and (pointer: fine) {
   .rail__btn:hover {
-    color: var(--ink);
-    background: var(--line);
+    color: var(--on-brand);
+    background: rgba(255, 255, 255, 0.07);
   }
   .rail__btn--on:hover {
-    background: var(--navy-soft);
-    color: var(--navy);
+    background: rgba(255, 255, 255, 0.12);
   }
 }
 .rail__btn:focus-visible,
 .rail__logo:focus-visible {
-  outline: 2px solid var(--navy);
+  outline: 2px solid var(--brand-accent);
   outline-offset: 2px;
 }
 .rail__toggle {
@@ -446,13 +530,13 @@ async function logout() {
   background: none;
   padding: 0;
   font: inherit;
-  color: inherit;
+  color: var(--on-brand);
   text-align: left;
   border-radius: 10px;
   cursor: pointer;
 }
 .rail__account:focus-visible {
-  outline: 2px solid var(--navy);
+  outline: 2px solid var(--brand-accent);
   outline-offset: 2px;
 }
 .rail__avatar {
@@ -460,13 +544,14 @@ async function logout() {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--navy-soft);
-  color: var(--navy);
+  background: linear-gradient(135deg, #f0cd85, #c79236);
+  color: #2a1d05;
   font-size: 12px;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
 }
 .rail__label {
   flex: 1;
@@ -482,7 +567,7 @@ async function logout() {
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-3);
+  color: rgba(255, 255, 255, 0.42);
   white-space: nowrap;
 }
 .rail__who {
@@ -499,7 +584,7 @@ async function logout() {
 }
 .rail__who-roles {
   font-size: 11px;
-  color: var(--ink-3);
+  color: var(--on-brand-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -524,6 +609,73 @@ async function logout() {
 
 .shell-header {
   border-bottom: 1px solid var(--line) !important;
+  /* Frosted header: content scrolls under it instead of being cut by a solid bar. */
+  background: color-mix(in srgb, rgb(var(--v-theme-surface)) 78%, transparent) !important;
+  backdrop-filter: saturate(1.6) blur(14px);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px);
+}
+.theme-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, transform var(--dur-press) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .theme-btn:hover {
+    color: var(--ink);
+    border-color: var(--line-2);
+  }
+}
+.theme-btn:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+.theme-pick {
+  padding: 6px 12px 8px;
+}
+.theme-pick__lbl {
+  display: block;
+  margin-bottom: 6px;
+}
+.theme-pick__seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--line);
+}
+.theme-pick__opt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, transform var(--dur-press) var(--ease-out);
+}
+.theme-pick__opt--on {
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 500;
+  box-shadow: var(--shadow-1);
+}
+.theme-pick__opt:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 1px;
 }
 .shell-header__title {
   min-width: 0;
@@ -546,7 +698,7 @@ async function logout() {
 }
 .crumbs__current {
   color: var(--ink);
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
