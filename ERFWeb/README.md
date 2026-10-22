@@ -87,6 +87,9 @@ psql -d erfweb -f Database/007_scope_and_rate_profiles.sql # Phase 2: scope assi
 psql -d erfweb -f Database/008_approvals_and_finance.sql # Phase 5: line adjustments and Finance receipt tracking columns
 psql -d erfweb -f Database/009_verification_requests.sql # Phase 6: verification requests and queries
 psql -d erfweb -f Database/010_seed_test_verifier.sql   # optional, dev/UAT only: verifier1 / Test!1234 (needs 004)
+psql -d erfweb -f Database/011_sms_deliveries.sql        # Lasius SMS delivery log
+psql -d erfweb -f Database/012_sms_deliveries_report.sql # SMS deliveries linked to a report
+psql -d erfweb -f Database/013_approval_delegations.sql  # Phase 7: approval delegation and "on behalf of" steps
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -133,7 +136,7 @@ From `ERFWeb/Frontend/erfweb-client`:
 
 ```bash
 npm ci
-npm run dev          # http://localhost:5173, proxies /api and /health to VITE_API_TARGET (see below)
+npm run dev          # http://localhost:5173, proxies /api (including /api/health) to VITE_API_TARGET (see below)
 npm run build        # type-check (vue-tsc) + production build
 npm run lint
 npm run type-check
@@ -143,6 +146,10 @@ The dev proxy target is `VITE_API_TARGET` in `.env` (default `http://localhost:5
 `http` launch profile). If you run the API from Visual Studio with the **IIS Express** profile, set it to
 `https://localhost:44387` instead; the proxy accepts the self-signed dev certificate (`secure: false`).
 Put a machine-specific value in `.env.local` (gitignored) rather than editing `.env`.
+
+When the target is a reverse proxy that already maps to the API's `/api` root (the `sr.mdmpi.com.ph` nginx rule
+forwards `/erf/*` to `/api/*`), set `VITE_API_PROXY_STRIP_PREFIX=true` so the dev proxy drops the SPA's `/api`
+prefix. For a production build served behind that rule, set `VITE_API_BASE_URL` to the public prefix (e.g. `/erf`).
 
 ## Reporting — R47 "EXPENSE REPORT" (plan Phase 3)
 

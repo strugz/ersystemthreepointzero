@@ -82,7 +82,7 @@ function open(item: ApprovalInboxItem) {
 /** What the row is waiting for, from my point of view. */
 function waitingFor(item: ApprovalInboxItem): string {
   if (view.value === 'Acted') return `${approvalStatusLabel[item.myStepStatus]}${item.myActedAt ? ` ${formatDateTime(item.myActedAt)}` : ''}`;
-  if (item.isMyTurn) return 'Your turn';
+  if (item.isMyTurn) return item.onBehalfOfName ? `Your turn, for ${item.onBehalfOfName}` : 'Your turn';
   return item.currentApproverName ? `Waiting for ${item.currentApproverName}` : 'Waiting for an earlier step';
 }
 </script>
@@ -160,6 +160,7 @@ function waitingFor(item: ApprovalInboxItem): string {
             </div>
             <div class="row__purpose">{{ item.employeeName }} · {{ item.purpose || reportTypeLabel[item.reportType] }}</div>
             <div class="row__meta" :class="{ 'row__meta--turn': item.isMyTurn && view === 'Pending' }">{{ waitingFor(item) }}</div>
+            <div v-if="item.onBehalfOfName && view === 'Acted'" class="row__meta">On behalf of {{ item.onBehalfOfName }}</div>
           </div>
           <span class="mono row__amt">{{ formatMoney(item.totalAmount) }}</span>
         </button>
@@ -203,6 +204,7 @@ function waitingFor(item: ApprovalInboxItem): string {
               <td :class="{ 'turn': item.isMyTurn && view === 'Pending' }">
                 {{ waitingFor(item) }}
                 <div v-if="view === 'Pending' && item.canOverride && !item.isMyTurn" class="text-caption text-medium-emphasis">You can override</div>
+                <div v-if="item.onBehalfOfName && (view === 'Acted' || !item.isMyTurn)" class="text-caption text-medium-emphasis">On behalf of {{ item.onBehalfOfName }}</div>
               </td>
               <td><ReportStatusChip :status="item.status" /></td>
             </tr>

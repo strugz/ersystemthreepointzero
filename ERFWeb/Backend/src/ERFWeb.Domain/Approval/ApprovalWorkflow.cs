@@ -49,6 +49,9 @@ public sealed record ReviewPermissions(bool CanApprove, bool CanReturn, bool Can
 /// Level 1 with a reason. Return and reject need a reason. Nobody acts on their own report (9.1).
 /// Amounts may be lowered only by the current Level 1, before they approve; after that they are
 /// locked (9.6).
+/// A delegate acts on the steps of the signatories they stand in for (<c>actingFor</c>), unless
+/// they are themselves an approver on the report: one person never fills two levels of the same
+/// report through a delegation (a Level 2 who needs to move a stuck Level 1 overrides instead).
 /// </summary>
 public static class ApprovalWorkflow
 {
@@ -60,7 +63,8 @@ public static class ApprovalWorkflow
         long claimantUserId,
         long actorUserId,
         ApprovalAction action,
-        string? reason)
+        string? reason,
+        IReadOnlySet<long>? actingFor = null)
     {
         ArgumentNullException.ThrowIfNull(steps);
 
@@ -69,7 +73,7 @@ public static class ApprovalWorkflow
             return WorkflowDecision.Refused(WorkflowRefusal.Forbidden, "You cannot act on your own report.");
         }
 
-        var mine = steps.Where(s => s.ApproverUserId == actorUserId).ToList();
+        var mine = ActorSteps(steps, actorUserId, actingFor);
         if (mine.Count == 0)
         {
             return WorkflowDecision.Refused(WorkflowRefusal.Forbidden, "You are not an approver on this report.");
@@ -144,20 +148,22 @@ public static class ApprovalWorkflow
     }
 
     /// <summary>What the viewer may do now. Computed with the same rules the actions enforce.</summary>
-    public static ReviewPermissions Permissions(ReportStatus reportStatus, IReadOnlyList<WorkflowStep> steps, long claimantUserId, long viewerUserId)
+    public static ReviewPermissions Permissions(
+        ReportStatus reportStatus, IReadOnlyList<WorkflowStep> steps, long claimantUserId, long viewerUserId, IReadOnlySet<long>? actingFor = null)
     {
         ArgumentNullException.ThrowIfNull(steps);
-        bool Allowed(ApprovalAction a) => Decide(reportStatus, steps, claimantUserId, viewerUserId, a, "x").IsAllowed;
+        bool Allowed(ApprovalAction a) => Decide(reportStatus, steps, claimantUserId, viewerUserId, a, "x", actingFor).IsAllowed;
         return new ReviewPermissions(
             Allowed(ApprovalAction.Approve),
             Allowed(ApprovalAction.Return),
             Allowed(ApprovalAction.Reject),
             Allowed(ApprovalAction.Override),
-            AdjustmentError(reportStatus, steps, claimantUserId, viewerUserId) is null);
+            AdjustmentError(reportStatus, steps, claimantUserId, viewerUserId, actingFor) is null);
     }
 
     /// <summary>Whether the viewer may lower a line amount now; null when allowed.</summary>
-    public static string? AdjustmentError(ReportStatus reportStatus, IReadOnlyList<WorkflowStep> steps, long claimantUserId, long actorUserId)
+    public static string? AdjustmentError(
+        ReportStatus reportStatus, IReadOnlyList<WorkflowStep> steps, long claimantUserId, long actorUserId, IReadOnlySet<long>? actingFor = null)
     {
         ArgumentNullException.ThrowIfNull(steps);
         if (actorUserId == claimantUserId)
@@ -171,7 +177,7 @@ public static class ApprovalWorkflow
         }
 
         var current = steps.Where(s => s.Status == ApprovalStatus.Pending).OrderBy(s => s.StepOrder).FirstOrDefault();
-        if (current is null || current.ApproverUserId != actorUserId)
+        if (current is null || !ActorSteps(steps, actorUserId, actingFor).Any(s => s.Id == current.Id))
         {
             return "Only the approver whose turn it is can adjust amounts.";
         }
@@ -212,6 +218,22 @@ public static class ApprovalWorkflow
         }
 
         return reason is { Length: > MaxReasonLength } ? $"The reason must be at most {MaxReasonLength} characters." : null;
+    }
+
+    /// <summary>
+    /// The steps the actor may act on: their own, or, when they have none on this report, the steps
+    /// of the signatories they are delegated for.
+    /// </summary>
+    public static List<WorkflowStep> ActorSteps(IReadOnlyList<WorkflowStep> steps, long actorUserId, IReadOnlySet<long>? actingFor)
+    {
+        ArgumentNullException.ThrowIfNull(steps);
+        var own = steps.Where(s => s.ApproverUserId == actorUserId).ToList();
+        if (own.Count > 0 || actingFor is not { Count: > 0 })
+        {
+            return own;
+        }
+
+        return steps.Where(s => actingFor.Contains(s.ApproverUserId)).ToList();
     }
 
     private static WorkflowDecision Finish(IReadOnlyList<WorkflowStep> steps, Dictionary<long, ApprovalStatus> changes, long actingStepId)

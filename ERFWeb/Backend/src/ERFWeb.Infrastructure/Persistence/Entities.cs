@@ -212,6 +212,34 @@ public class ApprovalStep
     public DateTimeOffset? ActedAt { get; set; }
     public byte[]? Signature { get; set; }
     public string? Note { get; set; }
+
+    /// <summary>Who acted on the step; differs from <see cref="ApproverUserId"/> when a delegate acted.</summary>
+    public long? ActedByUserId { get; set; }
+
+    /// <summary>The delegation a delegate acted under; null when the signatory acted.</summary>
+    public long? DelegationId { get; set; }
+}
+
+/// <summary>
+/// A signatory's delegate for a date range (plan Phase 7). Only approving is delegated. Cancelled
+/// rows are kept for the audit trail; the row never changes otherwise.
+/// </summary>
+public class ApprovalDelegation
+{
+    public long Id { get; set; }
+    public long SignatoryUserId { get; set; }
+    public long DelegateUserId { get; set; }
+    public DateOnly StartsOn { get; set; }
+    public DateOnly EndsOn { get; set; }
+    public string? Reason { get; set; }
+
+    /// <summary>Assigned by the Level 2 for an absent Level 1.</summary>
+    public bool IsForced { get; set; }
+    public long CreatedByUserId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public long? CancelledByUserId { get; set; }
+    public DateTimeOffset? CancelledAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
 }
 
 public class FinanceTracking

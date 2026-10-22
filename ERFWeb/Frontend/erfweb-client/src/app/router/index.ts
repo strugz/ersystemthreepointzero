@@ -54,6 +54,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: ['SignatoryLevel1', 'SignatoryLevel2'] },
   },
   {
+    path: '/delegations',
+    name: 'delegations',
+    component: () => import('@/views/delegations/DelegationsView.vue'),
+    meta: { requiresAuth: true, roles: ['SignatoryLevel1', 'SignatoryLevel2'] },
+  },
+  {
     path: '/review/:id',
     name: 'report-review',
     component: () => import('@/views/approvals/ReportReviewView.vue'),

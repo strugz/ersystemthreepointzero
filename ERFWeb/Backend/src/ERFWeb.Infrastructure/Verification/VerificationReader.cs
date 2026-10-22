@@ -13,13 +13,20 @@ namespace ERFWeb.Infrastructure.Verification;
 /// </summary>
 public sealed class VerificationReader(ErfDbContext db, ICurrentUser user, IClock clock)
 {
-    /// <summary>Everyone who approved a step of the report in any cycle (9.16: they may not verify it).</summary>
-    public async Task<HashSet<long>> ApproversAsync(Guid reportId, CancellationToken ct) =>
-        (await db.ApprovalSteps.AsNoTracking()
+    /// <summary>
+    /// Everyone who approved a step of the report in any cycle, including a delegate who approved
+    /// on a signatory's behalf (9.16: they may not verify it).
+    /// </summary>
+    public async Task<HashSet<long>> ApproversAsync(Guid reportId, CancellationToken ct)
+    {
+        var rows = await db.ApprovalSteps.AsNoTracking()
             .Where(s => s.ReportId == reportId && s.Status == ApprovalStatus.Approved)
-            .Select(s => s.ApproverUserId)
-            .Distinct()
-            .ToListAsync(ct)).ToHashSet();
+            .Select(s => new { s.ApproverUserId, s.ActedByUserId })
+            .ToListAsync(ct);
+        return rows.Select(r => r.ApproverUserId)
+            .Concat(rows.Where(r => r.ActedByUserId != null).Select(r => r.ActedByUserId!.Value))
+            .ToHashSet();
+    }
 
     public static VerificationState ToState(VerificationRequest v, long claimantUserId) =>
         new(v.Status, claimantUserId, v.RequestedByUserId, v.VerifierUserId, v.Finding, v.QueryToUserId);

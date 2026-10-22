@@ -72,7 +72,8 @@ public sealed record ApprovalStepDto(
     ApprovalStatus Status,
     DateTimeOffset? ActedAt,
     string? Note,
-    int? Level = null);
+    int? Level = null,
+    string? ActedByName = null);
 
 public sealed record AttachmentDto(
     long Id,

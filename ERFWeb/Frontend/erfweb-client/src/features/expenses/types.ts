@@ -106,6 +106,8 @@ export interface ApprovalStep {
   note: string | null;
   /** Signatory level (1 or 2) snapshotted when the report was filed. */
   level?: number | null;
+  /** Set only when a delegate acted on the signatory's behalf. */
+  actedByName?: string | null;
 }
 
 /** What the viewer may do as an approver; computed by the same rules the API enforces. */

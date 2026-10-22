@@ -9,6 +9,17 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <title>ERFWeb</title>
+    <script>
+      // Paint the right background before the bundle loads, so dark-mode users never see a white flash.
+      // Mirrors src/app/theme.ts (key "erfweb.theme": light | dark | absent = follow the OS).
+      (function () {
+        var pref = null;
+        try { pref = localStorage.getItem('erfweb.theme'); } catch (e) { /* storage blocked */ }
+        var dark = pref === 'dark' || (pref !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

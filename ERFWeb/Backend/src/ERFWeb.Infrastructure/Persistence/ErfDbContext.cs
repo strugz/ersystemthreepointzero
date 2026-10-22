@@ -26,6 +26,7 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
     public DbSet<ExpenseMealItem> ExpenseMealItems => Set<ExpenseMealItem>();
     public DbSet<ExpenseTransportItem> ExpenseTransportItems => Set<ExpenseTransportItem>();
     public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
+    public DbSet<ApprovalDelegation> ApprovalDelegations => Set<ApprovalDelegation>();
     public DbSet<FinanceTracking> FinanceTrackings => Set<FinanceTracking>();
     public DbSet<ReceiptAttachment> ReceiptAttachments => Set<ReceiptAttachment>();
     public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
@@ -209,6 +210,27 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.Property(x => x.Status).HasDefaultValue(ApprovalStatus.Pending);
             e.HasOne<ExpenseReport>().WithMany().HasForeignKey(x => x.ReportId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<User>().WithMany().HasForeignKey(x => x.ApproverUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.ActedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<ApprovalDelegation>().WithMany().HasForeignKey(x => x.DelegationId).OnDelete(DeleteBehavior.Restrict);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<ApprovalDelegation>(e =>
+        {
+            e.ToTable("approval_delegations", t =>
+            {
+                t.HasCheckConstraint("ck_approval_delegations_dates", "ends_on >= starts_on");
+                t.HasCheckConstraint("ck_approval_delegations_not_self", "delegate_user_id <> signatory_user_id");
+            });
+            e.HasIndex(x => x.SignatoryUserId);
+            e.HasIndex(x => x.DelegateUserId);
+            e.Property(x => x.Reason).HasMaxLength(1000);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
+            e.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.SignatoryUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.DelegateUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.CancelledByUserId).OnDelete(DeleteBehavior.Restrict);
             AddConcurrencyToken(e);
         });
 
