@@ -468,6 +468,11 @@ Configure the gitignored `appsettings.json` (template in `appsettings.Example.js
 Without `Host` and `FromAddress` the API still starts, the endpoint answers 503 `email_not_configured`, and
 workflow emails are skipped (logged).
 
+**From:** each email is from the signed-in user who pressed Email or took the workflow action (their
+`users.email`, also the Reply-To), sent on behalf of `FromAddress`, which goes in the `Sender` header and the SMTP
+envelope. The mail server must allow that mailbox to send for those users (Office 365: "Send on behalf" or a
+relay connector). A user without a usable address sends from `FromAddress` itself.
+
 | Outcome | HTTP | `code` |
 | --- | --- | --- |
 | Sent (or a retry of one already sent: `replayed: true`) | 200 `{ status, recipientCount, replayed }` | — |

@@ -84,6 +84,30 @@ public class EmailApprovalNotifierTests
         Assert.Equal(EmailGatewayStatus.Rejected, result.Status);
     }
 
+    [Fact]
+    public void Gateway_SendsAsTheUserOnBehalfOfTheMailbox()
+    {
+        using var mime = Gateway().Compose(new EmailMessage(["l1@example.test"], "Subject", "Body", [], new EmailSender("Jay Bryan Abaoag", "jay@example.test")));
+
+        var from = Assert.IsType<MimeKit.MailboxAddress>(Assert.Single(mime.From));
+        Assert.Equal(("Jay Bryan Abaoag", "jay@example.test"), (from.Name, from.Address));
+        Assert.Equal("jay@example.test", Assert.IsType<MimeKit.MailboxAddress>(Assert.Single(mime.ReplyTo)).Address);
+        Assert.Equal("erf@example.test", mime.Sender?.Address);
+    }
+
+    [Fact]
+    public void Gateway_SendsFromTheMailboxWhenTheUserHasNoAddress()
+    {
+        using var mime = Gateway().Compose(new EmailMessage(["l1@example.test"], "Subject", "Body", []));
+
+        Assert.Equal("erf@example.test", Assert.IsType<MimeKit.MailboxAddress>(Assert.Single(mime.From)).Address);
+        Assert.Null(mime.Sender);
+        Assert.Empty(mime.ReplyTo);
+    }
+
+    private static MailKitEmailGateway Gateway() =>
+        new(Options.Create(new SmtpOptions { Host = "smtp.example.test", FromAddress = "erf@example.test" }), NullLogger<MailKitEmailGateway>.Instance);
+
     private static EmailApprovalNotifier Create(IReportEmailService email, ISmsService sms) =>
         new(
             new SmsApprovalNotifier(new LoggingApprovalNotifier(NullLogger<LoggingApprovalNotifier>.Instance), sms, NullLogger<SmsApprovalNotifier>.Instance),

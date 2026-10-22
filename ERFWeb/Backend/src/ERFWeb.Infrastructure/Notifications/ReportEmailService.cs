@@ -229,7 +229,8 @@ public sealed class ReportEmailService(
             var document = await loader.LoadAsync(report.Id, CancellationToken.None);
             var pdf = renderer.Render(document, clock.UtcNow);
             var fileName = $"ExpenseReport-{(report.ReferenceNo is { Length: > 0 } r ? r : report.Id.ToString("N"))}.pdf";
-            var message = new EmailMessage(addresses, content.Subject, content.Body, [new EmailAttachment(fileName, "application/pdf", pdf)]);
+            var message = new EmailMessage(addresses, content.Subject, content.Body, [new EmailAttachment(fileName, "application/pdf", pdf)],
+                await CurrentUserSenderAsync());
             result = await gateway.SendAsync(message, CancellationToken.None);
         }
         catch (Exception ex)
@@ -270,6 +271,19 @@ public sealed class ReportEmailService(
     private Task<EmailDelivery?> FindAsync(string key, CancellationToken ct) =>
         db.EmailDeliveries.AsNoTracking()
             .FirstOrDefaultAsync(x => x.SenderUserId == user.UserId && x.IdempotencyKey == key, ct);
+
+    /// <summary>
+    /// The email comes from whoever pressed Email or took the workflow action (an approver, or the
+    /// employee on filing). Without a usable address on file it comes from the configured mailbox.
+    /// </summary>
+    private async Task<EmailSender?> CurrentUserSenderAsync()
+    {
+        var email = await db.Users.AsNoTracking()
+            .Where(u => u.Id == user.UserId)
+            .Select(u => u.Email)
+            .FirstOrDefaultAsync(CancellationToken.None);
+        return EmailRules.RecipientAddress(email) is { } address ? new EmailSender(SenderName(), address) : null;
+    }
 
     private string SenderName() => string.IsNullOrWhiteSpace(user.FullName) ? user.Username : user.FullName;
 
