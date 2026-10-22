@@ -147,6 +147,10 @@ The dev proxy target is `VITE_API_TARGET` in `.env` (default `http://localhost:5
 `https://localhost:44387` instead; the proxy accepts the self-signed dev certificate (`secure: false`).
 Put a machine-specific value in `.env.local` (gitignored) rather than editing `.env`.
 
+When the target is a reverse proxy that already maps to the API's `/api` root (the `sr.mdmpi.com.ph` nginx rule
+forwards `/erf/*` to `/api/*`), set `VITE_API_PROXY_STRIP_PREFIX=true` so the dev proxy drops the SPA's `/api`
+prefix. For a production build served behind that rule, set `VITE_API_BASE_URL` to the public prefix (e.g. `/erf`).
+
 ## Reporting — R47 "EXPENSE REPORT" (plan Phase 3)
 
 `GET /api/reports/{reportId}/pdf` streams the R47 controlled form as PDF (inline; add `?download=true`

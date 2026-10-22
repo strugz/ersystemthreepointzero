@@ -3,6 +3,9 @@
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
+/** Absolute API URL for links the browser opens itself (new tab, download), so they follow VITE_API_BASE_URL too. */
+export const apiUrl = (path: string) => `${BASE}${path}`;
+
 export interface ProblemDetails {
   title?: string;
   status?: number;
