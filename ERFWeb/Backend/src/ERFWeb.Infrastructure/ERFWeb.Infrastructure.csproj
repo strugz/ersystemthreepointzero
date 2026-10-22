@@ -11,6 +11,9 @@
     <PackageReference Include="EFCore.NamingConventions" Version="10.0.*" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.*" />
     <PackageReference Include="QuestPDF" Version="2025.12.4" />
+    <PackageReference Include="MailKit" Version="4.18.1" />
+    <!-- MimeKit (via MailKit) pulls Pkcs 10.0.0, which has known advisories (NU1902/NU1903). -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.*" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

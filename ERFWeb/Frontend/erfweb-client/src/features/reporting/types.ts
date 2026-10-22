@@ -33,3 +33,24 @@ export interface ExpenseSummary {
   byCategory: Record<ExpenseCategory, number>;
   total: number;
 }
+
+// Mirrors ERFWeb.Application.Features.Notifications.EmailContracts (report email).
+
+export interface ReportEmailSent {
+  status: 'Sent';
+  recipientCount: number;
+  /** True when a retry found the email already sent and nothing new went out. */
+  replayed: boolean;
+}
+
+/** One email about a report (manual "Email R47" or a workflow event). Never the addresses or text. */
+export interface ReportEmailDelivery {
+  id: number;
+  /** "R47" for a manual send, otherwise the workflow event (e.g. ReportApproved). */
+  kind: string;
+  status: 'Sending' | 'Sent' | 'Failed' | 'Unconfirmed';
+  recipientCount: number;
+  sentByName: string;
+  createdAt: string;
+  completedAt: string | null;
+}

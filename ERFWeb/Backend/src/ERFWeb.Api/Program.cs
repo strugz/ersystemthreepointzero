@@ -64,6 +64,10 @@ builder.Services.Configure<ReferenceNumberOptions>(config.GetSection(ReferenceNu
 // the SMS endpoint answers "SMS is not configured" (503) rather than failing the whole application.
 builder.Services.Configure<LasiusOptions>(config.GetSection(LasiusOptions.SectionName));
 
+// SMTP for report email: optional in the same way. Without Smtp:Host and Smtp:FromAddress the API starts,
+// "Email R47" answers "Email is not configured" (503) and workflow emails are skipped (logged).
+builder.Services.Configure<SmtpOptions>(config.GetSection(SmtpOptions.SectionName));
+
 // Keep Kestrel/form limits in step with the configured attachment size (plus headroom for the multipart envelope).
 builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = (attachmentMaxMb + 1) * 1024L * 1024L);
 builder.WebHost.ConfigureKestrel(k => k.Limits.MaxRequestBodySize = (attachmentMaxMb + 1) * 1024L * 1024L);
