@@ -535,21 +535,18 @@ health check is `/erf/health`. It is deployed separately from the desktop instal
 1. **Database first.** Apply every `Database/NNN_*.sql` script the server has not had yet, in order, against the
    production database (`erms_db`). Scripts are forward-only and idempotent; never run `dotnet ef database update`
    against it. Back up first and keep each script's commented rollback at hand.
-2. **Publish** with the `erf-backend` folder profile (Visual Studio), or from `ERFWeb/` (the publish output has no
-   `appsettings.json`: the server keeps its own, so a deploy never overwrites it):
-   ```bash
-   dotnet publish Backend/src/ERFWeb.Api -c Release -o Backend/src/ERFWeb.Api/bin/Release/net10.0/publish
-   ```
-3. **Copy the whole publish folder** to the server, not only the files with today's date. A package added since
-   the last deploy (for email: `MailKit.dll`, `MimeKit.dll`, `BouncyCastle.Cryptography.dll`,
-   `System.Security.Cryptography.Pkcs.dll`) can carry an older timestamp but must be there, together with the new
-   `ERFWeb.Api.deps.json`. A missing assembly fails only the requests that use it, with a 500.
-4. **`appsettings.json` on the server** is the server's own file (gitignored, never in the repo, never published).
-   When a release adds a key to `appsettings.Example.json`, add it to the server's file by hand before restarting.
-   On the live server `Cors:AllowedOrigins` lists only real origins (no `localhost`).
-   Restart with `Restart-Service ERFWeb.Api`.
-5. **Smoke test:** `https://sr.mdmpi.com.ph/erf/health` answers 200 and an unauthenticated `/erf/auth/me` answers
-   401; then sign in and exercise the changed feature.
+2. **Build the release on your PC:** double-click `Backend/tools/Publish-ErfWeb.cmd`. It publishes ERFWeb.Api into
+   a clean folder and writes one release folder, `ERFWeb/releases/ERFWeb-Api-<version>-<commit>/` (gitignored),
+   holding `ERFWeb-Api.zip` (every file of the API, never `appsettings.json`), `Deploy-ErfWeb.cmd` and its script.
+3. **Copy that one folder to the server** (anywhere, e.g. `C:\inetpub\erf-releases\`).
+4. **Double-click `Deploy-ErfWeb.cmd` in it** and accept the administrator prompt. It stops the `ERFWeb.Api`
+   service, backs up the app folder to `C:\inetpub\wwwroot\erf_web-app-backups\<time>` (last 3 kept), extracts the
+   release over the app folder (the server's `appsettings.json` stays), starts the service and waits for
+   `/api/health` to report this version with database `ok`. If it does not, it restores the backup, starts the old
+   version and says so. When a release adds a key to `appsettings.Example.json`, add it to the server's
+   `appsettings.json` first. On the live server `Cors:AllowedOrigins` lists only real origins (no `localhost`).
+5. **Smoke test:** `https://sr.mdmpi.com.ph/erf/health` shows the new version with database `ok`, and an
+   unauthenticated `/erf/auth/me` answers 401; then sign in and exercise the changed feature.
 
 For local development the SPA can point at the deployed API (`.env` / `.env.local`):
 `VITE_API_TARGET=https://sr.mdmpi.com.ph/erf` and `VITE_API_PROXY_STRIP_PREFIX=true`. A new endpoint answers 404
@@ -579,8 +576,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-ErfWebService.ps1 
 The script (`Backend/tools/Install-ErfWebService.ps1`) runs the service as the virtual account
 `NT SERVICE\ERFWeb.Api` with read access to the install folder and write access to `logs\` only, sets restart on
 failure (5 s, 5 s, 30 s), registers the event log source, starts the service and checks `/api/health`.
-`-Uninstall` removes the service. After a deploy: `Stop-Service ERFWeb.Api`, copy the publish folder,
-`Start-Service ERFWeb.Api`.
+`-Uninstall` removes the service. Releases after that go through `Deploy-ErfWeb.cmd` (steps 2–4 above).
 
 **Logs:** `<install folder>\logs\erfweb-yyyyMMdd.log`; warnings and errors also go to the Windows Application event
 log (source `ERFWeb.Api`). Every line written during a request carries its correlation id, so the
