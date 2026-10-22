@@ -136,7 +136,7 @@ From `ERFWeb/Frontend/erfweb-client`:
 
 ```bash
 npm ci
-npm run dev          # http://localhost:5173, proxies /api and /health to VITE_API_TARGET (see below)
+npm run dev          # http://localhost:5173, proxies /api (including /api/health) to VITE_API_TARGET (see below)
 npm run build        # type-check (vue-tsc) + production build
 npm run lint
 npm run type-check
