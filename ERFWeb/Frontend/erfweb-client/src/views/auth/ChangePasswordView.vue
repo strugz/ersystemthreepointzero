@@ -18,6 +18,9 @@ const forced = computed(() => session.user?.mustChangePassword ?? false);
 const currentPassword = ref('');
 const newPassword = ref('');
 const confirmPassword = ref('');
+// The confirm field follows the new-password toggle, as in the administrator's reset dialog.
+const showCurrent = ref(false);
+const showNew = ref(false);
 const saving = ref(false);
 const error = ref<string | null>(null);
 const fieldErrors = ref<Record<string, string>>({});
@@ -75,9 +78,11 @@ async function save() {
         <v-text-field
           v-model="currentPassword"
           label="Current password"
-          type="password"
+          :type="showCurrent ? 'text' : 'password'"
           autocomplete="current-password"
           prepend-inner-icon="mdi-lock-outline"
+          :append-inner-icon="showCurrent ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+          @click:append-inner="showCurrent = !showCurrent"
           :rules="[rules.required]"
           :error-messages="fieldErrors.currentPassword"
           :disabled="saving"
@@ -88,9 +93,11 @@ async function save() {
         <v-text-field
           v-model="newPassword"
           label="New password"
-          type="password"
+          :type="showNew ? 'text' : 'password'"
           autocomplete="new-password"
           prepend-inner-icon="mdi-lock-plus-outline"
+          :append-inner-icon="showNew ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+          @click:append-inner="showNew = !showNew"
           :rules="[rules.required, rules.length]"
           :error-messages="fieldErrors.newPassword"
           :disabled="saving"
@@ -100,7 +107,7 @@ async function save() {
         <v-text-field
           v-model="confirmPassword"
           label="Confirm new password"
-          type="password"
+          :type="showNew ? 'text' : 'password'"
           autocomplete="new-password"
           prepend-inner-icon="mdi-lock-check-outline"
           :rules="[rules.required, rules.matches]"
