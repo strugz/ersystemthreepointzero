@@ -90,6 +90,11 @@ public static class DependencyInjection
         services.AddScoped<VerificationReader>();
         services.AddScoped<IVerificationService, VerificationService>();
 
+        // Summaries and exports (Phase 7)
+        services.AddScoped<IExpenseSummaryService, ExpenseSummaryService>();
+        services.AddSingleton<ExportRenderer>();
+        services.AddScoped<IExportService, ExportService>();
+
         // Notification SMS through the Lasius gateway; the URL and API key come from appsettings.json.
         services.AddOptions<LasiusOptions>();
         services.AddHttpClient<ISmsGateway, LasiusSmsGateway>((sp, client) =>

@@ -2,6 +2,7 @@ using ERFWeb.Api.Security;
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Approvals;
 using ERFWeb.Application.Features.Expenses;
+using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,7 @@ namespace ERFWeb.Api.Controllers;
 [Route("api/approvals")]
 [Authorize(Policy = Policies.Approver)]
 [Produces("application/json")]
-public sealed class ApprovalsController(IApprovalService approvals) : ControllerBase
+public sealed class ApprovalsController(IApprovalService approvals, IExportService exports) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType<PagedResult<ApprovalInboxItemDto>>(StatusCodes.Status200OK)]
@@ -27,6 +28,19 @@ public sealed class ApprovalsController(IApprovalService approvals) : Controller
         [FromQuery] string? search = null,
         CancellationToken ct = default) =>
         Ok(await approvals.InboxAsync(new ApprovalInboxQuery { View = view, Page = page, PageSize = pageSize, Search = search }, ct));
+
+    /// <summary>The whole inbox view as CSV (same filters as the inbox, no paging).</summary>
+    [HttpGet("export")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Export(
+        [FromQuery] ApprovalInboxView view = ApprovalInboxView.Pending,
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+    {
+        var file = await exports.ApprovalInboxAsync(view, search, ct);
+        return File(file.Content, file.ContentType, file.FileName);
+    }
 
     [HttpPost("{reportId:guid}/approve")]
     [ProducesResponseType<ApprovalActionResultDto>(StatusCodes.Status200OK)]
@@ -68,7 +82,7 @@ public sealed class ApprovalsController(IApprovalService approvals) : Controller
 [Route("api/finance")]
 [Authorize(Policy = Policies.Finance)]
 [Produces("application/json")]
-public sealed class FinanceController(IFinanceService finance) : ControllerBase
+public sealed class FinanceController(IFinanceService finance, IExportService exports) : ControllerBase
 {
     [HttpGet("queue")]
     [ProducesResponseType<PagedResult<FinanceQueueItemDto>>(StatusCodes.Status200OK)]
@@ -80,6 +94,34 @@ public sealed class FinanceController(IFinanceService finance) : ControllerBase
         [FromQuery] string? search = null,
         CancellationToken ct = default) =>
         Ok(await finance.QueueAsync(new FinanceQueueQuery { Status = status, OpenOnly = openOnly, Page = page, PageSize = pageSize, Search = search }, ct));
+
+    /// <summary>The queue as CSV (same filters as the queue, no paging).</summary>
+    [HttpGet("queue/export")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ExportQueue(
+        [FromQuery] FinanceStatus? status = null,
+        [FromQuery] bool openOnly = true,
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+    {
+        var file = await exports.FinanceQueueAsync(new FinanceQueueQuery { Status = status, OpenOnly = openOnly, Search = search }, ct);
+        return File(file.Content, file.ContentType, file.FileName);
+    }
+
+    /// <summary>Open reports by days since final approval.</summary>
+    [HttpGet("aging")]
+    [ProducesResponseType<FinanceAgingDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<FinanceAgingDto>> Aging(CancellationToken ct) =>
+        Ok(await finance.AgingAsync(ct));
+
+    [HttpGet("aging/export")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ExportAging([FromQuery] ExportFormat format = ExportFormat.Csv, CancellationToken ct = default)
+    {
+        var file = await exports.FinanceAgingAsync(format, ct);
+        return File(file.Content, file.ContentType, file.FileName);
+    }
 
     [HttpPost("{reportId:guid}/receipts")]
     [ProducesResponseType<FinanceQueueItemDto>(StatusCodes.Status200OK)]

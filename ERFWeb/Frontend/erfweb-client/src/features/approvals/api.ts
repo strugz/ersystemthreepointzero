@@ -10,6 +10,12 @@ export const approvalsApi = {
     if (query.search) search.set('search', query.search);
     return api.get<PagedResult<ApprovalInboxItem>>(`/approvals?${search.toString()}`);
   },
+  /** The whole inbox view (no paging) as CSV. */
+  exportInbox: (view: ApprovalInboxQuery['view'], search?: string) => {
+    const params = new URLSearchParams({ view });
+    if (search) params.set('search', search);
+    return api.getFile(`/approvals/export?${params.toString()}`, `ApprovalInbox_${view}.csv`);
+  },
   /** Approve (note optional), or return, reject, override (reason required). rowVersion is the report's. */
   act: (id: string, kind: ApprovalActionKind, note: string | null, rowVersion: number) =>
     api.post<ApprovalActionResult>(`${a(id)}/${kind}`, { note, rowVersion }),

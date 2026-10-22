@@ -41,3 +41,21 @@ export interface FinanceQueueQuery {
 
 /** The receipt statuses Finance records; clearing for payment is its own action. */
 export type ReceiptStatus = Exclude<FinanceStatus, 'ClearedForPayment'>;
+
+export type AgingBucket = 'Days0To7' | 'Days8To15' | 'Days16To30' | 'Days31To60' | 'Over60Days';
+
+export interface FinanceAgingBucket {
+  bucket: AgingBucket;
+  label: string;
+  count: number;
+  amount: number;
+}
+
+/** Open queue items (not cleared for payment) by days since final approval. */
+export interface FinanceAging {
+  asOf: string;
+  buckets: FinanceAgingBucket[];
+  count: number;
+  amount: number;
+  items: FinanceQueueItem[];
+}

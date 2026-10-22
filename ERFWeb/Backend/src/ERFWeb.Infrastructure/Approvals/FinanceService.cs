@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Approvals;
+using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Finance;
 using ERFWeb.Infrastructure.Persistence;
@@ -28,6 +29,52 @@ public sealed class FinanceService(
     public async Task<PagedResult<FinanceQueueItemDto>> QueueAsync(FinanceQueueQuery query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
+        var rows = Filtered(query);
+        var total = await rows.CountAsync(ct);
+        var page = await rows
+            .OrderBy(x => x.Report.ApprovedAt)
+            .Skip(query.Skip)
+            .Take(query.NormalizedPageSize)
+            .ToListAsync(ct);
+
+        var items = await ProjectAsync(page, ct);
+        return new PagedResult<FinanceQueueItemDto>(items, total, query.NormalizedPage, query.NormalizedPageSize);
+    }
+
+    public async Task<IReadOnlyList<FinanceQueueItemDto>> QueueExportAsync(FinanceQueueQuery query, int limit, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var rows = await Filtered(query)
+            .OrderBy(x => x.Report.ApprovedAt)
+            .ThenBy(x => x.Report.ReferenceNo)
+            .Take(limit + 1)
+            .ToListAsync(ct);
+        return await ProjectAsync(rows, ct);
+    }
+
+    public async Task<FinanceAgingDto> AgingAsync(CancellationToken ct = default)
+    {
+        var items = await QueueExportAsync(new FinanceQueueQuery { OpenOnly = true }, IExportService.MaxRows, ct);
+        if (items.Count > IExportService.MaxRows)
+        {
+            throw new ValidationException("aging", $"More than {IExportService.MaxRows:N0} reports are open; the aging cannot be produced.");
+        }
+
+        var buckets = FinanceAging.Buckets
+            .Select(b =>
+            {
+                var inBucket = items.Where(i => FinanceAging.BucketFor(i.DaysSinceApproval) == b).ToList();
+                return new FinanceAgingBucketDto(b, FinanceAging.Label(b), inBucket.Count, inBucket.Sum(i => i.TotalAmount));
+            })
+            .ToList();
+
+        // Longest-waiting first: that is the order Finance chases receipts in.
+        var ordered = items.OrderByDescending(i => i.DaysSinceApproval).ThenBy(i => i.ReferenceNo, StringComparer.Ordinal).ToList();
+        return new FinanceAgingDto(clock.UtcNow, buckets, items.Count, items.Sum(i => i.TotalAmount), ordered);
+    }
+
+    private IQueryable<Row> Filtered(FinanceQueueQuery query)
+    {
         var rows = Base();
 
         if (query.Status is { } status)
@@ -47,15 +94,7 @@ public sealed class FinanceService(
                 || (x.Report.Purpose != null && EF.Functions.ILike(x.Report.Purpose, term)));
         }
 
-        var total = await rows.CountAsync(ct);
-        var page = await rows
-            .OrderBy(x => x.Report.ApprovedAt)
-            .Skip(query.Skip)
-            .Take(query.NormalizedPageSize)
-            .ToListAsync(ct);
-
-        var items = await ProjectAsync(page, ct);
-        return new PagedResult<FinanceQueueItemDto>(items, total, query.NormalizedPage, query.NormalizedPageSize);
+        return rows;
     }
 
     public async Task<FinanceQueueItemDto> RecordReceiptsAsync(Guid reportId, RecordReceiptsRequest request, CancellationToken ct = default)

@@ -1,5 +1,6 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Expenses;
+using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Domain;
 
 namespace ERFWeb.Application.Features.Approvals;
@@ -56,6 +57,9 @@ public sealed record ApprovalActionResultDto(Guid ReportId, ReportStatus Status,
 public interface IApprovalService
 {
     Task<PagedResult<ApprovalInboxItemDto>> InboxAsync(ApprovalInboxQuery query, CancellationToken ct = default);
+
+    /// <summary>The whole inbox for a view, unpaged, in the same order as <see cref="InboxAsync"/> (for exports).</summary>
+    Task<IReadOnlyList<ApprovalInboxItemDto>> InboxExportAsync(ApprovalInboxView view, string? search, CancellationToken ct = default);
     Task<ApprovalActionResultDto> ApproveAsync(Guid reportId, ApprovalActionRequest request, CancellationToken ct = default);
     Task<ApprovalActionResultDto> ReturnAsync(Guid reportId, ApprovalActionRequest request, CancellationToken ct = default);
     Task<ApprovalActionResultDto> RejectAsync(Guid reportId, ApprovalActionRequest request, CancellationToken ct = default);
@@ -109,6 +113,15 @@ public sealed record FinanceFollowUpRequest(string? Message);
 public interface IFinanceService
 {
     Task<PagedResult<FinanceQueueItemDto>> QueueAsync(FinanceQueueQuery query, CancellationToken ct = default);
+
+    /// <summary>
+    /// Every queue item matching the filters (paging ignored), oldest approval first, for exports.
+    /// Returns at most <paramref name="limit"/> + 1 items so the caller can tell the result was cut.
+    /// </summary>
+    Task<IReadOnlyList<FinanceQueueItemDto>> QueueExportAsync(FinanceQueueQuery query, int limit, CancellationToken ct = default);
+
+    /// <summary>Open queue items (not cleared for payment) by days since final approval.</summary>
+    Task<FinanceAgingDto> AgingAsync(CancellationToken ct = default);
     Task<FinanceQueueItemDto> RecordReceiptsAsync(Guid reportId, RecordReceiptsRequest request, CancellationToken ct = default);
     Task<FinanceQueueItemDto> ClearAsync(Guid reportId, ClearForPaymentRequest request, CancellationToken ct = default);
     Task<FinanceQueueItemDto> FollowUpAsync(Guid reportId, FinanceFollowUpRequest request, CancellationToken ct = default);
