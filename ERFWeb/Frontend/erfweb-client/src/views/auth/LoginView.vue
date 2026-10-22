@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSessionStore } from '@/app/stores/session';
 import { useThemeStore } from '@/app/stores/theme';
 import { ApiError } from '@/shared/api/client';
 import { describeError } from '@/shared/composables/useSnackbar';
 import { appVersionLabel } from '@/shared/appVersion';
+import AppErmsMark from '@/shared/ui/AppErmsMark.vue';
 
 const session = useSessionStore();
 const theme = useThemeStore();
@@ -14,8 +15,11 @@ const route = useRoute();
 
 const username = ref('');
 const password = ref('');
+const showPassword = ref(false);
 const loading = ref(false);
 const error = ref<string | null>(null);
+// The company crest's frame is navy; its light variant (white frame, same gold) is for navy and dark surfaces.
+const crestSrc = computed(() => (theme.isDark ? '/mdmpi-crest-light.png' : '/mdmpi-crest.png'));
 
 async function submit() {
   error.value = null;
@@ -44,6 +48,12 @@ async function submit() {
   <v-main class="login">
     <!-- Brand panel: desktop only; phones go straight to the form. -->
     <aside class="login__brand" aria-hidden="true">
+      <img
+        src="/mdmpi-crest-light.png"
+        srcset="/mdmpi-crest-light.png 1x, /mdmpi-crest-light@2x.png 2x"
+        alt=""
+        class="login__crest"
+      />
       <div class="login__brand-inner">
         <span class="login__eyebrow">MDMPI · Expense Report</span>
         <p class="login__pitch">File, approve and settle expense reports without chasing paper.</p>
@@ -66,13 +76,12 @@ async function submit() {
       </button>
 
       <div class="login__panel page-enter">
-        <div class="login__mark-plate">
-          <img
-            src="/erms-wordmark.png"
-            srcset="/erms-wordmark.png 1x, /erms-wordmark@2x.png 2x"
-            alt="ERMS — Expense Report Management System"
-            class="login__mark"
-          />
+        <div class="login__lockup">
+          <AppErmsMark :size="52" :inverse="theme.isDark" />
+          <div class="login__wordmark">
+            <span class="login__erms">ERMS</span>
+            <span class="login__tagline">Expense Report Management System</span>
+          </div>
         </div>
         <h1 class="login__title">Sign in</h1>
         <p class="login__sub">Use your ER System username and password.</p>
@@ -83,12 +92,26 @@ async function submit() {
           </v-alert>
           <v-alert v-if="error" type="error" density="compact" class="mb-2">{{ error }}</v-alert>
           <v-text-field v-model="username" label="Username" prepend-inner-icon="mdi-account-outline" autocomplete="username" autofocus :disabled="loading" hide-details="auto" />
-          <v-text-field v-model="password" label="Password" prepend-inner-icon="mdi-lock-outline" type="password" autocomplete="current-password" :disabled="loading" hide-details="auto" />
+          <v-text-field
+            v-model="password"
+            label="Password"
+            prepend-inner-icon="mdi-lock-outline"
+            :type="showPassword ? 'text' : 'password'"
+            autocomplete="current-password"
+            :append-inner-icon="showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+            :disabled="loading"
+            hide-details="auto"
+            @click:append-inner="showPassword = !showPassword"
+          />
           <v-btn type="submit" class="press mt-2" color="primary" variant="flat" block size="large" :loading="loading">Sign in</v-btn>
         </v-form>
       </div>
 
-      <p class="login__version">{{ appVersionLabel }}</p>
+      <div class="login__footer">
+        <!-- Phones and narrow windows hide the brand panel, so the company crest moves down here. -->
+        <img :src="crestSrc" :srcset="`${crestSrc} 1x, ${crestSrc.replace('.png', '@2x.png')} 2x`" alt="MDMPI" class="login__footer-crest" />
+        <p class="login__version">{{ appVersionLabel }}</p>
+      </div>
     </section>
   </v-main>
 </template>
@@ -104,7 +127,9 @@ async function submit() {
   position: relative;
   overflow: hidden;
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
   padding: 48px;
   color: var(--on-brand);
   background:
@@ -117,6 +142,12 @@ async function submit() {
   inset: 0;
   background: repeating-linear-gradient(0deg, transparent 0 31px, rgba(255, 255, 255, 0.045) 31px 32px);
   pointer-events: none;
+}
+.login__crest {
+  position: relative;
+  display: block;
+  height: 56px;
+  width: auto;
 }
 .login__brand-inner {
   position: relative;
@@ -161,13 +192,23 @@ async function submit() {
   justify-content: center;
   padding: 24px;
 }
-.login__version {
+.login__footer {
   position: absolute;
   bottom: 16px;
   left: 0;
   right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.login__footer-crest {
+  display: none;
+  height: 22px;
+  width: auto;
+}
+.login__version {
   margin: 0;
-  text-align: center;
   font-size: 0.75rem;
   color: rgba(var(--v-theme-on-surface), 0.55);
   font-variant-numeric: tabular-nums;
@@ -200,18 +241,34 @@ async function submit() {
   padding: 32px 28px 28px;
   box-shadow: var(--shadow-2);
 }
-/* The wordmark is navy ink on white, so it sits on a white plate that disappears in light mode. */
-.login__mark-plate {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 10px 14px;
-  margin: 0 auto 22px;
-  max-width: 300px;
+.login__lockup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 4px 0 26px;
 }
-.login__mark {
-  display: block;
-  width: 100%;
-  height: auto;
+.login__wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+/* Manrope is loaded at weight 800 only, for the wordmark. */
+.login__erms {
+  font-family: Manrope, var(--font-ui), sans-serif;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.9;
+  color: var(--ink);
+}
+.login__tagline {
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink-2);
 }
 .login__title {
   margin: 0;
@@ -238,6 +295,9 @@ async function submit() {
   }
   .login__brand {
     display: none;
+  }
+  .login__footer-crest {
+    display: block;
   }
 }
 @media (max-width: 599.98px) {

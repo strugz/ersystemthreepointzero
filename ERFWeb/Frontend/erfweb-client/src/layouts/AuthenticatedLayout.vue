@@ -8,6 +8,7 @@ import { useThemeStore } from '@/app/stores/theme';
 import type { ThemePreference } from '@/app/theme';
 import { roleLabel } from '@/features/auth/labels';
 import { entitlementReaderRoles, hasAnyRole, rateNavRoles } from '@/features/entitlements/access';
+import AppErmsMark from '@/shared/ui/AppErmsMark.vue';
 import AppSnackbar from '@/shared/ui/AppSnackbar.vue';
 import { appVersionLabel } from '@/shared/appVersion';
 
@@ -185,7 +186,7 @@ async function logout() {
     <div class="rail__inner">
       <div class="rail__top">
         <router-link :to="{ name: 'home' }" class="rail__logo press" aria-label="ERFWeb home">
-          <img src="/icon-192.png" alt="" class="rail__logo-img" />
+          <AppErmsMark :size="40" inverse />
         </router-link>
         <span v-if="expanded" class="rail__brand">ERFWeb</span>
       </div>
@@ -302,7 +303,7 @@ async function logout() {
         :to="backTarget"
         aria-label="Back"
       />
-      <div v-else class="rail__logo rail__logo--sm ml-3" aria-hidden="true"><img src="/icon-192.png" alt="" class="rail__logo-img" /></div>
+      <div v-else class="rail__logo rail__logo--sm ml-3" aria-hidden="true"><AppErmsMark :size="32" :inverse="theme.isDark" /></div>
       <div class="shell-header__title">
         <slot name="title-mobile">
           <div class="text-body-1 font-weight-medium text-truncate" :class="{ mono: lastCrumb?.mono }">
@@ -441,28 +442,18 @@ async function logout() {
   flex: none;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
-  background: #ffffff;
-  padding: 4px;
+  /* Matches the mark's own corner (rx 15 of 64) so the shadow and focus ring follow the tile. */
+  border-radius: 23%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
 }
-.rail__logo-img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: contain;
-}
 .rail__logo--sm {
   width: 32px;
   height: 32px;
-  border-radius: 9px;
-  padding: 3px;
   box-shadow: none;
-  border: 1px solid var(--line);
   margin-bottom: 0;
 }
 .rail__nav {

@@ -110,6 +110,16 @@ cannot be run on its own after `006`; on an existing database, add test users th
 Every script is idempotent (safe to re-run) and ends with a commented rollback. Do **not** also run `dotnet ef database update`
 against the same database unless you first baseline the migration history.
 
+**Starting over with the data (keeps the administrators).** `Database/maintenance/reset_data_keep_admins.sql` runs a
+`DELETE FROM` on every table and deletes every user except `admin` (`admin2` is deleted too). Only `admin` (with its System Administrator role),
+its department, the PHP currency and `schema_versions` stay. Create a second administrator again from the
+administration console afterwards, since an administrator cannot change their own account. It is destructive and has no rollback, so
+take a `pg_dump` first:
+
+```bash
+psql -d erms_db -f Database/maintenance/reset_data_keep_admins.sql
+```
+
 ### Database setup — Option B: EF Core migrations (when EF tooling is available)
 
 The DbContext and entities are migration-ready. Generate and apply the initial schema:
