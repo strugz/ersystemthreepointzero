@@ -42,16 +42,30 @@ public sealed class ExpenseReportDocumentLoader(ErfDbContext db) : IExpenseRepor
         // The approver's signature on file prints once that step is approved, matching how the
         // employee's signature is printed. (The per-step snapshot taken at approval time is not
         // used: it would keep a placeholder signature after the account's signature is replaced.)
-        var approvers = await (
+        // When a delegate approved on the signatory's behalf, the delegate signed: their name and
+        // signature print, never the absent signatory's signature.
+        var approvers = (await (
             from s in db.ApprovalSteps.AsNoTracking()
             where s.ReportId == reportId && s.Cycle == header.CurrentCycle
             join a in db.Users.AsNoTracking() on s.ApproverUserId equals a.Id
+            join dj in db.Users.AsNoTracking() on s.ActedByUserId equals (long?)dj.Id into ds
+            from d in ds.DefaultIfEmpty()
             orderby s.StepOrder
             select new
             {
-                a.FullName,
-                Signature = s.Status == ApprovalStatus.Approved ? a.Signature : null,
-            }).ToListAsync(ct);
+                Approved = s.Status == ApprovalStatus.Approved,
+                Delegated = s.ActedByUserId != null && s.ActedByUserId != s.ApproverUserId && d != null,
+                SignatoryName = a.FullName,
+                SignatorySignature = a.Signature,
+                DelegateName = d != null ? d.FullName : null,
+                DelegateSignature = d != null ? d.Signature : null,
+            }).ToListAsync(ct))
+            .Select(x => new
+            {
+                FullName = x.Delegated ? $"{x.DelegateName} for {x.SignatoryName}" : x.SignatoryName,
+                Signature = !x.Approved ? null : x.Delegated ? x.DelegateSignature : x.SignatorySignature,
+            })
+            .ToList();
 
         var endorser = approvers.Count >= 2 ? approvers[0] : null;
         var approver = approvers.Count >= 1 ? approvers[^1] : null;
