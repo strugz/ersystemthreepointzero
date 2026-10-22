@@ -65,6 +65,9 @@ else. A missing required key stops startup with a clear error naming the key.
 | `R47Report:*` | R47 form constants: company, document code, effectivity date, revision, rows per page, UTC offset, fonts, QuestPDF license tier |
 | `Attachments:MaxFileSizeMb` / `MaxFilesPerReport` / `AllowedContentTypes` | Receipt upload limits (also sets the Kestrel/multipart body limit) |
 | `ReferenceNumber:Prefix` / `Digits` / `UtcOffsetHours` | ERF reference number series, e.g. `ERF-2026-000142` (prefix, zero-padding, which local year a filing belongs to) |
+| `Lasius:*` (optional) | Notification SMS gateway URL, API key and header (see Notification SMS) |
+| `Smtp:*` (optional) | Mail server, sender mailbox and login for report email (see Report email) |
+| `Kestrel:*` (server) | Endpoint the API listens on behind nginx |
 | `Logging:*`, `AllowedHosts` | Standard ASP.NET Core |
 
 Which environment overlay applies is chosen by `ASPNETCORE_ENVIRONMENT` (set in
@@ -96,7 +99,7 @@ psql -d erfweb -f Database/014_email_deliveries.sql      # Phase 7: R47 email de
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
 cannot be run on its own after `006`; on an existing database, add test users through the administration console.
 
-Both scripts are idempotent (safe to re-run). Do **not** also run `dotnet ef database update`
+Every script is idempotent (safe to re-run) and ends with a commented rollback. Do **not** also run `dotnet ef database update`
 against the same database unless you first baseline the migration history.
 
 ### Database setup — Option B: EF Core migrations (when EF tooling is available)
@@ -213,9 +216,8 @@ same number make PostgreSQL fail one with a serialization error, which the DbCon
 (deleted drafts never consume a number; returns and re-files keep theirs). Drafts show "Assigned when filed".
 
 Header/line updates, deletes, filing and reopening write `workflow_audit` rows in the same transaction.
-Filing hands a `ReportFiledNotification` to `IApprovalNotifier`; Phase 2 ships the logging implementation
-(`LoggingApprovalNotifier`) — SMTP/SMS delivery plugs into the same seam in Phase 4 and can never roll
-back a filing (it runs after commit).
+Filing hands a `ReportFiledNotification` to `IApprovalNotifier`, which logs it, texts it (Lasius) and emails it
+with the R47 attached (SMTP). Delivery runs after the filing commits and can never roll it back.
 
 SPA: **My reports** (`/reports`, status/search filters, deep-linkable `?status=`), **New report**
 (`/reports/new`), and the **editor** (`/reports/:id`: header + cash advance, grouped expense-lines table,
@@ -307,8 +309,8 @@ Finance and Level 1 read scope and rates; every change is in the audit trail Fin
 | `POST/PUT /api/rates/profiles` · `POST …/{id}/lines` · `POST /api/rates/assignments` · `POST …/{id}/end` (Level 2, Business Owner) | Maintain profiles, add rate versions, assign and end |
 | `GET /api/lookups/departments` (any signed-in user) | Department picker |
 
-Change notifications to affected employees (9.14) go through `IEntitlementChangeNotifier`; like the filing
-notifier it only logs until SMTP delivery lands.
+Change notifications to affected employees (9.14) go through `IEntitlementChangeNotifier`, which still only logs:
+the scope/rate change email is not built yet.
 
 ## Approvals & Finance receipts (plan Phase 5)
 
@@ -353,7 +355,7 @@ steps are 409.
 `GET /api/reports/{id}` now also returns `review` (what the viewer may do as an approver, from the same rules)
 and `finance` (receipt status). SPA screens: **Approvals** (`/approvals`) and the review page (`/review/{id}`)
 for signatories, **Finance queue** (`/finance`) for Finance. Workflow notifications go through
-`IApprovalNotifier.NotifyWorkflowEventAsync`; like the other notifiers it only logs until SMTP delivery lands.
+`IApprovalNotifier.NotifyWorkflowEventAsync`, which logs every event and sends the SMS and email described below.
 
 ## Verification & queries (plan Phase 6, Flow 6)
 
@@ -395,6 +397,34 @@ do) and `finance.underVerification`; Finance queue rows carry `openVerifications
 Verification card on the review and report pages. Events are written as `VerificationRequested`,
 `VerificationPickedUp`, `VerificationFound`, `QueryRaised`, and `QueryDecided`.
 
+## Delegation, signatures, summaries and exports (plan Phase 7)
+
+**Approval delegation** (script `013`): a signatory names a delegate of the same level or higher for a date range
+(at most 90 days); while it is in force the delegate approves in their place, and the step reads "by Delegate on
+behalf of Signatory". A Level 2 may assign a delegate for an absent Level 1 they are over (the scope Level 2 of that
+Level 1's account, or routed after them on a pending report). Only approving is delegated; scope, rates and
+entitlement never are. A delegate never fills a second step on a report they already approve.
+
+| Endpoint (Level 1, Level 2) | Purpose |
+| --- | --- |
+| `GET /api/delegations` | Delegations I gave, received, or assigned for a Level 1 |
+| `GET /api/delegations/options` | Who can stand in, and the Level 1s I may assign for |
+| `POST /api/delegations` · `POST /api/delegations/{id}/cancel` | Create or cancel one |
+
+SPA: **Delegations** (`/delegations`).
+
+**Approver signatures on the R47:** the R47 prints each routed approver's signature on file once their step is
+approved (ENDORSED BY for Level 1, APPROVED BY for Level 2); a delegated step prints the delegate's name and
+signature, never the absent signatory's. The System Administrator loads signatures in the user console, with a
+preview.
+
+**Summaries and exports:** the endpoints are listed under Approvals & Finance above (expense summary as CSV/PDF,
+approval inbox and Finance queue CSV, Finance aging). SPA: **Summary** page and export buttons on the Approvals and
+Finance pages. No database script.
+
+**Health and theme:** `GET /api/health` (anonymous) for monitoring and the dev proxy; the SPA has a
+light / dark / system theme switch.
+
 ## Notification SMS (Lasius gateway)
 
 Script `011` adds `sms_deliveries`; `012` links each row to its report (`report_id`). `POST /api/sms` (Level 1,
@@ -416,7 +446,7 @@ for approval in ERFWeb."). It runs after the filing commits and never fails a fi
 the approver: "… was approved by X and is now waiting for Y's approval", "… was fully approved by X. Please submit
 the original receipts to Finance.", or "… was returned by X: "note". Please update and re-file it in ERFWeb." (a long
 note is shortened to fit). The key `{event}:{reportId}:{cycle}:{step}` texts once per decision. Reject, override,
-line adjustments and Finance steps are still only logged.
+line adjustments and Finance steps send no SMS (a rejection is emailed; see Report email).
 
 Configure the gitignored `appsettings.json` (template in `appsettings.Example.json`):
 
@@ -468,10 +498,8 @@ Configure the gitignored `appsettings.json` (template in `appsettings.Example.js
 Without `Host` and `FromAddress` the API still starts, the endpoint answers 503 `email_not_configured`, and
 workflow emails are skipped (logged).
 
-**From:** each email is from the signed-in user who pressed Email or took the workflow action (their
-`users.email`, also the Reply-To), sent on behalf of `FromAddress`, which goes in the `Sender` header and the SMTP
-envelope. The mail server must allow that mailbox to send for those users (Office 365: "Send on behalf" or a
-relay connector). A user without a usable address sends from `FromAddress` itself.
+**From:** every email is from the configured mailbox (`FromName` <`FromAddress`>), which must be the account
+`Username` logs in as, or one it may send as. The body names who sent or acted.
 
 | Outcome | HTTP | `code` |
 | --- | --- | --- |
@@ -489,3 +517,32 @@ Same duplicate protection as SMS: the key is claimed in `email_deliveries` (uniq
 called; without a key, a second send of the same report within 10 minutes is a retry. Addresses, subject, body
 and the PDF are never logged or stored. `workflow_audit` records `EmailSent`, `EmailFailed` or `EmailUnconfirmed`
 with the kind and counts only.
+
+## Deployment (sr.mdmpi.com.ph)
+
+The API is published as a framework-dependent folder and served behind nginx at **https://sr.mdmpi.com.ph/erf/**.
+nginx strips the prefix and forwards `/erf/*` to the API's `/api/*`, so `/erf/auth/me` is `/api/auth/me` and the
+health check is `/erf/health`. It is deployed separately from the desktop installer and from the old `Web/` portal.
+
+1. **Database first.** Apply every `Database/NNN_*.sql` script the server has not had yet, in order, against the
+   production database (`erms_db`). Scripts are forward-only and idempotent; never run `dotnet ef database update`
+   against it. Back up first and keep each script's commented rollback at hand.
+2. **Publish** with the `erf-backend` folder profile (Visual Studio), or from `ERFWeb/`:
+   ```bash
+   dotnet publish Backend/src/ERFWeb.Api -c Release -o Backend/src/ERFWeb.Api/bin/Release/net10.0/publish
+   ```
+3. **Copy the whole publish folder** to the server, not only the files with today's date. A package added since
+   the last deploy (for email: `MailKit.dll`, `MimeKit.dll`, `BouncyCastle.Cryptography.dll`,
+   `System.Security.Cryptography.Pkcs.dll`) can carry an older timestamp but must be there, together with the new
+   `ERFWeb.Api.deps.json`. A missing assembly fails only the requests that use it, with a 500.
+4. **`appsettings.json` on the server** is the server's own file (gitignored, never in the repo). The publish folder
+   carries your local copy, so check that `ConnectionStrings:Postgres`, `Kestrel`, `Lasius` and `Smtp` hold the
+   server's values before copying it over, then restart the API.
+5. **Smoke test:** `https://sr.mdmpi.com.ph/erf/health` answers 200 and an unauthenticated `/erf/auth/me` answers
+   401; then sign in and exercise the changed feature.
+
+For local development the SPA can point at the deployed API (`.env` / `.env.local`):
+`VITE_API_TARGET=https://sr.mdmpi.com.ph/erf` and `VITE_API_PROXY_STRIP_PREFIX=true`. A new endpoint answers 404
+through that proxy until the API that has it is deployed.
+
+Every error response carries a `correlationId`; search the API log on the server for it to find the exception.
