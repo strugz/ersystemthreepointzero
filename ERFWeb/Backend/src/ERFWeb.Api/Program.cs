@@ -8,8 +8,18 @@ using ERFWeb.Infrastructure.Notifications;
 using ERFWeb.Infrastructure.Reporting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.Hosting.WindowsServices;
+using Serilog;
+using Serilog.Extensions.Logging;
 
-var builder = WebApplication.CreateBuilder(args);
+// On the server the API runs as a Windows Service, whose working directory is System32: the content root
+// is the install folder, so appsettings.json and logs/ are found next to ERFWeb.Api.dll.
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = WindowsServiceHelpers.IsWindowsService() ? AppContext.BaseDirectory : null,
+});
+builder.Host.UseWindowsService(options => options.ServiceName = "ERFWeb.Api");
 
 // ---------------------------------------------------------------------------------
 // Configuration policy: appsettings.json is the single source of truth.
@@ -24,6 +34,30 @@ builder.Configuration
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
 
 var config = builder.Configuration;
+
+// Daily rolling log files (erfweb-yyyyMMdd.log, 30 kept, 50 MB each at most) in Logging:File:Directory,
+// default logs/ under the content root. Levels follow Logging:LogLevel, exactly as for the console.
+var logDirectory = config["Logging:File:Directory"] is { Length: > 0 } configuredLogDirectory ? configuredLogDirectory : "logs";
+if (!Path.IsPathRooted(logDirectory))
+{
+    logDirectory = Path.Combine(builder.Environment.ContentRootPath, logDirectory);
+}
+
+// Registered as a plain provider (not AddSerilog, which lets every level through) so the Logging:LogLevel
+// filters apply to the file too.
+builder.Logging.AddProvider(new SerilogLoggerProvider(
+    new LoggerConfiguration()
+        .MinimumLevel.Verbose()
+        .WriteTo.File(
+            Path.Combine(logDirectory, "erfweb-.log"),
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 30,
+            fileSizeLimitBytes: 50L * 1024 * 1024,
+            rollOnFileSizeLimit: true,
+            shared: true,
+            outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext} {CorrelationId}{NewLine}  {Message:lj}{NewLine}{Exception}")
+        .CreateLogger(),
+    dispose: true));
 
 static string Required(IConfiguration configuration, string key) =>
     configuration[key] is { Length: > 0 } value

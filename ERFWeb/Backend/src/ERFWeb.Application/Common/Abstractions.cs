@@ -8,6 +8,13 @@ public interface IClock
     DateTimeOffset UtcNow { get; }
 }
 
+/// <summary>Can the API reach its database right now? Used by the anonymous health endpoint.</summary>
+public interface IDatabaseHealthCheck
+{
+    /// <summary>False when the database does not answer within a few seconds; never throws.</summary>
+    Task<bool> CanConnectAsync(CancellationToken ct = default);
+}
+
 /// <summary>The authenticated caller, resolved from the request's claims.</summary>
 public interface ICurrentUser
 {

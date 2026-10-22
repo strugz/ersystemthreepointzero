@@ -69,7 +69,8 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Lasius:*` (optional) | Notification SMS gateway URL, API key and header (see Notification SMS) |
 | `Smtp:*` (optional) | Mail server, sender mailbox and login for report email (see Report email) |
 | `Kestrel:*` (server) | Endpoint the API listens on behind nginx |
-| `Logging:*`, `AllowedHosts` | Standard ASP.NET Core |
+| `Logging:File:Directory` (optional, default `logs`) | Folder for the daily log files `erfweb-yyyyMMdd.log` (30 kept, 50 MB each at most); relative to the install folder |
+| `Logging:*`, `AllowedHosts` | Standard ASP.NET Core; `Logging:LogLevel` filters the console and the log files alike |
 
 Which environment overlay applies is chosen by `ASPNETCORE_ENVIRONMENT` (set in
 `Properties/launchSettings.json` for local runs) — that selects the file; it never supplies values itself.
@@ -427,7 +428,9 @@ preview.
 approval inbox and Finance queue CSV, Finance aging). SPA: **Summary** page and export buttons on the Approvals and
 Finance pages. No database script.
 
-**Health and theme:** `GET /api/health` (anonymous) for monitoring and the dev proxy; the SPA has a
+**Health and theme:** `GET /api/health` (anonymous) returns `{ status, service, version, database }`: 200 when the database
+answers within 5 seconds, 503 `degraded` when it does not; `version` is `Version` in `Directory.Build.props` plus the
+build commit (e.g. `0.1.0+edadad9`). Used by monitoring, deploy smoke tests and the dev proxy; the SPA has a
 light / dark / system theme switch.
 
 ## Notification SMS (Lasius gateway)
@@ -532,7 +535,8 @@ health check is `/erf/health`. It is deployed separately from the desktop instal
 1. **Database first.** Apply every `Database/NNN_*.sql` script the server has not had yet, in order, against the
    production database (`erms_db`). Scripts are forward-only and idempotent; never run `dotnet ef database update`
    against it. Back up first and keep each script's commented rollback at hand.
-2. **Publish** with the `erf-backend` folder profile (Visual Studio), or from `ERFWeb/`:
+2. **Publish** with the `erf-backend` folder profile (Visual Studio), or from `ERFWeb/` (the publish output has no
+   `appsettings.json`: the server keeps its own, so a deploy never overwrites it):
    ```bash
    dotnet publish Backend/src/ERFWeb.Api -c Release -o Backend/src/ERFWeb.Api/bin/Release/net10.0/publish
    ```
@@ -540,9 +544,10 @@ health check is `/erf/health`. It is deployed separately from the desktop instal
    the last deploy (for email: `MailKit.dll`, `MimeKit.dll`, `BouncyCastle.Cryptography.dll`,
    `System.Security.Cryptography.Pkcs.dll`) can carry an older timestamp but must be there, together with the new
    `ERFWeb.Api.deps.json`. A missing assembly fails only the requests that use it, with a 500.
-4. **`appsettings.json` on the server** is the server's own file (gitignored, never in the repo). The publish folder
-   carries your local copy, so check that `ConnectionStrings:Postgres`, `Kestrel`, `Lasius` and `Smtp` hold the
-   server's values before copying it over, then restart the API.
+4. **`appsettings.json` on the server** is the server's own file (gitignored, never in the repo, never published).
+   When a release adds a key to `appsettings.Example.json`, add it to the server's file by hand before restarting.
+   On the live server `Cors:AllowedOrigins` lists only real origins (no `localhost`).
+   Restart with `Restart-Service ERFWeb.Api`.
 5. **Smoke test:** `https://sr.mdmpi.com.ph/erf/health` answers 200 and an unauthenticated `/erf/auth/me` answers
    401; then sign in and exercise the changed feature.
 
@@ -561,4 +566,26 @@ cookies, so Safari users cannot sign in this way. A Render custom domain under `
 `erf.mdmpi.com.ph`) is the same site as the API and works in every browser with `CrossSiteCookies: false`.
 A Render rewrite of `/erf/*` to the API was tried and is not forwarded (it serves `index.html`).
 
-Every error response carries a `correlationId`; search the API log on the server for it to find the exception.
+### Windows Service
+
+The API runs as the Windows Service **ERFWeb.Api** (not a console window), so it starts with Windows and restarts
+itself after a crash. Install or refresh it once from an elevated PowerShell on the server, after stopping any
+console copy (Ctrl+C):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-ErfWebService.ps1 -InstallPath C:\inetpub\wwwroot\erf_web-app
+```
+
+The script (`Backend/tools/Install-ErfWebService.ps1`) runs the service as the virtual account
+`NT SERVICE\ERFWeb.Api` with read access to the install folder and write access to `logs\` only, sets restart on
+failure (5 s, 5 s, 30 s), registers the event log source, starts the service and checks `/api/health`.
+`-Uninstall` removes the service. After a deploy: `Stop-Service ERFWeb.Api`, copy the publish folder,
+`Start-Service ERFWeb.Api`.
+
+**Logs:** `<install folder>\logs\erfweb-yyyyMMdd.log`; warnings and errors also go to the Windows Application event
+log (source `ERFWeb.Api`). Every line written during a request carries its correlation id, so the
+`correlationId` in an error response (or the `X-Correlation-ID` header) finds the matching lines:
+
+```powershell
+Select-String -Path C:\inetpub\wwwroot\erf_web-app\logs\*.log -Pattern '<correlation id>' -Context 0,20
+```

@@ -41,6 +41,7 @@ public static class DependencyInjection
 
         // Cross-cutting
         services.AddScoped<IClock, SystemClock>();
+        services.AddScoped<IDatabaseHealthCheck, DatabaseHealthCheck>();
         services.AddScoped<ITransactionRunner, EfTransactionRunner>();
         services.AddScoped<IWorkflowAuditWriter, WorkflowAuditWriter>();
         services.AddScoped<IUserAuthenticator, UserAuthenticator>();

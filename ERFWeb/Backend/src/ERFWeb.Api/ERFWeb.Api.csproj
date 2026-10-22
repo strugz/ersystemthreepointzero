@@ -4,6 +4,16 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.*" />
+    <!-- Runs as a Windows Service on the server (no-op under the console or Visual Studio). -->
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.*" />
+    <!-- Daily rolling log files: a service has no console to read. -->
+    <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.*" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The server keeps its own appsettings.json (connection string, Kestrel, SMTP, Lasius, CORS): a
+         publish never carries the developer's copy over it. appsettings.Example.json lists every key. -->
+    <Content Update="appsettings.json;appsettings.Development.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ERFWeb.Application\ERFWeb.Application.csproj" />
