@@ -8,12 +8,27 @@ public interface IClock
     DateTimeOffset UtcNow { get; }
 }
 
-/// <summary>Can the API reach its database right now? Used by the anonymous health endpoint.</summary>
+/// <summary>Can the API use its database right now? Used by the anonymous health endpoint.</summary>
 public interface IDatabaseHealthCheck
 {
-    /// <summary>False when the database does not answer within a few seconds; never throws.</summary>
-    Task<bool> CanConnectAsync(CancellationToken ct = default);
+    /// <summary>Never throws: an unreachable database or one missing a required script is a state, not an error.</summary>
+    Task<DatabaseHealth> CheckAsync(CancellationToken ct = default);
 }
+
+public enum DatabaseState
+{
+    Ok,
+
+    /// <summary>No answer within a few seconds.</summary>
+    Unreachable,
+
+    /// <summary>Reachable, but a <c>Database/NNN_*.sql</c> script this API needs has not been run.</summary>
+    SchemaOutdated,
+}
+
+/// <param name="SchemaVersion">Highest script number recorded in <c>schema_versions</c>; null when unreachable.</param>
+/// <param name="RequiredSchemaVersion">The script number this build of the API needs.</param>
+public sealed record DatabaseHealth(DatabaseState State, int? SchemaVersion, int RequiredSchemaVersion);
 
 /// <summary>The authenticated caller, resolved from the request's claims.</summary>
 public interface ICurrentUser

@@ -283,6 +283,7 @@ async function logout() {
               </div>
             </div>
             <v-divider class="my-1" />
+            <v-list-item prepend-icon="mdi-lock-reset" title="Change password" :to="{ name: 'change-password' }" />
             <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="logout" />
           </v-list>
         </v-card>
@@ -388,6 +389,7 @@ async function logout() {
             @click.stop="theme.setPreference(o.value)"
           />
           <v-divider class="my-1" />
+          <v-list-item prepend-icon="mdi-lock-reset" title="Change password" :to="{ name: 'change-password' }" />
           <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="logout" />
         </v-list>
       </v-card>

@@ -60,6 +60,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: ['SignatoryLevel1', 'SignatoryLevel2'] },
   },
   {
+    path: '/account/password',
+    name: 'change-password',
+    component: () => import('@/views/auth/ChangePasswordView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/delegations',
     name: 'delegations',
     component: () => import('@/views/delegations/DelegationsView.vue'),
@@ -160,6 +166,11 @@ router.beforeEach(async (to) => {
 
   if (to.name === 'login' && session.isAuthenticated) {
     return { name: 'home' };
+  }
+
+  // An administrator-set password must be replaced first; the API refuses everything else until then.
+  if (session.user?.mustChangePassword && to.name !== 'change-password') {
+    return { name: 'change-password', query: { redirect: to.fullPath } };
   }
 
   if (to.meta.roles && !to.meta.roles.some((role) => session.hasRole(role))) {

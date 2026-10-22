@@ -43,4 +43,23 @@ public static class AccountRules
         string.IsNullOrEmpty(password) || password.Length < MinPasswordLength
             ? $"Password must be at least {MinPasswordLength} characters."
             : null;
+
+    /// <summary>
+    /// A password the user chooses themselves: the minimum length, not the username, and not the password it
+    /// replaces. Null when acceptable.
+    /// </summary>
+    public static string? NewPasswordError(string? newPassword, string username, string currentPassword)
+    {
+        if (PasswordError(newPassword) is { } lengthError)
+        {
+            return lengthError;
+        }
+
+        if (string.Equals(newPassword, username, StringComparison.OrdinalIgnoreCase))
+        {
+            return "Password cannot be the same as your username.";
+        }
+
+        return newPassword == currentPassword ? "Choose a password different from your current one." : null;
+    }
 }

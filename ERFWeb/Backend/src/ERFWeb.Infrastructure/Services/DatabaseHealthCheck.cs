@@ -6,15 +6,15 @@ using Microsoft.EntityFrameworkCore;
 namespace ERFWeb.Infrastructure.Services;
 
 /// <summary>
-/// Opens one connection with a short timeout, so monitoring gets a quick yes or no. It deliberately
-/// bypasses EF's retry strategy: a health check polled every minute must not retry with backoff and log a
-/// stack trace per attempt while the database is down.
+/// Opens one connection with a short timeout and reads the schema version, so monitoring and the deploy
+/// script get a quick answer. It deliberately bypasses EF's retry strategy: a health check polled every
+/// minute must not retry with backoff and log a stack trace per attempt while the database is down.
 /// </summary>
 public sealed class DatabaseHealthCheck(ErfDbContext db) : IDatabaseHealthCheck
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
 
-    public async Task<bool> CanConnectAsync(CancellationToken ct = default)
+    public async Task<DatabaseHealth> CheckAsync(CancellationToken ct = default)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(Timeout);
@@ -22,16 +22,32 @@ public sealed class DatabaseHealthCheck(ErfDbContext db) : IDatabaseHealthCheck
         try
         {
             await connection.OpenAsync(timeout.Token);
-            return true;
+            var version = await ReadSchemaVersionAsync(connection, timeout.Token);
+            var state = version >= SchemaVersion.Required ? DatabaseState.Ok : DatabaseState.SchemaOutdated;
+            return new DatabaseHealth(state, version, SchemaVersion.Required);
         }
         catch (Exception ex) when (ex is DbException or TimeoutException
                                        || (ex is OperationCanceledException && !ct.IsCancellationRequested))
         {
-            return false;
+            return new DatabaseHealth(DatabaseState.Unreachable, null, SchemaVersion.Required);
         }
         finally
         {
             await connection.CloseAsync();
         }
+    }
+
+    /// <summary>0 before script 015 created <c>schema_versions</c>.</summary>
+    private static async Task<int> ReadSchemaVersionAsync(DbConnection connection, CancellationToken ct)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT to_regclass('public.schema_versions') IS NOT NULL";
+        if (await command.ExecuteScalarAsync(ct) is not true)
+        {
+            return 0;
+        }
+
+        command.CommandText = "SELECT COALESCE(MAX(version), 0) FROM schema_versions";
+        return Convert.ToInt32(await command.ExecuteScalarAsync(ct), System.Globalization.CultureInfo.InvariantCulture);
     }
 }

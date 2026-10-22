@@ -119,6 +119,7 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.HasIndex(x => x.Username).IsUnique();
             e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");
             e.Property(x => x.IsActive).HasDefaultValue(true);
+            e.Property(x => x.MustChangePassword).HasDefaultValue(false);
             e.Property(x => x.JobGrade).HasMaxLength(32);
             e.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId);
             e.HasOne<CostCenter>().WithMany().HasForeignKey(x => x.CostCenterId);
