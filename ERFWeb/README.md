@@ -583,11 +583,15 @@ the **backend live first**, so the new screens never call an API that does not e
 2. When it finishes it prints the folder it made, for example:
    ```
    ERFWeb\releases\ERFWeb-Api-0.1.0-b1b0da4
-       ERFWeb-Api.zip      every file of the API (no appsettings.json)
-       Deploy-ErfWeb.cmd   double-click this on the server
-       Deploy-ErfWeb.ps1
-       release.txt         the version it contains, e.g. 0.1.0+b1b0da4
+       ERFWeb-Api.zip              every file of the API (no appsettings.json)
+       release.txt                 the version it contains, e.g. 0.1.0+b1b0da4
+       Deploy-ErfWeb.cmd           double-click this on the server to update it
+       Install-ErfWebService.cmd   first install on a new server only
+       appsettings.Example.json    template for the server's appsettings.json
+       HOW-TO-DEPLOY.txt           these steps in short, for whoever is at the server
+       *.ps1                       the scripts the .cmd files run
    ```
+   The folder holds everything the server needs; nothing has to be copied from the repo by hand.
 3. A warning about uncommitted changes means step A2 was skipped; commit and run it again.
 
 ### D. Deploy the backend on the server
@@ -671,15 +675,17 @@ Stop-Service ERFWeb.Api
 Start-Service ERFWeb.Api
 ```
 
-**First-time install (once per server; already done on the live server).** Copy a release to the app folder
-(extract `ERFWeb-Api.zip` into `C:\inetpub\wwwroot\erf_web-app`), put the server's `appsettings.json` there, stop
-any console copy of the API, then in an administrator PowerShell:
+**First-time install (once per server; already done on the live server).**
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File C:\path\to\Install-ErfWebService.ps1 -InstallPath C:\inetpub\wwwroot\erf_web-app
-```
+1. Stop any console copy of the API (Ctrl+C in its window).
+2. Create `C:\inetpub\wwwroot\erf_web-app\appsettings.json` from the release folder's `appsettings.Example.json`
+   with the server's values.
+3. Copy a release folder to the server and double-click **`Install-ErfWebService.cmd`** in it (click **Yes**). It
+   extracts `ERFWeb-Api.zip` into `C:\inetpub\wwwroot\erf_web-app`, registers and starts the service, and checks
+   `/api/health`.
 
-`Backend/tools/Install-ErfWebService.ps1` runs the service as the virtual account `NT SERVICE\ERFWeb.Api` (read
+The same from PowerShell: `Install-ErfWebService.ps1 -InstallPath C:\inetpub\wwwroot\erf_web-app -ReleaseZip
+<release folder>\ERFWeb-Api.zip`. `Backend/tools/Install-ErfWebService.ps1` runs the service as the virtual account `NT SERVICE\ERFWeb.Api` (read
 access to the app folder, write access to `logs\` only), sets restart on failure (5 s, 5 s, 30 s), registers the
 event log source, starts the service and checks `/api/health`. `-Uninstall` removes the service.
 

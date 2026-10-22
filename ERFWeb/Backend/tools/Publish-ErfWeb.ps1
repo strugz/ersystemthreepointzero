@@ -7,9 +7,13 @@
     folder, so no stale file from an older build is included, and writes:
 
         ERFWeb\releases\ERFWeb-Api-<version>-<commit>\
-            ERFWeb-Api.zip          the whole API (never appsettings.json; the server keeps its own)
-            Deploy-ErfWeb.cmd       double-click on the server to install this release
-            Deploy-ErfWeb.ps1
+            ERFWeb-Api.zip              the whole API (never appsettings.json; the server keeps its own)
+            release.txt                 the version inside, as /api/health reports it
+            Deploy-ErfWeb.cmd           double-click on the server to update it to this release
+            Install-ErfWebService.cmd   first install on a new server only
+            appsettings.Example.json    template for the server's appsettings.json
+            HOW-TO-DEPLOY.txt           the steps, for whoever is at the server
+            *.ps1                       the scripts the .cmd files run
 
     Copy that one folder to the server and double-click Deploy-ErfWeb.cmd.
 #>
@@ -51,8 +55,11 @@ foreach ($leftover in @('appsettings.json', 'appsettings.Development.json')) {
 }
 
 Compress-Archive -Path (Join-Path $staging '*') -DestinationPath (Join-Path $release 'ERFWeb-Api.zip')
-Copy-Item (Join-Path $PSScriptRoot 'Deploy-ErfWeb.cmd') $release
-Copy-Item (Join-Path $PSScriptRoot 'Deploy-ErfWeb.ps1') $release
+# Everything the server needs travels with the release, so nothing is copied from the repo by hand.
+foreach ($tool in @('Deploy-ErfWeb.cmd', 'Deploy-ErfWeb.ps1', 'Install-ErfWebService.cmd', 'Install-ErfWebService.ps1', 'HOW-TO-DEPLOY.txt')) {
+    Copy-Item (Join-Path $PSScriptRoot $tool) $release
+}
+Copy-Item (Join-Path $staging 'appsettings.Example.json') $release
 Set-Content -Path (Join-Path $release 'release.txt') -Encoding ASCII -Value "$version+$commit"
 Remove-Item -Recurse -Force $staging
 

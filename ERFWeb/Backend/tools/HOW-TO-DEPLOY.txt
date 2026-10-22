@@ -1,0 +1,43 @@
+ERFWeb API release
+==================
+
+This folder is one release of the ERFWeb API. Copy the WHOLE folder to the server; the files below must stay
+together. The full guide is "Deployment guide" in ERFWeb/README.md.
+
+  ERFWeb-Api.zip              every file of the API (never appsettings.json: the server keeps its own)
+  release.txt                 the version inside, as /erf/health reports it (e.g. 0.1.0+b1b0da4)
+  Deploy-ErfWeb.cmd           UPDATE the server to this release        <- normal use
+  Install-ErfWebService.cmd   FIRST install on a new server only
+  appsettings.Example.json    template for the server's appsettings.json (every setting the API reads)
+  *.ps1                       the scripts the .cmd files run
+
+
+Update the live server (every release)
+--------------------------------------
+1. If the release notes say so, run the new SQL script(s) in ERFWeb/Database on erms_db first.
+2. If appsettings.Example.json has a setting the server's appsettings.json lacks, add it there first:
+   C:\inetpub\wwwroot\erf_web-app\appsettings.json
+3. Double-click Deploy-ErfWeb.cmd and click Yes on the administrator prompt.
+   - Green  "Deployed: version ..."     done.
+   - Yellow "Rolled back to version ..." the new version did not start; the old one is running again.
+                                          See C:\inetpub\wwwroot\erf_web-app\logs (newest file).
+   - Red                                  the API is not healthy: check the logs now.
+4. Check https://sr.mdmpi.com.ph/erf/health shows this version and "database":"ok".
+
+To go back to an earlier version later: double-click Deploy-ErfWeb.cmd in that earlier release folder.
+
+
+First install on a new server (once)
+------------------------------------
+1. Stop any console copy of the API (Ctrl+C in its window).
+2. Create C:\inetpub\wwwroot\erf_web-app\appsettings.json from appsettings.Example.json with the server's
+   values (database, Kestrel address, Cors, Smtp, Lasius).
+3. Double-click Install-ErfWebService.cmd and click Yes. It extracts the API, registers the Windows Service
+   ERFWeb.Api (starts with Windows, restarts after a crash), starts it and checks /api/health.
+
+
+Useful commands (administrator PowerShell)
+------------------------------------------
+  Get-Service ERFWeb.Api                 is it running?
+  Restart-Service ERFWeb.Api             after editing appsettings.json
+  Select-String -Path C:\inetpub\wwwroot\erf_web-app\logs\*.log -Pattern '<correlation id>' -Context 0,20

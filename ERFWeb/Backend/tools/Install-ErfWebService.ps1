@@ -3,8 +3,9 @@
     Installs (or updates, or removes) the ERFWeb API as a Windows Service on the server.
 
 .DESCRIPTION
-    Run once on the server from an elevated PowerShell, after the publish folder is in place and its own
-    appsettings.json exists. The service:
+    Run once on the server from an elevated PowerShell (or double-click Install-ErfWebService.cmd in a release
+    folder, which also passes -ReleaseZip so the API files are extracted first). The app folder must hold the
+    server's own appsettings.json. The service:
       * runs ERFWeb.Api.exe from InstallPath, starts with Windows, and restarts itself after a crash;
       * runs as the virtual account "NT SERVICE\<ServiceName>" (no password, no admin rights), which gets
         read access to InstallPath and write access to its logs folder only;
@@ -17,12 +18,16 @@
 .EXAMPLE
     powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-ErfWebService.ps1
 .EXAMPLE
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-ErfWebService.ps1 -ReleaseZip .\ERFWeb-Api.zip
+.EXAMPLE
     powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-ErfWebService.ps1 -InstallPath D:\erf -Uninstall
 #>
 [CmdletBinding()]
 param(
     [string] $InstallPath = 'C:\inetpub\wwwroot\erf_web-app',
     [string] $ServiceName = 'ERFWeb.Api',
+    # A release's ERFWeb-Api.zip: extracted into InstallPath before the service is set up.
+    [string] $ReleaseZip,
     [switch] $Uninstall
 )
 
@@ -43,10 +48,19 @@ if ($Uninstall) {
     return
 }
 
+if ($ReleaseZip) {
+    if (-not (Test-Path $ReleaseZip)) { throw "Release zip not found: $ReleaseZip" }
+    # Files of a running API are locked: stop it (or the old console copy must already be closed) first.
+    if ($existing -and $existing.Status -ne 'Stopped') { Stop-Service -Name $ServiceName -Force; $existing.WaitForStatus('Stopped', '00:00:30') }
+    New-Item -ItemType Directory -Force -Path $InstallPath | Out-Null
+    Expand-Archive -Path $ReleaseZip -DestinationPath $InstallPath -Force
+    Write-Host "Extracted $ReleaseZip into $InstallPath."
+}
+
 $exe = Join-Path $InstallPath 'ERFWeb.Api.exe'
 $settings = Join-Path $InstallPath 'appsettings.json'
-if (-not (Test-Path $exe)) { throw "ERFWeb.Api.exe not found in $InstallPath. Copy the publish folder there first." }
-if (-not (Test-Path $settings)) { throw "appsettings.json not found in $InstallPath. The server keeps its own copy; publish does not supply it (see appsettings.Example.json)." }
+if (-not (Test-Path $exe)) { throw "ERFWeb.Api.exe not found in $InstallPath. Run Install-ErfWebService.cmd from a release folder, or pass -ReleaseZip." }
+if (-not (Test-Path $settings)) { throw "appsettings.json not found in $InstallPath. Create it from appsettings.Example.json (in that folder) with the server's values, then run this again." }
 
 # Event log source for warnings and errors (creating it needs admin, so it is done here, not by the service).
 if (-not [Diagnostics.EventLog]::SourceExists($ServiceName)) {
