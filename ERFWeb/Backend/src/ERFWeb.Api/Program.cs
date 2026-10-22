@@ -128,6 +128,18 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// TLS ends at nginx (https://sr.mdmpi.com.ph/erf), which reaches Kestrel over plain HTTP. Secure cookies
+// require an HTTPS request (antiforgery throws otherwise), so with cross-site cookies the request is
+// treated as the HTTPS request the browser actually made.
+if (crossSiteCookies)
+{
+    app.Use((context, next) =>
+    {
+        context.Request.Scheme = Uri.UriSchemeHttps;
+        return next(context);
+    });
+}
+
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ApiExceptionMiddleware>();
 
