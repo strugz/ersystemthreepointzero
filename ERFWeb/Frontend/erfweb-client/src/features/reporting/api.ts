@@ -1,6 +1,6 @@
 import { api, apiUrl } from '@/shared/api/client';
 import type { ExportFormat } from '@/shared/download';
-import type { ExpenseSummary, ExpenseSummaryQuery } from './types';
+import type { ExpenseSummary, ExpenseSummaryQuery, ReportEmailDelivery, ReportEmailSent } from './types';
 
 function summaryParams(query: ExpenseSummaryQuery) {
   const params = new URLSearchParams({ from: query.from, to: query.to, scope: query.scope, approvedOnly: String(query.approvedOnly) });
@@ -14,6 +14,14 @@ export const reportingApi = {
   /** Direct URL, e.g. for opening in a new tab; the browser sends the session cookie. */
   pdfUrl: (reportId: string, download = false) =>
     apiUrl(`/reports/${encodeURIComponent(reportId)}/pdf${download ? '?download=true' : ''}`),
+  /**
+   * Emails the R47 PDF to the claimant, the Level 1 and Level 2 signatories and you (the server picks the
+   * addresses). Reuse the key when retrying so a sent email is never sent twice.
+   */
+  emailPdf: (reportId: string, idempotencyKey: string) =>
+    api.post<ReportEmailSent>(`/reports/${encodeURIComponent(reportId)}/email`, { idempotencyKey }),
+  /** The report's latest emails, newest first (its email sent status). */
+  emailHistory: (reportId: string) => api.get<ReportEmailDelivery[]>(`/reports/${encodeURIComponent(reportId)}/email`),
 
   /** Employee and category totals for the period. The API checks the scope (403 when not yours to use). */
   expenseSummary: (query: ExpenseSummaryQuery) => api.get<ExpenseSummary>(`/summaries/expenses?${summaryParams(query).toString()}`),

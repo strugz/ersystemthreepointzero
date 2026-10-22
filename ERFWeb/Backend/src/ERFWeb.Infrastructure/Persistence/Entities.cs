@@ -452,3 +452,25 @@ public class SmsDelivery
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
 }
+
+/// <summary>One email about an expense report (manual "Email R47" or a workflow event), claimed before SMTP is called.</summary>
+public class EmailDelivery
+{
+    public long Id { get; set; }
+    public long SenderUserId { get; set; }
+    public string IdempotencyKey { get; set; } = string.Empty;
+    public Guid ReportId { get; set; }
+
+    /// <summary>"R47" for a manual send, otherwise the workflow event name.</summary>
+    public string Kind { get; set; } = string.Empty;
+
+    public int RecipientCount { get; set; }
+
+    /// <summary>Sending | Sent | Failed | Unconfirmed.</summary>
+    public string Status { get; set; } = string.Empty;
+
+    public int? SmtpStatusCode { get; set; }
+    public int Attempts { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
+}

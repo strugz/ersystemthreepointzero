@@ -90,6 +90,7 @@ psql -d erfweb -f Database/010_seed_test_verifier.sql   # optional, dev/UAT only
 psql -d erfweb -f Database/011_sms_deliveries.sql        # Lasius SMS delivery log
 psql -d erfweb -f Database/012_sms_deliveries_report.sql # SMS deliveries linked to a report
 psql -d erfweb -f Database/013_approval_delegations.sql  # Phase 7: approval delegation and "on behalf of" steps
+psql -d erfweb -f Database/014_email_deliveries.sql      # Phase 7: R47 email delivery log (sent status)
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -441,3 +442,45 @@ Duplicate protection: a retry with the same `idempotencyKey` never texts twice. 
 from the same sender within a 10-minute window is treated as a retry. Once the call to Lasius starts, it
 finishes even if the browser leaves the page. The message text, phone numbers, and API key are never logged,
 stored, or returned. `workflow_audit` records `SmsSent`, `SmsFailed`, or `SmsUnconfirmed` with counts only.
+
+## Report email (R47 over SMTP)
+
+Script `014` adds `email_deliveries`, the report's email sent status. `POST /api/reports/{id}/email` takes
+`{ idempotencyKey? }` and emails the R47 PDF of a filed report to its claimant, its Level 1 and Level 2 signatories
+on the current approval cycle, and the sender: anyone who may view the report may send it, and the server picks
+the addresses from `users.email` (a shared mailbox gets one copy). `GET /api/reports/{id}/email` lists the latest
+20 emails about the report (kind, status, recipient count, sent by, times). The R47 PDF page has an **Email** button
+and shows the last email.
+
+**Workflow email:** `EmailApprovalNotifier` wraps the SMS notifier, so the employee hears at every stop. Filing,
+re-filing, each approval step, the final approval, a return and a rejection email the employee and the Level 1 and
+Level 2 signatories, with the R47 rendered after the event attached and the approver's remarks quoted. Keys
+`filed:{reportId}:{cycle}` and `{event}:{reportId}:{cycle}:{step}` email once per event. It runs after the
+workflow commits and never fails it. Override, line adjustments and Finance steps send no email.
+
+Configure the gitignored `appsettings.json` (template in `appsettings.Example.json`); `Security` is `Auto`,
+`None`, `StartTls` or `SslOnConnect`, and `Username` may be empty for a relay that needs no login:
+
+```json
+"Smtp": { "Host": "…", "Port": 587, "Security": "StartTls", "Username": "…", "Password": "…", "FromAddress": "erfweb@…", "FromName": "ERFWeb", "TimeoutSeconds": 30 }
+```
+
+Without `Host` and `FromAddress` the API still starts, the endpoint answers 503 `email_not_configured`, and
+workflow emails are skipped (logged).
+
+| Outcome | HTTP | `code` |
+| --- | --- | --- |
+| Sent (or a retry of one already sent: `replayed: true`) | 200 `{ status, recipientCount, replayed }` | — |
+| Invalid key | 400 | `validation_failed` (with `errors`) |
+| Not allowed to view the report | 403 | — |
+| Report not found | 404 | `email_report_not_found` |
+| Draft not filed yet / no one has an email address | 422 | `email_report_not_filed` / `email_no_recipients` |
+| Email not configured | 503 | `email_not_configured` |
+| Mail server refused (or connect/login failed) | 502 | `email_gateway_failed` (may be retried with the same key) |
+| Mail server did not confirm | 502 | `email_gateway_unconfirmed` (never resent under the same key) |
+| Same key still sending / key reused for another email | 409 | `email_in_progress` / `email_idempotency_key_reused` |
+
+Same duplicate protection as SMS: the key is claimed in `email_deliveries` (unique per sender) before SMTP is
+called; without a key, a second send of the same report within 10 minutes is a retry. Addresses, subject, body
+and the PDF are never logged or stored. `workflow_audit` records `EmailSent`, `EmailFailed` or `EmailUnconfirmed`
+with the kind and counts only.

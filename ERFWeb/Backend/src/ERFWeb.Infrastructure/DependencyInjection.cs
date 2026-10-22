@@ -44,9 +44,11 @@ public static class DependencyInjection
         services.AddScoped<ITransactionRunner, EfTransactionRunner>();
         services.AddScoped<IWorkflowAuditWriter, WorkflowAuditWriter>();
         services.AddScoped<IUserAuthenticator, UserAuthenticator>();
-        // Logs every workflow event; filing also sends an SMS through Lasius (see SmsApprovalNotifier).
+        // Logs every workflow event, texts through Lasius (SmsApprovalNotifier) and emails the R47
+        // over SMTP (EmailApprovalNotifier), each layer wrapping the one before.
         services.AddScoped<LoggingApprovalNotifier>();
-        services.AddScoped<IApprovalNotifier, SmsApprovalNotifier>();
+        services.AddScoped<SmsApprovalNotifier>();
+        services.AddScoped<IApprovalNotifier, EmailApprovalNotifier>();
 
         // Reporting (Phase 1)
         services.AddOptions<R47ReportOptions>();
@@ -100,6 +102,11 @@ public static class DependencyInjection
         services.AddHttpClient<ISmsGateway, LasiusSmsGateway>((sp, client) =>
             client.Timeout = TimeSpan.FromSeconds(Math.Max(1, sp.GetRequiredService<IOptions<LasiusOptions>>().Value.TimeoutSeconds)));
         services.AddScoped<ISmsService, SmsService>();
+
+        // Report email over SMTP (MailKit); host, sender and login come from appsettings.json.
+        services.AddOptions<SmtpOptions>();
+        services.AddSingleton<IEmailGateway, MailKitEmailGateway>();
+        services.AddScoped<IReportEmailService, ReportEmailService>();
 
         return services;
     }
