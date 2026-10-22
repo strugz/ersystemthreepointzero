@@ -40,7 +40,7 @@ async function submit() {
     <!-- Brand panel: desktop only; phones go straight to the form. -->
     <aside class="login__brand" aria-hidden="true">
       <div class="login__brand-inner">
-        <span class="login__eyebrow">MDMPI · Expense Report Forms</span>
+        <span class="login__eyebrow">MDMPI · Expense Report</span>
         <p class="login__pitch">File, approve and settle expense reports without chasing paper.</p>
         <ul class="login__points">
           <li><v-icon icon="mdi-file-document-edit-outline" size="18" /> Prepare and file reports online</li>

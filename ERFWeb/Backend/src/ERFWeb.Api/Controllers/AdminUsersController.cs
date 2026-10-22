@@ -79,6 +79,18 @@ public sealed class AdminUsersController(IUserAdminService users, IRoleGrantServ
         return NoContent();
     }
 
+    /// <summary>The signature image on file, for the preview on the account page.</summary>
+    [HttpGet("{userId:long}/signature")]
+    [Produces("image/png", "image/jpeg")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSignature(long userId, CancellationToken ct)
+    {
+        var image = await users.GetSignatureAsync(userId, ct);
+        Response.Headers.CacheControl = "no-store";
+        return File(image.Content, image.ContentType);
+    }
+
     /// <summary>Loads the employee's signature image (PNG or JPEG) printed on the R47. Field name: <c>file</c>.</summary>
     [HttpPost("{userId:long}/signature")]
     [Consumes("multipart/form-data")]
