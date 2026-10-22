@@ -75,6 +75,7 @@ public static class DependencyInjection
         services.AddScoped<IUserAdminService, UserAdminService>();
         services.AddScoped<IRoleGrantService, RoleGrantService>();
         services.AddScoped<IMasterDataService, MasterDataService>();
+        services.AddScoped<IFareModeAdminService, FareModeAdminService>();
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddScoped<IAdminAuditService, AdminAuditService>();
 

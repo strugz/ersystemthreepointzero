@@ -183,6 +183,30 @@ export interface SiteInput {
   rowVersion?: number;
 }
 
+/** How a fare leg was travelled (Taxi, Grab, Jeepney, ...); "Others" asks the employee to type the mode. */
+export interface FareMode {
+  id: number;
+  code: string;
+  name: string;
+  sortOrder: number;
+  receiptExpected: boolean;
+  requiresDetail: boolean;
+  legacyFareId: number | null;
+  isActive: boolean;
+  rowVersion: number;
+}
+
+export interface FareModeInput {
+  code: string;
+  name: string;
+  sortOrder: number;
+  receiptExpected: boolean;
+  requiresDetail: boolean;
+  legacyFareId: number | null;
+  isActive: boolean;
+  rowVersion?: number;
+}
+
 export interface ExpenseCategoryInfo {
   category: string;
   label: string;

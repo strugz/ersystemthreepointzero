@@ -156,3 +156,23 @@ export function r47Column(category: ExpenseCategory, type: ExpenseType): string 
     category as Exclude<ExpenseCategory, 'Representation'>
   ];
 }
+
+/** Icon for a fare mode by its code; unknown or admin-added codes get a generic route icon. */
+const fareModeIcons: Record<string, string> = {
+  TAXI: 'mdi-taxi',
+  GRAB: 'mdi-car-side',
+  ANGKAS: 'mdi-motorbike',
+  JEEP: 'mdi-jeepney',
+  TRIKE: 'mdi-rickshaw',
+  PEDICAB: 'mdi-bicycle',
+  BUS: 'mdi-bus',
+  UV: 'mdi-van-passenger',
+  RAIL: 'mdi-train',
+  BOAT: 'mdi-ferry',
+  HABAL: 'mdi-motorbike',
+  OTHERS: 'mdi-dots-horizontal',
+};
+
+export function fareModeIcon(code: string | null | undefined): string {
+  return (code && fareModeIcons[code]) || 'mdi-map-marker-path';
+}

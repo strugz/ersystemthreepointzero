@@ -33,7 +33,18 @@ public sealed record CashAdvanceLineDto(
 
 public sealed record ExpenseMealItemDto(string MealType, string? PaidFor, long? PaidEmployeeId);
 
-public sealed record ExpenseTransportItemDto(string? FareFrom, string? FareTo, decimal FareAmount);
+/// <summary>
+/// One fare leg. On save only <see cref="FareModeId"/> and <see cref="FareModeDetail"/> are read; the
+/// code and name are filled in on the way out. A null mode is a leg saved before fare modes existed.
+/// </summary>
+public sealed record ExpenseTransportItemDto(
+    string? FareFrom,
+    string? FareTo,
+    decimal FareAmount,
+    long? FareModeId = null,
+    string? FareModeDetail = null,
+    string? FareModeCode = null,
+    string? FareModeName = null);
 
 public sealed record ExpenseLineDto(
     long Id,

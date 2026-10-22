@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { formatMoney, todayIso } from '@/shared/format';
-import { categoryDefaults, categoryOptions, expenseTypeOptions, lineTotal, mealTypes, r47Column } from '../labels';
+import { categoryDefaults, categoryOptions, expenseTypeOptions, fareModeIcon, lineTotal, mealTypes, r47Column } from '../labels';
 import type {
   EmployeeRates,
   ExpenseCategory,
   ExpenseLine,
   ExpenseTransportItem,
+  FareModeOption,
   SaveExpenseLineInput,
   WorkWithOption,
 } from '../types';
@@ -19,10 +20,12 @@ const props = withDefaults(
     defaultDate?: string | null;
     workWithOptions?: WorkWithOption[];
     rates?: EmployeeRates | null;
+    /** Active fare modes, in display order. */
+    fareModes?: FareModeOption[];
     saving?: boolean;
     errors?: Record<string, string[]> | null;
   }>(),
-  { line: null, defaultDate: null, workWithOptions: () => [], rates: null, saving: false, errors: null },
+  { line: null, defaultDate: null, workWithOptions: () => [], rates: null, fareModes: () => [], saving: false, errors: null },
 );
 
 const emit = defineEmits<{
@@ -58,6 +61,8 @@ const blank = (): SaveExpenseLineInput => ({
 const form = reactive<SaveExpenseLineInput>(blank());
 const selectedMeals = ref<string[]>([]);
 const showDetails = ref(false);
+/** Set by a save attempt, so a leg without a mode is only flagged once the employee tries to save. */
+const triedSave = ref(false);
 const dateInput = ref<HTMLElement | null>(null);
 
 // ---- category defaults (new lines only) ----------------------------------------------
@@ -84,7 +89,7 @@ function applyCategoryDefaults() {
     selectedMeals.value = [...defaults.meals];
   }
   if (defaults.fareLeg && form.transports.length === 0) {
-    form.transports.push({ fareFrom: '', fareTo: '', fareAmount: 0 });
+    form.transports.push(newLeg());
   }
   syncMealAmount();
 }
@@ -95,6 +100,7 @@ function reset() {
   Object.assign(auto, { particulars: '', amount: 0 });
   selectedMeals.value = [];
   showDetails.value = false;
+  triedSave.value = false;
   applyCategoryDefaults();
   requestAnimationFrame(() => dateInput.value?.querySelector('input')?.focus());
 }
@@ -135,6 +141,7 @@ watch(
     }
     selectedMeals.value = form.meals.map((m) => m.mealType);
     showDetails.value = !!(form.remarks || form.instrument || form.serialNumber || form.serviceNumber);
+    triedSave.value = false;
     Object.assign(auto, { particulars: '', amount: 0 });
     applyCategoryDefaults();
   },
@@ -210,14 +217,68 @@ watch(selectedMeals, (types) => {
 });
 watch(suggestedMealAmount, syncMealAmount);
 
-// Transportation: optional fare legs; their sum is offered as the amount.
+// Transportation: optional fare legs; their sum is offered as the amount. Each leg names how it was
+// travelled. A new leg starts where the previous one ended, by the same mode, since most trips repeat it.
+function newLeg(previous?: ExpenseTransportItem): ExpenseTransportItem {
+  return {
+    fareFrom: previous?.fareTo ?? '',
+    fareTo: '',
+    fareAmount: 0,
+    fareModeId: previous?.fareModeId ?? null,
+    fareModeDetail: null,
+  };
+}
 function addLeg() {
-  form.transports.push({ fareFrom: '', fareTo: '', fareAmount: 0 });
+  form.transports.push(newLeg(form.transports[form.transports.length - 1]));
 }
 function removeLeg(index: number) {
   form.transports.splice(index, 1);
 }
 const legsTotal = computed(() => form.transports.reduce((s, t: ExpenseTransportItem) => s + (Number(t.fareAmount) || 0), 0));
+
+const modeById = computed(() => new Map(props.fareModes.map((m) => [m.id, m])));
+/**
+ * The picker lists the active modes, plus the leg's own mode when it has since been deactivated, so an
+ * old line still shows (and keeps) what was saved.
+ */
+function modeItems(leg: ExpenseTransportItem): FareModeOption[] {
+  if (leg.fareModeId === null || modeById.value.has(leg.fareModeId)) {
+    return props.fareModes;
+  }
+  const retired: FareModeOption = {
+    id: leg.fareModeId,
+    code: leg.fareModeCode ?? '',
+    name: leg.fareModeName ?? 'Unavailable mode',
+    requiresDetail: !!leg.fareModeDetail,
+    receiptExpected: false,
+  };
+  return [...props.fareModes, retired];
+}
+function modeOf(leg: ExpenseTransportItem): FareModeOption | undefined {
+  return leg.fareModeId === null ? undefined : modeItems(leg).find((m) => m.id === leg.fareModeId);
+}
+const needsDetail = (leg: ExpenseTransportItem) => !!modeOf(leg)?.requiresDetail;
+/** A leg is kept on save when anything on it was filled in. */
+const legHasContent = (t: ExpenseTransportItem) => !!(t.fareFrom || t.fareTo || t.fareAmount || t.fareModeId);
+function legModeErrors(leg: ExpenseTransportItem, i: number): string[] | undefined {
+  const server = fieldErrors(`transports[${i}].fareModeId`);
+  if (server) {
+    return server;
+  }
+  return triedSave.value && legHasContent(leg) && leg.fareModeId === null ? ['Choose a mode'] : undefined;
+}
+function legDetailErrors(leg: ExpenseTransportItem, i: number): string[] | undefined {
+  const server = fieldErrors(`transports[${i}].fareModeDetail`);
+  if (server) {
+    return server;
+  }
+  return triedSave.value && !(leg.fareModeDetail ?? '').trim() ? ['Type the mode'] : undefined;
+}
+const legsIncomplete = computed(
+  () =>
+    form.category === 'Transportation' &&
+    form.transports.some((t) => legHasContent(t) && (t.fareModeId === null || (needsDetail(t) && !(t.fareModeDetail ?? '').trim()))),
+);
 function useLegsTotal() {
   form.amount = Math.round(legsTotal.value * 100) / 100;
 }
@@ -254,6 +315,10 @@ function save() {
   if (!canSave.value) {
     return;
   }
+  if (legsIncomplete.value) {
+    triedSave.value = true;
+    return;
+  }
   const isMeals = form.category === 'Meals';
   const isTransport = form.category === 'Transportation';
   emit('save', {
@@ -264,7 +329,15 @@ function save() {
     totalDays: form.isPerdiem ? Number(form.totalDays) || null : null,
     minusDays: form.isPerdiem ? Number(form.minusDays) || 0 : null,
     meals: isMeals ? form.meals : [],
-    transports: isTransport ? form.transports.filter((t) => t.fareFrom || t.fareTo || t.fareAmount) : [],
+    transports: isTransport
+      ? form.transports.filter(legHasContent).map((t) => ({
+          fareFrom: t.fareFrom,
+          fareTo: t.fareTo,
+          fareAmount: Number(t.fareAmount) || 0,
+          fareModeId: t.fareModeId,
+          fareModeDetail: needsDetail(t) ? (t.fareModeDetail ?? '').trim() || null : null,
+        }))
+      : [],
   });
 }
 
@@ -378,15 +451,47 @@ function close() {
             <section v-if="form.category === 'Transportation'" class="eline__section">
               <div class="panel">
                 <div class="panel__head">
-                  <span class="eyebrow">Fare legs <span class="eyebrow__opt">optional</span></span>
+                  <span class="eyebrow">Fare legs <span class="eyebrow__opt">optional · mode required per leg</span></span>
                   <v-btn class="press" size="small" variant="text" prepend-icon="mdi-plus" @click="addLeg">Add leg</v-btn>
                 </div>
                 <div v-for="(leg, i) in form.transports" :key="i" class="leg">
-                  <v-text-field v-model="leg.fareFrom" label="From" density="compact" hide-details />
+                  <v-select
+                    v-model="leg.fareModeId"
+                    :items="modeItems(leg)"
+                    item-value="id"
+                    item-title="name"
+                    label="Mode"
+                    :placeholder="leg.fareModeId === null && legHasContent(leg) ? 'Not specified' : undefined"
+                    density="compact"
+                    hide-details="auto"
+                    :error-messages="legModeErrors(leg, i)"
+                    class="leg__mode"
+                    :aria-label="`Leg ${i + 1} mode`"
+                  >
+                    <template #selection="{ item }">
+                      <v-icon :icon="fareModeIcon(item.raw.code)" size="16" class="leg__mode-icon" />
+                      <span class="leg__mode-name">{{ item.title }}</span>
+                    </template>
+                    <template #item="{ props: itemProps, item }">
+                      <v-list-item v-bind="itemProps" :prepend-icon="fareModeIcon(item.raw.code)" density="compact" />
+                    </template>
+                  </v-select>
+                  <v-text-field v-model="leg.fareFrom" label="From" density="compact" hide-details class="leg__from" />
                   <v-icon icon="mdi-arrow-right" size="16" class="leg__arrow" />
-                  <v-text-field v-model="leg.fareTo" label="To" density="compact" hide-details />
+                  <v-text-field v-model="leg.fareTo" label="To" density="compact" hide-details class="leg__to" />
                   <v-text-field v-model.number="leg.fareAmount" type="number" min="0" step="0.01" label="Fare" prefix="₱" density="compact" hide-details class="leg__fare" />
-                  <v-btn class="press" icon="mdi-close" size="x-small" variant="text" aria-label="Remove leg" @click="removeLeg(i)" />
+                  <v-btn class="press leg__remove" icon="mdi-close" size="x-small" variant="text" :aria-label="`Remove leg ${i + 1}`" @click="removeLeg(i)" />
+                  <v-text-field
+                    v-if="needsDetail(leg)"
+                    v-model="leg.fareModeDetail"
+                    label="Specify the mode"
+                    placeholder="e.g. Kalesa, company shuttle"
+                    maxlength="60"
+                    density="compact"
+                    hide-details="auto"
+                    :error-messages="legDetailErrors(leg, i)"
+                    class="leg__detail"
+                  />
                 </div>
                 <div v-if="form.transports.length" class="panel__foot">
                   <span>Legs total <span class="mono">{{ formatMoney(legsTotal) }}</span></span>
@@ -668,9 +773,25 @@ function close() {
 }
 .leg {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 140px auto;
-  align-items: center;
+  grid-template-columns: 168px minmax(0, 1fr) auto minmax(0, 1fr) 120px auto;
+  align-items: start;
   gap: 8px;
+}
+.leg > .leg__arrow,
+.leg > .leg__remove {
+  margin-top: 10px;
+}
+.leg__mode-icon {
+  margin-right: 6px;
+  color: var(--ink-2);
+}
+.leg__mode-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.leg__detail {
+  grid-column: 1 / 3;
 }
 .leg :deep(.v-field) {
   background: var(--card);
@@ -764,14 +885,35 @@ function close() {
   .seg {
     justify-self: start;
   }
+  /* Phone: mode and remove on top, From / To, then fare (and the typed mode). */
   .leg {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .leg:last-of-type {
+    border-bottom: 0;
+  }
+  .leg__mode {
+    grid-column: 1 / 3;
+    grid-row: 1;
+  }
+  .leg > .leg__remove {
+    grid-column: 3;
+    grid-row: 1;
   }
   .leg__arrow {
     display: none;
   }
-  .leg__fare {
-    grid-column: 1 / 3;
+  .leg__from {
+    grid-column: 1;
+  }
+  .leg__to {
+    grid-column: 2 / 4;
+  }
+  .leg__fare,
+  .leg__detail {
+    grid-column: 1 / 4;
   }
   .more__hint {
     display: none;
