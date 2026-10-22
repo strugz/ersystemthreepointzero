@@ -30,6 +30,7 @@ import type {
   EmployeeRates,
   ExpenseLine,
   ExpenseReportDetail,
+  FareModeOption,
   FilingReadiness,
   ReportHeaderInput,
   SaveCashAdvanceLineInput,
@@ -49,6 +50,7 @@ const loadError = ref<string | null>(null);
 
 const workWith = ref<WorkWithOption[]>([]);
 const rates = ref<EmployeeRates | null>(null);
+const fareModes = ref<FareModeOption[]>([]);
 const readiness = ref<FilingReadiness | null>(null);
 
 async function load() {
@@ -69,9 +71,10 @@ async function load() {
 }
 
 async function loadLookups() {
-  const [ww, fr] = await Promise.allSettled([expensesApi.workWith(), expensesApi.filingReadiness()]);
+  const [ww, fr, fm] = await Promise.allSettled([expensesApi.workWith(), expensesApi.filingReadiness(), expensesApi.fareModes()]);
   if (ww.status === 'fulfilled') workWith.value = ww.value;
   if (fr.status === 'fulfilled') readiness.value = fr.value;
+  if (fm.status === 'fulfilled') fareModes.value = fm.value;
 }
 
 // Rates are versioned by date, so they follow the line dialog's date. Debounced while typing; a
@@ -550,6 +553,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :default-date="lastLineDate"
         :work-with-options="workWith"
         :rates="rates"
+        :fare-modes="fareModes"
         :saving="savingLine"
         :errors="lineErrors"
         @save="saveLine"

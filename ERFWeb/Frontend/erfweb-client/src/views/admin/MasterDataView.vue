@@ -10,19 +10,20 @@ import { ApiError } from '@/shared/api/client';
 import { adminApi } from '@/features/admin/api';
 import MasterDataTable from '@/features/admin/components/MasterDataTable.vue';
 import type { Draft, MasterDataColumn, MasterDataField } from '@/features/admin/components/MasterDataTable.vue';
-import type { CostCenter, Currency, Department, ExpenseCategoryInfo, Site } from '@/features/admin/types';
+import type { CostCenter, Currency, Department, ExpenseCategoryInfo, FareMode, Site } from '@/features/admin/types';
 
 const route = useRoute();
 const router = useRouter();
 const snack = useSnackbar();
 const { xs } = useDisplay();
 
-type Tab = 'departments' | 'cost-centers' | 'currencies' | 'sites' | 'categories';
+type Tab = 'departments' | 'cost-centers' | 'currencies' | 'sites' | 'fare-modes' | 'categories';
 const tabs: { value: Tab; title: string; icon: string }[] = [
   { value: 'departments', title: 'Departments', icon: 'mdi-office-building-outline' },
   { value: 'cost-centers', title: 'Cost centers', icon: 'mdi-sitemap-outline' },
   { value: 'currencies', title: 'Currencies', icon: 'mdi-currency-usd' },
   { value: 'sites', title: 'Sites', icon: 'mdi-map-marker-outline' },
+  { value: 'fare-modes', title: 'Fare modes', icon: 'mdi-taxi' },
   { value: 'categories', title: 'Expense categories', icon: 'mdi-shape-outline' },
 ];
 const isTab = (v: unknown): v is Tab => tabs.some((t) => t.value === v);
@@ -57,9 +58,10 @@ const departments = useEntity<Department>(() => adminApi.departments());
 const costCenters = useEntity<CostCenter>(() => adminApi.costCenters());
 const currencies = useEntity<Currency>(() => adminApi.currencies());
 const sites = useEntity<Site>(() => adminApi.sites());
+const fareModes = useEntity<FareMode>(() => adminApi.fareModes());
 const categories = useEntity<ExpenseCategoryInfo>(() => adminApi.expenseCategories());
 
-const entityFor = { departments, 'cost-centers': costCenters, currencies, sites, categories } as const;
+const entityFor = { departments, 'cost-centers': costCenters, currencies, sites, 'fare-modes': fareModes, categories } as const;
 
 // Load lazily on first visit of each tab; departments are also needed for the cost-center form.
 watch(
@@ -221,6 +223,64 @@ function saveSite(draft: Draft, existing: Site | null) {
     'Site',
   );
 }
+
+// ---- fare modes -------------------------------------------------------------
+// Sort order and the legacy tbFare id are typed as text; anything that is not a whole number is
+// sent as-is for the server to reject with a field error.
+const fareModesTable = ref<{ close: () => void } | null>(null);
+const fareModeColumns: MasterDataColumn<FareMode>[] = [
+  { key: 'code', label: 'Code', mono: true },
+  { key: 'name', label: 'Name' },
+  { key: 'sortOrder', label: 'Order', mono: true, hideOnPhone: true },
+  {
+    key: 'requiresDetail',
+    label: 'Notes',
+    hideOnPhone: true,
+    render: (m) => [m.requiresDetail ? 'Employee types the mode' : '', m.receiptExpected ? 'Receipt expected' : ''].filter(Boolean).join(' · '),
+  },
+];
+const fareModeFields: MasterDataField[] = [
+  { key: 'code', label: 'Code', type: 'text', required: true, maxlength: 20, upper: true, hint: 'e.g. TAXI, GRAB, JEEP' },
+  { key: 'name', label: 'Name', type: 'text', required: true, maxlength: 60 },
+  { key: 'sortOrder', label: 'Sort order', type: 'text', required: true, maxlength: 4, hint: 'Lower numbers are listed first; Others is 999' },
+  { key: 'legacyFareId', label: 'Legacy tbFare id', type: 'text', maxlength: 9, hint: 'Optional; the matching desktop fare' },
+  { key: 'requiresDetail', label: 'Employee types the mode (like Others)', type: 'switch' },
+  { key: 'receiptExpected', label: 'Usually has an official receipt', type: 'switch' },
+  { key: 'isActive', label: 'Active', type: 'switch' },
+];
+const fareModeDraft = (m: FareMode): Draft => ({
+  code: m.code,
+  name: m.name,
+  sortOrder: String(m.sortOrder),
+  legacyFareId: m.legacyFareId === null ? '' : String(m.legacyFareId),
+  requiresDetail: m.requiresDetail,
+  receiptExpected: m.receiptExpected,
+  isActive: m.isActive,
+});
+function saveFareMode(draft: Draft, existing: FareMode | null) {
+  const input = {
+    code: str(draft, 'code'),
+    name: str(draft, 'name'),
+    sortOrder: Number(str(draft, 'sortOrder')),
+    legacyFareId: num(draft, 'legacyFareId'),
+    requiresDetail: bool(draft, 'requiresDetail'),
+    receiptExpected: bool(draft, 'receiptExpected'),
+    isActive: bool(draft, 'isActive'),
+  };
+  void runSave(
+    fareModes,
+    fareModesTable.value,
+    existing,
+    async () => {
+      const saved = existing ? await adminApi.updateFareMode(existing.id, { ...input, rowVersion: existing.rowVersion }) : await adminApi.createFareMode(input);
+      // The list is ordered by sort order; reload so a changed order lands in place.
+      await fareModes.load();
+      return saved;
+    },
+    (a, b) => a.id === b.id,
+    'Fare mode',
+  );
+}
 </script>
 
 <template>
@@ -318,6 +378,27 @@ function saveSite(draft: Draft, existing: Site | null) {
           @save="saveSite"
           @retry="sites.load"
           @clear-errors="sites.errors.value = null"
+        />
+      </v-window-item>
+
+      <v-window-item value="fare-modes">
+        <MasterDataTable
+          ref="fareModesTable"
+          title="Fare modes"
+          singular="fare mode"
+          :items="fareModes.items.value"
+          :columns="fareModeColumns"
+          :fields="fareModeFields"
+          :key-of="(m: FareMode) => m.id"
+          :to-draft="fareModeDraft"
+          :loading="fareModes.loading.value"
+          :error="fareModes.error.value"
+          :saving="fareModes.saving.value"
+          :errors="fareModes.errors.value"
+          empty-icon="mdi-taxi"
+          @save="saveFareMode"
+          @retry="fareModes.load"
+          @clear-errors="fareModes.errors.value = null"
         />
       </v-window-item>
 

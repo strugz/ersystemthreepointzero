@@ -14,6 +14,7 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
     public DbSet<CostCenter> CostCenters => Set<CostCenter>();
     public DbSet<Currency> Currencies => Set<Currency>();
     public DbSet<Site> Sites => Set<Site>();
+    public DbSet<FareMode> FareModes => Set<FareMode>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserRoleGrant> UserRoleGrants => Set<UserRoleGrant>();
@@ -100,6 +101,16 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.ToTable("sites");
             e.Property(x => x.Code).HasMaxLength(32);
             e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Code).IsUnique();
+            e.Property(x => x.IsActive).HasDefaultValue(true);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<FareMode>(e =>
+        {
+            e.ToTable("fare_modes");
+            e.Property(x => x.Code).HasMaxLength(20);
+            e.Property(x => x.Name).HasMaxLength(60);
             e.HasIndex(x => x.Code).IsUnique();
             e.Property(x => x.IsActive).HasDefaultValue(true);
             AddConcurrencyToken(e);
@@ -202,7 +213,11 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.HasOne<ExpenseLine>().WithMany().HasForeignKey(x => x.ExpenseLineId).OnDelete(DeleteBehavior.Cascade));
 
         b.Entity<ExpenseTransportItem>(e =>
-            e.HasOne<ExpenseLine>().WithMany().HasForeignKey(x => x.ExpenseLineId).OnDelete(DeleteBehavior.Cascade));
+        {
+            e.HasOne<ExpenseLine>().WithMany().HasForeignKey(x => x.ExpenseLineId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<FareMode>().WithMany().HasForeignKey(x => x.FareModeId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.FareModeDetail).HasMaxLength(60);
+        });
 
         b.Entity<ApprovalStep>(e =>
         {

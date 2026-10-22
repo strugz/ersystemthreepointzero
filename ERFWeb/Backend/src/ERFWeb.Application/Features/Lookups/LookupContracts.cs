@@ -23,8 +23,12 @@ public sealed record MyFilingReadinessDto(
 /// <summary>An active department, for pickers.</summary>
 public sealed record DepartmentOptionDto(long Id, string? Code, string Name);
 
+/// <summary>An active fare mode for the fare-leg picker, in display order.</summary>
+public sealed record FareModeOptionDto(long Id, string Code, string Name, bool RequiresDetail, bool ReceiptExpected);
+
 public interface ILookupService
 {
+    Task<IReadOnlyList<FareModeOptionDto>> FareModesAsync(CancellationToken ct = default);
     Task<IReadOnlyList<DepartmentOptionDto>> DepartmentsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<WorkWithOptionDto>> WorkWithAsync(string? search, CancellationToken ct = default);
     Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, CancellationToken ct = default);

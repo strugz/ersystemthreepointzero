@@ -11,6 +11,8 @@ import type {
   Department,
   DepartmentInput,
   ExpenseCategoryInfo,
+  FareMode,
+  FareModeInput,
   GrantRoleInput,
   PagedResult,
   RoleActionInput,
@@ -77,6 +79,10 @@ export const adminApi = {
   sites: (includeInactive = true) => api.get<Site[]>(`${md}/sites${qs({ includeInactive })}`),
   createSite: (input: SiteInput) => api.post<Site>(`${md}/sites`, input),
   updateSite: (id: number, input: SiteInput) => api.put<Site>(`${md}/sites/${id}`, input),
+
+  fareModes: (includeInactive = true) => api.get<FareMode[]>(`${md}/fare-modes${qs({ includeInactive })}`),
+  createFareMode: (input: FareModeInput) => api.post<FareMode>(`${md}/fare-modes`, input),
+  updateFareMode: (id: number, input: FareModeInput) => api.put<FareMode>(`${md}/fare-modes/${id}`, input),
 
   expenseCategories: () => api.get<ExpenseCategoryInfo[]>(`${md}/expense-categories`),
 
