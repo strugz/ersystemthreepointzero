@@ -1,4 +1,6 @@
+using System.Net;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using ERFWeb.Api.Middleware;
 using ERFWeb.Api.Security;
 using ERFWeb.Application.Common;
@@ -8,6 +10,8 @@ using ERFWeb.Infrastructure.Notifications;
 using ERFWeb.Infrastructure.Reporting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using Serilog;
 using Serilog.Extensions.Logging;
@@ -157,24 +161,89 @@ builder.Services.AddCors(options => options.AddPolicy(SpaCorsPolicy, policy =>
         .AllowAnyHeader()
         .AllowAnyMethod()));
 
+// Behind nginx the client's address and scheme arrive in X-Forwarded-For / X-Forwarded-Proto. They are
+// trusted only from the proxies in ReverseProxy:KnownProxies (nginx's address as Kestrel sees it); with
+// none listed they are ignored, every request appears to come from nginx, and the per-address rate
+// limits below then apply to all users together (their defaults allow for that).
+var knownProxies = config.GetSection("ReverseProxy:KnownProxies").Get<string[]>() ?? [];
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    foreach (var proxy in knownProxies)
+    {
+        options.KnownProxies.Add(IPAddress.TryParse(proxy, out var address)
+            ? address
+            : throw new InvalidOperationException($"ReverseProxy:KnownProxies has '{proxy}', which is not an IP address."));
+    }
+});
+
+// Rate limits per client address (fixed one-minute windows): sign-in and password change are tight, to
+// slow password guessing across usernames (the lockout covers guessing one username); everything else
+// is generous and only stops runaway clients. 429 with Retry-After when exceeded.
+var signInPerMinute = config.GetValue("RateLimiting:SignInPerMinute", 30);
+var apiPerMinute = config.GetValue("RateLimiting:ApiPerMinute", 1200);
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientAddress(context), _ => PerMinute(apiPerMinute)));
+    options.AddPolicy(RateLimitPolicies.SignIn, context =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientAddress(context), _ => PerMinute(signInPerMinute)));
+    options.OnRejected = async (rejected, token) =>
+    {
+        var http = rejected.HttpContext;
+        if (rejected.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            http.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        var problem = new ProblemDetails
+        {
+            Status = StatusCodes.Status429TooManyRequests,
+            Title = "Too many requests. Please wait a minute and try again.",
+            Instance = http.Request.Path,
+        };
+        problem.Extensions["code"] = "rate_limited";
+        if (http.Items.TryGetValue(CorrelationIdMiddleware.HeaderName, out var correlationId))
+        {
+            problem.Extensions["correlationId"] = correlationId;
+        }
+
+        await http.Response.WriteAsJsonAsync(problem, (System.Text.Json.JsonSerializerOptions?)null, "application/problem+json", token);
+    };
+});
+
+static string ClientAddress(HttpContext context) => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+static FixedWindowRateLimiterOptions PerMinute(int permits) =>
+    new() { PermitLimit = Math.Max(1, permits), Window = TimeSpan.FromMinutes(1), QueueLimit = 0 };
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+
 // TLS ends at nginx (https://sr.mdmpi.com.ph/erf), which reaches Kestrel over plain HTTP. Secure cookies
-// require an HTTPS request (antiforgery throws otherwise), so with cross-site cookies the request is
-// treated as the HTTPS request the browser actually made.
+// require an HTTPS request (antiforgery throws otherwise), so with cross-site cookies a request that
+// X-Forwarded-Proto did not already mark as HTTPS is treated as the HTTPS request the browser made.
 if (crossSiteCookies)
 {
     app.Use((context, next) =>
     {
-        context.Request.Scheme = Uri.UriSchemeHttps;
+        if (!context.Request.IsHttps)
+        {
+            context.Request.Scheme = Uri.UriSchemeHttps;
+        }
+
         return next(context);
     });
 }
 
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>((IReadOnlyList<string>)corsOrigins);
 app.UseMiddleware<ApiExceptionMiddleware>();
 
 if (swaggerEnabled)
@@ -186,7 +255,9 @@ if (swaggerEnabled)
 }
 
 app.UseCors(SpaCorsPolicy);
+app.UseRateLimiter();
 app.UseAuthentication();
+app.UseMiddleware<PasswordChangeRequiredMiddleware>();
 app.UseAuthorization();
 app.UseMiddleware<AntiforgeryMiddleware>();
 

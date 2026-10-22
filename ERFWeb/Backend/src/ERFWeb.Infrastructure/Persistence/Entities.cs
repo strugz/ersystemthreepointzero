@@ -79,6 +79,9 @@ public class User
     public bool WorkWithEnabled { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>Set when an administrator sets the password (new account, reset); cleared when the user changes it.</summary>
+    public bool MustChangePassword { get; set; }
 }
 
 public class ApprovalRoute

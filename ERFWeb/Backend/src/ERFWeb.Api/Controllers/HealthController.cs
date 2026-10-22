@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace ERFWeb.Api.Controllers;
 
 /// <summary>
-/// Anonymous health check for monitoring, nginx and deploy smoke tests: the running version and whether
-/// the database answers. 200 when healthy, 503 when the database is unreachable.
+/// Anonymous health check for monitoring, nginx and the deploy script: the running version and whether the
+/// database answers and has every script this build needs. 200 when healthy, 503 otherwise.
 /// </summary>
 [ApiController]
 [Route("api/health")]
@@ -22,9 +22,16 @@ public sealed class HealthController(IDatabaseHealthCheck database) : Controller
     [ProducesResponseType<HealthDto>(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> Get(CancellationToken ct)
     {
-        var databaseUp = await database.CanConnectAsync(ct);
-        var health = new HealthDto(databaseUp ? "ok" : "degraded", "ERFWeb.Api", Version, databaseUp ? "ok" : "unreachable");
-        return databaseUp ? Ok(health) : StatusCode(StatusCodes.Status503ServiceUnavailable, health);
+        var db = await database.CheckAsync(ct);
+        var ok = db.State == DatabaseState.Ok;
+        var state = db.State switch
+        {
+            DatabaseState.Ok => "ok",
+            DatabaseState.SchemaOutdated => "schema_outdated",
+            _ => "unreachable",
+        };
+        var health = new HealthDto(ok ? "ok" : "degraded", "ERFWeb.Api", Version, state, db.SchemaVersion, db.RequiredSchemaVersion);
+        return ok ? Ok(health) : StatusCode(StatusCodes.Status503ServiceUnavailable, health);
     }
 
     private static string ReadVersion()
@@ -41,5 +48,7 @@ public sealed class HealthController(IDatabaseHealthCheck database) : Controller
     }
 }
 
-/// <param name="Database">"ok" or "unreachable".</param>
-public sealed record HealthDto(string Status, string Service, string Version, string Database);
+/// <param name="Database">"ok", "unreachable", or "schema_outdated" (a Database script has not been run).</param>
+/// <param name="SchemaVersion">Highest Database script recorded; null when unreachable.</param>
+/// <param name="RequiredSchemaVersion">The Database script this build needs.</param>
+public sealed record HealthDto(string Status, string Service, string Version, string Database, int? SchemaVersion, int RequiredSchemaVersion);

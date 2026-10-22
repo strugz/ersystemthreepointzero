@@ -71,6 +71,9 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Lasius:*` (optional) | Notification SMS gateway URL, API key and header (see Notification SMS) |
 | `Smtp:*` (optional) | Mail server, sender mailbox and login for report email (see Report email) |
 | `Kestrel:*` (server) | Endpoint the API listens on behind nginx |
+| `RateLimiting:SignInPerMinute` (optional, default 30) | Sign-in and password-change attempts allowed per client address per minute (429 `rate_limited` beyond) |
+| `RateLimiting:ApiPerMinute` (optional, default 1200) | All other API requests per client address per minute; only stops runaway clients |
+| `ReverseProxy:KnownProxies` (optional) | nginx's IP address(es) as Kestrel sees them. Only these may set the client address and scheme through `X-Forwarded-For` / `X-Forwarded-Proto`; with none listed, every request appears to come from nginx and the per-address limits apply to all users together |
 | `Logging:File:Directory` (optional, default `logs`) | Folder for the daily log files `erfweb-yyyyMMdd.log` (30 kept, 50 MB each at most); relative to the install folder |
 | `Logging:*`, `AllowedHosts` | Standard ASP.NET Core; `Logging:LogLevel` filters the console and the log files alike |
 
@@ -98,6 +101,7 @@ psql -d erfweb -f Database/011_sms_deliveries.sql        # Lasius SMS delivery l
 psql -d erfweb -f Database/012_sms_deliveries_report.sql # SMS deliveries linked to a report
 psql -d erfweb -f Database/013_approval_delegations.sql  # Phase 7: approval delegation and "on behalf of" steps
 psql -d erfweb -f Database/014_email_deliveries.sql      # Phase 7: R47 email delivery log (sent status)
+psql -d erfweb -f Database/015_security_and_schema_versions.sql # Phase 8.3: forced password change, schema_versions
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -236,9 +240,33 @@ filing checklist, file / re-file / reopen / delete with confirmations).
 
 Cookie session (`ERFWeb.Session`) + antiforgery (`X-CSRF-TOKEN`). Endpoints:
 `GET /api/auth/antiforgery`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`,
-`GET /api/health`. Passwords verify with PBKDF2; the administration console (below) creates users, or seed one
-with a `Pbkdf2PasswordHasher.Hash` value. The session's Role claims are the account's **Active** grants in
-`user_roles` plus the implicit `Employee`. Lockout/rate-limiting arrives in a later phase.
+`POST /api/auth/password`, `GET /api/health`. Passwords verify with PBKDF2; the administration console (below) creates
+users, or seed one with a `Pbkdf2PasswordHasher.Hash` value. The session's Role claims are the account's **Active**
+grants in `user_roles` plus the implicit `Employee`.
+
+**Sign-in lockout (Phase 8.3):** five failed sign-ins in a row lock that username for 15 minutes (`login_security`;
+failures older than 15 minutes no longer count). Unknown usernames are counted the same way, so a lockout never reveals
+whether an account exists. While locked, `POST /api/auth/login` answers **423** `account_locked` with how many minutes
+are left, without checking the password. A successful sign-in clears the count; an administrator's password reset
+unlocks the account. Each lockout writes `Auth.LockedOut` (username tried, never the password) to `workflow_audit`.
+
+**Rate limits:** per client address, `RateLimiting:SignInPerMinute` (default 30) for sign-in and password change and
+`RateLimiting:ApiPerMinute` (default 1200) for everything else. Beyond them: **429** `rate_limited` with `Retry-After`.
+The client address comes from nginx's `X-Forwarded-For` only when nginx is listed in `ReverseProxy:KnownProxies`.
+
+**Password change:** `POST /api/auth/password` `{ currentPassword, newPassword }` (signed in). The new password needs at
+least 8 characters, must differ from the username and from the current one; a wrong current password is a 400 on
+`currentPassword`. Success re-issues the session cookie and writes `Auth.PasswordChanged`. SPA: **Change password**
+in the account menu (`/account/password`).
+
+**Must change password (script `015`):** a password set by an administrator (new account or reset) sets
+`users.must_change_password`. Sign-in still works, but the SPA goes straight to the change-password page and the API
+answers every other call with **403** `password_change_required` until the user picks their own. Existing accounts are
+not affected (the column defaults to `false`).
+
+**Security headers** on every API response: `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`,
+`Content-Security-Policy: frame-ancestors 'self'` plus the `Cors:AllowedOrigins`, and `Cache-Control: no-store` unless
+the endpoint set its own. HSTS is left to nginx (it serves other applications on the same host).
 
 ## Administration & accounts (plan Phase 1, RBAC v0.6)
 
@@ -430,9 +458,11 @@ preview.
 approval inbox and Finance queue CSV, Finance aging). SPA: **Summary** page and export buttons on the Approvals and
 Finance pages. No database script.
 
-**Health and theme:** `GET /api/health` (anonymous) returns `{ status, service, version, database }`: 200 when the database
-answers within 5 seconds, 503 `degraded` when it does not; `version` is `Version` in `Directory.Build.props` plus the
-build commit (e.g. `0.1.0+edadad9`). Used by monitoring, deploy smoke tests and the dev proxy; the SPA has a
+**Health and theme:** `GET /api/health` (anonymous) returns
+`{ status, service, version, database, schemaVersion, requiredSchemaVersion }`: 200 when the database answers within 5
+seconds and has every script this build needs; otherwise 503 `degraded` with `database` `unreachable` or
+`schema_outdated` (`schemaVersion` is the highest script recorded in `schema_versions`, `requiredSchemaVersion` the one
+the build needs). `version` is `Version` in `Directory.Build.props` plus the build commit (e.g. `0.1.0+edadad9`). Used by monitoring, deploy smoke tests and the dev proxy; the SPA has a
 light / dark / system theme switch.
 
 ## Notification SMS (Lasius gateway)
@@ -576,6 +606,16 @@ the **backend live first**, so the new screens never call an API that does not e
    `psql -d erms_db -f Database/NNN_name.sql`). Scripts are safe to re-run.
 3. Each script ends with a commented **Rollback** block; keep it at hand.
 4. Never run `dotnet ef database update` against this database.
+5. **Run the script before deploying the backend that needs it.** Since script `015`, each script records itself in
+   `schema_versions`, and the API refuses to report healthy (`"database":"schema_outdated"`) while the database is
+   older than it needs, so a backend deployed too early is rolled back by `Deploy-ErfWeb.cmd` instead of failing for
+   users.
+
+**Writing a new script:** number it after the last one, make it idempotent, end it with a commented Rollback block, and
+before `COMMIT;` record it:
+`INSERT INTO schema_versions (version, name) VALUES (16, '016_name') ON CONFLICT (version) DO NOTHING;`
+When the backend code depends on it, raise `SchemaVersion.Required` in
+`Backend/src/ERFWeb.Infrastructure/Persistence/SchemaVersion.cs` to that number in the same change.
 
 ### C. Build the backend release on your PC
 
@@ -648,6 +688,18 @@ Settings that matter for the live site:
 | `Kestrel` | the address the service listens on (`http://192.168.4.206:5080/5081`), which nginx forwards to |
 | `Smtp`, `Lasius` | email and SMS; without them those features are skipped, not broken |
 | `Logging:File:Directory` | where log files go (default `logs`) |
+| `ReverseProxy:KnownProxies` | nginx's IP address as the server sees it (ask IT), e.g. `["192.168.4.x"]`; until it is set, rate limits count all users together |
+| `RateLimiting` | `SignInPerMinute` (30) and `ApiPerMinute` (1200); raise them if many users share one address and see 429 |
+
+**For IT (nginx and Render):**
+
+* nginx should pass the client address and scheme to the API:
+  `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;` and `proxy_set_header X-Forwarded-Proto $scheme;`.
+  Then put nginx's address in `ReverseProxy:KnownProxies`.
+* HSTS belongs on nginx for `sr.mdmpi.com.ph` (`add_header Strict-Transport-Security "max-age=31536000" always;`),
+  once every application on that host is HTTPS-only.
+* Optional, Render static site → **Headers**: `/*` with `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy: strict-origin-when-cross-origin` and `X-Frame-Options: DENY`.
 
 ### Go back to the previous version
 
@@ -707,6 +759,10 @@ Every log line written for that request carries the same id.
 | --- | --- | --- |
 | `Could not load file or assembly '...'` in the log or console | A file of the release is missing (single files were copied) | Deploy the whole release folder again with `Deploy-ErfWeb.cmd` |
 | Service will not start (`Cannot start service ERFWeb.Api`) | A missing file, a bad `appsettings.json`, or the port is taken | Run `C:\inetpub\wwwroot\erf_web-app\ERFWeb.Api.exe` in a console to see the error; `netstat -ano \| findstr ":5080 :5081"` shows what holds the port |
+| `/erf/health` shows `"database":"schema_outdated"` (503) | The backend needs a `Database/` script that has not been run (`requiredSchemaVersion` says which) | Run the missing script(s) (step B), then deploy again |
+| Sign-in answers "Too many failed sign-in attempts" (423) | Five wrong passwords in a row for that username | Wait 15 minutes, or an administrator resets the password (that also unlocks it) |
+| "Too many requests" (429) for many users at once | `ReverseProxy:KnownProxies` is not set, so all users share one rate limit | Set nginx's address there (or raise `RateLimiting`), then `Restart-Service ERFWeb.Api` |
+| Every page says "Please change your password before continuing" (403) | The account's password was set by an administrator | Change it on the Change password page the app opens |
 | `/erf/health` shows `"database":"unreachable"` (503) | The API cannot reach PostgreSQL | Check the PostgreSQL service and the connection string in `appsettings.json` |
 | `/erf/health` shows the old version | The deploy rolled back, or the release was not deployed | Read the deploy window's last line and the newest log file |
 | Sign-in fails with 400 `antiforgery_validation_failed` | Cross-site cookies are off, or the frontend address is not allowed | `CrossSiteCookies: true` and the Render address in `Cors:AllowedOrigins`, then `Restart-Service ERFWeb.Api` |

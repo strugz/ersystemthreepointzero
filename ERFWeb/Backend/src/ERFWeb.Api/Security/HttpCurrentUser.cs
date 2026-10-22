@@ -9,6 +9,9 @@ public sealed class HttpCurrentUser(IHttpContextAccessor accessor) : ICurrentUse
 {
     public const string FullNameClaim = "full_name";
 
+    /// <summary>Present ("true") while an administrator-set password has not been changed by its owner.</summary>
+    public const string MustChangePasswordClaim = "must_change_password";
+
     private ClaimsPrincipal? Principal => accessor.HttpContext?.User;
 
     public bool IsAuthenticated => Principal?.Identity?.IsAuthenticated ?? false;

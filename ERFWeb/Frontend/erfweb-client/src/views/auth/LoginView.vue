@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useSessionStore } from '@/app/stores/session';
 import { useThemeStore } from '@/app/stores/theme';
 import { ApiError } from '@/shared/api/client';
+import { describeError } from '@/shared/composables/useSnackbar';
 import { appVersionLabel } from '@/shared/appVersion';
 
 const session = useSessionStore();
@@ -24,12 +25,15 @@ async function submit() {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/';
     await router.push(redirect);
   } catch (err) {
+    // A lockout (423) or too many attempts (429) carries the server's own wording, e.g. how long to wait.
     error.value =
       err instanceof ApiError && err.status === 401
         ? 'Invalid username or password.'
-        : err instanceof ApiError && err.status >= 500
-          ? 'The server is not responding. Please try again in a moment.'
-          : 'Unable to sign in. Please try again.';
+        : err instanceof ApiError && (err.status === 423 || err.status === 429)
+          ? describeError(err)
+          : err instanceof ApiError && err.status >= 500
+            ? 'The server is not responding. Please try again in a moment.'
+            : 'Unable to sign in. Please try again.';
   } finally {
     loading.value = false;
   }

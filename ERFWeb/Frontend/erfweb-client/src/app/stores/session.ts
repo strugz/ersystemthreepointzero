@@ -2,7 +2,7 @@ import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { authApi } from '@/features/auth/api';
 import { ApiError } from '@/shared/api/client';
-import type { AuthenticatedUser, LoginRequest, UserRole } from '@/features/auth/types';
+import type { AuthenticatedUser, ChangePasswordRequest, LoginRequest, UserRole } from '@/features/auth/types';
 
 export const useSessionStore = defineStore('session', () => {
   const user = ref<AuthenticatedUser | null>(null);
@@ -42,10 +42,14 @@ export const useSessionStore = defineStore('session', () => {
     unavailable.value = false;
   }
 
+  async function changePassword(request: ChangePasswordRequest): Promise<void> {
+    user.value = await authApi.changePassword(request);
+  }
+
   async function logout(): Promise<void> {
     await authApi.logout();
     user.value = null;
   }
 
-  return { user, initialized, unavailable, isAuthenticated, hasRole, initialize, login, logout };
+  return { user, initialized, unavailable, isAuthenticated, hasRole, initialize, login, changePassword, logout };
 });

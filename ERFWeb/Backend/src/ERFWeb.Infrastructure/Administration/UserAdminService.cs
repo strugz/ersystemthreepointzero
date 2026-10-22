@@ -156,6 +156,7 @@ public sealed class UserAdminService(
                 CostCenterId = request.CostCenterId,
                 WorkWithEnabled = request.WorkWithEnabled,
                 IsActive = true,
+                MustChangePassword = true,
                 CreatedAt = clock.UtcNow,
             };
             db.Users.Add(entity);
@@ -246,7 +247,11 @@ public sealed class UserAdminService(
         {
             var entity = await LoadAsync(userId, token);
             entity.PasswordHash = Pbkdf2PasswordHasher.Hash(request.NewPassword);
+            entity.MustChangePassword = true;
             await db.SaveWithConcurrencyAsync(token);
+
+            // A reset is also how an administrator unlocks a locked-out account.
+            await db.LoginSecurities.Where(l => l.Username == entity.Username).ExecuteDeleteAsync(token);
 
             // The audit row records that a reset happened, never the credential itself.
             await audit.WriteAsync(new WorkflowAuditEntry(
