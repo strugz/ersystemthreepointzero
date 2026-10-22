@@ -36,6 +36,10 @@ var sessionHours = int.Parse(Required(config, "Authentication:SessionHours"));
 var slidingExpiration = bool.Parse(Required(config, "Authentication:SlidingExpiration"));
 var antiforgeryCookieName = Required(config, "Authentication:AntiforgeryCookieName");
 var antiforgeryHeaderName = Required(config, "Authentication:AntiforgeryHeaderName");
+// Optional, default false. True when the SPA is served from another site than the API (e.g. Render's
+// onrender.com calling sr.mdmpi.com.ph): the browser only sends the session and antiforgery cookies on
+// those cross-site calls when they are SameSite=None and Secure. Safari blocks such cookies regardless.
+var crossSiteCookies = config.GetValue("Authentication:CrossSiteCookies", false);
 var swaggerEnabled = bool.Parse(Required(config, "Swagger:Enabled"));
 var corsOrigins = config.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 if (corsOrigins.Length == 0)
@@ -83,8 +87,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.Cookie.Name = sessionCookieName;
         options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = crossSiteCookies ? SameSiteMode.None : SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = crossSiteCookies ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
         options.SlidingExpiration = slidingExpiration;
         options.ExpireTimeSpan = TimeSpan.FromHours(sessionHours);
         options.Events.OnRedirectToLogin = context =>
@@ -105,6 +109,11 @@ builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = antiforgeryHeaderName;
     options.Cookie.Name = antiforgeryCookieName;
+    if (crossSiteCookies)
+    {
+        options.Cookie.SameSite = SameSiteMode.None;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    }
 });
 
 const string SpaCorsPolicy = "spa";

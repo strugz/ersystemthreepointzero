@@ -60,6 +60,7 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Authentication:SessionCookieName` | Session cookie name (`ERFWeb.Session`) |
 | `Authentication:SessionHours` / `SlidingExpiration` | Session lifetime and sliding renewal |
 | `Authentication:AntiforgeryCookieName` / `AntiforgeryHeaderName` | Antiforgery cookie + header (`X-CSRF-TOKEN`; the SPA client sends this same header) |
+| `Authentication:CrossSiteCookies` (optional, default `false`) | `true` when the SPA is on another site than the API (Render): session and antiforgery cookies become `SameSite=None; Secure`. Safari blocks such cookies |
 | `Cors:AllowedOrigins` | SPA origins allowed to call the API with cookies |
 | `Swagger:Enabled` | Swagger UI on/off (`false` in base, `true` in `appsettings.Development.json`) |
 | `R47Report:*` | R47 form constants: company, document code, effectivity date, revision, rows per page, UTC offset, fonts, QuestPDF license tier |
@@ -548,5 +549,16 @@ health check is `/erf/health`. It is deployed separately from the desktop instal
 For local development the SPA can point at the deployed API (`.env` / `.env.local`):
 `VITE_API_TARGET=https://sr.mdmpi.com.ph/erf` and `VITE_API_PROXY_STRIP_PREFIX=true`. A new endpoint answers 404
 through that proxy until the API that has it is deployed.
+
+### Frontend on Render
+
+The SPA is a Render static site at **https://ersystemthreepointzero.onrender.com**, built from
+`ERFWeb/Frontend/erfweb-client` (`npm ci && npm run build`, publish `dist`) with a `/*` → `/index.html` rewrite and
+`VITE_API_BASE_URL=https://sr.mdmpi.com.ph/erf`. Because `onrender.com` and `sr.mdmpi.com.ph` are different sites,
+the server's `appsettings.json` needs that origin in `Cors:AllowedOrigins` and `Authentication:CrossSiteCookies: true`;
+without it sign-in fails with 400 (`antiforgery_validation_failed`). Safari (iPhone, iPad, Mac) blocks cross-site
+cookies, so Safari users cannot sign in this way. A Render custom domain under `mdmpi.com.ph` (e.g.
+`erf.mdmpi.com.ph`) is the same site as the API and works in every browser with `CrossSiteCookies: false`.
+A Render rewrite of `/erf/*` to the API was tried and is not forwarded (it serves `index.html`).
 
 Every error response carries a `correlationId`; search the API log on the server for it to find the exception.
