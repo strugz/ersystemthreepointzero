@@ -108,22 +108,13 @@ public sealed class AdminUsersController(IUserAdminService users, IRoleGrantServ
 
     // ---------- Role grants ----------
 
-    /// <summary>Grants a role. Privileged roles wait as Pending Activation until countersigned.</summary>
+    /// <summary>Grants a role. It applies at once.</summary>
     [HttpPost("{userId:long}/roles")]
     [ProducesResponseType<UserDetailDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<UserDetailDto>> Grant(long userId, [FromBody] GrantRoleRequest request, CancellationToken ct) =>
         Ok(await roles.GrantAsync(userId, request, ct));
-
-    /// <summary>Countersigns a Pending Activation grant (Business Owner, or a second administrator as bootstrap).</summary>
-    [HttpPost("{userId:long}/roles/{role}/countersign")]
-    [Authorize(Policy = Policies.Countersigner)]
-    [ProducesResponseType<UserDetailDto>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<UserDetailDto>> Countersign(long userId, UserRole role, [FromBody] RoleGrantActionRequest request, CancellationToken ct) =>
-        Ok(await roles.CountersignAsync(userId, role, request, ct));
 
     [HttpPost("{userId:long}/roles/{role}/revoke")]
     [ProducesResponseType<UserDetailDto>(StatusCodes.Status200OK)]

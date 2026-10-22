@@ -9,11 +9,9 @@ using Microsoft.EntityFrameworkCore;
 namespace ERFWeb.Infrastructure.Administration;
 
 /// <summary>
-/// Role grants with dual approval (RBAC v0.6). A System Administrator grants; the grant waits
-/// in Pending Activation until the designated Business Owner countersigns (spec 9.8). While no
-/// Business Owner exists, a second System Administrator may countersign and the grant is flagged
-/// as a bootstrap (plan open item 12.3a). Nobody changes roles on their own account (9.7), and
-/// the three stacking rules are checked at save.
+/// Role grants (RBAC v0.6). A System Administrator grants and revokes; a grant is Active at once,
+/// with no countersign step. Nobody changes roles on their own account (9.7), and the three
+/// stacking rules are checked at save.
 /// </summary>
 public sealed class RoleGrantService(
     ErfDbContext db,
@@ -55,8 +53,8 @@ public sealed class RoleGrantService(
                 db.UserRoleGrants.Add(existing);
             }
 
-            // A re-grant after a revoke starts the dual-approval trail again.
-            existing.Status = RoleGrantStatus.PendingActivation;
+            // A re-grant after a revoke starts a fresh trail on the same row.
+            existing.Status = RoleGrantStatus.Active;
             existing.GrantedByUserId = user.UserId;
             existing.GrantedAt = now;
             existing.CountersignedByUserId = null;
@@ -70,46 +68,6 @@ public sealed class RoleGrantService(
             await audit.WriteAsync(new WorkflowAuditEntry(
                 AdminAuditEvents.RoleGranted, null, user.UserId,
                 JsonSerializer.Serialize(new { userId, role = request.Role.ToString(), note = existing.Note })), token);
-        }, ct);
-
-        return await reader.ReadAsync(userId, ct);
-    }
-
-    public async Task<UserDetailDto> CountersignAsync(long userId, UserRole role, RoleGrantActionRequest request, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-
-        await tx.ExecuteAsync(async token =>
-        {
-            var grant = await db.UserRoleGrants.FirstOrDefaultAsync(g => g.UserId == userId && g.Role == role, token)
-                ?? throw new NotFoundException("Role grant not found.");
-            if (grant.Status != RoleGrantStatus.PendingActivation)
-            {
-                throw new ConflictException($"The grant is {grant.Status}; only a Pending Activation grant can be countersigned.");
-            }
-
-            var businessOwnerExists = await reader.BusinessOwnerExistsAsync(token);
-            var decision = RoleRules.Countersign(user.UserId, user.Roles, grant.GrantedByUserId ?? 0, userId, businessOwnerExists);
-            if (!decision.IsAllowed)
-            {
-                throw new ForbiddenException(decision.Reason!);
-            }
-
-            grant.Status = RoleGrantStatus.Active;
-            grant.CountersignedByUserId = user.UserId;
-            grant.CountersignedAt = clock.UtcNow;
-            grant.IsBootstrap = decision.IsBootstrap;
-            if (Clean(request.Note) is { } note)
-            {
-                grant.Note = note;
-            }
-
-            db.SetRowVersion(grant, request.RowVersion);
-            await db.SaveWithConcurrencyAsync(token);
-
-            await audit.WriteAsync(new WorkflowAuditEntry(
-                AdminAuditEvents.RoleCountersigned, null, user.UserId,
-                JsonSerializer.Serialize(new { userId, role = role.ToString(), bootstrap = decision.IsBootstrap, grantedBy = grant.GrantedByUserId })), token);
         }, ct);
 
         return await reader.ReadAsync(userId, ct);

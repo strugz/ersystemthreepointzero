@@ -79,7 +79,7 @@ public sealed class ScopeService(
             var proposed = new ScopeCandidate(0, request.HolderUserId, request.Level, request.Type, request.DepartmentId,
                 members.ToHashSet(), from, request.EffectiveTo, true, request.ApprovalLimit);
 
-            var decision = await DecideAsync(request.HolderUserId, request.Level, proposed, existing, token);
+            await EnsureAuthorityAsync(token);
             await EnsureNoNewAmbiguityAsync(existing, existing.Append(proposed).ToList(), request.Level, from, token);
 
             var entity = new ScopeAssignment
@@ -92,7 +92,6 @@ public sealed class ScopeService(
                 EffectiveFrom = from,
                 EffectiveTo = request.EffectiveTo,
                 IsActive = true,
-                IsBootstrap = decision.IsBootstrap,
                 Note = Clean(request.Note),
                 CreatedByUserId = user.UserId,
                 CreatedAt = clock.UtcNow,
@@ -104,7 +103,7 @@ public sealed class ScopeService(
 
             var after = Describe(entity, members);
             await audit.WriteAsync(new WorkflowAuditEntry(EntitlementAuditEvents.ScopeCreated, null, user.UserId,
-                JsonSerializer.Serialize(new { assignmentId = entity.Id, bootstrap = decision.IsBootstrap, after })), token);
+                JsonSerializer.Serialize(new { assignmentId = entity.Id, after })), token);
 
             var affected = await AffectedAsync(proposed, token);
             return (entity.Id, Affected: affected, After: JsonSerializer.Serialize(after));
@@ -132,7 +131,7 @@ public sealed class ScopeService(
             var proposed = new ScopeCandidate(id, entity.HolderUserId, entity.SignatoryLevel, entity.AssignmentType, entity.DepartmentId,
                 members.ToHashSet(), entity.EffectiveFrom, request.EffectiveTo, request.IsActive, request.ApprovalLimit);
 
-            var decision = await DecideAsync(entity.HolderUserId, entity.SignatoryLevel, proposed, existing.Where(c => c.Id != id).ToList(), token);
+            await EnsureAuthorityAsync(token);
             var checkFrom = entity.EffectiveFrom > context.Today ? entity.EffectiveFrom : context.Today;
             await EnsureNoNewAmbiguityAsync(existing, existing.Where(c => c.Id != id).Append(proposed).ToList(), entity.SignatoryLevel, checkFrom, token);
 
@@ -143,7 +142,6 @@ public sealed class ScopeService(
             entity.EffectiveTo = request.EffectiveTo;
             entity.IsActive = request.IsActive;
             entity.Note = Clean(request.Note) ?? entity.Note;
-            entity.IsBootstrap = entity.IsBootstrap || decision.IsBootstrap;
             db.SetRowVersion(entity, request.RowVersion);
             db.ScopeAssignmentMembers.RemoveRange(oldMembers);
             db.ScopeAssignmentMembers.AddRange(members.Select(m => new ScopeAssignmentMember { ScopeAssignmentId = id, UserId = m }));
@@ -151,7 +149,7 @@ public sealed class ScopeService(
 
             var after = Describe(entity, members);
             await audit.WriteAsync(new WorkflowAuditEntry(EntitlementAuditEvents.ScopeUpdated, null, user.UserId,
-                JsonSerializer.Serialize(new { assignmentId = id, bootstrap = decision.IsBootstrap, before, after })), token);
+                JsonSerializer.Serialize(new { assignmentId = id, before, after })), token);
 
             var affected = (await AffectedAsync(previous, token)).Union(await AffectedAsync(proposed, token)).ToList();
             return (Affected: affected, Before: JsonSerializer.Serialize(before), After: JsonSerializer.Serialize(after));
@@ -181,23 +179,13 @@ public sealed class ScopeService(
 
     // ---------- Rules ----------
 
-    private async Task<AuthorityDecision> DecideAsync(long holderUserId, int level, ScopeCandidate proposed, IReadOnlyList<ScopeCandidate> others, CancellationToken ct)
+    private async Task EnsureAuthorityAsync(CancellationToken ct)
     {
-        var actor = await context.ActorAsync(ct);
-        var ownerExists = await context.BusinessOwnerExistsAsync(ct);
-
-        // Spec 2.4: a System Administrator may create Level 2 scope only while no Level 2 already covers that area.
-        var areaCovered = false;
-        if (level == 2)
+        var decision = EntitlementAuthority.ForScope(await context.ActorAsync(ct));
+        if (!decision.IsAllowed)
         {
-            var subjects = await context.SubjectsAsync(ct);
-            areaCovered = subjects
-                .Where(s => ScopeRules.Covers(proposed, s.Scope))
-                .Any(s => others.Any(c => c.Level == 2 && c.InForceOn(proposed.EffectiveFrom) && ScopeRules.Covers(c, s.Scope)));
+            throw new ForbiddenException(decision.Reason!);
         }
-
-        var decision = EntitlementAuthority.ForScope(actor, holderUserId, level, ownerExists, areaCovered);
-        return decision.IsAllowed ? decision : throw new ForbiddenException(decision.Reason!);
     }
 
     /// <summary>Refuses a change that would leave someone with two signatories at one level who had one before.</summary>

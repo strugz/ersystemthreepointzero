@@ -87,15 +87,10 @@ public sealed class UserDetailReader(ErfDbContext db, ISystemSettingsService set
             row.RowVersion);
     }
 
-    /// <summary>Roles an account holds that count for stacking: Pending or Active grants.</summary>
+    /// <summary>Roles an account holds that count for stacking: every grant not revoked.</summary>
     public Task<List<UserRole>> HeldRolesAsync(long userId, CancellationToken ct) =>
         db.UserRoleGrants.AsNoTracking()
             .Where(g => g.UserId == userId && g.Status != RoleGrantStatus.Revoked)
             .Select(g => g.Role)
             .ToListAsync(ct);
-
-    /// <summary>Whether any account currently holds an Active Business Owner grant.</summary>
-    public Task<bool> BusinessOwnerExistsAsync(CancellationToken ct) =>
-        db.UserRoleGrants.AsNoTracking()
-            .AnyAsync(g => g.Role == UserRole.BusinessOwner && g.Status == RoleGrantStatus.Active, ct);
 }

@@ -8,5 +8,5 @@ namespace ERFWeb.Infrastructure.Persistence;
 /// </summary>
 public static class SchemaVersion
 {
-    public const int Required = 15;
+    public const int Required = 17;
 }

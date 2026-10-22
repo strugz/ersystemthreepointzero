@@ -20,10 +20,12 @@ public sealed record UserListItemDto(
     bool HasSignature,
     bool WorkWithEnabled,
     DateTimeOffset CreatedAt,
-    IReadOnlyList<UserRole> ActiveRoles,
-    IReadOnlyList<UserRole> PendingRoles);
+    IReadOnlyList<UserRole> ActiveRoles);
 
-/// <summary>One role grant on an account, with its dual-approval trail.</summary>
+/// <summary>
+/// One role grant on an account. The countersign and bootstrap fields are history from grants
+/// made while dual approval applied; new grants leave them empty.
+/// </summary>
 public sealed record RoleGrantDto(
     UserRole Role,
     RoleGrantStatus Status,
@@ -119,11 +121,10 @@ public interface IUserAdminService
     Task<SignatureImageDto> GetSignatureAsync(long userId, CancellationToken ct = default);
 }
 
-/// <summary>Role grants with dual approval: grant, countersign, revoke (spec 9.7, 9.8, stacking rules).</summary>
+/// <summary>Role grants: grant and revoke (spec 9.7 and the stacking rules).</summary>
 public interface IRoleGrantService
 {
     Task<UserDetailDto> GrantAsync(long userId, GrantRoleRequest request, CancellationToken ct = default);
-    Task<UserDetailDto> CountersignAsync(long userId, UserRole role, RoleGrantActionRequest request, CancellationToken ct = default);
     Task<UserDetailDto> RevokeAsync(long userId, UserRole role, RoleGrantActionRequest request, CancellationToken ct = default);
 }
 
@@ -253,6 +254,8 @@ public static class AdminAuditEvents
     public const string PasswordReset = "Admin.PasswordReset";
     public const string SignatureSet = "Admin.SignatureSet";
     public const string RoleGranted = "Admin.RoleGranted";
+
+    /// <summary>Written only while dual approval applied; kept so the audit trail still names old rows.</summary>
     public const string RoleCountersigned = "Admin.RoleCountersigned";
     public const string RoleRevoked = "Admin.RoleRevoked";
     public const string MasterDataChanged = "Admin.MasterDataChanged";

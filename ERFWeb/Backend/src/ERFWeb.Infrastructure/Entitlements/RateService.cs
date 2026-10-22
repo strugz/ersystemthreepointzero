@@ -12,8 +12,8 @@ using Microsoft.Extensions.Logging;
 namespace ERFWeb.Infrastructure.Entitlements;
 
 /// <summary>
-/// Rate profiles (RBAC v0.6 flow 4). Only a Level 2 Signatory or the Business Owner changes rates
-/// (9.15), never for a target that includes themselves (9.12). Lines are versioned and never edited
+/// Rate profiles (RBAC v0.6 flow 4). Only a System Administrator changes rates, never in an
+/// assignment that names themselves (9.12). Lines are versioned and never edited
 /// in place; a change that starts in the past needs an override and a reason. Every change is audited
 /// in the same transaction and affected employees are notified after commit (9.14).
 /// </summary>
@@ -143,12 +143,11 @@ public sealed class RateService(
 
             // A line change reaches everyone the profile is assigned to on that date; each target is checked (9.12, 9.15).
             var actor = await context.ActorAsync(token);
-            var ownerExists = await context.BusinessOwnerExistsAsync(token);
             var targets = await db.RateProfileAssignments.AsNoTracking()
                 .Where(a => a.RateProfileId == profileId && (a.EffectiveTo == null || a.EffectiveTo >= request.EffectiveFrom))
                 .Select(a => new RateTarget(a.TargetType, a.UserId, a.JobGrade, a.DepartmentId))
                 .ToListAsync(token);
-            var bootstrap = Authorize(actor, targets.Count > 0 ? targets : [new RateTarget(RateTargetType.Individual, null, null, null)], ownerExists);
+            Authorize(actor, targets.Count > 0 ? targets : [new RateTarget(RateTargetType.Individual, null, null, null)]);
 
             var key = await db.RateProfileLines
                 .Where(l => l.RateProfileId == profileId && l.Category == request.Category && (l.SubCategory ?? "") == (sub ?? ""))
@@ -192,7 +191,7 @@ public sealed class RateService(
 
             var after = new { line.Id, category = line.Category.ToString(), line.SubCategory, rateType = line.RateType.ToString(), line.Amount, line.EffectiveFrom, line.EffectiveTo };
             await audit.WriteAsync(new WorkflowAuditEntry(EntitlementAuditEvents.LineAdded, null, user.UserId,
-                JsonSerializer.Serialize(new { profileId, bootstrap, reason = line.ChangeReason, backdate = line.BackdateOverride, before, after })), token);
+                JsonSerializer.Serialize(new { profileId, reason = line.ChangeReason, backdate = line.BackdateOverride, before, after })), token);
 
             var affected = await AffectedByProfileAsync(profileId, request.EffectiveFrom, token);
             return (Affected: affected, Before: before is null ? null : JsonSerializer.Serialize(before), After: JsonSerializer.Serialize(after), profile.Name);
@@ -240,7 +239,7 @@ public sealed class RateService(
             }
 
             await EnsureTargetExistsAsync(target, token);
-            var bootstrap = Authorize(await context.ActorAsync(token), [target], await context.BusinessOwnerExistsAsync(token));
+            Authorize(await context.ActorAsync(token), [target]);
 
             // One assignment per target at a time: the open one is closed the day before the new one starts.
             var sameTarget = await db.RateProfileAssignments
@@ -267,7 +266,6 @@ public sealed class RateService(
                 DepartmentId = target.DepartmentId,
                 EffectiveFrom = from,
                 EffectiveTo = request.EffectiveTo,
-                IsBootstrap = bootstrap,
                 ChangeReason = Clean(request.ChangeReason),
                 AssignedByUserId = user.UserId,
                 AssignedAt = clock.UtcNow,
@@ -277,7 +275,7 @@ public sealed class RateService(
 
             var after = new { entity.Id, profile = profile.Name, target = target.Type.ToString(), target.UserId, target.JobGrade, target.DepartmentId, from, to = request.EffectiveTo };
             await audit.WriteAsync(new WorkflowAuditEntry(EntitlementAuditEvents.AssignmentCreated, null, user.UserId,
-                JsonSerializer.Serialize(new { bootstrap, reason = entity.ChangeReason, closed, after })), token);
+                JsonSerializer.Serialize(new { reason = entity.ChangeReason, closed, after })), token);
 
             var affected = await AffectedByTargetAsync(target, token);
             return (entity.Id, Affected: affected, Before: closed is null ? null : JsonSerializer.Serialize(closed), After: JsonSerializer.Serialize(after));
@@ -306,7 +304,7 @@ public sealed class RateService(
             }
 
             var target = new RateTarget(entity.TargetType, entity.UserId, entity.JobGrade, entity.DepartmentId);
-            var bootstrap = Authorize(await context.ActorAsync(token), [target], await context.BusinessOwnerExistsAsync(token));
+            Authorize(await context.ActorAsync(token), [target]);
 
             var before = new { entity.EffectiveTo };
             entity.EffectiveTo = request.EffectiveTo;
@@ -314,7 +312,7 @@ public sealed class RateService(
             await db.SaveWithConcurrencyAsync(token);
 
             await audit.WriteAsync(new WorkflowAuditEntry(EntitlementAuditEvents.AssignmentEnded, null, user.UserId,
-                JsonSerializer.Serialize(new { assignmentId, bootstrap, reason = Clean(request.ChangeReason), before, after = new { entity.EffectiveTo } })), token);
+                JsonSerializer.Serialize(new { assignmentId, reason = Clean(request.ChangeReason), before, after = new { entity.EffectiveTo } })), token);
             return (Affected: await AffectedByTargetAsync(target, token), Before: JsonSerializer.Serialize(before));
         }, ct);
 
@@ -359,28 +357,23 @@ public sealed class RateService(
     private async Task RequireRateRoleAsync(CancellationToken ct)
     {
         var actor = await context.ActorAsync(ct);
-        if (!actor.Has(UserRole.SignatoryLevel2) && !actor.Has(UserRole.BusinessOwner))
+        if (!actor.Has(UserRole.SystemAdministrator))
         {
-            throw new ForbiddenException("Only a Level 2 Signatory or the Business Owner can set rates.");
+            throw new ForbiddenException("Only a System Administrator can set rates.");
         }
     }
 
-    /// <summary>Checks every target; refuses on the first refusal. Returns whether any target was a bootstrap exception.</summary>
-    private static bool Authorize(EntitlementActor actor, IEnumerable<RateTarget> targets, bool ownerExists)
+    /// <summary>Checks every target; refuses on the first refusal.</summary>
+    private static void Authorize(EntitlementActor actor, IEnumerable<RateTarget> targets)
     {
-        var bootstrap = false;
         foreach (var target in targets)
         {
-            var decision = EntitlementAuthority.ForRates(actor, target, ownerExists);
+            var decision = EntitlementAuthority.ForRates(actor, target);
             if (!decision.IsAllowed)
             {
                 throw new ForbiddenException(decision.Reason!);
             }
-
-            bootstrap |= decision.IsBootstrap;
         }
-
-        return bootstrap;
     }
 
     private async Task<List<long>> AffectedByProfileAsync(long profileId, DateOnly date, CancellationToken ct)

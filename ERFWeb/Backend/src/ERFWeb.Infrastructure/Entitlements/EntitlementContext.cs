@@ -35,9 +35,6 @@ public sealed class EntitlementContext(ErfDbContext db, ICurrentUser user, ICloc
         return new EntitlementActor(user.UserId, new HashSet<UserRole>(user.Roles), profile?.JobGrade, profile?.DepartmentId);
     }
 
-    public Task<bool> BusinessOwnerExistsAsync(CancellationToken ct) =>
-        db.UserRoleGrants.AsNoTracking().AnyAsync(g => g.Role == UserRole.BusinessOwner && g.Status == RoleGrantStatus.Active, ct);
-
     /// <summary>Whether the account holds an Active Signatory grant at either level.</summary>
     public Task<bool> IsSignatoryAsync(long userId, CancellationToken ct) =>
         db.UserRoleGrants.AsNoTracking().AnyAsync(g => g.UserId == userId

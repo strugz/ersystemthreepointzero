@@ -175,23 +175,9 @@ async function grantRole(role: UserRole, note: string | null) {
   try {
     user.value = await adminApi.grantRole(userId, { role, note });
     rolesCard.value?.closeGrant();
-    const grant = user.value.roleGrants.find((g) => g.role === role);
-    snack.success(grant?.status === 'PendingActivation' ? `${roleLabel(role)} granted; awaiting countersignature.` : `${roleLabel(role)} granted.`);
+    snack.success(`${roleLabel(role)} granted.`);
   } catch (err) {
     grantErrors.value = await handleMutationError(err, 'Unable to grant the role.');
-  } finally {
-    actingRole.value = false;
-  }
-}
-
-async function countersign(grant: RoleGrant, note: string | null) {
-  actingRole.value = true;
-  try {
-    user.value = await adminApi.countersignRole(userId, grant.role, { note, rowVersion: grant.rowVersion });
-    rolesCard.value?.closeAction();
-    snack.success(`${roleLabel(grant.role)} is now active.`);
-  } catch (err) {
-    await handleMutationError(err, 'Unable to countersign the role.');
   } finally {
     actingRole.value = false;
   }
@@ -299,7 +285,6 @@ async function revoke(grant: RoleGrant, note: string | null) {
             :acting="actingRole"
             :grant-errors="grantErrors"
             @grant="grantRole"
-            @countersign="countersign"
             @revoke="revoke"
             @clear-grant-errors="grantErrors = null"
           />

@@ -114,7 +114,7 @@ function sortIcon(key: UserSort): string | undefined {
 
     <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Users</h1>
-      <span class="text-body-2 text-medium-emphasis">Accounts, roles and signatures. Privileged roles need a second administrator to countersign.</span>
+      <span class="text-body-2 text-medium-emphasis">Accounts, roles and signatures. A granted role applies at once.</span>
     </div>
 
     <v-card>
@@ -186,9 +186,8 @@ function sortIcon(key: UserSort): string | undefined {
               <span v-if="!item.isActive" class="pill pill--neutral">Inactive</span>
             </div>
             <div class="row__meta mono">{{ item.username }}<template v-if="item.departmentName"> · {{ item.departmentName }}</template></div>
-            <div v-if="item.activeRoles.length || item.pendingRoles.length" class="row__roles">
+            <div v-if="item.activeRoles.length" class="row__roles">
               <span v-for="r in item.activeRoles" :key="r" class="pill pill--success">{{ roleLabel(r) }}</span>
-              <span v-for="r in item.pendingRoles" :key="`p-${r}`" class="pill pill--warning">{{ roleLabel(r) }} · pending</span>
             </div>
           </div>
           <v-icon icon="mdi-chevron-right" size="18" class="text-medium-emphasis" />
@@ -228,8 +227,7 @@ function sortIcon(key: UserSort): string | undefined {
               <td>
                 <div class="d-flex flex-wrap ga-1">
                   <span v-for="r in item.activeRoles" :key="r" class="pill pill--success">{{ roleLabel(r) }}</span>
-                  <span v-for="r in item.pendingRoles" :key="`p-${r}`" class="pill pill--warning">{{ roleLabel(r) }} · pending</span>
-                  <span v-if="!item.activeRoles.length && !item.pendingRoles.length" class="text-medium-emphasis">Employee</span>
+                  <span v-if="!item.activeRoles.length" class="text-medium-emphasis">Employee</span>
                 </div>
               </td>
               <td class="d-none d-lg-table-cell">
