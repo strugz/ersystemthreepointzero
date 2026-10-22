@@ -9,6 +9,7 @@ import type { ThemePreference } from '@/app/theme';
 import { roleLabel } from '@/features/auth/labels';
 import { entitlementReaderRoles, hasAnyRole, rateNavRoles } from '@/features/entitlements/access';
 import AppSnackbar from '@/shared/ui/AppSnackbar.vue';
+import { appVersionLabel } from '@/shared/appVersion';
 
 /**
  * Application shell.
@@ -346,6 +347,7 @@ async function logout() {
   <v-main>
     <div class="page page-enter" :class="{ 'page--narrow': narrow }">
       <slot />
+      <p class="app-version">{{ appVersionLabel }}</p>
     </div>
   </v-main>
 
@@ -744,5 +746,12 @@ async function logout() {
 }
 .bottom-nav {
   border-top: 1px solid var(--line) !important;
+}
+.app-version {
+  margin: 32px 0 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  font-variant-numeric: tabular-nums;
 }
 </style>

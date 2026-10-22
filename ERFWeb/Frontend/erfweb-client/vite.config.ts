@@ -1,3 +1,5 @@
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
 import vue from '@vitejs/plugin-vue';
@@ -6,6 +8,20 @@ import vue from '@vitejs/plugin-vue';
 // The target comes from VITE_API_TARGET in .env / .env.local (or the shell). It may be the plain
 // Kestrel URL (http://localhost:5080) or the Visual Studio IIS Express SSL URL (https://localhost:44387);
 // `secure: false` lets the proxy accept the self-signed ASP.NET Core dev certificate in that case.
+// The version users see at the bottom of every page: package.json "version" plus the commit it was built
+// from. Render exposes the commit as RENDER_GIT_COMMIT; elsewhere git is asked, and "local" is the fallback.
+const appVersion = (JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as { version: string }).version;
+
+function buildCommit(): string {
+  const fromHost = process.env.RENDER_GIT_COMMIT ?? process.env.VITE_BUILD_COMMIT;
+  if (fromHost) return fromHost.slice(0, 7);
+  try {
+    return execSync('git rev-parse --short=7 HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch {
+    return 'local';
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   const apiTarget = (env.VITE_API_TARGET).replace(/\/+$/, '');
@@ -15,6 +31,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [vue()],
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion),
+      __APP_BUILD__: JSON.stringify(buildCommit()),
+    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
