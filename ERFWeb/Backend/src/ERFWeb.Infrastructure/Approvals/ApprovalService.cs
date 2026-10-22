@@ -35,8 +35,19 @@ public sealed class ApprovalService(
     public async Task<PagedResult<ApprovalInboxItemDto>> InboxAsync(ApprovalInboxQuery query, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
+        var ordered = await InboxItemsAsync(query.View, query.Search, ct);
+        var page = ordered.Skip(query.Skip).Take(query.NormalizedPageSize).ToList();
+        return new PagedResult<ApprovalInboxItemDto>(page, ordered.Count, query.NormalizedPage, query.NormalizedPageSize);
+    }
+
+    public Task<IReadOnlyList<ApprovalInboxItemDto>> InboxExportAsync(ApprovalInboxView view, string? search, CancellationToken ct = default) =>
+        InboxItemsAsync(view, search, ct);
+
+    /// <summary>The whole inbox for a view, in display order (the inbox is small enough to order in memory).</summary>
+    private async Task<IReadOnlyList<ApprovalInboxItemDto>> InboxItemsAsync(ApprovalInboxView view, string? search, CancellationToken ct)
+    {
         var me = user.UserId;
-        var pendingView = query.View == ApprovalInboxView.Pending;
+        var pendingView = view == ApprovalInboxView.Pending;
         var actingFor = (await delegations.ActingForAsync(ct)).Keys.ToList();
 
         // Pending: my steps, plus the steps of signatories I stand in for today. Acted: steps I acted
@@ -56,9 +67,9 @@ public sealed class ApprovalService(
             join a in db.Users.AsNoTracking() on s.ApproverUserId equals a.Id
             select new { Step = s, Report = r, EmployeeName = e.FullName, DepartmentName = d != null ? d.Name : null, SignatoryName = a.FullName };
 
-        if (!string.IsNullOrWhiteSpace(query.Search))
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            var term = $"%{query.Search.Trim()}%";
+            var term = $"%{search.Trim()}%";
             mine = mine.Where(x => EF.Functions.ILike(x.EmployeeName, term)
                 || (x.Report.ReferenceNo != null && EF.Functions.ILike(x.Report.ReferenceNo, term))
                 || (x.Report.Purpose != null && EF.Functions.ILike(x.Report.Purpose, term)));
@@ -111,12 +122,9 @@ public sealed class ApprovalService(
         });
 
         // Oldest first for work to do; most recent first for history.
-        var ordered = pendingView
+        return pendingView
             ? items.OrderByDescending(i => i.IsMyTurn).ThenBy(i => i.FiledAt).ToList()
             : items.OrderByDescending(i => i.MyActedAt).ToList();
-
-        var page = ordered.Skip(query.Skip).Take(query.NormalizedPageSize).ToList();
-        return new PagedResult<ApprovalInboxItemDto>(page, ordered.Count, query.NormalizedPage, query.NormalizedPageSize);
     }
 
     // ---------- Actions ----------

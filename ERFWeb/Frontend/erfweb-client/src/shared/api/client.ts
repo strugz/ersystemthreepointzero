@@ -116,6 +116,37 @@ async function requestBlob(path: string): Promise<Blob> {
   return res.blob();
 }
 
+/** A downloaded file and the name the server gave it (Content-Disposition). */
+export interface DownloadedFile {
+  blob: Blob;
+  fileName: string;
+}
+
+function fileNameFrom(disposition: string | null, fallback: string): string {
+  if (!disposition) return fallback;
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition);
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded[1].trim());
+    } catch {
+      // Malformed encoding: fall through to the plain filename.
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(disposition);
+  return plain ? plain[1].trim() : fallback;
+}
+
+/** GET a file export (CSV, PDF). Errors still arrive as ProblemDetails and become ApiError. */
+async function requestFile(path: string, fallbackName: string): Promise<DownloadedFile> {
+  const res = await fetch(`${BASE}${path}`, { credentials: 'include', headers: { Accept: '*/*' } });
+  if (!res.ok) {
+    const isJson = res.headers.get('content-type')?.includes('json') ?? false;
+    const problem = isJson ? ((await res.json()) as ProblemDetails) : null;
+    throw new ApiError(res.status, problem?.code, problem);
+  }
+  return { blob: await res.blob(), fileName: fileNameFrom(res.headers.get('content-disposition'), fallbackName) };
+}
+
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
@@ -123,5 +154,6 @@ export const api = {
   del: <T>(path: string) => request<T>('DELETE', path),
   postForm: <T>(path: string, form: FormData) => requestForm<T>(path, form),
   getBlob: (path: string) => requestBlob(path),
+  getFile: (path: string, fallbackName = 'export') => requestFile(path, fallbackName),
   ensureCsrfToken,
 };

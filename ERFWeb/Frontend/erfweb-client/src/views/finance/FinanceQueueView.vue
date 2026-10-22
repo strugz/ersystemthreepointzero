@@ -5,14 +5,16 @@ import { useDisplay } from 'vuetify';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
+import AppExportButton from '@/shared/ui/AppExportButton.vue';
 import { formatDateTime, formatMoney } from '@/shared/format';
+import { saveFile, type ExportFormat } from '@/shared/download';
 import { describeError, useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { financeStatusLabel, financeStatusTone } from '@/features/expenses/labels';
 import type { FinanceStatus, PagedResult } from '@/features/expenses/types';
 import { financeApi } from '@/features/finance/api';
 import ReceiptsDialog from '@/features/finance/components/ReceiptsDialog.vue';
-import type { FinanceQueueItem, ReceiptStatus } from '@/features/finance/types';
+import type { FinanceAging, FinanceQueueItem, ReceiptStatus } from '@/features/finance/types';
 import { smsApi } from '@/features/notifications/api';
 import SendSmsDialog from '@/features/notifications/components/SendSmsDialog.vue';
 
@@ -39,6 +41,7 @@ async function load() {
   loading.value = true;
   error.value = null;
   try {
+    void loadAging();
     result.value = await financeApi.queue({
       page: page.value,
       pageSize,
@@ -54,7 +57,55 @@ async function load() {
   }
 }
 
-onMounted(load);
+// ---- aging and exports ------------------------------------------------------------
+// The aging covers every open report regardless of the filters below; it refreshes with the queue.
+const aging = ref<FinanceAging | null>(null);
+const agingError = ref(false);
+const exportingQueue = ref(false);
+const exportingAging = ref(false);
+
+async function loadAging() {
+  try {
+    aging.value = await financeApi.aging();
+    agingError.value = false;
+  } catch {
+    // The queue stays usable without the aging; the card says it could not load.
+    agingError.value = true;
+  }
+}
+
+async function exportQueue() {
+  exportingQueue.value = true;
+  try {
+    const file = await financeApi.exportQueue({
+      status: status.value ?? undefined,
+      search: search.value.trim() || undefined,
+      openOnly: !showCleared.value && status.value !== 'ClearedForPayment',
+    });
+    saveFile(file.blob, file.fileName);
+  } catch (err) {
+    snack.fromError(err, 'Unable to export the queue.');
+  } finally {
+    exportingQueue.value = false;
+  }
+}
+
+async function exportAging(format: ExportFormat) {
+  exportingAging.value = true;
+  try {
+    const file = await financeApi.exportAging(format);
+    saveFile(file.blob, file.fileName);
+  } catch (err) {
+    snack.fromError(err, 'Unable to export the aging.');
+  } finally {
+    exportingAging.value = false;
+  }
+}
+
+onMounted(() => {
+  void load();
+  void loadAging();
+});
 watch(page, load);
 watch([status, showCleared], () => {
   page.value = 1;
@@ -196,6 +247,31 @@ async function sendFollowUp(message: string, idempotencyKey: string) {
       <span class="text-body-2 text-medium-emphasis">Approved reports waiting for their original receipts. Confirm the receipts, then clear the report for payment.</span>
     </div>
 
+    <v-card class="mb-4">
+      <div class="aging__head">
+        <div>
+          <div class="text-subtitle-1 font-weight-medium">Aging</div>
+          <div class="text-caption text-medium-emphasis">Open reports by days since final approval</div>
+        </div>
+        <v-spacer />
+        <AppExportButton label="Export aging" :formats="['Csv', 'Pdf']" :loading="exportingAging" :disabled="!aging" @export="exportAging" />
+      </div>
+      <div v-if="aging" class="aging">
+        <div v-for="b in aging.buckets" :key="b.bucket" class="aging__tile" :class="{ 'aging__tile--late': b.count > 0 && (b.bucket === 'Days31To60' || b.bucket === 'Over60Days') }">
+          <div class="aging__label">{{ b.label }}</div>
+          <div class="aging__count">{{ b.count }}</div>
+          <div class="aging__amt mono">{{ formatMoney(b.amount) }}</div>
+        </div>
+        <div class="aging__tile aging__tile--total">
+          <div class="aging__label">Open</div>
+          <div class="aging__count">{{ aging.count }}</div>
+          <div class="aging__amt mono">{{ formatMoney(aging.amount) }}</div>
+        </div>
+      </div>
+      <div v-else-if="agingError" class="text-body-2 text-medium-emphasis px-4 pb-4">The aging could not be loaded.</div>
+      <v-progress-linear v-else indeterminate color="primary" height="2" />
+    </v-card>
+
     <v-card>
       <div class="filters">
         <v-text-field
@@ -211,6 +287,7 @@ async function sendFollowUp(message: string, idempotencyKey: string) {
         <v-switch v-model="showCleared" density="compact" hide-details color="primary" label="Include cleared" class="flex-grow-0" />
         <v-spacer class="d-none d-sm-block" />
         <span v-if="result" class="card-meta d-none d-sm-inline">{{ result.total }} report{{ result.total === 1 ? '' : 's' }}</span>
+        <AppExportButton label="Export CSV" :loading="exportingQueue" :disabled="!result || result.total === 0" @export="exportQueue" />
       </div>
       <v-divider />
 
@@ -299,6 +376,41 @@ async function sendFollowUp(message: string, idempotencyKey: string) {
 </template>
 
 <style scoped>
+.aging__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+.aging {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+.aging__tile {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.aging__tile--late .aging__count {
+  color: rgb(var(--v-theme-error));
+}
+.aging__tile--total {
+  background: rgba(var(--v-theme-on-surface), 0.04);
+}
+.aging__label {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.aging__count {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.aging__amt {
+  font-size: 12px;
+}
 .filters {
   display: flex;
   align-items: center;

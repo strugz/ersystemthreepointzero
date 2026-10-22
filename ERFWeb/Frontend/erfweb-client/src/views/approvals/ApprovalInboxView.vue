@@ -6,6 +6,8 @@ import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import { formatDateTime, formatMoney } from '@/shared/format';
 import { useSnackbar } from '@/shared/composables/useSnackbar';
+import AppExportButton from '@/shared/ui/AppExportButton.vue';
+import { saveFile } from '@/shared/download';
 import { approvalsApi } from '@/features/approvals/api';
 import type { ApprovalInboxItem, ApprovalInboxView } from '@/features/approvals/types';
 import { approvalStatusLabel, reportTypeLabel } from '@/features/expenses/labels';
@@ -34,6 +36,21 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const result = ref<PagedResult<ApprovalInboxItem> | null>(null);
 const queries = ref<PagedResult<VerificationQueueItem> | null>(null);
+const exporting = ref(false);
+
+// The whole tab (no paging) as CSV, with the same search.
+async function exportInbox() {
+  if (view.value === 'Queries') return;
+  exporting.value = true;
+  try {
+    const file = await approvalsApi.exportInbox(view.value, search.value.trim() || undefined);
+    saveFile(file.blob, file.fileName);
+  } catch (err) {
+    snack.fromError(err, 'Unable to export the inbox.');
+  } finally {
+    exporting.value = false;
+  }
+}
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -113,6 +130,7 @@ function waitingFor(item: ApprovalInboxItem): string {
         />
         <v-spacer class="d-none d-sm-block" />
         <span v-if="result" class="card-meta d-none d-sm-inline">{{ result.total }} report{{ result.total === 1 ? '' : 's' }}</span>
+        <AppExportButton v-if="view !== 'Queries'" label="Export CSV" :loading="exporting" :disabled="!result || result.total === 0" @export="exportInbox" />
       </div>
       <v-divider />
 

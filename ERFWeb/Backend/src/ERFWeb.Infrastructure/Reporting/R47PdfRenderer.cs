@@ -2,7 +2,6 @@ using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Domain.Reporting;
 using Microsoft.Extensions.Options;
 using QuestPDF.Fluent;
-using QuestPDF.Infrastructure;
 
 namespace ERFWeb.Infrastructure.Reporting;
 
@@ -17,9 +16,7 @@ public sealed class R47PdfRenderer : IExpenseReportPdfRenderer
     public R47PdfRenderer(IOptions<R47ReportOptions> options)
     {
         _options = options.Value;
-        QuestPDF.Settings.License = Enum.TryParse<LicenseType>(_options.QuestPdfLicense, ignoreCase: true, out var license)
-            ? license
-            : LicenseType.Community;
+        QuestPdfSetup.Apply(_options);
     }
 
     public byte[] Render(ExpenseReportDocumentDto document, DateTimeOffset printedAt)

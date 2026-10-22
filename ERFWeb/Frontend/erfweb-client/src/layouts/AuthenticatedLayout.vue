@@ -52,6 +52,7 @@ const nav: NavItem[] = [
   { title: 'Dashboard', icon: 'mdi-view-dashboard-outline', to: { name: 'home' }, exact: true },
   { title: 'My reports', icon: 'mdi-file-document-multiple-outline', to: { name: 'reports' }, exact: false },
   { title: 'New report', icon: 'mdi-plus', to: { name: 'report-new' }, exact: true },
+  { title: 'Summary', icon: 'mdi-chart-box-outline', to: { name: 'expense-summary' }, exact: true },
 ];
 
 // Administration entries, gated by role. The API enforces access; this only decides what to show.
