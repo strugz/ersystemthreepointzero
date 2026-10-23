@@ -69,6 +69,7 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Attachments:MaxFileSizeMb` / `MaxFilesPerReport` / `AllowedContentTypes` | Receipt upload limits (also sets the Kestrel/multipart body limit) |
 | `ReferenceNumber:Prefix` / `Digits` / `UtcOffsetHours` | ERF reference number series, e.g. `ERF-2026-000142` (prefix, zero-padding, which local year a filing belongs to) |
 | `Lasius:*` (optional) | Notification SMS gateway URL, API key and header (see Notification SMS) |
+| `Crm:*` (optional) | CRM employee lookup: `BaseUrl` (e.g. `https://<crm-host>/api2/erf/v1`), `ApiKey`, `ApiKeyHeaderName` (`X-Api-Key`), `TimeoutSeconds`. Without it the Add User CRM search answers 503 and accounts save unlinked |
 | `Smtp:*` (optional) | Mail server, sender mailbox and login for report email (see Report email) |
 | `Kestrel:*` (server) | Endpoint the API listens on behind nginx |
 | `RateLimiting:SignInPerMinute` (optional, default 30) | Sign-in and password-change attempts allowed per client address per minute (429 `rate_limited` beyond) |
@@ -104,6 +105,7 @@ psql -d erfweb -f Database/014_email_deliveries.sql      # Phase 7: R47 email de
 psql -d erfweb -f Database/015_security_and_schema_versions.sql # Phase 8.3: forced password change, schema_versions
 psql -d erfweb -f Database/016_fare_modes.sql             # fare modes (Taxi, Grab, Jeepney, ...) on fare legs
 psql -d erfweb -f Database/017_admin_only_authority.sql  # no countersign, no Business Owner: activates pending grants
+psql -d erfweb -f Database/018_crm_employee_link.sql     # users.crm_employee_id: an account's link to its CRM employee
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -700,7 +702,7 @@ Settings that matter for the live site:
 | `Cors:AllowedOrigins` | `https://ersystemthreepointzero.onrender.com` (the Render address; no `localhost` on the server) |
 | `Authentication:CrossSiteCookies` | `true` while the frontend is on `onrender.com`; `false` once it moves to a `mdmpi.com.ph` address |
 | `Kestrel` | the address the service listens on (`http://192.168.4.206:5080/5081`), which nginx forwards to |
-| `Smtp`, `Lasius` | email and SMS; without them those features are skipped, not broken |
+| `Smtp`, `Lasius`, `Crm` | email, SMS and the CRM employee lookup; without them those features are skipped, not broken |
 | `Logging:File:Directory` | where log files go (default `logs`) |
 | `ReverseProxy:KnownProxies` | nginx's IP address as the server sees it (ask IT), e.g. `["192.168.4.x"]`; until it is set, rate limits count all users together |
 | `RateLimiting` | `SignInPerMinute` (30) and `ApiPerMinute` (1200); raise them if many users share one address and see 429 |

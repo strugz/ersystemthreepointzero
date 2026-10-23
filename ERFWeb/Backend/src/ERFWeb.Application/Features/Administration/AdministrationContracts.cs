@@ -60,7 +60,8 @@ public sealed record UserDetailDto(
     DateTimeOffset CreatedAt,
     bool CoolingPeriodElapsed,
     IReadOnlyList<RoleGrantDto> RoleGrants,
-    uint RowVersion);
+    uint RowVersion,
+    string? CrmEmployeeId = null);
 
 public sealed record UserListQuery : PagedRequest
 {
@@ -80,7 +81,8 @@ public sealed record CreateUserRequest(
     string? MobileNo,
     long? DepartmentId,
     long? CostCenterId,
-    bool WorkWithEnabled);
+    bool WorkWithEnabled,
+    string? CrmEmployeeId = null);
 
 public sealed record UpdateUserRequest(
     string FullName,
@@ -91,7 +93,8 @@ public sealed record UpdateUserRequest(
     long? DepartmentId,
     long? CostCenterId,
     bool WorkWithEnabled,
-    uint RowVersion);
+    uint RowVersion,
+    string? CrmEmployeeId = null);
 
 public sealed record SetUserActiveRequest(bool IsActive, uint RowVersion);
 

@@ -96,6 +96,7 @@ async function saveProfile(input: CreateUserInput) {
       departmentId: input.departmentId,
       costCenterId: input.costCenterId,
       workWithEnabled: input.workWithEnabled,
+      crmEmployeeId: input.crmEmployeeId,
       rowVersion: user.value.rowVersion,
     });
     editOpen.value = false;
@@ -271,6 +272,10 @@ async function revoke(grant: RoleGrant, note: string | null) {
                 <span class="val" :class="{ muted: user.costCenterId === null }">
                   {{ costCenters.find((c) => c.id === user?.costCenterId)?.name ?? (user.costCenterId === null ? '—' : `#${user.costCenterId}`) }}
                 </span>
+              </div>
+              <div class="field">
+                <span class="lbl">CRM employee</span>
+                <span class="val mono" :class="{ muted: !user.crmEmployeeId }">{{ user.crmEmployeeId || 'Not linked' }}</span>
               </div>
               <div class="field"><span class="lbl">Work With</span><span class="val">{{ user.workWithEnabled ? 'Listed on expense lines' : 'Not listed' }}</span></div>
               <div class="field"><span class="lbl">Created</span><span class="val">{{ formatDateTime(user.createdAt) }}</span></div>

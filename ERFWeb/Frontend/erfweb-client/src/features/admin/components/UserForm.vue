@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import type { CostCenter, CreateUserInput, Department, UserDetail, UserProfileInput } from '../types';
+import type { CostCenter, CreateUserInput, CrmEmployee, Department, UserDetail, UserProfileInput } from '../types';
+import CrmEmployeePicker from './CrmEmployeePicker.vue';
 
 /**
  * Create / edit account profile. Emits the typed input; the parent owns the API call, the row version
@@ -44,6 +45,7 @@ const blank = (): FormState => ({
   departmentId: null,
   costCenterId: null,
   workWithEnabled: true,
+  crmEmployeeId: null,
 });
 
 const form = reactive<FormState>(blank());
@@ -61,6 +63,7 @@ function load(value: UserDetail | null) {
       departmentId: value.departmentId,
       costCenterId: value.costCenterId,
       workWithEnabled: value.workWithEnabled,
+      crmEmployeeId: value.crmEmployeeId,
     });
   }
   snapshot = JSON.stringify(form);
@@ -121,7 +124,13 @@ function submit() {
     departmentId: form.departmentId,
     costCenterId: form.costCenterId,
     workWithEnabled: form.workWithEnabled,
+    crmEmployeeId: form.crmEmployeeId,
   });
+}
+
+// Picking a CRM person on a new account fills an empty name; it never overwrites one already typed.
+function onCrmPicked(employee: CrmEmployee) {
+  if (!form.fullName.trim() && employee.fullName) form.fullName = employee.fullName.trim();
 }
 
 defineExpose({ isDirty });
@@ -158,6 +167,19 @@ defineExpose({ isDirty });
       </v-row>
       <v-divider class="my-4" />
     </template>
+
+    <div class="lbl mb-2">CRM link</div>
+    <v-row dense>
+      <v-col cols="12">
+        <CrmEmployeePicker
+          v-model="form.crmEmployeeId"
+          :disabled="saving || disabled"
+          :error-messages="fieldErrors('crmEmployeeId')"
+          @picked="onCrmPicked"
+        />
+      </v-col>
+    </v-row>
+    <v-divider class="my-4" />
 
     <div class="lbl mb-2">Profile</div>
     <v-row dense>

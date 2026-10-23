@@ -6,6 +6,7 @@ import type {
   CostCenter,
   CostCenterInput,
   CreateUserInput,
+  CrmEmployee,
   Currency,
   CurrencyInput,
   Department,
@@ -59,6 +60,11 @@ export const adminApi = {
   grantRole: (id: number, input: GrantRoleInput) => api.post<UserDetail>(`${u(id)}/roles`, input),
   revokeRole: (id: number, role: UserRole, input: RoleActionInput) =>
     api.post<UserDetail>(`${u(id)}/roles/${encodeURIComponent(role)}/revoke`, input),
+
+  // ---- CRM employee lookup (the server calls the CRM) ----------------------
+  searchCrmEmployees: (search: string, includeInactive = false) =>
+    api.get<PagedResult<CrmEmployee>>(`/admin/crm/employees${qs({ search, includeInactive, pageSize: 20 })}`),
+  getCrmEmployee: (employeeId: string) => api.get<CrmEmployee>(`/admin/crm/employees/${encodeURIComponent(employeeId)}`),
 
   // ---- master data ---------------------------------------------------------
   departments: (includeInactive = true) => api.get<Department[]>(`${md}/departments${qs({ includeInactive })}`),

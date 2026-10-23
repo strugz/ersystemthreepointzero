@@ -21,6 +21,10 @@ public sealed class ForbiddenException(string message = "You are not allowed to 
 public sealed class ConflictException(string message = "The action conflicts with the current state.")
     : AppException(message, "conflict");
 
+/// <summary>An outside system the action needs is not set up or not answering. Maps to 503.</summary>
+public sealed class ServiceUnavailableException(string message, string code = "service_unavailable")
+    : AppException(message, code);
+
 /// <summary>Input failed validation. Maps to 400 with per-field errors.</summary>
 public sealed class ValidationException : AppException
 {

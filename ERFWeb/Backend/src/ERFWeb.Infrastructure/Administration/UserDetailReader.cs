@@ -33,6 +33,7 @@ public sealed class UserDetailReader(ErfDbContext db, ISystemSettingsService set
                 HasSignature = u.Signature != null && u.Signature.Length > 0,
                 u.WorkWithEnabled,
                 u.CreatedAt,
+                u.CrmEmployeeId,
                 RowVersion = EF.Property<uint>(u, DbContextExtensions.RowVersionProperty),
             })
             .FirstOrDefaultAsync(ct)
@@ -84,7 +85,8 @@ public sealed class UserDetailReader(ErfDbContext db, ISystemSettingsService set
             row.CreatedAt,
             AccountRules.CoolingPeriodElapsed(row.CreatedAt, clock.UtcNow, coolingDays),
             grants,
-            row.RowVersion);
+            row.RowVersion,
+            row.CrmEmployeeId);
     }
 
     /// <summary>Roles an account holds that count for stacking: every grant not revoked.</summary>

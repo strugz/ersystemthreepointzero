@@ -1,6 +1,7 @@
 using System.Text.Json;
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
+using ERFWeb.Application.Features.Crm;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Administration;
 using ERFWeb.Infrastructure.Persistence;
@@ -21,9 +22,11 @@ public sealed class UserAdminService(
     IClock clock,
     ITransactionRunner tx,
     IWorkflowAuditWriter audit,
-    UserDetailReader reader) : IUserAdminService
+    UserDetailReader reader,
+    ICrmEmployeeDirectory crm) : IUserAdminService
 {
     private const int MaxTextLength = 200;
+    private const int MaxCrmEmployeeIdLength = 50;
     private const long MaxSignatureBytes = 2 * 1024 * 1024;
     private static readonly string[] SignatureContentTypes = ["image/png", "image/jpeg"];
 
@@ -126,11 +129,14 @@ public sealed class UserAdminService(
             errors["password"] = [passwordError];
         }
 
-        ValidateProfile(request.FullName, request.Position, request.JobGrade, request.Email, request.MobileNo, errors);
+        ValidateProfile(request.FullName, request.Position, request.JobGrade, request.Email, request.MobileNo, request.CrmEmployeeId, errors);
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
         }
+
+        var crmEmployeeId = Clean(request.CrmEmployeeId);
+        await EnsureCrmEmployeeExistsAsync(crmEmployeeId, ct);
 
         var username = request.Username.Trim();
         var created = await tx.ExecuteAsync(async token =>
@@ -141,6 +147,7 @@ public sealed class UserAdminService(
             }
 
             await EnsureReferencesAsync(request.DepartmentId, request.CostCenterId, token);
+            await EnsureCrmLinkFreeAsync(crmEmployeeId, null, token);
 
             var entity = new User
             {
@@ -154,6 +161,7 @@ public sealed class UserAdminService(
                 DepartmentId = request.DepartmentId,
                 CostCenterId = request.CostCenterId,
                 WorkWithEnabled = request.WorkWithEnabled,
+                CrmEmployeeId = crmEmployeeId,
                 IsActive = true,
                 MustChangePassword = true,
                 CreatedAt = clock.UtcNow,
@@ -163,7 +171,7 @@ public sealed class UserAdminService(
 
             await audit.WriteAsync(new WorkflowAuditEntry(
                 AdminAuditEvents.UserCreated, null, user.UserId,
-                JsonSerializer.Serialize(new { userId = entity.Id, entity.Username, entity.FullName, entity.DepartmentId })), token);
+                JsonSerializer.Serialize(new { userId = entity.Id, entity.Username, entity.FullName, entity.DepartmentId, entity.CrmEmployeeId })), token);
             return entity.Id;
         }, ct);
 
@@ -176,16 +184,25 @@ public sealed class UserAdminService(
         RefuseSelfChange(userId);
 
         var errors = new Dictionary<string, string[]>();
-        ValidateProfile(request.FullName, request.Position, request.JobGrade, request.Email, request.MobileNo, errors);
+        ValidateProfile(request.FullName, request.Position, request.JobGrade, request.Email, request.MobileNo, request.CrmEmployeeId, errors);
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
+        }
+
+        // Ask the CRM only when the link changes, so an unreachable CRM never blocks an ordinary profile edit.
+        var crmEmployeeId = Clean(request.CrmEmployeeId);
+        var currentCrmEmployeeId = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.CrmEmployeeId).FirstOrDefaultAsync(ct);
+        if (!string.Equals(crmEmployeeId, currentCrmEmployeeId, StringComparison.Ordinal))
+        {
+            await EnsureCrmEmployeeExistsAsync(crmEmployeeId, ct);
         }
 
         await tx.ExecuteAsync(async token =>
         {
             var entity = await LoadAsync(userId, token);
             await EnsureReferencesAsync(request.DepartmentId, request.CostCenterId, token);
+            await EnsureCrmLinkFreeAsync(crmEmployeeId, userId, token);
 
             var before = Snapshot(entity);
             entity.FullName = request.FullName.Trim();
@@ -196,6 +213,7 @@ public sealed class UserAdminService(
             entity.DepartmentId = request.DepartmentId;
             entity.CostCenterId = request.CostCenterId;
             entity.WorkWithEnabled = request.WorkWithEnabled;
+            entity.CrmEmployeeId = crmEmployeeId;
 
             db.SetRowVersion(entity, request.RowVersion);
             await db.SaveWithConcurrencyAsync(token);
@@ -331,7 +349,34 @@ public sealed class UserAdminService(
         }
     }
 
-    private static void ValidateProfile(string? fullName, string? position, string? jobGrade, string? email, string? mobileNo, Dictionary<string, string[]> errors)
+    /// <summary>The admin picks the ID from the CRM lookup; this catches a stale or typed ID before it is stored.</summary>
+    private async Task EnsureCrmEmployeeExistsAsync(string? crmEmployeeId, CancellationToken ct)
+    {
+        if (crmEmployeeId is not null && await crm.GetAsync(crmEmployeeId, ct) is null)
+        {
+            throw new ValidationException("crmEmployeeId", "No CRM employee has that ID. Search the CRM and pick the person again.");
+        }
+    }
+
+    /// <summary>One CRM employee links to one ERFWeb account (also enforced by a unique index).</summary>
+    private async Task EnsureCrmLinkFreeAsync(string? crmEmployeeId, long? exceptUserId, CancellationToken ct)
+    {
+        if (crmEmployeeId is null)
+        {
+            return;
+        }
+
+        var holder = await db.Users.AsNoTracking()
+            .Where(u => u.CrmEmployeeId == crmEmployeeId && u.Id != exceptUserId)
+            .Select(u => u.Username)
+            .FirstOrDefaultAsync(ct);
+        if (holder is not null)
+        {
+            throw new ValidationException("crmEmployeeId", $"That CRM employee is already linked to the account {holder}.");
+        }
+    }
+
+    private static void ValidateProfile(string? fullName, string? position, string? jobGrade, string? email, string? mobileNo, string? crmEmployeeId, Dictionary<string, string[]> errors)
     {
         if (string.IsNullOrWhiteSpace(fullName))
         {
@@ -361,6 +406,11 @@ public sealed class UserAdminService(
         {
             errors["mobileNo"] = ["Mobile number must be at most 32 characters."];
         }
+
+        if (crmEmployeeId is not null && crmEmployeeId.Trim().Length > MaxCrmEmployeeIdLength)
+        {
+            errors["crmEmployeeId"] = [$"CRM employee ID must be at most {MaxCrmEmployeeIdLength} characters."];
+        }
     }
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -375,5 +425,6 @@ public sealed class UserAdminService(
         u.DepartmentId,
         u.CostCenterId,
         u.WorkWithEnabled,
+        u.CrmEmployeeId,
     };
 }

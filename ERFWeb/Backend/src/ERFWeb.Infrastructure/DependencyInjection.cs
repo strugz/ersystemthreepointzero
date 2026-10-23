@@ -1,6 +1,7 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Approvals;
+using ERFWeb.Application.Features.Crm;
 using ERFWeb.Application.Features.Authentication;
 using ERFWeb.Application.Features.Delegations;
 using ERFWeb.Application.Features.Entitlements;
@@ -13,6 +14,7 @@ using ERFWeb.Infrastructure.Administration;
 using ERFWeb.Infrastructure.Approvals;
 using ERFWeb.Infrastructure.Authentication;
 using ERFWeb.Infrastructure.Authorization;
+using ERFWeb.Infrastructure.Crm;
 using ERFWeb.Infrastructure.Entitlements;
 using ERFWeb.Infrastructure.Expenses;
 using ERFWeb.Infrastructure.Lookups;
@@ -104,6 +106,11 @@ public static class DependencyInjection
         services.AddHttpClient<ISmsGateway, LasiusSmsGateway>((sp, client) =>
             client.Timeout = TimeSpan.FromSeconds(Math.Max(1, sp.GetRequiredService<IOptions<LasiusOptions>>().Value.TimeoutSeconds)));
         services.AddScoped<ISmsService, SmsService>();
+
+        // CRM employee lookup (read-only); the base URL and API key come from appsettings.json.
+        services.AddOptions<CrmOptions>();
+        services.AddHttpClient<ICrmEmployeeDirectory, CrmEmployeeDirectory>((sp, client) =>
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(1, sp.GetRequiredService<IOptions<CrmOptions>>().Value.TimeoutSeconds)));
 
         // Report email over SMTP (MailKit); host, sender and login come from appsettings.json.
         services.AddOptions<SmtpOptions>();

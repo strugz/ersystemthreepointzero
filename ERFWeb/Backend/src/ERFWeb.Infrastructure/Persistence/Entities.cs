@@ -100,6 +100,9 @@ public class User
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
 
+    /// <summary>The CRM employee ID (e.g. CNT-001) this account is linked to; null until an admin links it.</summary>
+    public string? CrmEmployeeId { get; set; }
+
     /// <summary>Set when an administrator sets the password (new account, reset); cleared when the user changes it.</summary>
     public bool MustChangePassword { get; set; }
 }

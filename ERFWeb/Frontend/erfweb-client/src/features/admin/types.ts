@@ -78,6 +78,8 @@ export interface UserDetail {
   coolingPeriodElapsed: boolean;
   roleGrants: RoleGrant[];
   rowVersion: number;
+  /** The linked CRM employee ID, e.g. CNT-001; null while unlinked. */
+  crmEmployeeId: string | null;
 }
 
 /** Profile fields shared by create and edit. */
@@ -90,6 +92,22 @@ export interface UserProfileInput {
   departmentId: number | null;
   costCenterId: number | null;
   workWithEnabled: boolean;
+  crmEmployeeId: string | null;
+}
+
+/** A CRM user from the CRM employee lookup; only employeeId is stored, the rest is for display. */
+export interface CrmEmployee {
+  employeeId: string;
+  firstName: string | null;
+  middleName: string | null;
+  lastName: string | null;
+  nickname: string | null;
+  fullName: string | null;
+  department: string | null;
+  section: string | null;
+  /** Which CRM activities the person files: Sales, PS, TSG. */
+  workflows: string[];
+  isActive: boolean;
 }
 
 export interface CreateUserInput extends UserProfileInput {
