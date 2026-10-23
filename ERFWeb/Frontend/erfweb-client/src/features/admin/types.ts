@@ -80,6 +80,8 @@ export interface UserDetail {
   rowVersion: number;
   /** The linked CRM employee ID, e.g. CNT-001; null while unlinked. */
   crmEmployeeId: string | null;
+  /** This employee's own R47 REVIEWED BY; null follows the department. Absent from an older API. */
+  r47ReviewedBy?: string | null;
 }
 
 /** Profile fields shared by create and edit. */
@@ -93,6 +95,8 @@ export interface UserProfileInput {
   costCenterId: number | null;
   workWithEnabled: boolean;
   crmEmployeeId: string | null;
+  /** Empty string clears it back to the department's reviewer. */
+  r47ReviewedBy: string;
 }
 
 /** A CRM user from the CRM employee lookup; only employeeId is stored, the rest is for display. */
@@ -144,6 +148,8 @@ export interface Department {
   name: string;
   isActive: boolean;
   rowVersion: number;
+  /** The department's own R47 REVIEWED BY; null prints the Rules default. Absent from an older API. */
+  reviewedBy?: string | null;
 }
 
 export interface DepartmentInput {
@@ -151,6 +157,8 @@ export interface DepartmentInput {
   name: string;
   isActive: boolean;
   rowVersion?: number;
+  /** Empty string clears it back to the Rules default. */
+  reviewedBy: string;
 }
 
 export interface CostCenter {
@@ -248,6 +256,8 @@ export interface SystemSettingsInput {
   notificationFromAddress: string | null;
   /** Company email domains for the account form; the first is the default. */
   emailDomains: string[];
+  /** Printed in REVIEWED BY on the R47 when the department has no reviewer of its own. */
+  r47ReviewedBy: string;
 }
 
 export interface SystemSettings extends SystemSettingsInput {

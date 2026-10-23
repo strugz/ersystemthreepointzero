@@ -134,6 +134,7 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.Property(x => x.JobGrade).HasMaxLength(32);
             e.Property(x => x.CrmEmployeeId).HasMaxLength(50);
             e.HasIndex(x => x.CrmEmployeeId).IsUnique();
+            e.Property(x => x.R47ReviewedBy).HasColumnName("r47_reviewed_by").HasMaxLength(60);
             e.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId);
             e.HasOne<CostCenter>().WithMany().HasForeignKey(x => x.CostCenterId);
             AddConcurrencyToken(e);

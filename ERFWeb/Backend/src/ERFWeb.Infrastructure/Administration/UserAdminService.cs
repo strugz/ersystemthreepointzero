@@ -130,6 +130,7 @@ public sealed class UserAdminService(
         }
 
         ValidateProfile(request.FullName, request.Position, request.JobGrade, request.Email, request.MobileNo, request.CrmEmployeeId, errors);
+        ValidateReviewedBy(request.R47ReviewedBy, errors);
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
@@ -162,6 +163,7 @@ public sealed class UserAdminService(
                 CostCenterId = request.CostCenterId,
                 WorkWithEnabled = request.WorkWithEnabled,
                 CrmEmployeeId = crmEmployeeId,
+                R47ReviewedBy = Clean(request.R47ReviewedBy),
                 IsActive = true,
                 MustChangePassword = true,
                 CreatedAt = clock.UtcNow,
@@ -171,7 +173,7 @@ public sealed class UserAdminService(
 
             await audit.WriteAsync(new WorkflowAuditEntry(
                 AdminAuditEvents.UserCreated, null, user.UserId,
-                JsonSerializer.Serialize(new { userId = entity.Id, entity.Username, entity.FullName, entity.DepartmentId, entity.CrmEmployeeId })), token);
+                JsonSerializer.Serialize(new { userId = entity.Id, entity.Username, entity.FullName, entity.DepartmentId, entity.CrmEmployeeId, entity.R47ReviewedBy })), token);
             return entity.Id;
         }, ct);
 
@@ -185,6 +187,7 @@ public sealed class UserAdminService(
 
         var errors = new Dictionary<string, string[]>();
         ValidateProfile(request.FullName, request.Position, request.JobGrade, request.Email, request.MobileNo, request.CrmEmployeeId, errors);
+        ValidateReviewedBy(request.R47ReviewedBy, errors);
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
@@ -214,6 +217,12 @@ public sealed class UserAdminService(
             entity.CostCenterId = request.CostCenterId;
             entity.WorkWithEnabled = request.WorkWithEnabled;
             entity.CrmEmployeeId = crmEmployeeId;
+
+            // A client that predates the field sends none; leave the stored value as it is.
+            if (request.R47ReviewedBy is not null)
+            {
+                entity.R47ReviewedBy = Clean(request.R47ReviewedBy);
+            }
 
             db.SetRowVersion(entity, request.RowVersion);
             await db.SaveWithConcurrencyAsync(token);
@@ -413,6 +422,14 @@ public sealed class UserAdminService(
         }
     }
 
+    private static void ValidateReviewedBy(string? reviewedBy, Dictionary<string, string[]> errors)
+    {
+        if (reviewedBy is not null && reviewedBy.Trim().Length > SystemSettingKeys.R47ReviewedByMaxLength)
+        {
+            errors["r47ReviewedBy"] = [$"Reviewed by must be at most {SystemSettingKeys.R47ReviewedByMaxLength} characters."];
+        }
+    }
+
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static object Snapshot(User u) => new
@@ -426,5 +443,6 @@ public sealed class UserAdminService(
         u.CostCenterId,
         u.WorkWithEnabled,
         u.CrmEmployeeId,
+        u.R47ReviewedBy,
     };
 }

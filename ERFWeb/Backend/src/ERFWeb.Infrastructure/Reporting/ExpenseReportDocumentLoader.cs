@@ -2,6 +2,7 @@ using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Reporting;
+using ERFWeb.Infrastructure.Administration;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -29,6 +30,7 @@ public sealed class ExpenseReportDocumentLoader(ErfDbContext db) : IExpenseRepor
                 r.Purpose,
                 r.RevolvingFundAmount,
                 u.Signature,
+                EmployeeReviewer = u.R47ReviewedBy,
                 r.CurrentCycle,
                 Endorser = ds != null ? ds.EndorserInitials : null,
                 Reviewer = ds != null ? ds.ReviewerInitials : null,
@@ -69,6 +71,18 @@ public sealed class ExpenseReportDocumentLoader(ErfDbContext db) : IExpenseRepor
 
         var endorser = approvers.Count >= 2 ? approvers[0] : null;
         var approver = approvers.Count >= 1 ? approvers[^1] : null;
+
+        // REVIEWED BY is not a routed approver: the employee's own value wins, then the department's,
+        // otherwise the System Administrator's rule (default FINANCE) prints.
+        var reviewedBy = string.IsNullOrWhiteSpace(header.EmployeeReviewer) ? header.Reviewer : header.EmployeeReviewer;
+        if (string.IsNullOrWhiteSpace(reviewedBy))
+        {
+            var rule = await db.AppSettings.AsNoTracking()
+                .Where(s => s.Key == SystemSettingKeys.R47ReviewedBy)
+                .Select(s => s.Value)
+                .FirstOrDefaultAsync(ct);
+            reviewedBy = string.IsNullOrWhiteSpace(rule) ? SystemSettingKeys.Defaults[SystemSettingKeys.R47ReviewedBy] : rule;
+        }
 
         var cashAdvances = await db.CashAdvanceLines.AsNoTracking()
             .Where(c => c.ReportId == reportId)
@@ -123,7 +137,7 @@ public sealed class ExpenseReportDocumentLoader(ErfDbContext db) : IExpenseRepor
             cashAdvances,
             new R47Signatories(
                 endorser?.FullName ?? header.Endorser,
-                header.Reviewer,
+                reviewedBy,
                 approver?.FullName ?? header.Approver,
                 endorser?.Signature,
                 approver?.Signature),

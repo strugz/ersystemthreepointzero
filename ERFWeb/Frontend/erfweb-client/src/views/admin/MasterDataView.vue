@@ -118,15 +118,23 @@ const departmentsTable = ref<{ close: () => void } | null>(null);
 const departmentColumns: MasterDataColumn<Department>[] = [
   { key: 'code', label: 'Code', mono: true },
   { key: 'name', label: 'Name' },
+  { key: 'reviewedBy', label: 'Reviewed by (R47)', hideOnPhone: true, render: (d) => d.reviewedBy || 'Rules default' },
 ];
 const departmentFields: MasterDataField[] = [
   { key: 'code', label: 'Code', type: 'text', maxlength: 20, upper: true },
   { key: 'name', label: 'Name', type: 'text', required: true, maxlength: 100 },
+  {
+    key: 'reviewedBy',
+    label: 'Reviewed by (R47)',
+    type: 'text',
+    maxlength: 60,
+    hint: "Printed in REVIEWED BY for this department's employees unless an employee has their own; leave blank to use the default on the Rules page",
+  },
   { key: 'isActive', label: 'Active', type: 'switch' },
 ];
-const departmentDraft = (d: Department): Draft => ({ code: d.code ?? '', name: d.name, isActive: d.isActive });
+const departmentDraft = (d: Department): Draft => ({ code: d.code ?? '', name: d.name, reviewedBy: d.reviewedBy ?? '', isActive: d.isActive });
 function saveDepartment(draft: Draft, existing: Department | null) {
-  const input = { code: strOrNull(draft, 'code'), name: str(draft, 'name'), isActive: bool(draft, 'isActive') };
+  const input = { code: strOrNull(draft, 'code'), name: str(draft, 'name'), reviewedBy: str(draft, 'reviewedBy').trim(), isActive: bool(draft, 'isActive') };
   void runSave(
     departments,
     departmentsTable.value,

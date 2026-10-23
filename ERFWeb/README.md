@@ -106,6 +106,7 @@ psql -d erfweb -f Database/015_security_and_schema_versions.sql # Phase 8.3: for
 psql -d erfweb -f Database/016_fare_modes.sql             # fare modes (Taxi, Grab, Jeepney, ...) on fare legs
 psql -d erfweb -f Database/017_admin_only_authority.sql  # no countersign, no Business Owner: activates pending grants
 psql -d erfweb -f Database/018_crm_employee_link.sql     # users.crm_employee_id: an account's link to its CRM employee
+psql -d erfweb -f Database/019_user_r47_reviewed_by.sql  # users.r47_reviewed_by: an employee's own R47 REVIEWED BY
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -195,6 +196,13 @@ Form constants (company, document code, effectivity date, revision, rows per pag
 license tier) live in the `R47Report` section of `appsettings.json` (`R47ReportOptions`). The MDMPI logo
 is an embedded resource. Fidelity is checked against the reference printout: `R47PdfRendererTests`
 writes `R47-sample-page1.pdf` to the test output folder for side-by-side comparison.
+
+Footer signatories: with a two-step route the Level 1 approver prints in ENDORSED BY and the Level 2 approver
+in APPROVED BY (a one-step route fills only APPROVED BY); each signature prints over the name once that step
+is approved. REVIEWED BY is not an approver; the first value set wins: the employee's own (**Users → Edit →
+Reviewed by (R47)**, `users.r47_reviewed_by`, script `019`), then the department's (**Master data → Departments →
+Reviewed by**), then the setting `Reports.R47ReviewedBy` (default `FINANCE`) under **Rules → Expense report (R47)**. The employee's
+signature prints over their full name above EMPLOYEE'S SIGNATURE.
 
 > **License:** ERFWeb uses QuestPDF under the **Community** license (free, including commercial use)
 > because MDMPI's annual gross revenue is under the USD 1M threshold. The threshold is assessed on the
@@ -316,7 +324,9 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 
 First-time setup (plan flow 1): sign in as `admin`, create accounts and master data, set the rules, grant the
 signatory roles, then give each signatory a scope (Scope page) so reports route to them.
-`department_signatories` (the initials printed on the R47 footer) is still maintained by SQL.
+A department's own R47 REVIEWED BY is edited on **Master data → Departments** (stored in
+`department_signatories.reviewer_initials`; blank uses the Rules default). The endorser and approver initials
+in that table are only a fallback before filing and are still maintained by SQL.
 
 ### CRM employee link
 

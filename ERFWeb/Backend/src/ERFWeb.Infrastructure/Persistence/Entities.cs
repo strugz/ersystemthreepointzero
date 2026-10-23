@@ -103,6 +103,9 @@ public class User
     /// <summary>The CRM employee ID (e.g. CNT-001) this account is linked to; null until an admin links it.</summary>
     public string? CrmEmployeeId { get; set; }
 
+    /// <summary>This employee's own R47 REVIEWED BY; null follows the department, then the Rules default.</summary>
+    public string? R47ReviewedBy { get; set; }
+
     /// <summary>Set when an administrator sets the password (new account, reset); cleared when the user changes it.</summary>
     public bool MustChangePassword { get; set; }
 }

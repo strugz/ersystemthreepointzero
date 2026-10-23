@@ -2,7 +2,7 @@
 import { computed, reactive, watch } from 'vue';
 import type { SystemSettings, SystemSettingsInput } from '../types';
 
-/** Workflow rules (approval thresholds, SLAs, filing cut-off, notifications). The parent owns the save. */
+/** Workflow rules (approval thresholds, SLAs, filing cut-off, R47 reviewer, notifications). The parent owns the save. */
 const props = withDefaults(
   defineProps<{
     initial: SystemSettings | null;
@@ -27,6 +27,7 @@ const blank = (): SystemSettingsInput => ({
   smsNotificationsEnabled: false,
   notificationFromAddress: '',
   emailDomains: [],
+  r47ReviewedBy: '',
 });
 
 const form = reactive<SystemSettingsInput>(blank());
@@ -49,6 +50,8 @@ function load(value: SystemSettings | null) {
       notificationFromAddress: value.notificationFromAddress ?? '',
       // An API older than the domain list sends none; show the built-in default.
       emailDomains: [...(value.emailDomains ?? ['marsmandrysdale.com'])],
+      // Likewise for an API older than the REVIEWED BY rule.
+      r47ReviewedBy: value.r47ReviewedBy ?? 'FINANCE',
     } satisfies SystemSettingsInput);
   }
   snapshot = JSON.stringify(form);
@@ -88,7 +91,16 @@ const domainsError = computed(() => {
   const bad = list.find((d) => !DOMAIN.test(d));
   return bad ? `"${bad}" is not a valid email domain, e.g. marsmandrysdale.com.` : null;
 });
-const canSubmit = computed(() => isDirty.value && !props.saving && !localInvalid.value && !fromInvalid.value && !domainsError.value);
+// Same limit as the server (SystemSettingKeys.R47ReviewedByMaxLength).
+const REVIEWED_BY_MAX = 60;
+const reviewedByError = computed(() => {
+  const v = form.r47ReviewedBy.trim();
+  if (!v) return 'Enter who reviews the report, e.g. FINANCE.';
+  return v.length > REVIEWED_BY_MAX ? `Use at most ${REVIEWED_BY_MAX} characters.` : null;
+});
+const canSubmit = computed(
+  () => isDirty.value && !props.saving && !localInvalid.value && !fromInvalid.value && !domainsError.value && !reviewedByError.value,
+);
 
 function submit() {
   if (!canSubmit.value) return;
@@ -98,6 +110,7 @@ function submit() {
   }
   out.notificationFromAddress = (form.notificationFromAddress ?? '').trim() || null;
   out.emailDomains = [...new Set(form.emailDomains.map(cleanDomain).filter(Boolean))];
+  out.r47ReviewedBy = form.r47ReviewedBy.trim();
   emit('submit', out);
 }
 
@@ -205,6 +218,20 @@ defineExpose({ isDirty });
             />
           </v-col>
         </v-row>
+      </div>
+    </v-card>
+
+    <v-card class="mb-4">
+      <div class="card-h"><span class="card-t">Expense report (R47)</span></div>
+      <div class="pa-4">
+        <v-text-field
+          v-model="form.r47ReviewedBy"
+          label="Reviewed by"
+          :counter="REVIEWED_BY_MAX"
+          hint="Printed in REVIEWED BY on the R47, e.g. FINANCE, unless the employee (Users) or the department (Master data) has its own"
+          persistent-hint
+          :error-messages="fieldErrors('r47ReviewedBy') ?? (reviewedByError ? [reviewedByError] : undefined)"
+        />
       </div>
     </v-card>
 

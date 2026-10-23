@@ -55,7 +55,7 @@ async function save(input: SystemSettingsInput) {
   <AuthenticatedLayout :crumbs="[{ title: 'Rules' }]" narrow>
     <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Workflow rules</h1>
-      <span class="text-body-2 text-medium-emphasis">Approval thresholds, service levels, filing limits and notifications. Changes apply to reports filed from now on.</span>
+      <span class="text-body-2 text-medium-emphasis">Approval thresholds, service levels, filing limits, the R47 reviewer and notifications. Changes apply to reports filed from now on.</span>
     </div>
 
     <v-progress-linear v-if="loading" indeterminate color="primary" height="2" />
