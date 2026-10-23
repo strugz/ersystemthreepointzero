@@ -42,10 +42,14 @@ public readonly record struct R47Buckets(
         Others + o.Others, Representation + o.Representation, Oth + o.Oth, Vat + o.Vat, GrandTotal + o.GrandTotal);
 }
 
-/// <summary>A printable row; <see cref="Lines"/> is its estimated printed height in text lines.</summary>
-public abstract record R47Row(int Lines);
+/// <summary>A printable row; <see cref="Lines"/> is how many lines its tallest text wraps to.</summary>
+public abstract record R47Row(int Lines)
+{
+    /// <summary>Printed height in points (<see cref="R47Layout.RowHeight"/>).</summary>
+    public float Height => R47Layout.RowHeight(Lines);
+}
 
-/// <summary>Group header: shows the date (first group of that date, or first group on a page) and the bold location + Work With text, verbatim.</summary>
+/// <summary>Group header: shows the date (first group of that date, or first group on a page) and the location + Work With text, verbatim.</summary>
 public sealed record R47GroupHeaderRow(DateOnly Date, bool ShowDate, string Text, int Lines = 1) : R47Row(Lines);
 
 /// <summary>Detail line: particulars (indented), invoice/OR, and bucketed amounts.</summary>
@@ -57,7 +61,7 @@ public sealed record R47Page(
     IReadOnlyList<R47Row> Rows,
     R47Buckets PageTotals,
     R47Reconciliation Reconciliation,
-    int UsedLines = 0);
+    float UsedHeight = 0f);
 
 /// <summary>
 /// The per-page cash-advance block. Mirrors the legacy report's running behaviour:

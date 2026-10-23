@@ -61,14 +61,36 @@ public class R47PdfRendererTests
     }
 
     [Fact]
-    public void Render_PaginatesByRowsPerPage()
+    public void Render_PaginatesByDetailHeight()
     {
-        var renderer = new R47PdfRenderer(Options.Create(new R47ReportOptions { RowsPerPage = 5 }));
+        var renderer = new R47PdfRenderer(Options.Create(new R47ReportOptions { DetailHeight = 5 * R47Layout.SingleRowHeight }));
         var pdf = renderer.Render(SampleDocument(), DateTimeOffset.UtcNow);
 
-        // 14 single-line rows at 5 lines/page with Crystal's rules (no orphaned header, header repeated
+        // 14 single-line rows at 5 rows/page with Crystal's rules (no orphaned header, header repeated
         // when a group continues): [h,d,d,d] [h,d,d,d] [h,d,d,d,d] [h(repeat),d] → 4 pages.
         Assert.Equal(4, CountPages(pdf));
+    }
+
+    [Fact]
+    public void Render_FullPagesOfWrappedRows_NeverOverflowAPage()
+    {
+        // Long group headers and particulars wrap to 2–3 lines and invoice numbers break mid-token.
+        // If the rendered rows were taller than R47Layout estimates, QuestPDF would spill a page.
+        var sort = 0;
+        var lines = Enumerable.Range(1, 60).Select(i => new R47Line(
+            new DateOnly(2026, 10, 1 + i % 28),
+            i % 3 == 0 ? "SUCAT - NICHOLS (TOLL) - MEDICARD INSTRUMENTS INVENTORY - SLMCGC - AU480 - 2022054754 WORK WITH JSO" : "Toll",
+            i % 4 == 0 ? "SI-0001234567-89" : "2667789054",
+            ExpenseType.Local, ExpenseCategory.Toll, 100m, 0m, 100m,
+            i % 2 == 0 ? "Alabang Medical Clinic - Almanza - DXH 520 - (SN: BF020105) - BF020105" : "MDMPI",
+            null, null, null, null, ++sort)).ToList();
+        var doc = SampleDocument() with { Lines = lines };
+
+        var expected = R47Layout.Paginate(R47Layout.BuildRows(lines), 0m).Count;
+        var pdf = Renderer().Render(doc, DateTimeOffset.UtcNow);
+
+        Assert.True(expected > 1);
+        Assert.Equal(expected, CountPages(pdf));
     }
 
     [Fact]

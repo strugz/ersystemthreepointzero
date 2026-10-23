@@ -191,7 +191,7 @@ with an approval step assigned to them.
 
 Pipeline: `ExpenseReportDocumentLoader` (LINQ read model) → Domain `R47Bucketing` / `R47Layout`
 (column bucketing — each column carries the line total (amount × multiplier), VAT is its own memo column —
-per-date "Work With" grouping, Crystal-style pagination by height — `R47Report:RowsPerPage` is the detail area in text lines, wrapped particulars count for more, a group header is never orphaned and is repeated with its date when a group continues on the next page — and the running cash-advance reconciliation: each page carries `cash advance − prior pages' expenses`, less this page's total, giving that page's BAL DUE) → `R47Document` (QuestPDF, US Letter landscape) → `R47PdfRenderer`.
+per-date "Work With" grouping, Crystal-style pagination by height — `R47Report:DetailHeight` is the detail area in points (255, about 19 single-line rows; each wrapped line of a long client heading or particulars adds 8.2 pt; the old `RowsPerPage` key is ignored), grid text is 5.8 pt `R47Report:GridFont` (Tahoma) as on the Crystal printout, a group header is never orphaned and is repeated with its date when a group continues on the next page — and the running cash-advance reconciliation: each page carries `cash advance − prior pages' expenses`, less this page's total, giving that page's BAL DUE) → `R47Document` (QuestPDF, US Letter landscape) → `R47PdfRenderer`.
 
 Form constants (company, document code, effectivity date, revision, rows per page, UTC offset, QuestPDF
 license tier) live in the `R47Report` section of `appsettings.json` (`R47ReportOptions`). The MDMPI logo
@@ -365,9 +365,10 @@ Activity API for ERFWeb".
   `crmActivitiesAvailable`) lists all the employee's activities on the line's date: Completed ones first, which
   can be picked, then Open and Cancelled ones, shown greyed out so the day is complete (one CRM call per status).
   Changing the line's date and reopening lists that day. Picking one
-  fills Date (`activityDate`), Particulars (`subject`), Location (`customer.name`), Work With (the other people,
+  fills Date (`activityDate`), Location (`customer.name`), Work With (the other people,
   by their ERFWeb name where linked), Service no., Instrument and Serial no., and on a Transportation line the
-  first fare leg (`travel.origin` → `travel.destination`). The line keeps the link (`expense_lines.crm_activity_id`,
+  first fare leg (`travel.origin` → `travel.destination`). Particulars keeps the category default (Meals,
+  Transportation, Toll, Parking…) and stays editable. The line keeps the link (`expense_lines.crm_activity_id`,
   script `020`); removing the chip makes it an ordinary typed line. Typing lines by hand always works.
 - **Rules (`CrmActivityClaimCheck`).** When a line gains or changes its link, the server asks the CRM
   (`GET /activities/{activityId}`) that the activity exists, is Completed, belongs to the employee (owner or

@@ -282,8 +282,6 @@ function applyActivity(a: CrmActivityOption) {
   pickedActivity.value = a;
   form.crmActivityId = a.activityId;
   form.transactionDate = a.activityDate;
-  const particulars = (a.subject ?? a.activityType ?? '').slice(0, 200);
-  if (particulars) form.particulars = particulars;
   form.location = a.customerName ?? form.location;
   form.workWith = a.workWith ?? form.workWith;
   form.serviceNumber = a.serviceNumber ?? form.serviceNumber;
