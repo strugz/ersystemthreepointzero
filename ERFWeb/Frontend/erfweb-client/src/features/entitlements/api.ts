@@ -13,6 +13,7 @@ import type {
   ResolvedRates,
   ScopeAssignment,
   ScopeAssignmentQuery,
+  UpdateRateLineInput,
   UpdateRateProfileInput,
   UpdateScopeAssignmentInput,
 } from './types';
@@ -45,6 +46,7 @@ export const ratesApi = {
   createProfile: (name: string) => api.post<RateProfileDetail>('/rates/profiles', { name }),
   updateProfile: (id: number, input: UpdateRateProfileInput) => api.put<RateProfileDetail>(p(id), input),
   addLine: (id: number, input: AddRateLineInput) => api.post<RateProfileDetail>(`${p(id)}/lines`, input),
+  updateLine: (id: number, lineId: number, input: UpdateRateLineInput) => api.put<RateProfileDetail>(`${p(id)}/lines/${lineId}`, input),
 
   assignments: (query: RateAssignmentQuery = {}) => api.get<RateAssignment[]>(`/rates/assignments${qs({ ...query })}`),
   createAssignment: (input: CreateRateAssignmentInput) => api.post<RateAssignment>('/rates/assignments', input),

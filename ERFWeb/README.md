@@ -336,8 +336,10 @@ are snapshotted into `approval_steps` (with `signatory_level`) so later scope ch
 (9.3). Zero matches or an ambiguous match block filing with the reason.
 
 **Rate profiles.** A profile holds versioned lines per category (Meals per meal: Breakfast, Lunch, Dinner, OTMeal).
-A change never edits a line: it adds a version and closes the open one the day before, so a report always uses the
-rate in force on its expense date. A profile reaches a person by assignment, resolved Individual > Grade >
+A planned change adds a version and closes the open one the day before, so a report always uses the rate in force
+on its expense date. **Edit** corrects one version in place (amount, rule, receipt, cap, dates; category and meal
+stay) with a required reason, audited as `Rates.LineCorrected`; its dates may not overlap another version. Filed
+reports keep their own amounts, and the old values stay in `record_history`. A profile reaches a person by assignment, resolved Individual > Grade >
 Department > Company on the expense date. A change that starts before today needs `backdateOverride` and a reason.
 `GET /api/lookups/my-rates?date=` gives the line editor the rates in force on that date. A person assigned a
 profile gets only that profile's lines; categories it does not define are zero.
@@ -354,7 +356,7 @@ every change is in the audit trail Finance reviews.
 | `GET /api/scope/assignments` · `GET …/{id}` · `GET /api/scope/coverage?date` (signatories, Finance, System Administrator) | Read scope and who covers whom |
 | `POST /api/scope/assignments` · `PUT …/{id}` (System Administrator) | Create; change members, limit, end date, active |
 | `GET /api/rates/profiles` · `GET …/{id}` · `GET /api/rates/assignments` · `GET /api/rates/resolve?userId&date` | Read profiles, versions, assignments, what applies to a person on a date |
-| `POST/PUT /api/rates/profiles` · `POST …/{id}/lines` · `POST /api/rates/assignments` · `POST …/{id}/end` (System Administrator) | Maintain profiles, add rate versions, assign and end |
+| `POST/PUT /api/rates/profiles` · `POST …/{id}/lines` · `PUT …/{id}/lines/{lineId}` · `POST /api/rates/assignments` · `POST …/{id}/end` (System Administrator) | Maintain profiles, add or correct rate versions, assign and end |
 | `GET /api/lookups/departments` (any signed-in user) | Department picker |
 
 Change notifications to affected employees (9.14) go through `IEntitlementChangeNotifier`, which still only logs:

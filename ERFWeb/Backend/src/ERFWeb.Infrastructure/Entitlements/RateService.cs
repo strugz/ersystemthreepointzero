@@ -13,8 +13,9 @@ namespace ERFWeb.Infrastructure.Entitlements;
 
 /// <summary>
 /// Rate profiles (RBAC v0.6 flow 4). Only a System Administrator changes rates, never in an
-/// assignment that names themselves (9.12). Lines are versioned and never edited
-/// in place; a change that starts in the past needs an override and a reason. Every change is audited
+/// assignment that names themselves (9.12). A planned change adds a new version; only a
+/// correction of a mistake edits a version in place, with a reason. A change that starts in the
+/// past needs an override and a reason. Every change is audited
 /// in the same transaction and affected employees are notified after commit (9.14).
 /// </summary>
 public sealed class RateService(
@@ -198,6 +199,78 @@ public sealed class RateService(
         }, ct);
 
         await NotifyAsync(EntitlementAuditEvents.LineAdded, $"Rate change on profile {outcome.Name}", outcome.Affected, outcome.Before, outcome.After, ct);
+        return await GetProfileAsync(profileId, ct);
+    }
+
+    /// <summary>
+    /// Corrects one version in place (a wrong amount, rule or date), unlike AddLineAsync, which plans
+    /// a change. Filed ERFs keep their own amounts, so a correction changes only what the line editor
+    /// offers from now on; the old values stay in record_history and the audit entry.
+    /// </summary>
+    public async Task<RateProfileDetailDto> UpdateLineAsync(long profileId, long lineId, UpdateRateLineRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateCorrection(request);
+        var today = context.Today;
+        if (RateRules.BackdateProblem(request.EffectiveFrom, today, request.BackdateOverride, request.ChangeReason) is { } backdate)
+        {
+            throw new ValidationException("effectiveFrom", backdate);
+        }
+
+        var outcome = await tx.ExecuteAsync(async token =>
+        {
+            var profile = await db.RateProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.Id == profileId, token)
+                ?? throw new NotFoundException("Rate profile not found.");
+            if (!profile.IsActive)
+            {
+                throw new ConflictException("The profile is inactive. Reactivate it before changing its rates.");
+            }
+
+            var line = await db.RateProfileLines.FirstOrDefaultAsync(l => l.Id == lineId && l.RateProfileId == profileId, token)
+                ?? throw new NotFoundException("Rate line not found.");
+            var currency = await ResolveCurrencyAsync(request.Currency, token);
+
+            // The correction reaches everyone the profile is assigned to across the old and new periods (9.12).
+            var from = request.EffectiveFrom < line.EffectiveFrom ? request.EffectiveFrom : line.EffectiveFrom;
+            var actor = await context.ActorAsync(token);
+            var targets = await db.RateProfileAssignments.AsNoTracking()
+                .Where(a => a.RateProfileId == profileId && (a.EffectiveTo == null || a.EffectiveTo >= from))
+                .Select(a => new RateTarget(a.TargetType, a.UserId, a.JobGrade, a.DepartmentId))
+                .ToListAsync(token);
+            Authorize(actor, targets.Count > 0 ? targets : [new RateTarget(RateTargetType.Individual, null, null, null)]);
+
+            var others = await db.RateProfileLines.AsNoTracking()
+                .Where(l => l.RateProfileId == profileId && l.Category == line.Category && (l.SubCategory ?? "") == (line.SubCategory ?? "") && l.Id != lineId)
+                .Select(l => new RateLineCandidate(l.Id, l.RateProfileId, l.Category, l.SubCategory, l.RateType, l.Amount, l.RequiresReceipt, l.EffectiveFrom, l.EffectiveTo))
+                .ToListAsync(token);
+            if (RateRules.CorrectionProblem(others, request.EffectiveFrom, request.EffectiveTo) is { } clash)
+            {
+                throw new ValidationException("effectiveFrom", clash);
+            }
+
+            var before = new { line.Id, rateType = line.RateType.ToString(), line.Amount, line.Currency, line.FrequencyCap, line.RequiresReceipt, line.EffectiveFrom, line.EffectiveTo };
+            line.RateType = request.RateType;
+            line.Amount = request.Amount;
+            line.Currency = currency;
+            line.FrequencyCap = request.FrequencyCap;
+            line.RequiresReceipt = request.RequiresReceipt;
+            line.EffectiveFrom = request.EffectiveFrom;
+            line.EffectiveTo = request.EffectiveTo;
+            line.ChangedByUserId = user.UserId;
+            line.ChangeReason = Clean(request.ChangeReason);
+            line.BackdateOverride = request.EffectiveFrom < today && request.BackdateOverride;
+            db.SetRowVersion(line, request.RowVersion);
+            await db.SaveWithConcurrencyAsync(token);
+
+            var after = new { line.Id, rateType = line.RateType.ToString(), line.Amount, line.Currency, line.FrequencyCap, line.RequiresReceipt, line.EffectiveFrom, line.EffectiveTo };
+            await audit.WriteAsync(new WorkflowAuditEntry(EntitlementAuditEvents.LineCorrected, null, user.UserId,
+                JsonSerializer.Serialize(new { profileId, category = line.Category.ToString(), line.SubCategory, reason = line.ChangeReason, backdate = line.BackdateOverride, before, after })), token);
+
+            var affected = await AffectedByProfileAsync(profileId, from, token);
+            return (Affected: affected, Before: JsonSerializer.Serialize(before), After: JsonSerializer.Serialize(after), profile.Name);
+        }, ct);
+
+        await NotifyAsync(EntitlementAuditEvents.LineCorrected, $"Rate correction on profile {outcome.Name}", outcome.Affected, outcome.Before, outcome.After, ct);
         return await GetProfileAsync(profileId, ct);
     }
 
@@ -449,27 +522,46 @@ public sealed class RateService(
             errors["subCategory"] = ["Only Meals take a sub-category."];
         }
 
-        if (r.Amount < 0)
-        {
-            errors["amount"] = ["The amount cannot be negative."];
-        }
-
-        if (r.FrequencyCap is < 1)
-        {
-            errors["frequencyCap"] = ["The frequency cap must be at least 1, or left empty."];
-        }
-
-        if (r.ChangeReason is { Length: > 500 })
-        {
-            errors["changeReason"] = ["The reason must be at most 500 characters."];
-        }
-
+        AddValueErrors(errors, r.Amount, r.FrequencyCap, r.ChangeReason);
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
         }
 
         return sub;
+    }
+
+    private static void ValidateCorrection(UpdateRateLineRequest r)
+    {
+        var errors = new Dictionary<string, string[]>();
+        if (string.IsNullOrWhiteSpace(r.ChangeReason))
+        {
+            errors["changeReason"] = ["Give a reason for the correction."];
+        }
+
+        AddValueErrors(errors, r.Amount, r.FrequencyCap, r.ChangeReason);
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+    }
+
+    private static void AddValueErrors(Dictionary<string, string[]> errors, decimal amount, int? frequencyCap, string? changeReason)
+    {
+        if (amount < 0)
+        {
+            errors["amount"] = ["The amount cannot be negative."];
+        }
+
+        if (frequencyCap is < 1)
+        {
+            errors["frequencyCap"] = ["The frequency cap must be at least 1, or left empty."];
+        }
+
+        if (changeReason is { Length: > 500 })
+        {
+            errors["changeReason"] = ["The reason must be at most 500 characters."];
+        }
     }
 
     private static string ValidName(string? name)
@@ -489,7 +581,8 @@ public sealed class RateService(
             join u in db.Users.AsNoTracking() on l.ChangedByUserId equals u.Id
             orderby l.Category, l.SubCategory, l.EffectiveFrom descending
             select new RateLineDto(l.Id, l.RateProfileId, l.Category, l.SubCategory, l.RateType, l.Amount, l.Currency, l.FrequencyCap,
-                l.RequiresReceipt, l.EffectiveFrom, l.EffectiveTo, u.FullName, l.ChangeReason, l.BackdateOverride, l.CreatedAt))
+                l.RequiresReceipt, l.EffectiveFrom, l.EffectiveTo, u.FullName, l.ChangeReason, l.BackdateOverride, l.CreatedAt,
+                EF.Property<uint>(l, DbContextExtensions.RowVersionProperty)))
             .ToListAsync(ct);
 
     private async Task<IReadOnlyList<RateAssignmentDto>> AssignmentsAsync(System.Linq.Expressions.Expression<Func<RateProfileAssignment, bool>> filter, CancellationToken ct) =>

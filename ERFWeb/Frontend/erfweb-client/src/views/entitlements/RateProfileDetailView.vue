@@ -26,6 +26,7 @@ import type {
   RateLine,
   RateProfileDetail,
   ResolvedRates,
+  UpdateRateLineInput,
 } from '@/features/entitlements/types';
 
 const route = useRoute();
@@ -142,10 +143,36 @@ const lineFrom = ref<RateLine | null>(null);
 const savingLine = ref(false);
 const lineErrors = ref<Record<string, string[]> | null>(null);
 
+const lineEditing = ref<RateLine | null>(null);
+
 function openLine(from: RateLine | null) {
   lineFrom.value = from;
+  lineEditing.value = null;
   lineErrors.value = null;
   lineDialog.value = true;
+}
+
+function openEditLine(line: RateLine) {
+  lineFrom.value = null;
+  lineEditing.value = line;
+  lineErrors.value = null;
+  lineDialog.value = true;
+}
+
+async function updateLine(input: UpdateRateLineInput) {
+  const line = lineEditing.value;
+  if (!line) return;
+  savingLine.value = true;
+  lineErrors.value = null;
+  try {
+    profile.value = await ratesApi.updateLine(profileId, line.id, input);
+    lineDialog.value = false;
+    snack.success(`${rateKeyLabel(line.category, line.subCategory)} rate corrected.`);
+  } catch (err) {
+    lineErrors.value = await handleMutationError(err, 'Unable to correct the rate line.');
+  } finally {
+    savingLine.value = false;
+  }
 }
 
 async function addLine(input: AddRateLineInput) {
@@ -256,12 +283,13 @@ async function resolve(userId: number, date: string) {
       </div>
 
       <v-alert v-if="canWrite" type="info" variant="tonal" density="compact" class="mb-4">
-        Changes never edit a rate in place: a new version closes the current one the day before. You cannot change rates that apply to you.
+        Use New version for a rate change: it closes the current one the day before. Use Edit only to correct a mistake; filed reports keep their amounts.
+        You cannot change rates that apply to you.
       </v-alert>
 
       <div class="detail" :class="{ 'detail--wide': lgAndUp }">
         <div class="detail__main">
-          <RateProfileLinesCard :lines="profile.lines" :can-write="canWrite" :disabled="savingLine" @add="openLine" />
+          <RateProfileLinesCard :lines="profile.lines" :can-write="canWrite" :disabled="savingLine" @add="openLine" @edit="openEditLine" />
           <RateAssignmentsCard
             ref="assignmentsCard"
             :assignments="profile.assignments"
@@ -281,7 +309,15 @@ async function resolve(userId: number, date: string) {
       </div>
 
       <template v-if="canWrite">
-        <RateLineDialog v-model="lineDialog" :from="lineFrom" :saving="savingLine" :errors="lineErrors" @save="addLine" />
+        <RateLineDialog
+          v-model="lineDialog"
+          :from="lineFrom"
+          :editing="lineEditing"
+          :saving="savingLine"
+          :errors="lineErrors"
+          @save="addLine"
+          @update="updateLine"
+        />
         <RateAssignmentDialog
           v-model="assignDialog"
           :profile-id="profile.id"

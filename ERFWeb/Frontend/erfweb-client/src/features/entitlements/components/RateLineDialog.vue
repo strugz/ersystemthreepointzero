@@ -4,27 +4,31 @@ import { addDaysIso, formatDate, todayIso } from '@/shared/format';
 import { fieldErrors, numberOrNull, textOrNull } from '../forms';
 import type { FieldErrors } from '../forms';
 import { categoryOptions, mealOptions, rateKeyLabel, rateTypeOptions } from '../labels';
-import type { AddRateLineInput, MealSubCategory, RateCategory, RateLine, RateType } from '../types';
+import type { AddRateLineInput, MealSubCategory, RateCategory, RateLine, RateType, UpdateRateLineInput } from '../types';
 
 /**
- * Adds a rate line version. A new version closes the open one for the same category/meal the day
- * before it starts. Starting before today is a backdate: it needs the explicit override and a
- * reason, both recorded on the line.
+ * Adds a rate line version, or corrects one in place. A new version closes the open one for the
+ * same category/meal the day before it starts. A correction keeps the category and meal, needs a
+ * reason, and may not overlap another version. Starting before today is a backdate: it needs the
+ * explicit override and a reason, both recorded on the line.
  */
 const props = withDefaults(
   defineProps<{
     modelValue: boolean;
     /** Prefill from the version being superseded (category and meal become fixed). */
     from?: RateLine | null;
+    /** The version being corrected in place; takes precedence over `from`. */
+    editing?: RateLine | null;
     saving?: boolean;
     errors?: FieldErrors;
   }>(),
-  { from: null, saving: false, errors: null },
+  { from: null, editing: null, saving: false, errors: null },
 );
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   save: [input: AddRateLineInput];
+  update: [input: UpdateRateLineInput];
 }>();
 
 interface Form {
@@ -66,7 +70,7 @@ watch(
   (open) => {
     if (!open) return;
     Object.assign(form, blank());
-    const l = props.from;
+    const l = props.editing ?? props.from;
     if (l) {
       Object.assign(form, {
         category: l.category,
@@ -78,8 +82,15 @@ watch(
         requiresReceipt: l.requiresReceipt,
       });
     }
+    if (props.editing) {
+      form.effectiveFrom = props.editing.effectiveFrom;
+      form.effectiveTo = props.editing.effectiveTo;
+    }
   },
 );
+
+const isEdit = computed(() => !!props.editing);
+const keyFixed = computed(() => !!props.from || isEdit.value);
 
 const isMeals = computed(() => form.category === 'Meals');
 watch(
@@ -96,7 +107,7 @@ watch(isBackdated, (b) => {
 });
 
 const toBeforeFrom = computed(() => !!form.effectiveTo && !!form.effectiveFrom && form.effectiveTo < form.effectiveFrom);
-const reasonRequired = computed(() => isBackdated.value);
+const reasonRequired = computed(() => isBackdated.value || isEdit.value);
 const reasonMissing = computed(() => reasonRequired.value && !form.changeReason.trim());
 const amountValue = computed(() => numberOrNull(form.amount));
 
@@ -108,15 +119,34 @@ const canSave = computed(
     !!form.effectiveFrom &&
     !toBeforeFrom.value &&
     (!isMeals.value || !!form.subCategory) &&
-    (!isBackdated.value || (form.backdateOverride && !reasonMissing.value)),
+    !reasonMissing.value &&
+    (!isBackdated.value || form.backdateOverride),
 );
 
 const err = (field: string) => fieldErrors(props.errors, field);
-const title = computed(() => (props.from ? `New version · ${rateKeyLabel(props.from.category, props.from.subCategory)}` : 'Add rate line'));
+const title = computed(() => {
+  if (props.editing) return `Edit · ${rateKeyLabel(props.editing.category, props.editing.subCategory)}`;
+  return props.from ? `New version · ${rateKeyLabel(props.from.category, props.from.subCategory)}` : 'Add rate line';
+});
 
 function save() {
   if (!canSave.value) return;
   const cap = numberOrNull(form.frequencyCap);
+  if (props.editing) {
+    emit('update', {
+      rateType: form.rateType,
+      amount: amountValue.value as number,
+      currency: textOrNull(form.currency)?.toUpperCase() ?? null,
+      frequencyCap: cap === null ? null : Math.trunc(cap),
+      requiresReceipt: form.requiresReceipt,
+      effectiveFrom: form.effectiveFrom,
+      effectiveTo: form.effectiveTo || null,
+      changeReason: form.changeReason.trim(),
+      backdateOverride: isBackdated.value && form.backdateOverride,
+      rowVersion: props.editing.rowVersion,
+    });
+    return;
+  }
   emit('save', {
     category: form.category,
     subCategory: isMeals.value ? form.subCategory : null,
@@ -145,10 +175,10 @@ function close() {
         <v-form :disabled="saving" @submit.prevent="save">
           <v-row dense>
             <v-col cols="12" :sm="isMeals ? 6 : 12">
-              <v-select v-model="form.category" :items="categoryOptions" label="Category" :disabled="saving || !!from" :error-messages="err('category')" />
+              <v-select v-model="form.category" :items="categoryOptions" label="Category" :disabled="saving || keyFixed" :error-messages="err('category')" />
             </v-col>
             <v-col v-if="isMeals" cols="12" sm="6">
-              <v-select v-model="form.subCategory" :items="mealOptions" label="Meal *" :disabled="saving || !!from" :error-messages="err('subCategory')" />
+              <v-select v-model="form.subCategory" :items="mealOptions" label="Meal *" :disabled="saving || keyFixed" :error-messages="err('subCategory')" />
             </v-col>
             <v-col cols="12" sm="6">
               <v-select v-model="form.rateType" :items="rateTypeOptions" label="Rate type" :error-messages="err('rateType')" />
@@ -196,7 +226,10 @@ function close() {
             </v-col>
           </v-row>
 
-          <p v-if="from && form.effectiveFrom" class="text-caption text-medium-emphasis mt-1 mb-2">
+          <p v-if="isEdit" class="text-caption text-medium-emphasis mt-1 mb-2">
+            Corrects this version in place. Filed reports keep their amounts; the old values stay in the history.
+          </p>
+          <p v-else-if="from && form.effectiveFrom" class="text-caption text-medium-emphasis mt-1 mb-2">
             The current version ends {{ formatDate(addDaysIso(form.effectiveFrom, -1)) }}.
           </p>
 
@@ -223,7 +256,7 @@ function close() {
             maxlength="500"
             counter
             class="mt-2"
-            :error-messages="err('changeReason') ?? (reasonMissing && form.backdateOverride ? ['A reason is required to backdate.'] : undefined)"
+            :error-messages="err('changeReason') ?? (reasonMissing && form.backdateOverride && !isEdit ? ['A reason is required to backdate.'] : undefined)"
           />
         </v-form>
       </v-card-text>
@@ -231,7 +264,7 @@ function close() {
       <v-card-actions class="px-4 py-3">
         <v-spacer />
         <v-btn class="press" variant="text" :disabled="saving" @click="close">Cancel</v-btn>
-        <v-btn class="press" color="primary" variant="flat" :loading="saving" :disabled="!canSave" @click="save">Add line</v-btn>
+        <v-btn class="press" color="primary" variant="flat" :loading="saving" :disabled="!canSave" @click="save">{{ isEdit ? 'Save changes' : 'Add line' }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

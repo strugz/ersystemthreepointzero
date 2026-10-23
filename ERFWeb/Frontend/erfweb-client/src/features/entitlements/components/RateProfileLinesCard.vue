@@ -22,6 +22,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   /** `from` is the version being superseded; null for a brand-new category/meal. */
   add: [from: RateLine | null];
+  /** Correct this version in place. */
+  edit: [line: RateLine];
 }>();
 
 const { xs } = useDisplay();
@@ -155,6 +157,18 @@ function rulesText(l: RateLine): string {
                   v-if="canWrite"
                   class="press ml-1"
                   size="x-small"
+                  variant="text"
+                  prepend-icon="mdi-pencil-outline"
+                  :disabled="disabled"
+                  :aria-label="`Edit ${g.label}`"
+                  @click="emit('edit', g.headline)"
+                >
+                  Edit
+                </v-btn>
+                <v-btn
+                  v-if="canWrite"
+                  class="press ml-1"
+                  size="x-small"
                   variant="tonal"
                   color="primary"
                   :disabled="disabled"
@@ -174,6 +188,16 @@ function rulesText(l: RateLine): string {
                     <span class="pill" :class="stateTone[stateOf(v)]">{{ stateLabel[stateOf(v)] }}</span>
                     <v-chip v-if="v.backdateOverride" size="x-small" label variant="tonal" color="warning">Backdated</v-chip>
                     <span class="text-medium-emphasis">{{ rulesText(v) }}</span>
+                    <v-btn
+                      v-if="canWrite"
+                      class="press"
+                      size="x-small"
+                      variant="text"
+                      icon="mdi-pencil-outline"
+                      :disabled="disabled"
+                      :aria-label="`Edit the ${g.label} version from ${formatDate(v.effectiveFrom)}`"
+                      @click="emit('edit', v)"
+                    />
                     <span class="text-caption text-medium-emphasis history__who">
                       {{ v.changedByName ?? '—' }} · {{ formatDateTime(v.createdAt) }}<template v-if="v.changeReason"> · “{{ v.changeReason }}”</template>
                     </span>
