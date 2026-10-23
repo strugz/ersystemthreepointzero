@@ -19,7 +19,8 @@ public class CrmEmployeeDirectoryTests
 
     private const string Employee = """
         {"employeeId":"CNT-001","firstName":"Juan","middleName":null,"lastName":"Dela Cruz","nickname":"JDC",
-         "fullName":"Juan Dela Cruz","department":"PMDLUZON","section":"PS","workflows":["PS"],"isActive":true}
+         "fullName":"Juan Dela Cruz","department":"PMDLUZON","section":"PS","workflows":["PS"],"isActive":true,
+         "mobileNumber":" 09171234567 "}
         """;
 
     [Fact]
@@ -60,6 +61,15 @@ public class CrmEmployeeDirectoryTests
 
         Assert.Equal("https://crm.example.test/api2/erf/v1/employees/CNT-001", handler.Uri?.ToString());
         Assert.Equal("JDC", employee?.Nickname);
+        Assert.Equal("09171234567", employee?.MobileNo);
+    }
+
+    [Fact]
+    public async Task GetAsync_LeavesTheMobileNumberNullWhenTheCrmSendsNone()
+    {
+        var employee = await Create(new RecordingHandler(HttpStatusCode.OK, """{"employeeId":"CNT-002","workflows":[],"isActive":false,"mobileNumber":null}"""), Configured).GetAsync("CNT-002");
+
+        Assert.Null(employee?.MobileNo);
     }
 
     [Fact]

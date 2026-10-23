@@ -186,3 +186,6 @@ blocks an employee's filing if this call fails; it retries later.
 3. Whether one activity can span several days, and if so whether they send one record per day.
 4. Whether they want the claimed callback (section 5).
 5. A test employee with a few completed activities in the test environment.
+
+The employee lookup returns `mobileNumber` (the CRM `CNTNUM` column, `null` once the person has left).
+ERFWeb copies it into an empty Mobile No. on the Add User screen, for SMS notifications.

@@ -26,6 +26,7 @@ const blank = (): SystemSettingsInput => ({
   emailNotificationsEnabled: false,
   smsNotificationsEnabled: false,
   notificationFromAddress: '',
+  emailDomains: [],
 });
 
 const form = reactive<SystemSettingsInput>(blank());
@@ -46,6 +47,8 @@ function load(value: SystemSettings | null) {
       emailNotificationsEnabled: value.emailNotificationsEnabled,
       smsNotificationsEnabled: value.smsNotificationsEnabled,
       notificationFromAddress: value.notificationFromAddress ?? '',
+      // An API older than the domain list sends none; show the built-in default.
+      emailDomains: [...(value.emailDomains ?? ['marsmandrysdale.com'])],
     } satisfies SystemSettingsInput);
   }
   snapshot = JSON.stringify(form);
@@ -76,7 +79,16 @@ const fromInvalid = computed(() => {
   const v = (form.notificationFromAddress ?? '').trim();
   return v !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 });
-const canSubmit = computed(() => isDirty.value && !props.saving && !localInvalid.value && !fromInvalid.value);
+// Same shape the server accepts (EmailDomainRules); the server is the authority.
+const DOMAIN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+const cleanDomain = (d: string) => d.trim().replace(/^@+/, '').toLowerCase();
+const domainsError = computed(() => {
+  const list = form.emailDomains.map(cleanDomain).filter(Boolean);
+  if (list.length === 0) return 'Add at least one email domain.';
+  const bad = list.find((d) => !DOMAIN.test(d));
+  return bad ? `"${bad}" is not a valid email domain, e.g. marsmandrysdale.com.` : null;
+});
+const canSubmit = computed(() => isDirty.value && !props.saving && !localInvalid.value && !fromInvalid.value && !domainsError.value);
 
 function submit() {
   if (!canSubmit.value) return;
@@ -85,6 +97,7 @@ function submit() {
     out[k] = Number(form[k]) || 0;
   }
   out.notificationFromAddress = (form.notificationFromAddress ?? '').trim() || null;
+  out.emailDomains = [...new Set(form.emailDomains.map(cleanDomain).filter(Boolean))];
   emit('submit', out);
 }
 
@@ -214,6 +227,24 @@ defineExpose({ isDirty });
             />
           </v-col>
         </v-row>
+      </div>
+    </v-card>
+
+    <v-card class="mb-4">
+      <div class="card-h"><span class="card-t">Account email domains</span></div>
+      <div class="pa-4">
+        <v-combobox
+          v-model="form.emailDomains"
+          label="Email domains"
+          placeholder="Type a domain and press Enter"
+          multiple
+          chips
+          closable-chips
+          prefix="@"
+          hint="Offered in the Email dropdown on the user form. The first one is the default for new accounts."
+          persistent-hint
+          :error-messages="fieldErrors('emailDomains') ?? (domainsError ? [domainsError] : undefined)"
+        />
       </div>
     </v-card>
 

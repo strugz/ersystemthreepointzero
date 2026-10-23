@@ -6,6 +6,7 @@ namespace ERFWeb.Application.Features.Crm;
 /// One CRM user as the CRM employee lookup returns it. <see cref="EmployeeId"/> is the stable link
 /// stored on the ERFWeb account; every other field is for display and can change in the CRM.
 /// <see cref="Workflows"/> (Sales, PS, TSG) says which CRM activities the person can claim later.
+/// <see cref="MobileNo"/> only prefills the account form; it is null until the CRM sends one.
 /// </summary>
 public sealed record CrmEmployeeDto(
     string EmployeeId,
@@ -17,7 +18,8 @@ public sealed record CrmEmployeeDto(
     string? Department,
     string? Section,
     IReadOnlyList<string> Workflows,
-    bool IsActive);
+    bool IsActive,
+    string? MobileNo = null);
 
 public sealed record CrmEmployeeSearchQuery : PagedRequest
 {

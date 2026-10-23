@@ -63,7 +63,19 @@ watch(
       return;
     }
     if (selected.value?.employeeId === id) return;
-    selected.value = { employeeId: id, firstName: null, middleName: null, lastName: null, nickname: null, fullName: null, department: null, section: null, workflows: [], isActive: true };
+    selected.value = {
+      employeeId: id,
+      firstName: null,
+      middleName: null,
+      lastName: null,
+      nickname: null,
+      fullName: null,
+      department: null,
+      section: null,
+      workflows: [],
+      isActive: true,
+      mobileNo: null,
+    };
     try {
       const employee = await adminApi.getCrmEmployee(id);
       if (props.modelValue === id) selected.value = employee;
@@ -127,32 +139,49 @@ const noDataText = computed(() =>
 </script>
 
 <template>
-  <div>
-    <v-autocomplete
-      v-model:search="search"
-      :model-value="modelValue"
-      :items="items"
-      item-props
-      :loading="loading"
-      :disabled="disabled"
-      label="CRM employee"
-      placeholder="Search by name, initials or employee ID"
-      prepend-inner-icon="mdi-magnify"
-      no-filter
-      clearable
-      :no-data-text="noDataText"
-      hint="Links the account to the CRM so the employee's CRM activities can be claimed. Optional."
-      persistent-hint
-      :error-messages="messages"
-      @update:model-value="onSelect"
-    />
-    <v-checkbox
-      v-model="includeInactive"
-      :disabled="disabled"
-      density="compact"
-      hide-details
-      label="Include people who have left the company"
-      class="mt-1"
-    />
-  </div>
+  <v-row dense>
+    <v-col cols="12" sm="8">
+      <v-autocomplete
+        v-model:search="search"
+        :model-value="modelValue"
+        :items="items"
+        item-props
+        :loading="loading"
+        :disabled="disabled"
+        label="CRM employee"
+        placeholder="Search by name, initials or employee ID"
+        prepend-inner-icon="mdi-magnify"
+        no-filter
+        clearable
+        :no-data-text="noDataText"
+        hint="Links the account to the CRM so the employee's CRM activities can be claimed. Optional."
+        persistent-hint
+        :error-messages="messages"
+        @update:model-value="onSelect"
+      />
+    </v-col>
+    <v-col cols="12" sm="4">
+      <!-- The stored link itself, so the admin sees exactly which CRM ID the account will carry. -->
+      <v-text-field
+        :model-value="modelValue ?? ''"
+        label="CRM employee ID"
+        placeholder="Not linked"
+        persistent-placeholder
+        readonly
+        variant="outlined"
+        class="mono"
+        hint="Saved as the CRM link"
+        persistent-hint
+      />
+    </v-col>
+    <v-col cols="12">
+      <v-checkbox
+        v-model="includeInactive"
+        :disabled="disabled"
+        density="compact"
+        hide-details
+        label="Include people who have left the company"
+      />
+    </v-col>
+  </v-row>
 </template>

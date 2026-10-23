@@ -128,7 +128,9 @@ public sealed class CrmEmployeeDirectory(HttpClient http, IOptions<CrmOptions> o
         e.Department,
         e.Section,
         e.Workflows ?? [],
-        e.IsActive);
+        e.IsActive,
+        // mobileNumber is the CRM's CNTNUM column; null once the person has left.
+        string.IsNullOrWhiteSpace(e.MobileNumber) ? null : e.MobileNumber.Trim());
 
     private sealed record CrmPage(int Page, int PageSize, int TotalCount, IReadOnlyList<CrmEmployee>? Items);
 
@@ -142,5 +144,6 @@ public sealed class CrmEmployeeDirectory(HttpClient http, IOptions<CrmOptions> o
         string? Department,
         string? Section,
         IReadOnlyList<string>? Workflows,
-        bool IsActive);
+        bool IsActive,
+        string? MobileNumber);
 }

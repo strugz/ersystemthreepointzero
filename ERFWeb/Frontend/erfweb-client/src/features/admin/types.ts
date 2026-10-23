@@ -108,6 +108,8 @@ export interface CrmEmployee {
   /** Which CRM activities the person files: Sales, PS, TSG. */
   workflows: string[];
   isActive: boolean;
+  /** Mobile number on file in the CRM; null when the CRM does not send one. */
+  mobileNo: string | null;
 }
 
 export interface CreateUserInput extends UserProfileInput {
@@ -244,6 +246,8 @@ export interface SystemSettingsInput {
   emailNotificationsEnabled: boolean;
   smsNotificationsEnabled: boolean;
   notificationFromAddress: string | null;
+  /** Company email domains for the account form; the first is the default. */
+  emailDomains: string[];
 }
 
 export interface SystemSettings extends SystemSettingsInput {

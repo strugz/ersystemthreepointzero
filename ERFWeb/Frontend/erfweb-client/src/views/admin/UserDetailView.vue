@@ -30,6 +30,8 @@ const loading = ref(true);
 const loadError = ref<string | null>(null);
 const departments = ref<Department[]>([]);
 const costCenters = ref<CostCenter[]>([]);
+/** Undefined until the settings load; the form then falls back to its default domain. */
+const emailDomains = ref<string[] | undefined>(undefined);
 
 async function load() {
   loading.value = true;
@@ -49,9 +51,11 @@ async function load() {
 }
 
 async function loadLookups() {
-  const [d, c] = await Promise.allSettled([adminApi.departments(), adminApi.costCenters()]);
+  const [d, c, s] = await Promise.allSettled([adminApi.departments(), adminApi.costCenters(), adminApi.settings()]);
   if (d.status === 'fulfilled') departments.value = d.value;
   if (c.status === 'fulfilled') costCenters.value = c.value;
+  // An API older than the domain list sends none; keep the form's default.
+  if (s.status === 'fulfilled' && s.value.emailDomains?.length) emailDomains.value = s.value.emailDomains;
 }
 
 onMounted(async () => {
@@ -253,6 +257,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
                 :initial="user"
                 :departments="departments"
                 :cost-centers="costCenters"
+                :email-domains="emailDomains"
                 :saving="savingProfile"
                 :errors="profileErrors"
                 @submit="saveProfile"
