@@ -48,6 +48,24 @@ These are already in `AGENTS.md` but bear repeating because the failure is quiet
 - Never execute `ER3.0.sql` wholesale and never auto-apply EF Core migrations. The web application does not own the legacy schema; database changes go in a new dated script under `Database/`.
 - Do not revert or clean up unrelated user changes in the working tree.
 
+### Clean up superseded code
+
+When an approach is revised mid-task (a first attempt did not match the requirement and a new function, component, prop, endpoint or test replaced it), remove what the new version made obsolete in the same change. Before reporting done:
+
+- Review the full diff (`git diff`), not just the last edit, and check every function, variable, prop, emit, import, type, CSS class, test and doc line this task added is still used. Search for callers before keeping or deleting anything.
+- Delete superseded code instead of leaving it beside its replacement; do not keep "old" or "v2" variants, commented-out blocks, or unused helpers.
+- Remove scratch files, debug logging and temporary test data created during the task.
+- Check that untouched lines did not change incidentally (line endings, formatting, encoding).
+- This applies only to code this task introduced or changed. Pre-existing unused code is out of scope unless the user asks; mention it instead.
+
+### End-of-turn change summary
+
+Whenever a turn changes files, end the final message with a **Changed files** section:
+
+- Group by area (Backend, Frontend, Database, Docs, Tests) and list every changed file as a clickable link, with one line on what changed in it. Say plainly when an area was not touched (e.g. "Backend: no changes").
+- Follow it with **What happens next**: what the user will see or what behaves differently, what is still needed before it takes effect (database script to apply, backend deploy before frontend, config), and what was verified versus not verified (build, tests, browser).
+- State whether anything is committed, pushed or deployed.
+
 ### ERFWeb (standalone web ERF system)
 
 `ERFWeb/` is a third, separate application: ASP.NET Core (net10.0) + EF Core on **PostgreSQL** (Npgsql, snake_case, LINQ only, no stored procedures) and a Vue 3 + Vuetify SPA. It is not in `ER System.sln`, the installer, or `Web/`, and current work is scoped to it: do not modify the desktop app while working there. `ERFWeb/README.md` is its reference (configuration, database scripts, features by plan phase, deployment); the governing plan is `ERFWeb/Document/ERFWeb - Project Documentation and Implementation Plan.docx`.
