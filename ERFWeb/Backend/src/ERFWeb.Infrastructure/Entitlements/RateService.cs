@@ -126,10 +126,6 @@ public sealed class RateService(
         ArgumentNullException.ThrowIfNull(request);
         var sub = ValidateLine(request);
         var today = context.Today;
-        if (RateRules.BackdateProblem(request.EffectiveFrom, today, request.BackdateOverride, request.ChangeReason) is { } backdate)
-        {
-            throw new ValidationException("effectiveFrom", backdate);
-        }
 
         var outcome = await tx.ExecuteAsync(async token =>
         {
@@ -160,6 +156,12 @@ public sealed class RateService(
             if (!plan.IsValid)
             {
                 throw new ValidationException("effectiveFrom", plan.Problem!);
+            }
+
+            // Backdating only needs the override when it cuts short a rate already in force.
+            if (RateRules.BackdateProblem(request.EffectiveFrom, today, plan.CloseLineId is not null, request.BackdateOverride, request.ChangeReason) is { } backdate)
+            {
+                throw new ValidationException("effectiveFrom", backdate);
             }
 
             object? before = null;
@@ -212,7 +214,7 @@ public sealed class RateService(
         ArgumentNullException.ThrowIfNull(request);
         ValidateCorrection(request);
         var today = context.Today;
-        if (RateRules.BackdateProblem(request.EffectiveFrom, today, request.BackdateOverride, request.ChangeReason) is { } backdate)
+        if (RateRules.BackdateProblem(request.EffectiveFrom, today, replacesEarlierRate: true, request.BackdateOverride, request.ChangeReason) is { } backdate)
         {
             throw new ValidationException("effectiveFrom", backdate);
         }
@@ -297,7 +299,7 @@ public sealed class RateService(
             throw new ValidationException("effectiveTo", "The end date must be on or after the start date.");
         }
 
-        if (RateRules.BackdateProblem(from, today, request.BackdateOverride, request.ChangeReason) is { } backdate)
+        if (RateRules.BackdateProblem(from, today, replacesEarlierRate: true, request.BackdateOverride, request.ChangeReason) is { } backdate)
         {
             throw new ValidationException("effectiveFrom", backdate);
         }

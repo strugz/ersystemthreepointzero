@@ -175,15 +175,27 @@ async function updateLine(input: UpdateRateLineInput) {
   }
 }
 
-async function addLine(input: AddRateLineInput) {
+const lineDialogRef = ref<InstanceType<typeof RateLineDialog> | null>(null);
+
+// Several meals sharing one amount arrive as several inputs. The API takes one line per call, so
+// they go one by one; on a failure the saved ones leave the dialog and a retry sends only the rest.
+async function addLine(inputs: AddRateLineInput[]) {
   savingLine.value = true;
   lineErrors.value = null;
+  const saved: AddRateLineInput[] = [];
   try {
-    profile.value = await ratesApi.addLine(profileId, input);
+    for (const input of inputs) {
+      profile.value = await ratesApi.addLine(profileId, input);
+      saved.push(input);
+    }
     lineDialog.value = false;
-    snack.success(`${rateKeyLabel(input.category, input.subCategory)} rate saved.`);
+    const first = inputs[0];
+    snack.success(inputs.length === 1 && first ? `${rateKeyLabel(first.category, first.subCategory)} rate saved.` : `${inputs.length} rate lines saved.`);
   } catch (err) {
-    lineErrors.value = await handleMutationError(err, 'Unable to save the rate line.');
+    const failed = inputs[saved.length];
+    const what = failed ? rateKeyLabel(failed.category, failed.subCategory) : 'the rate line';
+    lineErrors.value = await handleMutationError(err, saved.length ? `${saved.length} saved; unable to save ${what}.` : `Unable to save ${what}.`);
+    lineDialogRef.value?.dropMeals(saved.flatMap((s) => (s.subCategory ? [s.subCategory] : [])));
   } finally {
     savingLine.value = false;
   }
@@ -310,9 +322,11 @@ async function resolve(userId: number, date: string) {
 
       <template v-if="canWrite">
         <RateLineDialog
+          ref="lineDialogRef"
           v-model="lineDialog"
           :from="lineFrom"
           :editing="lineEditing"
+          :lines="profile.lines"
           :saving="savingLine"
           :errors="lineErrors"
           @save="addLine"
