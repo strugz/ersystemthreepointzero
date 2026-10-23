@@ -299,11 +299,6 @@ public sealed class RateService(
             throw new ValidationException("effectiveTo", "The end date must be on or after the start date.");
         }
 
-        if (RateRules.BackdateProblem(from, today, replacesEarlierRate: true, request.BackdateOverride, request.ChangeReason) is { } backdate)
-        {
-            throw new ValidationException("effectiveFrom", backdate);
-        }
-
         var outcome = await tx.ExecuteAsync(async token =>
         {
             var profile = await db.RateProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.Id == request.ProfileId, token)
@@ -320,13 +315,20 @@ public sealed class RateService(
             var sameTarget = await db.RateProfileAssignments
                 .Where(a => a.TargetType == target.Type && a.UserId == target.UserId && a.JobGrade == target.JobGrade && a.DepartmentId == target.DepartmentId)
                 .ToListAsync(token);
-            if (sameTarget.Any(a => a.EffectiveFrom >= from && RateRules.Overlaps(a.EffectiveFrom, a.EffectiveTo, from, request.EffectiveTo)))
+            var overlapping = sameTarget.Where(a => RateRules.Overlaps(a.EffectiveFrom, a.EffectiveTo, from, request.EffectiveTo)).ToList();
+            if (overlapping.Any(a => a.EffectiveFrom >= from))
             {
                 throw new ConflictException("Another assignment for this target starts on or after that date. End or change it first.");
             }
 
+            // Backdating only needs the override when it cuts short an assignment already in force.
+            if (RateRules.BackdateProblem(from, today, overlapping.Count > 0, request.BackdateOverride, request.ChangeReason) is { } backdate)
+            {
+                throw new ValidationException("effectiveFrom", backdate);
+            }
+
             object? closed = null;
-            foreach (var open in sameTarget.Where(a => RateRules.Overlaps(a.EffectiveFrom, a.EffectiveTo, from, request.EffectiveTo)))
+            foreach (var open in overlapping)
             {
                 closed = new { open.Id, open.RateProfileId, open.EffectiveFrom, open.EffectiveTo };
                 open.EffectiveTo = from.AddDays(-1);

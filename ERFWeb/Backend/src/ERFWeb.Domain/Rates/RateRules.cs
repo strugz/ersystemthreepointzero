@@ -160,7 +160,8 @@ public static class RateRules
     /// <summary>
     /// A change that starts before today rewrites a period that may already hold filed ERFs, so it
     /// needs an explicit override and a reason (spec 2.4 lock 4). A change that replaces nothing (the
-    /// first rate for its key, e.g. covering claims from before go-live) only fills a gap, so it is free.
+    /// first rate for its key or the first assignment for its target, e.g. covering claims from
+    /// before go-live) only fills a gap, so it is free.
     /// </summary>
     public static string? BackdateProblem(DateOnly effectiveFrom, DateOnly today, bool replacesEarlierRate, bool backdateOverride, string? reason)
     {

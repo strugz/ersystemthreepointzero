@@ -208,10 +208,19 @@ const savingAssignment = ref(false);
 const assignErrors = ref<Record<string, string[]> | null>(null);
 const ending = ref(false);
 const endErrors = ref<Record<string, string[]> | null>(null);
+const existingAssignments = ref<RateAssignment[] | null>(null);
 
-function openAssign() {
+async function openAssign() {
   assignErrors.value = null;
+  existingAssignments.value = null;
   assignDialog.value = true;
+  // Every target's assignments (any profile), so the dialog asks for the backdate override only
+  // when it would end one. If this fails the dialog stays strict and the server still decides.
+  try {
+    existingAssignments.value = await ratesApi.assignments({ includeEnded: true });
+  } catch {
+    existingAssignments.value = null;
+  }
 }
 
 async function assign(input: CreateRateAssignmentInput) {
@@ -338,6 +347,7 @@ async function resolve(userId: number, date: string) {
           :profile-name="profile.name"
           :people="people"
           :departments="departments"
+          :existing="existingAssignments"
           :saving="savingAssignment"
           :errors="assignErrors"
           @save="assign"
