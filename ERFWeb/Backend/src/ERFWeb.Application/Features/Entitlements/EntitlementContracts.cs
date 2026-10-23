@@ -173,6 +173,18 @@ public sealed record CreateRateAssignmentRequest(
     string? ChangeReason,
     bool BackdateOverride);
 
+/// <summary>Corrects one assignment in place; its profile stays. A reason is required.</summary>
+public sealed record UpdateRateAssignmentRequest(
+    RateTargetType TargetType,
+    long? UserId,
+    string? JobGrade,
+    long? DepartmentId,
+    DateOnly EffectiveFrom,
+    DateOnly? EffectiveTo,
+    string? ChangeReason,
+    bool BackdateOverride,
+    uint RowVersion);
+
 public sealed record EndRateAssignmentRequest(DateOnly EffectiveTo, string? ChangeReason, uint RowVersion);
 
 public sealed record RateAssignmentQuery(long? ProfileId, RateTargetType? TargetType, bool IncludeEnded);
@@ -197,6 +209,7 @@ public interface IRateService
 
     Task<IReadOnlyList<RateAssignmentDto>> ListAssignmentsAsync(RateAssignmentQuery query, CancellationToken ct = default);
     Task<RateAssignmentDto> CreateAssignmentAsync(CreateRateAssignmentRequest request, CancellationToken ct = default);
+    Task<RateAssignmentDto> UpdateAssignmentAsync(long assignmentId, UpdateRateAssignmentRequest request, CancellationToken ct = default);
     Task<RateAssignmentDto> EndAssignmentAsync(long assignmentId, EndRateAssignmentRequest request, CancellationToken ct = default);
 
     /// <summary>Today in the business calendar when no date is given.</summary>
@@ -235,5 +248,6 @@ public static class EntitlementAuditEvents
     public const string LineAdded = "Rates.LineAdded";
     public const string LineCorrected = "Rates.LineCorrected";
     public const string AssignmentCreated = "Rates.AssignmentCreated";
+    public const string AssignmentCorrected = "Rates.AssignmentCorrected";
     public const string AssignmentEnded = "Rates.AssignmentEnded";
 }

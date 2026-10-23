@@ -26,6 +26,7 @@ import type {
   RateLine,
   RateProfileDetail,
   ResolvedRates,
+  UpdateRateAssignmentInput,
   UpdateRateLineInput,
 } from '@/features/entitlements/types';
 
@@ -209,8 +210,10 @@ const assignErrors = ref<Record<string, string[]> | null>(null);
 const ending = ref(false);
 const endErrors = ref<Record<string, string[]> | null>(null);
 const existingAssignments = ref<RateAssignment[] | null>(null);
+const assignEditing = ref<RateAssignment | null>(null);
 
 async function openAssign() {
+  assignEditing.value = null;
   assignErrors.value = null;
   existingAssignments.value = null;
   assignDialog.value = true;
@@ -233,6 +236,29 @@ async function assign(input: CreateRateAssignmentInput) {
     await load();
   } catch (err) {
     assignErrors.value = await handleMutationError(err, 'Unable to assign the profile.');
+  } finally {
+    savingAssignment.value = false;
+  }
+}
+
+function openEditAssignment(a: RateAssignment) {
+  assignEditing.value = a;
+  assignErrors.value = null;
+  assignDialog.value = true;
+}
+
+async function updateAssignment(input: UpdateRateAssignmentInput) {
+  const a = assignEditing.value;
+  if (!a) return;
+  savingAssignment.value = true;
+  assignErrors.value = null;
+  try {
+    await ratesApi.updateAssignment(a.id, input);
+    assignDialog.value = false;
+    snack.success('Assignment corrected.');
+    await load();
+  } catch (err) {
+    assignErrors.value = await handleMutationError(err, 'Unable to correct the assignment.');
   } finally {
     savingAssignment.value = false;
   }
@@ -319,6 +345,7 @@ async function resolve(userId: number, date: string) {
             :acting="ending"
             :end-errors="endErrors"
             @create="openAssign"
+            @edit="openEditAssignment"
             @end="endAssignment"
             @clear-end-errors="endErrors = null"
           />
@@ -348,9 +375,11 @@ async function resolve(userId: number, date: string) {
           :people="people"
           :departments="departments"
           :existing="existingAssignments"
+          :editing="assignEditing"
           :saving="savingAssignment"
           :errors="assignErrors"
           @save="assign"
+          @update="updateAssignment"
         />
 
         <v-dialog v-model="renameOpen" max-width="460" :persistent="savingProfile">

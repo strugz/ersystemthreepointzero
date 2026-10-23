@@ -83,6 +83,17 @@ public sealed class RatesController(IRateService rates) : ControllerBase
         return StatusCode(StatusCodes.Status201Created, created);
     }
 
+    /// <summary>Corrects one assignment's target or dates; the period may not overlap another for the same target.</summary>
+    [HttpPut("assignments/{id:long}")]
+    [Authorize(Policy = Policies.RateManager)]
+    [ProducesResponseType<RateAssignmentDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<RateAssignmentDto>> UpdateAssignment(long id, [FromBody] UpdateRateAssignmentRequest request, CancellationToken ct) =>
+        Ok(await rates.UpdateAssignmentAsync(id, request, ct));
+
     [HttpPost("assignments/{id:long}/end")]
     [Authorize(Policy = Policies.RateManager)]
     [ProducesResponseType<RateAssignmentDto>(StatusCodes.Status200OK)]
