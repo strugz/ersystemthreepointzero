@@ -61,7 +61,8 @@ public sealed record UserDetailDto(
     bool CoolingPeriodElapsed,
     IReadOnlyList<RoleGrantDto> RoleGrants,
     uint RowVersion,
-    string? CrmEmployeeId = null);
+    string? CrmEmployeeId = null,
+    string? R47ReviewedBy = null);
 
 public sealed record UserListQuery : PagedRequest
 {
@@ -82,7 +83,8 @@ public sealed record CreateUserRequest(
     long? DepartmentId,
     long? CostCenterId,
     bool WorkWithEnabled,
-    string? CrmEmployeeId = null);
+    string? CrmEmployeeId = null,
+    string? R47ReviewedBy = null);
 
 public sealed record UpdateUserRequest(
     string FullName,
@@ -94,7 +96,8 @@ public sealed record UpdateUserRequest(
     long? CostCenterId,
     bool WorkWithEnabled,
     uint RowVersion,
-    string? CrmEmployeeId = null);
+    string? CrmEmployeeId = null,
+    string? R47ReviewedBy = null);
 
 public sealed record SetUserActiveRequest(bool IsActive, uint RowVersion);
 
@@ -133,9 +136,11 @@ public interface IRoleGrantService
 
 // ---------- Master data ----------
 
-public sealed record DepartmentDto(long Id, string? Code, string Name, bool IsActive, uint RowVersion);
+/// <param name="ReviewedBy">The department's own R47 REVIEWED BY; null prints the Rules default.</param>
+public sealed record DepartmentDto(long Id, string? Code, string Name, bool IsActive, uint RowVersion, string? ReviewedBy = null);
 
-public sealed record SaveDepartmentRequest(string? Code, string Name, bool IsActive, uint? RowVersion);
+/// <param name="ReviewedBy">Blank clears it (back to the Rules default); null leaves it as it is.</param>
+public sealed record SaveDepartmentRequest(string? Code, string Name, bool IsActive, uint? RowVersion, string? ReviewedBy = null);
 
 public sealed record CostCenterDto(long Id, string Code, string Name, long? DepartmentId, string? DepartmentName, bool IsActive, uint RowVersion);
 
@@ -194,7 +199,8 @@ public sealed record SystemSettingsDto(
     string? NotificationFromAddress,
     DateTimeOffset? UpdatedAt,
     string? UpdatedByName,
-    IReadOnlyList<string> EmailDomains);
+    IReadOnlyList<string> EmailDomains,
+    string R47ReviewedBy);
 
 public sealed record UpdateSystemSettingsRequest(
     decimal Level2ThresholdAmount,
@@ -208,7 +214,8 @@ public sealed record UpdateSystemSettingsRequest(
     bool EmailNotificationsEnabled,
     bool SmsNotificationsEnabled,
     string? NotificationFromAddress,
-    IReadOnlyList<string>? EmailDomains = null);
+    IReadOnlyList<string>? EmailDomains = null,
+    string? R47ReviewedBy = null);
 
 public interface ISystemSettingsService
 {

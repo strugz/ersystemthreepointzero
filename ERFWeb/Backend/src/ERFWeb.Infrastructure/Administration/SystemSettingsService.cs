@@ -23,6 +23,10 @@ public static class SystemSettingKeys
     public const string SmsNotificationsEnabled = "Notifications.SmsEnabled";
     public const string NotificationFromAddress = "Notifications.FromAddress";
     public const string EmailDomains = "Accounts.EmailDomains";
+    public const string R47ReviewedBy = "Reports.R47ReviewedBy";
+
+    /// <summary>Longest REVIEWED BY text that still fits the R47 signatory line.</summary>
+    public const int R47ReviewedByMaxLength = 60;
 
     public static readonly IReadOnlyDictionary<string, string> Defaults = new Dictionary<string, string>
     {
@@ -38,6 +42,7 @@ public static class SystemSettingKeys
         [SmsNotificationsEnabled] = "false",
         [NotificationFromAddress] = "",
         [EmailDomains] = EmailDomainRules.DefaultDomain,
+        [R47ReviewedBy] = "FINANCE",
     };
 }
 
@@ -79,7 +84,8 @@ public sealed class SystemSettingsService(
             Text(values, SystemSettingKeys.NotificationFromAddress),
             latest?.UpdatedAt,
             updatedByName,
-            EmailDomainRules.Parse(Raw(values, SystemSettingKeys.EmailDomains)));
+            EmailDomainRules.Parse(Raw(values, SystemSettingKeys.EmailDomains)),
+            Text(values, SystemSettingKeys.R47ReviewedBy) ?? SystemSettingKeys.Defaults[SystemSettingKeys.R47ReviewedBy]);
     }
 
     public async Task<SystemSettingsDto> UpdateAsync(UpdateSystemSettingsRequest request, CancellationToken ct = default)
@@ -106,6 +112,12 @@ public sealed class SystemSettingsService(
         if (request.EmailDomains is not null)
         {
             incoming[SystemSettingKeys.EmailDomains] = EmailDomainRules.Format(EmailDomainRules.Normalize(request.EmailDomains).Domains);
+        }
+
+        // Likewise a client that predates the R47 REVIEWED BY rule sends none.
+        if (request.R47ReviewedBy is not null)
+        {
+            incoming[SystemSettingKeys.R47ReviewedBy] = request.R47ReviewedBy.Trim();
         }
 
         await tx.ExecuteAsync(async token =>
@@ -183,6 +195,11 @@ public sealed class SystemSettingsService(
         if (r.EmailDomains is not null && EmailDomainRules.Normalize(r.EmailDomains).Error is { } domainError)
         {
             errors["emailDomains"] = [domainError];
+        }
+
+        if (r.R47ReviewedBy is not null && (string.IsNullOrWhiteSpace(r.R47ReviewedBy) || r.R47ReviewedBy.Trim().Length > SystemSettingKeys.R47ReviewedByMaxLength))
+        {
+            errors["r47ReviewedBy"] = [$"Enter who reviews the report, up to {SystemSettingKeys.R47ReviewedByMaxLength} characters."];
         }
 
         if (errors.Count > 0)

@@ -377,16 +377,20 @@ internal sealed class R47Document(
                         "PURSUANT TO THE POLICY ON CASH ADVANCES.")
                     .FontSize(8.5f).FontColor(Blue).LineHeight(1.25f);
 
-                col.Item().PaddingTop(2).AlignCenter().Width(120).Height(22).Element(e =>
+                // Signature over printed name, like the signatory lines: the signature first so the
+                // name is drawn on top of an opaque (JPEG or non-transparent PNG) background.
+                col.Item().PaddingTop(2).AlignCenter().Width(160).Height(30).Layers(layers =>
                 {
                     if (dto.EmployeeSignature is { Length: > 0 } bytes)
                     {
                         // FitArea keeps the aspect ratio but pins the image to the left of the box;
                         // align it so a wide or short signature sits centred over the line.
-                        e.AlignCenter().AlignMiddle().Image(bytes).FitArea();
+                        layers.Layer().AlignCenter().AlignMiddle().Image(bytes).FitArea();
                     }
+
+                    layers.PrimaryLayer().AlignCenter().AlignBottom().Text(dto.EmployeeFullName).FontSize(8.5f);
                 });
-                col.Item().AlignCenter().Width(120).LineHorizontal(0.8f);
+                col.Item().AlignCenter().Width(160).LineHorizontal(0.8f);
                 col.Item().AlignCenter().Text("EMPLOYEE'S SIGNATURE").Bold().FontSize(7.5f);
             });
 

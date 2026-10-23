@@ -24,14 +24,22 @@ public sealed class MasterDataService(
     // ---------- Departments ----------
 
     public Task<IReadOnlyList<DepartmentDto>> ListDepartmentsAsync(bool includeInactive, CancellationToken ct = default) =>
-        Query(db.Departments.AsNoTracking().Where(d => includeInactive || d.IsActive).OrderBy(d => d.Name)
-            .Select(d => new DepartmentDto(d.Id, d.Code, d.Name, d.IsActive, EF.Property<uint>(d, DbContextExtensions.RowVersionProperty))), ct);
+        Query(
+            from d in db.Departments.AsNoTracking()
+            where includeInactive || d.IsActive
+            join sj in db.DepartmentSignatories.AsNoTracking() on d.Id equals sj.DepartmentId into ss
+            from s in ss.DefaultIfEmpty()
+            orderby d.Name
+            select new DepartmentDto(d.Id, d.Code, d.Name, d.IsActive, EF.Property<uint>(d, DbContextExtensions.RowVersionProperty),
+                s != null ? s.ReviewerInitials : null), ct);
 
     public async Task<DepartmentDto> CreateDepartmentAsync(SaveDepartmentRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         ValidateCodeName(request.Code, request.Name, codeRequired: false);
+        ValidateReviewedBy(request.ReviewedBy);
         var code = Clean(request.Code);
+        var reviewedBy = Clean(request.ReviewedBy);
 
         var id = await tx.ExecuteAsync(async token =>
         {
@@ -43,7 +51,13 @@ public sealed class MasterDataService(
             var entity = new Department { Code = code, Name = request.Name.Trim(), IsActive = request.IsActive };
             db.Departments.Add(entity);
             await db.SaveChangesAsync(token);
-            await AuditAsync("department", "created", entity.Id, new { entity.Code, entity.Name, entity.IsActive }, token);
+            if (reviewedBy is not null)
+            {
+                db.DepartmentSignatories.Add(new DepartmentSignatory { DepartmentId = entity.Id, ReviewerInitials = reviewedBy });
+                await db.SaveChangesAsync(token);
+            }
+
+            await AuditAsync("department", "created", entity.Id, new { entity.Code, entity.Name, entity.IsActive, ReviewedBy = reviewedBy }, token);
             return entity.Id;
         }, ct);
 
@@ -54,6 +68,7 @@ public sealed class MasterDataService(
     {
         ArgumentNullException.ThrowIfNull(request);
         ValidateCodeName(request.Code, request.Name, codeRequired: false);
+        ValidateReviewedBy(request.ReviewedBy);
         var code = Clean(request.Code);
 
         await tx.ExecuteAsync(async token =>
@@ -65,13 +80,31 @@ public sealed class MasterDataService(
                 throw new ValidationException("code", "A department with that code already exists.");
             }
 
-            var before = new { entity.Code, entity.Name, entity.IsActive };
+            var signatory = await db.DepartmentSignatories.FirstOrDefaultAsync(s => s.DepartmentId == id, token);
+            var before = new { entity.Code, entity.Name, entity.IsActive, ReviewedBy = signatory?.ReviewerInitials };
             entity.Code = code;
             entity.Name = request.Name.Trim();
             entity.IsActive = request.IsActive;
+
+            // A client that predates the field sends none; leave the stored reviewer as it is.
+            if (request.ReviewedBy is not null)
+            {
+                var reviewedBy = Clean(request.ReviewedBy);
+                if (signatory is not null)
+                {
+                    signatory.ReviewerInitials = reviewedBy;
+                }
+                else if (reviewedBy is not null)
+                {
+                    signatory = new DepartmentSignatory { DepartmentId = id, ReviewerInitials = reviewedBy };
+                    db.DepartmentSignatories.Add(signatory);
+                }
+            }
+
             db.SetRowVersion(entity, request.RowVersion ?? throw new ValidationException("rowVersion", "rowVersion is required for an update."));
             await db.SaveWithConcurrencyAsync(token);
-            await AuditAsync("department", "updated", id, new { before, after = new { entity.Code, entity.Name, entity.IsActive } }, token);
+            await AuditAsync("department", "updated", id,
+                new { before, after = new { entity.Code, entity.Name, entity.IsActive, ReviewedBy = signatory?.ReviewerInitials } }, token);
         }, ct);
 
         return (await ListDepartmentsAsync(true, ct)).First(d => d.Id == id);
@@ -335,6 +368,14 @@ public sealed class MasterDataService(
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
+        }
+    }
+
+    private static void ValidateReviewedBy(string? reviewedBy)
+    {
+        if (reviewedBy is not null && reviewedBy.Trim().Length > SystemSettingKeys.R47ReviewedByMaxLength)
+        {
+            throw new ValidationException("reviewedBy", $"Reviewed by must be at most {SystemSettingKeys.R47ReviewedByMaxLength} characters.");
         }
     }
 

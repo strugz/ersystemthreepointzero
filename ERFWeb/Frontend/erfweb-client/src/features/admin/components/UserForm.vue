@@ -48,6 +48,7 @@ const blank = (): FormState => ({
   costCenterId: null,
   workWithEnabled: true,
   crmEmployeeId: null,
+  r47ReviewedBy: '',
 });
 
 const form = reactive<FormState>(blank());
@@ -94,6 +95,7 @@ function load(value: UserDetail | null) {
       costCenterId: value.costCenterId,
       workWithEnabled: value.workWithEnabled,
       crmEmployeeId: value.crmEmployeeId,
+      r47ReviewedBy: value.r47ReviewedBy ?? '',
     });
   }
   splitEmail(form.email ?? '');
@@ -115,6 +117,12 @@ const costCenterItems = computed(() =>
     .filter((c) => (c.isActive || c.id === form.costCenterId) && (c.departmentId === null || form.departmentId === null || c.departmentId === form.departmentId))
     .map((c) => ({ value: c.id, title: `${c.code} · ${c.name}` })),
 );
+
+// What prints in REVIEWED BY while this account has none of its own.
+const reviewedByFallback = computed(() => {
+  const own = props.departments.find((d) => d.id === form.departmentId)?.reviewedBy;
+  return own ? `the department's reviewer (${own})` : 'the default on the Rules page';
+});
 
 // Server errors arrive keyed either "fullName" or "FullName"; look up both.
 function fieldErrors(field: string): string[] | undefined {
@@ -156,6 +164,7 @@ function submit() {
     costCenterId: form.costCenterId,
     workWithEnabled: form.workWithEnabled,
     crmEmployeeId: form.crmEmployeeId,
+    r47ReviewedBy: form.r47ReviewedBy.trim(),
   });
 }
 
@@ -263,6 +272,16 @@ defineExpose({ isDirty });
           label="Cost center"
           clearable
           :error-messages="fieldErrors('costCenterId')"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-text-field
+          v-model="form.r47ReviewedBy"
+          label="Reviewed by (R47)"
+          maxlength="60"
+          :hint="`Printed in REVIEWED BY on this employee's R47; leave blank to use ${reviewedByFallback}`"
+          persistent-hint
+          :error-messages="fieldErrors('r47ReviewedBy')"
         />
       </v-col>
       <v-col cols="12" sm="6" class="d-flex align-center">
