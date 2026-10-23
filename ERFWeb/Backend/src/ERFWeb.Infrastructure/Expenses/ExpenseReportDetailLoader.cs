@@ -204,5 +204,6 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
             rowVersion, meals, transports,
             l.OriginalAmount is { } original && l.AdjustedAt is { } at
                 ? new LineAdjustmentDto(original, l.OriginalTotalAmount ?? l.TotalAmount, adjustedByName, at, l.AdjustmentReason)
-                : null);
+                : null,
+            l.CrmActivityId);
 }

@@ -107,10 +107,14 @@ public static class DependencyInjection
             client.Timeout = TimeSpan.FromSeconds(Math.Max(1, sp.GetRequiredService<IOptions<LasiusOptions>>().Value.TimeoutSeconds)));
         services.AddScoped<ISmsService, SmsService>();
 
-        // CRM employee lookup (read-only); the base URL and API key come from appsettings.json.
+        // CRM employee and activity lookups (read-only); the base URL and API key come from appsettings.json.
         services.AddOptions<CrmOptions>();
         services.AddHttpClient<ICrmEmployeeDirectory, CrmEmployeeDirectory>((sp, client) =>
             client.Timeout = TimeSpan.FromSeconds(Math.Max(1, sp.GetRequiredService<IOptions<CrmOptions>>().Value.TimeoutSeconds)));
+        services.AddHttpClient<ICrmActivityDirectory, CrmActivityDirectory>((sp, client) =>
+            client.Timeout = TimeSpan.FromSeconds(Math.Max(1, sp.GetRequiredService<IOptions<CrmOptions>>().Value.TimeoutSeconds)));
+        services.AddScoped<CrmActivityClaimCheck>();
+        services.AddScoped<ICrmActivityPickService, CrmActivityPickService>();
 
         // Report email over SMTP (MailKit); host, sender and login come from appsettings.json.
         services.AddOptions<SmtpOptions>();

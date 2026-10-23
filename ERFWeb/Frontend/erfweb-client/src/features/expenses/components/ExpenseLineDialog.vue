@@ -2,7 +2,10 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { formatMoney, todayIso } from '@/shared/format';
 import { categoryDefaults, categoryOptions, expenseTypeOptions, fareModeIcon, lineTotal, mealTypes, r47Column } from '../labels';
+import CrmActivityPicker from './CrmActivityPicker.vue';
 import type {
+  CrmActivityOption,
+  CrmActivityPickList,
   EmployeeRates,
   ExpenseCategory,
   ExpenseLine,
@@ -24,8 +27,26 @@ const props = withDefaults(
     fareModes?: FareModeOption[];
     saving?: boolean;
     errors?: Record<string, string[]> | null;
+    /** The employee is linked to the CRM: offer "From CRM". */
+    crmAvailable?: boolean;
+    /** The CRM activities in the report period; loaded by the parent on `crm-load`. */
+    crmList?: CrmActivityPickList | null;
+    crmLoading?: boolean;
+    crmError?: string | null;
   }>(),
-  { line: null, defaultDate: null, workWithOptions: () => [], rates: null, fareModes: () => [], saving: false, errors: null },
+  {
+    line: null,
+    defaultDate: null,
+    workWithOptions: () => [],
+    rates: null,
+    fareModes: () => [],
+    saving: false,
+    errors: null,
+    crmAvailable: false,
+    crmList: null,
+    crmLoading: false,
+    crmError: null,
+  },
 );
 
 const emit = defineEmits<{
@@ -33,6 +54,8 @@ const emit = defineEmits<{
   save: [input: SaveExpenseLineInput];
   /** Rates depend on the expense date; the parent refetches them for the date shown. */
   'date-change': [date: string];
+  /** The employee opened the CRM picker; the parent loads the activities. */
+  'crm-load': [];
 }>();
 
 const blank = (): SaveExpenseLineInput => ({
@@ -56,6 +79,7 @@ const blank = (): SaveExpenseLineInput => ({
   meals: [],
   transports: [],
   rowVersion: null,
+  crmActivityId: null,
 });
 
 const form = reactive<SaveExpenseLineInput>(blank());
@@ -101,6 +125,7 @@ function reset() {
   selectedMeals.value = [];
   showDetails.value = false;
   triedSave.value = false;
+  pickedActivity.value = null;
   applyCategoryDefaults();
   requestAnimationFrame(() => dateInput.value?.querySelector('input')?.focus());
 }
@@ -137,17 +162,25 @@ watch(
         meals: l.meals.map((m) => ({ ...m })),
         transports: l.transports.map((t) => ({ ...t })),
         rowVersion: l.rowVersion,
+        crmActivityId: l.crmActivityId ?? null,
       } satisfies SaveExpenseLineInput);
     }
     selectedMeals.value = form.meals.map((m) => m.mealType);
     showDetails.value = !!(form.remarks || form.instrument || form.serialNumber || form.serviceNumber);
     triedSave.value = false;
+    pickedActivity.value = null;
     Object.assign(auto, { particulars: '', amount: 0 });
     applyCategoryDefaults();
   },
 );
 
-watch(() => form.category, applyCategoryDefaults);
+watch(
+  () => form.category,
+  () => {
+    applyCategoryDefaults();
+    fillLegFromActivity();
+  },
+);
 
 // Fires on open (initial date) and on every date edit while open; the parent debounces the fetch.
 watch(
@@ -234,6 +267,49 @@ function addLeg() {
 function removeLeg(index: number) {
   form.transports.splice(index, 1);
 }
+// ---- CRM activity ------------------------------------------------------------------
+// Picking an activity fills what the CRM knows (date, client, service details, work-with, the trip);
+// the employee still chooses the category and enters the amount, Invoice/OR and VAT.
+const crmOpen = ref(false);
+const pickedActivity = ref<CrmActivityOption | null>(null);
+
+function openCrm() {
+  crmOpen.value = true;
+  emit('crm-load');
+}
+
+function applyActivity(a: CrmActivityOption) {
+  pickedActivity.value = a;
+  form.crmActivityId = a.activityId;
+  form.transactionDate = a.activityDate;
+  const particulars = (a.subject ?? a.activityType ?? '').slice(0, 200);
+  if (particulars) form.particulars = particulars;
+  form.location = a.customerName ?? form.location;
+  form.workWith = a.workWith ?? form.workWith;
+  form.serviceNumber = a.serviceNumber ?? form.serviceNumber;
+  form.instrument = a.instrumentName ?? form.instrument;
+  form.serialNumber = a.serialNumber ?? form.serialNumber;
+  if (form.serviceNumber || form.instrument || form.serialNumber) showDetails.value = true;
+  fillLegFromActivity();
+}
+
+/** On a Transportation line, the picked activity's trip fills the fare leg when no leg has a route yet. */
+function fillLegFromActivity() {
+  const a = pickedActivity.value;
+  if (!a || form.category !== 'Transportation' || !(a.travelOrigin || a.travelDestination)) return;
+  if (form.transports.some((t) => t.fareFrom || t.fareTo)) return;
+  if (!form.transports.length) form.transports.push(newLeg());
+  const leg = form.transports[0];
+  if (!leg) return;
+  leg.fareFrom = a.travelOrigin ?? '';
+  leg.fareTo = a.travelDestination ?? '';
+}
+
+function unlinkActivity() {
+  form.crmActivityId = null;
+  pickedActivity.value = null;
+}
+
 const legsTotal = computed(() => form.transports.reduce((s, t: ExpenseTransportItem) => s + (Number(t.fareAmount) || 0), 0));
 
 const modeById = computed(() => new Map(props.fareModes.map((m) => [m.id, m])));
@@ -404,7 +480,27 @@ function close() {
 
           <!-- Details -->
           <section class="eline__section">
-            <div class="eyebrow">Details</div>
+            <div class="eline__details-head">
+              <div class="eyebrow">Details</div>
+              <v-btn
+                v-if="crmAvailable"
+                class="press"
+                size="small"
+                variant="tonal"
+                color="primary"
+                prepend-icon="mdi-briefcase-search-outline"
+                @click="openCrm"
+              >
+                {{ form.crmActivityId ? 'Change CRM activity' : 'From CRM' }}
+              </v-btn>
+            </div>
+            <div v-if="form.crmActivityId" class="crmlink">
+              <v-chip size="small" label variant="tonal" color="primary" closable prepend-icon="mdi-link-variant" @click:close="unlinkActivity">
+                <span class="mono">{{ form.crmActivityId }}</span>
+              </v-chip>
+              <span class="crmlink__hint">Linked CRM activity. Remove the link to type this line by hand.</span>
+            </div>
+            <p v-if="fieldErrors('crmActivityId')" class="crmlink__error" role="alert">{{ fieldErrors('crmActivityId')?.join(' ') }}</p>
             <v-text-field
               v-model="form.particulars"
               label="Particulars"
@@ -584,6 +680,15 @@ function close() {
       </footer>
     </v-card>
   </v-dialog>
+
+  <CrmActivityPicker
+    v-model="crmOpen"
+    :list="crmList"
+    :loading="crmLoading"
+    :error="crmError"
+    @pick="applyActivity"
+    @retry="emit('crm-load')"
+  />
 </template>
 
 <style scoped>
@@ -639,6 +744,26 @@ function close() {
 }
 .eline__check {
   margin-top: -6px;
+}
+.eline__details-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+}
+.crmlink {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.crmlink__hint {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.crmlink__error {
+  font-size: 12px;
+  color: rgb(var(--v-theme-error));
 }
 .eyebrow {
   font-size: 11px;

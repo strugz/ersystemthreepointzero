@@ -11,14 +11,19 @@ public sealed record EmployeeRatesDto(
     decimal DinnerRate,
     decimal OtMealRate);
 
-/// <summary>Whether the signed-in employee can file (signature on record, approvers configured, cooling period over).</summary>
+/// <summary>
+/// Whether the signed-in employee can file (signature on record, approvers configured, cooling period over).
+/// <see cref="CrmActivitiesAvailable"/>: the account is linked to the CRM and the server can call it, so the
+/// line editor offers CRM activities.
+/// </summary>
 public sealed record MyFilingReadinessDto(
     bool HasSignature,
     int ApproverCount,
     IReadOnlyList<string> ApproverNames,
     bool CoolingPeriodElapsed,
     DateTimeOffset? CoolingPeriodEndsAt,
-    string? RoutingProblem);
+    string? RoutingProblem,
+    bool CrmActivitiesAvailable = false);
 
 /// <summary>An active department, for pickers.</summary>
 public sealed record DepartmentOptionDto(long Id, string? Code, string Name);

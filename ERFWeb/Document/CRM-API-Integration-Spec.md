@@ -179,13 +179,25 @@ blocks an employee's filing if this call fails; it retries later.
 | 429 | Too many calls; include `Retry-After`. |
 | 5xx / timeout | ERFWeb lets the employee continue by typing the line manually. |
 
-## 7. What we need back from the CRM team
+## 7. Answers from the CRM team, and what is still open
+
+The CRM team answered in "CRM Employee and Activity API for ERFWeb" (2026-10-23). Where the two differ,
+their document wins; ERFWeb follows its field names exactly.
+
+| Question | Answer |
+| --- | --- |
+| Statuses | `Completed`, `Open`, `Cancelled` (service reports: `Completed` or `Open`). ERFWeb lists and accepts only `Completed`. |
+| Activity types | Sales: `Sales Call`. PS/TSG: the report's service types (e.g. Preventive Maintenance, Calibration), else `Service Report` / `PA Service Report`. |
+| Multi-day work | One record per activity, flagged with `travel.isOvernight`; ERFWeb accepts any line date from `activityDate` to the date of `endAt`. |
+| Work-with | Companions get the service report too (`role: Companion`), so each person claims their own expenses. |
+| Not filled yet | `customer.branch`, `city`, `province`, `travel.distanceKm`, `travel.isOutOfTown` are always null. Location is `customer.name` alone. |
+| Claimed callback (section 5) | Not built; it needs a new CRM table. ERFWeb tracks claims itself (`expense_lines.crm_activity_id`). |
+| Rate limit | 300 requests a minute for ERFWeb's key; 429 with `Retry-After` above that. |
+
+Still open:
 
 1. Production host confirmation, a test environment, and the `X-Api-Key` handed over securely.
-2. The list of `activityType` and `status` values.
-3. Whether one activity can span several days, and if so whether they send one record per day.
-4. Whether they want the claimed callback (section 5).
-5. A test employee with a few completed activities in the test environment.
+2. Test employees (one Sales, one PS, one TSG) with completed activities in the test environment.
 
 The employee lookup returns `mobileNumber` (the CRM `CNTNUM` column, `null` once the person has left).
 ERFWeb copies it into an empty Mobile No. on the Add User screen, for SMS notifications.

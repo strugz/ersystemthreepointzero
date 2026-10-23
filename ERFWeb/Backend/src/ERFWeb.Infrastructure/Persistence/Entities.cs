@@ -196,6 +196,10 @@ public class ExpenseLine
     public int? TotalDays { get; set; }
     public string? Computation { get; set; }
     public string? Remarks { get; set; }
+
+    /// <summary>The CRM activityId (ITI-/SR-) the line was pre-filled from; null for a line typed by hand.</summary>
+    public string? CrmActivityId { get; set; }
+
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
 

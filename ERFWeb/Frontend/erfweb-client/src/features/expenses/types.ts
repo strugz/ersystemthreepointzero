@@ -103,6 +103,8 @@ export interface ExpenseLine {
   transports: ExpenseTransportItem[];
   /** Set when an approver lowered the line before the first approval. */
   adjustment?: LineAdjustment | null;
+  /** The CRM activity (ITI-/SR-) the line was pre-filled from; null for a line typed by hand. */
+  crmActivityId?: string | null;
 }
 
 export interface LineAdjustment {
@@ -223,6 +225,7 @@ export interface SaveExpenseLineInput {
   meals: ExpenseMealItem[];
   transports: ExpenseTransportItem[];
   rowVersion: number | null;
+  crmActivityId: string | null;
 }
 
 export interface ReportListQuery {
@@ -259,4 +262,40 @@ export interface FilingReadiness {
   coolingPeriodEndsAt: string | null;
   /** Why no approval route resolves (missing or ambiguous scope); null when routing is fine. */
   routingProblem: string | null;
+  /** The account is linked to the CRM and the server can reach it: the line editor offers CRM activities. */
+  crmActivitiesAvailable: boolean;
+}
+
+/** One CRM activity (Sales visit ITI- or service report SR-) the employee can pick to pre-fill a line. */
+export interface CrmActivityOption {
+  activityId: string;
+  activityType: string | null;
+  activityDate: string;
+  subject: string | null;
+  serviceNumber: string | null;
+  customerName: string | null;
+  instrumentName: string | null;
+  serialNumber: string | null;
+  /** Lead (the employee's own) or Companion (listed as work-with). */
+  role: string | null;
+  /** The other people on the activity, ERFWeb names where linked. */
+  workWith: string | null;
+  travelOrigin: string | null;
+  travelDestination: string | null;
+  isOvernight: boolean;
+  /** Already on another of the employee's reports (not Rejected); it cannot be claimed here. */
+  claimedElsewhere: boolean;
+  claimedInReferenceNo: string | null;
+  linesInThisReport: number;
+}
+
+export interface CrmActivityPickList {
+  /** False when the account has no CRM link. */
+  linked: boolean;
+  dateFrom: string | null;
+  dateTo: string | null;
+  items: CrmActivityOption[];
+  total: number;
+  page: number;
+  pageSize: number;
 }

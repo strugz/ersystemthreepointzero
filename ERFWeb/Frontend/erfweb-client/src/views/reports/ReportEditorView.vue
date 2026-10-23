@@ -6,7 +6,7 @@ import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
 import { formatBytes, formatDate, formatDateTime, formatMoney } from '@/shared/format';
-import { useSnackbar } from '@/shared/composables/useSnackbar';
+import { describeError, useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { expensesApi } from '@/features/expenses/api';
 import { reportTypeLabel, usesCashAdvance, usesRevolvingFund } from '@/features/expenses/labels';
@@ -27,6 +27,7 @@ import VerificationCard from '@/features/verification/components/VerificationCar
 import type {
   Attachment,
   CashAdvanceLine,
+  CrmActivityPickList,
   EmployeeRates,
   ExpenseLine,
   ExpenseReportDetail,
@@ -144,6 +145,7 @@ async function saveHeader(input: ReportHeaderInput) {
   savingHeader.value = true;
   try {
     report.value = await expensesApi.update(reportId, { ...input, rowVersion: report.value.rowVersion });
+    crmList.value = null;
     detailsOpen.value = false;
     snack.success('Report details saved.');
   } catch (err) {
@@ -179,11 +181,31 @@ function openEditLine(line: ExpenseLine) {
   lineDialog.value = true;
 }
 
+// CRM activities for the line editor: loaded when the employee opens the picker, kept until a line or
+// the report period changes (both change what is listed or claimed).
+const crmList = ref<CrmActivityPickList | null>(null);
+const crmLoading = ref(false);
+const crmError = ref<string | null>(null);
+
+async function loadCrmActivities() {
+  if (crmLoading.value || crmList.value) return;
+  crmLoading.value = true;
+  crmError.value = null;
+  try {
+    crmList.value = await expensesApi.crmActivities(reportId);
+  } catch (err) {
+    crmError.value = describeError(err, 'Unable to reach the CRM.');
+  } finally {
+    crmLoading.value = false;
+  }
+}
+
 async function saveLine(input: SaveExpenseLineInput) {
   if (!report.value) return;
   savingLine.value = true;
   lineErrors.value = null;
   try {
+    if (input.crmActivityId || editingLine.value?.crmActivityId) crmList.value = null;
     if (editingLine.value) {
       await expensesApi.updateLine(reportId, editingLine.value.id, input);
       snack.success('Expense line updated.');
@@ -556,8 +578,13 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :fare-modes="fareModes"
         :saving="savingLine"
         :errors="lineErrors"
+        :crm-available="!!readiness?.crmActivitiesAvailable"
+        :crm-list="crmList"
+        :crm-loading="crmLoading"
+        :crm-error="crmError"
         @save="saveLine"
         @date-change="onLineDateChange"
+        @crm-load="loadCrmActivities"
       />
 
       <CashAdvanceDialog

@@ -10,22 +10,26 @@ namespace ERFWeb.Infrastructure.Expenses;
 /// <summary>
 /// Expense line use cases. Each line's total, per-diem computation text and meal/transport
 /// children are (re)derived server-side from the request; the client never supplies totals.
+/// A CRM activity link is checked with the CRM before the transaction (see <see cref="CrmActivityClaimCheck"/>).
 /// </summary>
 public sealed class ExpenseLineService(
     ErfDbContext db,
     IClock clock,
     ITransactionRunner tx,
     ReportEditGate gate,
-    ExpenseReportDetailLoader loader) : IExpenseLineService
+    ExpenseReportDetailLoader loader,
+    CrmActivityClaimCheck crmClaims) : IExpenseLineService
 {
     public async Task<ExpenseLineDto> AddAsync(Guid reportId, SaveExpenseLineRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        await crmClaims.VerifyAsync(request.CrmActivityId, null, request.TransactionDate, ct);
 
         var lineId = await tx.ExecuteAsync(async token =>
         {
             var report = await gate.LoadEditableAsync(reportId, token);
             var modes = await ValidateAsync(request, report, null, token);
+            await crmClaims.EnsureNotClaimedElsewhereAsync(report, request.CrmActivityId, token);
 
             var nextSort = await db.ExpenseLines
                 .Where(l => l.ReportId == reportId)
@@ -61,10 +65,17 @@ public sealed class ExpenseLineService(
             throw new ValidationException("rowVersion", "rowVersion is required when updating a line.");
         }
 
+        var currentActivityId = await db.ExpenseLines.AsNoTracking()
+            .Where(l => l.Id == lineId && l.ReportId == reportId)
+            .Select(l => l.CrmActivityId)
+            .FirstOrDefaultAsync(ct);
+        await crmClaims.VerifyAsync(request.CrmActivityId, currentActivityId, request.TransactionDate, ct);
+
         await tx.ExecuteAsync(async token =>
         {
             var report = await gate.LoadEditableAsync(reportId, token);
             var modes = await ValidateAsync(request, report, lineId, token);
+            await crmClaims.EnsureNotClaimedElsewhereAsync(report, request.CrmActivityId, token);
 
             var line = await db.ExpenseLines.FirstOrDefaultAsync(l => l.Id == lineId && l.ReportId == reportId && l.IsActive, token)
                 ?? throw new NotFoundException("Expense line not found.");
@@ -177,6 +188,7 @@ public sealed class ExpenseLineService(
         line.TotalDays = r.IsPerdiem ? r.TotalDays : null;
         line.Computation = computation;
         line.Remarks = Clean(r.Remarks);
+        line.CrmActivityId = CrmActivityClaimCheck.Normalize(r.CrmActivityId);
         line.UpdatedAt = now;
     }
 

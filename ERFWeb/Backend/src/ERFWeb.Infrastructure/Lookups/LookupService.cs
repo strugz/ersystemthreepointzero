@@ -1,5 +1,6 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
+using ERFWeb.Application.Features.Crm;
 using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Domain.Administration;
 using ERFWeb.Application.Features.Lookups;
@@ -16,6 +17,7 @@ public sealed class LookupService(
     IClock clock,
     IApprovalRouter router,
     IRateService rates,
+    ICrmActivityDirectory crm,
     Entitlements.EntitlementContext calendar) : ILookupService
 {
     private const int MaxWorkWithResults = 50;
@@ -64,7 +66,7 @@ public sealed class LookupService(
     {
         var account = await db.Users.AsNoTracking()
             .Where(u => u.Id == user.UserId)
-            .Select(u => new { HasSignature = u.Signature != null && u.Signature.Length > 0, u.CreatedAt })
+            .Select(u => new { HasSignature = u.Signature != null && u.Signature.Length > 0, u.CreatedAt, u.CrmEmployeeId })
             .FirstOrDefaultAsync(ct);
         var hasSignature = account?.HasSignature ?? false;
 
@@ -76,6 +78,7 @@ public sealed class LookupService(
         var routing = await router.RouteAsync(user.UserId, 0m, calendar.Today, ct);
         var approvers = routing.Approvers.Select(a => a.FullName).ToList();
 
-        return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt, routing.Problem);
+        var crmAvailable = crm.IsConfigured && !string.IsNullOrWhiteSpace(account?.CrmEmployeeId);
+        return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt, routing.Problem, crmAvailable);
     }
 }
