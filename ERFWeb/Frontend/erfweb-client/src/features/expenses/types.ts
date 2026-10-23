@@ -58,6 +58,22 @@ export interface ExpenseTransportItem {
   fareFrom: string | null;
   fareTo: string | null;
   fareAmount: number;
+  /** How the leg was travelled; null on legs saved before fare modes existed. */
+  fareModeId: number | null;
+  /** The typed mode when the fare mode asks for it ("Others"). */
+  fareModeDetail: string | null;
+  /** Filled in by the server on the way out; ignored on save. */
+  fareModeCode?: string | null;
+  fareModeName?: string | null;
+}
+
+/** An active fare mode for the fare-leg picker, in display order. */
+export interface FareModeOption {
+  id: number;
+  code: string;
+  name: string;
+  requiresDetail: boolean;
+  receiptExpected: boolean;
 }
 
 export interface ExpenseLine {

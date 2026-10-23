@@ -6,6 +6,7 @@ import type {
   ExpenseLine,
   ExpenseReportDetail,
   ExpenseReportListItem,
+  FareModeOption,
   FileReportResult,
   FilingReadiness,
   PagedResult,
@@ -62,4 +63,5 @@ export const expensesApi = {
   /** The rates in force on the date (today when omitted). */
   myRates: (date?: string) => api.get<EmployeeRates>(`/lookups/my-rates${qs({ date })}`),
   filingReadiness: () => api.get<FilingReadiness>('/lookups/my-filing-readiness'),
+  fareModes: () => api.get<FareModeOption[]>('/lookups/fare-modes'),
 };

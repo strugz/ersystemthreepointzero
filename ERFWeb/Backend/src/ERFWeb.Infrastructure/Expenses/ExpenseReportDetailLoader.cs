@@ -123,9 +123,7 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
             .OrderBy(m => m.Id)
             .ToListAsync(ct);
 
-        var transports = await db.ExpenseTransportItems.AsNoTracking()
-            .Where(t => lineIds.Contains(t.ExpenseLineId))
-            .OrderBy(t => t.Id)
+        var transports = await TransportsQuery(db.ExpenseTransportItems.Where(t => lineIds.Contains(t.ExpenseLineId)))
             .ToListAsync(ct);
 
         var mealsByLine = meals.ToLookup(m => m.ExpenseLineId);
@@ -133,7 +131,7 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
 
         return lines.Select(x => ToDto(x.Line, x.RowVersion,
                 mealsByLine[x.Line.Id].Select(m => new ExpenseMealItemDto(m.MealType ?? string.Empty, m.PaidFor, m.PaidEmployeeId)).ToList(),
-                transportsByLine[x.Line.Id].Select(t => new ExpenseTransportItemDto(t.FareFrom, t.FareTo, t.FareAmount)).ToList(),
+                transportsByLine[x.Line.Id].Select(t => t.Leg).ToList(),
                 x.Line.AdjustedByUserId is { } by ? adjusters.GetValueOrDefault(by) : null))
             .ToList();
     }
@@ -151,13 +149,24 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
             .Select(m => new ExpenseMealItemDto(m.MealType ?? string.Empty, m.PaidFor, m.PaidEmployeeId))
             .ToListAsync(ct);
 
-        var transports = await db.ExpenseTransportItems.AsNoTracking()
-            .Where(t => t.ExpenseLineId == lineId).OrderBy(t => t.Id)
-            .Select(t => new ExpenseTransportItemDto(t.FareFrom, t.FareTo, t.FareAmount))
+        var transports = await TransportsQuery(db.ExpenseTransportItems.Where(t => t.ExpenseLineId == lineId))
+            .Select(t => t.Leg)
             .ToListAsync(ct);
 
         return ToDto(x.Line, x.RowVersion, meals, transports);
     }
+
+    /// <summary>Fare legs in entry order with their fare mode's code and name (none on legs saved before script 016).</summary>
+    private IQueryable<TransportRow> TransportsQuery(IQueryable<ExpenseTransportItem> items) =>
+        from t in items.AsNoTracking()
+        join mj in db.FareModes.AsNoTracking() on t.FareModeId equals (long?)mj.Id into ms
+        from m in ms.DefaultIfEmpty()
+        orderby t.Id
+        select new TransportRow(t.ExpenseLineId, new ExpenseTransportItemDto(
+            t.FareFrom, t.FareTo, t.FareAmount, t.FareModeId, t.FareModeDetail,
+            m != null ? m.Code : null, m != null ? m.Name : null));
+
+    private sealed record TransportRow(long ExpenseLineId, ExpenseTransportItemDto Leg);
 
     public Task<List<CashAdvanceLineDto>> LoadCashAdvancesAsync(Guid reportId, CancellationToken ct) =>
         db.CashAdvanceLines.AsNoTracking()

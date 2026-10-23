@@ -49,6 +49,13 @@ public sealed class LookupService(
             .Select(d => new DepartmentOptionDto(d.Id, d.Code, d.Name))
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<FareModeOptionDto>> FareModesAsync(CancellationToken ct = default) =>
+        await db.FareModes.AsNoTracking()
+            .Where(m => m.IsActive)
+            .OrderBy(m => m.SortOrder).ThenBy(m => m.Name)
+            .Select(m => new FareModeOptionDto(m.Id, m.Code, m.Name, m.RequiresDetail, m.ReceiptExpected))
+            .ToListAsync(ct);
+
     /// <summary>The rates in force on the expense date (spec section 5); today when no date is given.</summary>
     public Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, CancellationToken ct = default) =>
         rates.EditorRatesAsync(user.UserId, date ?? calendar.Today, ct);

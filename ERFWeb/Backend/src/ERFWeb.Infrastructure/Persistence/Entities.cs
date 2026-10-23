@@ -27,6 +27,26 @@ public class Currency
     public bool IsActive { get; set; } = true;
 }
 
+/// <summary>How a fare leg was travelled (Taxi, Grab, Jeepney, ...). Replaces the legacy dbo.tbFare list.</summary>
+public class FareMode
+{
+    public long Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int SortOrder { get; set; }
+
+    /// <summary>Recorded for Finance (usually an official receipt); not enforced.</summary>
+    public bool ReceiptExpected { get; set; }
+
+    /// <summary>The employee types the mode ("Others").</summary>
+    public bool RequiresDetail { get; set; }
+
+    /// <summary>The matching dbo.tbFare.id, for traceability to the desktop list.</summary>
+    public int? LegacyFareId { get; set; }
+
+    public bool IsActive { get; set; } = true;
+}
+
 public class Site
 {
     public long Id { get; set; }
@@ -199,6 +219,12 @@ public class ExpenseTransportItem
     public string? FareFrom { get; set; }
     public string? FareTo { get; set; }
     public decimal FareAmount { get; set; }
+
+    /// <summary>Null on legs saved before fare modes existed (script 016).</summary>
+    public long? FareModeId { get; set; }
+
+    /// <summary>The typed mode when the fare mode requires it ("Others").</summary>
+    public string? FareModeDetail { get; set; }
 }
 
 public class ApprovalStep

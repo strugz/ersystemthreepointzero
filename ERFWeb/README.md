@@ -102,6 +102,7 @@ psql -d erfweb -f Database/012_sms_deliveries_report.sql # SMS deliveries linked
 psql -d erfweb -f Database/013_approval_delegations.sql  # Phase 7: approval delegation and "on behalf of" steps
 psql -d erfweb -f Database/014_email_deliveries.sql      # Phase 7: R47 email delivery log (sent status)
 psql -d erfweb -f Database/015_security_and_schema_versions.sql # Phase 8.3: forced password change, schema_versions
+psql -d erfweb -f Database/016_fare_modes.sql             # fare modes (Taxi, Grab, Jeepney, ...) on fare legs
 psql -d erfweb -f Database/017_admin_only_authority.sql  # no countersign, no Business Owner: activates pending grants
 ```
 
@@ -211,7 +212,8 @@ trigger stamps `record_history.changed_by`.
 | --- | --- |
 | `GET /api/reports` | My reports, paged (`page`, `pageSize`, `sort`, `direction`, `status`, `search`) |
 | `POST /api/reports` · `GET/PUT/DELETE /api/reports/{id}` | Create / read / update header + cash advance / delete (never-filed only) |
-| `POST /api/reports/{id}/lines` · `PUT/DELETE …/lines/{lineId}` | Expense lines with meal / fare-leg items |
+| `POST /api/reports/{id}/lines` · `PUT/DELETE …/lines/{lineId}` | Expense lines with meal / fare-leg items. Every fare leg saved names its fare mode (`fareModeId`, plus `fareModeDetail` for modes such as Others); legs saved before script 016 have none until the line is saved again |
+| `GET /api/lookups/fare-modes` | Active fare modes for the fare-leg picker, in sort order |
 | `POST /api/reports/{id}/cash-advances` · `PUT/DELETE …/cash-advances/{lineId}` | Rows of the CASH ADVANCE RECEIVED block (Liquidation of Cash Advance only); the R47 reconciles against their total |
 | `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller) |
 | `POST /api/reports/{id}/file` | File / re-file → `ForApproval`; snapshots the approval route into `approval_steps` |
@@ -244,7 +246,7 @@ with the R47 attached (SMTP). Delivery runs after the filing commits and can nev
 
 SPA: **My reports** (`/reports`, status/search filters, deep-linkable `?status=`), **New report**
 (`/reports/new`), and the **editor** (`/reports/:id`: header + cash advance, grouped expense-lines table,
-add/edit line dialog with meal chips, fare legs and per-diem preview, receipts panel, approval timeline,
+add/edit line dialog with meal chips, fare legs (each with its mode: Taxi, Grab, Angkas, Jeepney, ...) and per-diem preview, receipts panel, approval timeline,
 filing checklist, file / re-file / reopen / delete with confirmations).
 
 ## Auth (plan Phase 0)
@@ -305,7 +307,7 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 | --- | --- |
 | `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `…/signature` (SystemAdministrator) | Register and maintain accounts; load the signature printed on the R47 |
 | `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/revoke` (SystemAdministrator) | Grant, revoke |
-| `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites}` · `GET …/expense-categories` | Master data (deactivate, never delete) |
+| `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list |
 | `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches; stored in `app_settings` |
 | `GET /api/admin/audit?event&actorUserId&from&to` (SystemAdministrator, Finance) | Append-only audit trail |
 

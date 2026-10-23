@@ -25,7 +25,7 @@ public sealed class ExpenseLineService(
         var lineId = await tx.ExecuteAsync(async token =>
         {
             var report = await gate.LoadEditableAsync(reportId, token);
-            Validate(request, report);
+            var modes = await ValidateAsync(request, report, null, token);
 
             var nextSort = await db.ExpenseLines
                 .Where(l => l.ReportId == reportId)
@@ -44,7 +44,7 @@ public sealed class ExpenseLineService(
             db.ExpenseLines.Add(line);
             await db.SaveChangesAsync(token);
 
-            ReplaceChildren(line.Id, request);
+            ReplaceChildren(line.Id, request, modes);
             report.UpdatedAt = now;
             await db.SaveChangesAsync(token);
             return line.Id;
@@ -64,7 +64,7 @@ public sealed class ExpenseLineService(
         await tx.ExecuteAsync(async token =>
         {
             var report = await gate.LoadEditableAsync(reportId, token);
-            Validate(request, report);
+            var modes = await ValidateAsync(request, report, lineId, token);
 
             var line = await db.ExpenseLines.FirstOrDefaultAsync(l => l.Id == lineId && l.ReportId == reportId && l.IsActive, token)
                 ?? throw new NotFoundException("Expense line not found.");
@@ -77,7 +77,7 @@ public sealed class ExpenseLineService(
             var existingTransports = await db.ExpenseTransportItems.Where(t => t.ExpenseLineId == lineId).ToListAsync(token);
             db.ExpenseMealItems.RemoveRange(existingMeals);
             db.ExpenseTransportItems.RemoveRange(existingTransports);
-            ReplaceChildren(lineId, request);
+            ReplaceChildren(lineId, request, modes);
 
             report.UpdatedAt = now;
             await db.SaveWithConcurrencyAsync(token);
@@ -100,7 +100,9 @@ public sealed class ExpenseLineService(
             await db.SaveWithConcurrencyAsync(token);
         }, ct);
 
-    private static void Validate(SaveExpenseLineRequest r, ExpenseReport report)
+    /// <summary>Validates the line and its fare legs; returns the fare modes the legs name, for saving them.</summary>
+    private async Task<IReadOnlyDictionary<long, FareModeRule>> ValidateAsync(
+        SaveExpenseLineRequest r, ExpenseReport report, long? lineId, CancellationToken ct)
     {
         var errors = new Dictionary<string, string[]>(ExpenseLineRules.Validate(
             r.TransactionDate, r.Particulars, r.Amount, r.VatAmount, r.InvoiceOrNo, r.Multiplier,
@@ -112,15 +114,36 @@ public sealed class ExpenseLineService(
             errors["meals"] = ["Each meal item needs a meal type (Breakfast, Lunch, Dinner, OT)."];
         }
 
-        if (r.Transports is { Count: > 0 } && r.Transports.Any(t => t.FareAmount < 0))
+        IReadOnlyDictionary<long, FareModeRule> modes = new Dictionary<long, FareModeRule>();
+        if (r.Transports is { Count: > 0 } legs)
         {
-            errors["transports"] = ["Fare amounts cannot be negative."];
+            var modeIds = legs.Where(t => t.FareModeId != null).Select(t => t.FareModeId!.Value).Distinct().ToList();
+            modes = await db.FareModes.AsNoTracking()
+                .Where(m => modeIds.Contains(m.Id))
+                .ToDictionaryAsync(m => m.Id, m => new FareModeRule(m.Id, m.IsActive, m.RequiresDetail), ct);
+
+            // A mode deactivated after the line was saved stays usable on that line.
+            var alreadyOnLine = lineId is { } id
+                ? (await db.ExpenseTransportItems.AsNoTracking()
+                    .Where(t => t.ExpenseLineId == id && t.FareModeId != null)
+                    .Select(t => t.FareModeId!.Value)
+                    .ToListAsync(ct)).ToHashSet()
+                : [];
+
+            var legErrors = FareLegRules.Validate(
+                legs.Select(t => new FareLegInput(t.FareModeId, t.FareModeDetail, t.FareAmount)).ToList(), modes, alreadyOnLine);
+            foreach (var (key, messages) in legErrors)
+            {
+                errors[key] = messages;
+            }
         }
 
         if (errors.Count > 0)
         {
             throw new ValidationException(errors);
         }
+
+        return modes;
     }
 
     /// <summary>Copies request fields onto the entity and derives multiplier, total and computation text.</summary>
@@ -157,7 +180,7 @@ public sealed class ExpenseLineService(
         line.UpdatedAt = now;
     }
 
-    private void ReplaceChildren(long lineId, SaveExpenseLineRequest r)
+    private void ReplaceChildren(long lineId, SaveExpenseLineRequest r, IReadOnlyDictionary<long, FareModeRule> modes)
     {
         foreach (var meal in r.Meals ?? [])
         {
@@ -178,6 +201,8 @@ public sealed class ExpenseLineService(
                 FareFrom = Clean(fare.FareFrom),
                 FareTo = Clean(fare.FareTo),
                 FareAmount = fare.FareAmount,
+                FareModeId = fare.FareModeId,
+                FareModeDetail = fare.FareModeId is { } modeId ? FareLegRules.NormalizeDetail(modes[modeId], fare.FareModeDetail) : null,
             });
         }
     }

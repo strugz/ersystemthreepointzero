@@ -10,7 +10,7 @@ namespace ERFWeb.Api.Controllers;
 [Route("api/admin/master-data")]
 [Authorize(Policy = Policies.SystemAdministrator)]
 [Produces("application/json")]
-public sealed class AdminMasterDataController(IMasterDataService masterData) : ControllerBase
+public sealed class AdminMasterDataController(IMasterDataService masterData, IFareModeAdminService fareModes) : ControllerBase
 {
     [HttpGet("departments")]
     public async Task<ActionResult<IReadOnlyList<DepartmentDto>>> Departments([FromQuery] bool includeInactive = true, CancellationToken ct = default) =>
@@ -75,6 +75,22 @@ public sealed class AdminMasterDataController(IMasterDataService masterData) : C
     [HttpPut("sites/{id:long}")]
     public async Task<ActionResult<SiteDto>> UpdateSite(long id, [FromBody] SaveSiteRequest request, CancellationToken ct) =>
         Ok(await masterData.UpdateSiteAsync(id, request, ct));
+
+    [HttpGet("fare-modes")]
+    public async Task<ActionResult<IReadOnlyList<FareModeDto>>> FareModes([FromQuery] bool includeInactive = true, CancellationToken ct = default) =>
+        Ok(await fareModes.ListAsync(includeInactive, ct));
+
+    [HttpPost("fare-modes")]
+    [ProducesResponseType<FareModeDto>(StatusCodes.Status201Created)]
+    public async Task<ActionResult<FareModeDto>> CreateFareMode([FromBody] SaveFareModeRequest request, CancellationToken ct)
+    {
+        var created = await fareModes.CreateAsync(request, ct);
+        return StatusCode(StatusCodes.Status201Created, created);
+    }
+
+    [HttpPut("fare-modes/{id:long}")]
+    public async Task<ActionResult<FareModeDto>> UpdateFareMode(long id, [FromBody] SaveFareModeRequest request, CancellationToken ct) =>
+        Ok(await fareModes.UpdateAsync(id, request, ct));
 
     /// <summary>The expense categories are fixed by the R47 form; listed here for the console.</summary>
     [HttpGet("expense-categories")]
