@@ -85,8 +85,11 @@ public interface ICrmActivityDirectory
 {
     bool IsConfigured { get; }
 
-    /// <summary>The employee's Completed activities from <paramref name="from"/> to <paramref name="to"/> (at most 62 days); null when the CRM has no such employee.</summary>
-    Task<PagedResult<CrmActivityDto>?> ListAsync(string employeeId, DateOnly from, DateOnly to, int page, int pageSize, CancellationToken ct = default);
+    /// <summary>
+    /// The employee's activities in <paramref name="status"/> (Completed, Open or Cancelled) from <paramref name="from"/>
+    /// to <paramref name="to"/> (at most 62 days); null when the CRM has no such employee.
+    /// </summary>
+    Task<PagedResult<CrmActivityDto>?> ListAsync(string employeeId, DateOnly from, DateOnly to, string status, int page, int pageSize, CancellationToken ct = default);
 
     /// <summary>The activity as its owner sees it, whatever its status, or null when the CRM has no such ID.</summary>
     Task<CrmActivityDto?> GetAsync(string activityId, CancellationToken ct = default);

@@ -29,7 +29,7 @@ public sealed class CrmActivityDirectory(HttpClient http, IOptions<CrmOptions> o
 
     public bool IsConfigured => _api.IsConfigured;
 
-    public async Task<PagedResult<CrmActivityDto>?> ListAsync(string employeeId, DateOnly from, DateOnly to, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<CrmActivityDto>?> ListAsync(string employeeId, DateOnly from, DateOnly to, string status, int page, int pageSize, CancellationToken ct = default)
     {
         var id = employeeId?.Trim() ?? string.Empty;
         if (id.Length == 0 || id.Length > CrmEmployeeDirectory.MaxEmployeeIdLength)
@@ -40,7 +40,7 @@ public sealed class CrmActivityDirectory(HttpClient http, IOptions<CrmOptions> o
         var path = $"activities?employeeId={Uri.EscapeDataString(id)}"
             + $"&dateFrom={from.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}"
             + $"&dateTo={to.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}"
-            + $"&status={CrmActivityDto.CompletedStatus}&page={page}&pageSize={pageSize}";
+            + $"&status={Uri.EscapeDataString(status)}&page={page}&pageSize={pageSize}";
 
         using var response = await _api.SendAsync(path, ct);
         if (response.StatusCode == HttpStatusCode.NotFound)
@@ -50,7 +50,7 @@ public sealed class CrmActivityDirectory(HttpClient http, IOptions<CrmOptions> o
 
         if (response.StatusCode == HttpStatusCode.BadRequest)
         {
-            throw new ValidationException("dateFrom", $"The CRM lists at most {MaxRangeDays} days at a time. Shorten the report period.");
+            throw new ValidationException("dateFrom", $"The CRM did not accept that search. It lists at most {MaxRangeDays} days at a time.");
         }
 
         _api.EnsureSuccess(response);

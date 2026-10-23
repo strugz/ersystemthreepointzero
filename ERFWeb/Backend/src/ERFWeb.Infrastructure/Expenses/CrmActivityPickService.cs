@@ -2,49 +2,52 @@ using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Crm;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Domain;
-using ERFWeb.Infrastructure.Crm;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace ERFWeb.Infrastructure.Expenses;
 
 /// <summary>
-/// Lists the employee's Completed CRM activities in a report's period for the line editor, marking those
-/// already claimed. Only the report's owner may list them, with their own CRM link: the CRM is never asked
-/// about anyone else.
+/// Lists every CRM activity the employee has on one day (the expense line's date) for the line editor:
+/// Completed first, which can be claimed, then Open and Cancelled, shown so the employee sees the whole day.
+/// Marks those already claimed. Only the report's owner may list them, with their own CRM link: the CRM is
+/// never asked about anyone else.
 /// </summary>
 public sealed class CrmActivityPickService(ErfDbContext db, ICurrentUser user, ReportEditGate gate, ICrmActivityDirectory crm) : ICrmActivityPickService
 {
-    private const int DefaultPageSize = 100;
+    /// <summary>The CRM statuses, in the order the picker lists them.</summary>
+    private static readonly string[] Statuses = [CrmActivityDto.CompletedStatus, "Open", "Cancelled"];
 
-    public async Task<CrmActivityPickListDto> ListForReportAsync(Guid reportId, int page, int pageSize, CancellationToken ct = default)
+    /// <summary>The CRM's largest page; one employee's day never comes near it.</summary>
+    private const int PageSize = 100;
+
+    public async Task<CrmActivityPickListDto> ListForDateAsync(Guid reportId, DateOnly date, CancellationToken ct = default)
     {
         var report = await gate.LoadOwnedAsync(reportId, ct);
         var employeeId = await db.Users.AsNoTracking()
             .Where(u => u.Id == user.UserId)
             .Select(u => u.CrmEmployeeId)
             .FirstOrDefaultAsync(ct);
-        page = Math.Max(1, page);
-        pageSize = pageSize is < 1 or > DefaultPageSize ? DefaultPageSize : pageSize;
         if (string.IsNullOrWhiteSpace(employeeId))
         {
-            return new CrmActivityPickListDto(false, report.DateFrom, report.DateTo, [], 0, page, pageSize);
+            return new CrmActivityPickListDto(false, date, []);
         }
 
-        if (report.DateFrom is not { } from || report.DateTo is not { } to)
+        if ((report.DateFrom is { } from && date < from) || (report.DateTo is { } to && date > to))
         {
-            throw new ValidationException("dateFrom", "Set the report's Date From and Date To first; the CRM lists the activities in that period.");
+            throw new ValidationException("transactionDate", "Set the line's date inside the report period first; the CRM lists the activities of that day.");
         }
 
-        if (to.DayNumber - from.DayNumber + 1 > CrmActivityDirectory.MaxRangeDays)
+        // The CRM filters by one status per call, so the day takes one call per status.
+        var activities = new List<CrmActivityDto>();
+        foreach (var status in Statuses)
         {
-            throw new ValidationException("dateFrom", $"The CRM lists at most {CrmActivityDirectory.MaxRangeDays} days at a time. Shorten the report period.");
+            var page = await crm.ListAsync(employeeId, date, date, status, 1, PageSize, ct)
+                ?? throw new ConflictException("The CRM no longer has your linked employee ID. Ask the system administrator to link your account again, or type the line instead.");
+            activities.AddRange(page.Items.Where(a => activities.TrueForAll(seen => seen.ActivityId != a.ActivityId)));
         }
 
-        var result = await crm.ListAsync(employeeId, from, to, page, pageSize, ct)
-            ?? throw new ConflictException("The CRM no longer has your linked employee ID. Ask the system administrator to link your account again, or type the line instead.");
-
-        var ids = result.Items.Select(a => a.ActivityId).ToList();
+        var ids = activities.Select(a => a.ActivityId).ToList();
         var claims = await (
             from l in db.ExpenseLines.AsNoTracking()
             join r in db.ExpenseReports.AsNoTracking() on l.ReportId equals r.Id
@@ -54,7 +57,7 @@ public sealed class CrmActivityPickService(ErfDbContext db, ICurrentUser user, R
             .ToListAsync(ct);
 
         // Work With prints the ERFWeb name of a linked colleague, else the name the CRM gives.
-        var peopleIds = result.Items
+        var peopleIds = activities
             .SelectMany(a => a.Companions.Append(a.Employee))
             .OfType<CrmActivityPersonDto>()
             .Select(p => p.EmployeeId)
@@ -66,7 +69,7 @@ public sealed class CrmActivityPickService(ErfDbContext db, ICurrentUser user, R
                 .ToListAsync(ct))
             .ToDictionary(u => u.CrmEmployeeId!, u => u.FullName, StringComparer.OrdinalIgnoreCase);
 
-        var items = result.Items.Select(a =>
+        var items = activities.Select(a =>
         {
             var mine = claims.Where(c => c.ActivityId == a.ActivityId).ToList();
             var elsewhere = mine.FirstOrDefault(c => c.Id != report.Id);
@@ -79,7 +82,7 @@ public sealed class CrmActivityPickService(ErfDbContext db, ICurrentUser user, R
                 .ToList();
             var isOwner = string.Equals(a.Employee?.EmployeeId, employeeId, StringComparison.OrdinalIgnoreCase);
             return new CrmActivityOptionDto(
-                a.ActivityId, a.ActivityType, a.ActivityDate, a.Subject, a.ServiceNumber,
+                a.ActivityId, a.ActivityType, a.Status, a.IsCompleted, a.ActivityDate, a.Subject, a.ServiceNumber,
                 a.CustomerName, a.InstrumentName, a.SerialNumber,
                 isOwner ? "Lead" : "Companion",
                 others.Count > 0 ? string.Join(", ", others) : null,
@@ -88,6 +91,6 @@ public sealed class CrmActivityPickService(ErfDbContext db, ICurrentUser user, R
                 mine.Count(c => c.Id == report.Id));
         }).ToList();
 
-        return new CrmActivityPickListDto(true, from, to, items, result.Total, result.Page, result.PageSize);
+        return new CrmActivityPickListDto(true, date, items);
     }
 }

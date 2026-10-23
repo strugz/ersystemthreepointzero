@@ -270,6 +270,10 @@ export interface FilingReadiness {
 export interface CrmActivityOption {
   activityId: string;
   activityType: string | null;
+  /** Completed, Open or Cancelled, as the CRM reports it. */
+  status: string | null;
+  /** Only Completed activities can be picked; the others are listed so the day is complete. */
+  claimable: boolean;
   activityDate: string;
   subject: string | null;
   serviceNumber: string | null;
@@ -292,10 +296,7 @@ export interface CrmActivityOption {
 export interface CrmActivityPickList {
   /** False when the account has no CRM link. */
   linked: boolean;
-  dateFrom: string | null;
-  dateTo: string | null;
+  /** The day listed (the line's date). */
+  date: string;
   items: CrmActivityOption[];
-  total: number;
-  page: number;
-  pageSize: number;
 }

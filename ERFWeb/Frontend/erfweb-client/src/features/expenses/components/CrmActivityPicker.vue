@@ -3,8 +3,8 @@ import { computed, ref, watch } from 'vue';
 import { formatDate } from '@/shared/format';
 import type { CrmActivityOption, CrmActivityPickList } from '../types';
 
-// Lists the employee's completed CRM activities in the report period; picking one pre-fills the line.
-// An activity already on another report is shown but cannot be picked (one activity, one report).
+// Lists every CRM activity of the employee on the line's date; picking one pre-fills the line. Open and
+// Cancelled activities, and one already on another report (one activity, one report), show but cannot be picked.
 const props = withDefaults(
   defineProps<{
     modelValue: boolean;
@@ -42,10 +42,17 @@ const items = computed(() => {
   });
 });
 
-const more = computed(() => (props.list ? props.list.total - props.list.items.length : 0));
+/** Why an activity cannot be picked, or null when it can. */
+function blockedReason(a: CrmActivityOption): string | null {
+  if (!a.claimable) {
+    return a.status === 'Cancelled' ? 'Cancelled in the CRM' : 'Not completed in the CRM yet. Complete it there to claim it.';
+  }
+  if (a.claimedElsewhere) return `Already claimed on ${a.claimedInReferenceNo ?? 'another report not filed yet'}`;
+  return null;
+}
 
 function pick(a: CrmActivityOption) {
-  if (a.claimedElsewhere) return;
+  if (blockedReason(a)) return;
   emit('pick', a);
   emit('update:modelValue', false);
 }
@@ -57,8 +64,8 @@ function pick(a: CrmActivityOption) {
       <header class="crm__head">
         <div>
           <h2 class="crm__title">Pick a CRM activity</h2>
-          <p v-if="list?.linked && list.dateFrom" class="crm__sub">
-            Completed work from {{ formatDate(list.dateFrom) }} to {{ formatDate(list.dateTo) }}. You still enter the amount and receipt.
+          <p v-if="list?.linked" class="crm__sub">
+            Your CRM activities on {{ formatDate(list.date) }}. Change the line's date to see another day. You still enter the amount and receipt.
           </p>
         </div>
         <v-btn class="press" icon="mdi-close" variant="text" size="small" aria-label="Close" @click="emit('update:modelValue', false)" />
@@ -92,15 +99,15 @@ function pick(a: CrmActivityOption) {
             class="mb-3"
           />
           <p v-if="!items.length" class="crm__empty">
-            {{ list.items.length ? 'No activity matches the filter.' : 'No completed CRM activities in this period.' }}
+            {{ list.items.length ? 'No activity matches the filter.' : 'No CRM activities on this date.' }}
           </p>
           <ul v-else class="crm__list">
             <li v-for="a in items" :key="a.activityId">
               <button
                 type="button"
                 class="act press"
-                :class="{ 'act--off': a.claimedElsewhere }"
-                :disabled="a.claimedElsewhere"
+                :class="{ 'act--off': !!blockedReason(a) }"
+                :disabled="!!blockedReason(a)"
                 :aria-label="`Use ${a.activityId}${a.customerName ? `, ${a.customerName}` : ''}`"
                 @click="pick(a)"
               >
@@ -108,6 +115,7 @@ function pick(a: CrmActivityOption) {
                   <span class="act__date">{{ formatDate(a.activityDate) }}</span>
                   <span class="mono act__id">{{ a.activityId }}</span>
                   <v-chip v-if="a.activityType" size="x-small" label variant="tonal">{{ a.activityType }}</v-chip>
+                  <v-chip v-if="!a.claimable && a.status" size="x-small" label variant="outlined">{{ a.status }}</v-chip>
                   <v-chip v-if="a.role === 'Companion'" size="x-small" label variant="outlined">Work-with</v-chip>
                   <v-chip v-if="a.isOvernight" size="x-small" label variant="tonal" color="warning">Multi-day</v-chip>
                 </div>
@@ -116,16 +124,13 @@ function pick(a: CrmActivityOption) {
                 <div v-if="a.instrumentName || a.serialNumber" class="act__sub">
                   {{ [a.instrumentName, a.serialNumber].filter(Boolean).join(' · ') }}
                 </div>
-                <div v-if="a.claimedElsewhere" class="act__note act__note--off">
-                  Already claimed on {{ a.claimedInReferenceNo ?? 'another report not filed yet' }}
-                </div>
+                <div v-if="blockedReason(a)" class="act__note act__note--off">{{ blockedReason(a) }}</div>
                 <div v-else-if="a.linesInThisReport > 0" class="act__note">
                   Used on {{ a.linesInThisReport }} line{{ a.linesInThisReport === 1 ? '' : 's' }} of this report
                 </div>
               </button>
             </li>
           </ul>
-          <p v-if="more > 0" class="crm__empty">{{ more }} more not shown. Shorten the report period to see them.</p>
         </template>
       </v-card-text>
     </v-card>

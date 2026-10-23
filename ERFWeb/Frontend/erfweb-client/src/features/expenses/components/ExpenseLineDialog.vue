@@ -29,7 +29,7 @@ const props = withDefaults(
     errors?: Record<string, string[]> | null;
     /** The employee is linked to the CRM: offer "From CRM". */
     crmAvailable?: boolean;
-    /** The CRM activities in the report period; loaded by the parent on `crm-load`. */
+    /** The employee's CRM activities on the line's date; loaded by the parent on `crm-load`. */
     crmList?: CrmActivityPickList | null;
     crmLoading?: boolean;
     crmError?: string | null;
@@ -54,8 +54,8 @@ const emit = defineEmits<{
   save: [input: SaveExpenseLineInput];
   /** Rates depend on the expense date; the parent refetches them for the date shown. */
   'date-change': [date: string];
-  /** The employee opened the CRM picker; the parent loads the activities. */
-  'crm-load': [];
+  /** The employee opened the CRM picker; the parent loads the activities of that day. */
+  'crm-load': [date: string];
 }>();
 
 const blank = (): SaveExpenseLineInput => ({
@@ -275,7 +275,7 @@ const pickedActivity = ref<CrmActivityOption | null>(null);
 
 function openCrm() {
   crmOpen.value = true;
-  emit('crm-load');
+  emit('crm-load', form.transactionDate);
 }
 
 function applyActivity(a: CrmActivityOption) {
@@ -687,7 +687,7 @@ function close() {
     :loading="crmLoading"
     :error="crmError"
     @pick="applyActivity"
-    @retry="emit('crm-load')"
+    @retry="emit('crm-load', form.transactionDate)"
   />
 </template>
 

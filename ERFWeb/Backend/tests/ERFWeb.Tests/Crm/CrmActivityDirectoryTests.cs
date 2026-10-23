@@ -35,7 +35,7 @@ public class CrmActivityDirectoryTests
     {
         var handler = new RecordingHandler(HttpStatusCode.OK, $$"""{"page":1,"pageSize":100,"totalCount":1,"items":[{{ServiceReport}}]}""");
 
-        var result = await Create(handler, Configured).ListAsync(" CNT-001 ", new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 15), 1, 100);
+        var result = await Create(handler, Configured).ListAsync(" CNT-001 ", new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 15), "Completed", 1, 100);
 
         Assert.Equal("https://crm.example.test/api2/erf/v1/activities?employeeId=CNT-001&dateFrom=2026-10-01&dateTo=2026-10-15&status=Completed&page=1&pageSize=100", handler.Uri?.AbsoluteUri);
         Assert.Equal("test-key", handler.ApiKey);
@@ -55,19 +55,19 @@ public class CrmActivityDirectoryTests
     [Fact]
     public async Task ListAsync_ReturnsNullWhenTheCrmHasNoSuchEmployee() =>
         Assert.Null(await Create(new RecordingHandler(HttpStatusCode.NotFound, """{"status":404}"""), Configured)
-            .ListAsync("CNT-999", new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 2), 1, 50));
+            .ListAsync("CNT-999", new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 2), "Completed", 1, 50));
 
     [Fact]
     public async Task ListAsync_TurnsARefusedRangeIntoAValidationError() =>
         await Assert.ThrowsAsync<ValidationException>(() => Create(new RecordingHandler(HttpStatusCode.BadRequest, """{"status":400}"""), Configured)
-            .ListAsync("CNT-001", new DateOnly(2026, 1, 1), new DateOnly(2026, 6, 1), 1, 50));
+            .ListAsync("CNT-001", new DateOnly(2026, 1, 1), new DateOnly(2026, 6, 1), "Completed", 1, 50));
 
     [Fact]
     public async Task ListAsync_SkipsItemsWithoutAnIdOrDate()
     {
         var handler = new RecordingHandler(HttpStatusCode.OK, """{"page":1,"pageSize":50,"totalCount":2,"items":[{"activityId":null,"activityDate":"2026-10-06"},{"activityId":"ITI-9","activityDate":null}]}""");
 
-        var result = await Create(handler, Configured).ListAsync("CNT-001", new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 15), 1, 50);
+        var result = await Create(handler, Configured).ListAsync("CNT-001", new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 15), "Open", 1, 50);
 
         Assert.Empty(result!.Items);
     }

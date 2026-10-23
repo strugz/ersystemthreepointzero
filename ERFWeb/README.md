@@ -230,7 +230,7 @@ trigger stamps `record_history.changed_by`.
 | `POST /api/reports/{id}/file` | File / re-file → `ForApproval`; snapshots the approval route into `approval_steps` |
 | `POST /api/reports/{id}/reopen` | Pull a `ForApproval`/`Approved` report back to `New` (supersedes the cycle) |
 | `GET /api/lookups/work-with` · `my-rates` · `my-filing-readiness` | Editor lookups (`crmActivitiesAvailable` turns on **From CRM**) |
-| `GET /api/reports/{id}/crm-activities` (report owner) | The owner's completed CRM activities in the report period, marked when already claimed (see CRM activities on expense lines) |
+| `GET /api/reports/{id}/crm-activities?date=YYYY-MM-DD` (report owner) | The owner's CRM activities on the line's date, every status, Completed first and marked when already claimed (see CRM activities on expense lines) |
 
 Rules (Domain, unit-tested): a report is editable only while `New` or `Returned`; filing requires ≥ 1 active
 line, the employee's signature on file, a configured approval route, a purpose, a cash-advance amount for a
@@ -362,7 +362,9 @@ category and enters the amount, Invoice/OR, VAT and receipts. Their side is the 
 Activity API for ERFWeb".
 
 - **Picking.** **From CRM** in the line editor (shown when `my-filing-readiness` reports
-  `crmActivitiesAvailable`) lists the activities in the report's Date From–To (at most 62 days). Picking one
+  `crmActivitiesAvailable`) lists all the employee's activities on the line's date: Completed ones first, which
+  can be picked, then Open and Cancelled ones, shown greyed out so the day is complete (one CRM call per status).
+  Changing the line's date and reopening lists that day. Picking one
   fills Date (`activityDate`), Particulars (`subject`), Location (`customer.name`), Work With (the other people,
   by their ERFWeb name where linked), Service no., Instrument and Serial no., and on a Transportation line the
   first fare leg (`travel.origin` → `travel.destination`). The line keeps the link (`expense_lines.crm_activity_id`,
@@ -372,9 +374,9 @@ Activity API for ERFWeb".
   companion), and covers the line's date (any day from its start to its completion for multi-day work). One
   activity may fill several lines of one report (a meal and a fare from one visit), but not lines of another of
   the employee's reports unless that report was Rejected. A line that keeps its link saves without calling the CRM.
-- **Server to CRM.** `CrmActivityDirectory` calls `GET {Crm:BaseUrl}/activities?employeeId=&dateFrom=&dateTo=&status=Completed`
+- **Server to CRM.** `CrmActivityDirectory` calls `GET {Crm:BaseUrl}/activities?employeeId=&dateFrom=&dateTo=&status=`
   with the account's own `crm_employee_id`; it logs only the HTTP status. The browser never calls the CRM.
-- **Errors.** 400 without a report period or with one over 62 days; 409 when the CRM no longer knows the
+- **Errors.** 400 when the date is outside the report period; 409 when the CRM no longer knows the
   linked employee ID (relink the account); 503 `crm_not_configured` / `crm_unavailable` as for the lookup.
 - **Not used yet.** `distanceKm`, `isOutOfTown` and the customer branch/city are always null in the CRM for
   now; the "claimed" callback to the CRM is not built.

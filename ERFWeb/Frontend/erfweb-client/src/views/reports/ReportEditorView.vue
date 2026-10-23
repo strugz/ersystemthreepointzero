@@ -181,18 +181,19 @@ function openEditLine(line: ExpenseLine) {
   lineDialog.value = true;
 }
 
-// CRM activities for the line editor: loaded when the employee opens the picker, kept until a line or
-// the report period changes (both change what is listed or claimed).
+// CRM activities for the line editor: the day of the line's date, loaded when the employee opens the
+// picker and kept for that day until a line or the report period changes (both change what is claimed).
 const crmList = ref<CrmActivityPickList | null>(null);
 const crmLoading = ref(false);
 const crmError = ref<string | null>(null);
 
-async function loadCrmActivities() {
-  if (crmLoading.value || crmList.value) return;
+async function loadCrmActivities(date: string) {
+  if (crmLoading.value || crmList.value?.date === date) return;
+  crmList.value = null;
   crmLoading.value = true;
   crmError.value = null;
   try {
-    crmList.value = await expensesApi.crmActivities(reportId);
+    crmList.value = await expensesApi.crmActivities(reportId, date);
   } catch (err) {
     crmError.value = describeError(err, 'Unable to reach the CRM.');
   } finally {

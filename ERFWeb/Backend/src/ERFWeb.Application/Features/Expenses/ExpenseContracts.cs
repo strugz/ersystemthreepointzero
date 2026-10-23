@@ -224,14 +224,18 @@ public interface IExpenseLineService
 }
 
 /// <summary>
-/// One CRM activity the employee can pick to pre-fill an expense line. <see cref="WorkWith"/> names the
-/// other people on the activity, using their ERFWeb names where linked. <see cref="ClaimedInReferenceNo"/>
-/// is set when the activity is already on another of the employee's reports (null reference: not filed yet),
-/// and <see cref="LinesInThisReport"/> counts the lines of this report that already use it.
+/// One CRM activity of the employee's day, offered to pre-fill an expense line. Only a
+/// <see cref="Claimable"/> (Completed) one can be picked; Open and Cancelled ones are listed so the day is
+/// complete. <see cref="WorkWith"/> names the other people on the activity, using their ERFWeb names where
+/// linked. <see cref="ClaimedInReferenceNo"/> is set when the activity is already on another of the
+/// employee's reports (null reference: not filed yet), and <see cref="LinesInThisReport"/> counts the lines
+/// of this report that already use it.
 /// </summary>
 public sealed record CrmActivityOptionDto(
     string ActivityId,
     string? ActivityType,
+    string? Status,
+    bool Claimable,
     DateOnly ActivityDate,
     string? Subject,
     string? ServiceNumber,
@@ -247,20 +251,16 @@ public sealed record CrmActivityOptionDto(
     string? ClaimedInReferenceNo,
     int LinesInThisReport);
 
-/// <summary>The CRM activities in a report's period; <see cref="Linked"/> is false when the account has no CRM link.</summary>
+/// <summary>The employee's CRM activities on <see cref="Date"/>; <see cref="Linked"/> is false when the account has no CRM link.</summary>
 public sealed record CrmActivityPickListDto(
     bool Linked,
-    DateOnly? DateFrom,
-    DateOnly? DateTo,
-    IReadOnlyList<CrmActivityOptionDto> Items,
-    int Total,
-    int Page,
-    int PageSize);
+    DateOnly Date,
+    IReadOnlyList<CrmActivityOptionDto> Items);
 
 public interface ICrmActivityPickService
 {
-    /// <summary>The current employee's Completed CRM activities within the report's period.</summary>
-    Task<CrmActivityPickListDto> ListForReportAsync(Guid reportId, int page, int pageSize, CancellationToken ct = default);
+    /// <summary>The current employee's CRM activities on one day (the line's date), in every status, Completed first.</summary>
+    Task<CrmActivityPickListDto> ListForDateAsync(Guid reportId, DateOnly date, CancellationToken ct = default);
 }
 
 public interface ICashAdvanceService
