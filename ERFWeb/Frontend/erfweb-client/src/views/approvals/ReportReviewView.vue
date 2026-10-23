@@ -29,6 +29,7 @@ import VerificationCard from '@/features/verification/components/VerificationCar
 import VerificationActionDialog from '@/features/verification/components/VerificationActionDialog.vue';
 import type { VerificationActionMode, VerificationActionPayload } from '@/features/verification/components/VerificationActionDialog.vue';
 import type { Verification } from '@/features/verification/types';
+import { reviewOriginCrumb, reviewPdfLink } from './reviewCrumbs';
 
 // Read-only review of someone else's report, for approvers, Finance, and Expense Verifiers. The API
 // decides what the viewer may do (report.review, report.verification); these buttons only mirror it,
@@ -65,15 +66,10 @@ async function load() {
 onMounted(load);
 
 const crumbs = computed<Crumb[]>(() => [
-  route.query.from === 'finance'
-    ? { title: 'Finance queue', to: { name: 'finance-queue' } }
-    : route.query.from === 'verifications'
-      ? { title: 'Verifications', to: { name: 'verifications' } }
-      : route.query.from === 'queries'
-        ? { title: 'Approvals', to: { name: 'approvals', query: { view: 'Queries' } } }
-        : { title: 'Approvals', to: { name: 'approvals' } },
+  reviewOriginCrumb(route.query.from),
   { title: report.value?.referenceNo || 'Expense report', mono: !!report.value?.referenceNo },
 ]);
+const pdfLink = reviewPdfLink(reportId, route.query.from);
 
 const subtitle = computed(() => {
   const r = report.value;
@@ -232,7 +228,7 @@ async function saveAdjust(amount: number, reason: string) {
   <AuthenticatedLayout :crumbs="crumbs">
     <template #actions>
       <template v-if="report">
-        <v-btn class="press" variant="text" prepend-icon="mdi-printer-outline" :to="{ name: 'report-pdf', params: { id: report.id } }">R47 PDF</v-btn>
+        <v-btn class="press" variant="text" prepend-icon="mdi-printer-outline" :to="pdfLink">R47 PDF</v-btn>
         <template v-if="review">
           <v-btn v-if="review.canReject" class="press" variant="text" color="error" @click="startAction('reject')">Reject</v-btn>
           <v-btn v-if="review.canReturn" class="press" variant="outlined" color="warning" prepend-icon="mdi-undo-variant" @click="startAction('return')">Return</v-btn>
@@ -255,7 +251,7 @@ async function saveAdjust(amount: number, reason: string) {
           </template>
           <v-card min-width="220" class="pa-1">
             <v-list density="compact" class="py-0">
-              <v-list-item prepend-icon="mdi-printer-outline" title="R47 PDF" :to="{ name: 'report-pdf', params: { id: report.id } }" />
+              <v-list-item prepend-icon="mdi-printer-outline" title="R47 PDF" :to="pdfLink" />
               <v-list-item v-if="review?.canOverride" prepend-icon="mdi-debug-step-over" title="Override Level 1" @click="startAction('override')" />
               <v-list-item v-if="review?.canReject" prepend-icon="mdi-close-octagon-outline" title="Reject" base-color="error" @click="startAction('reject')" />
             </v-list>

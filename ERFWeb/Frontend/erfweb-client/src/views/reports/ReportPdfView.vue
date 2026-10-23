@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import type { RouteLocationRaw } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
+import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
+import { reviewLink, reviewOriginCrumb } from '@/views/approvals/reviewCrumbs';
 import { reportingApi } from '@/features/reporting/api';
 import type { ReportEmailDelivery } from '@/features/reporting/types';
 import { newIdempotencyKey } from '@/features/notifications/api';
@@ -13,6 +16,16 @@ import { formatDateTime } from '@/shared/format';
 const route = useRoute();
 const { xs } = useDisplay();
 const reportId = String(route.params.id);
+
+// Opened from a review (approver, Finance, verifier): lead back there, where the actions are,
+// not to the claimant's editor.
+const fromReview = route.query.via === 'review';
+const reportLink: RouteLocationRaw = fromReview ? reviewLink(reportId, route.query.from) : { name: 'report-edit', params: { id: reportId } };
+const crumbs: Crumb[] = [
+  fromReview ? reviewOriginCrumb(route.query.from) : { title: 'My reports', to: { name: 'reports' } },
+  { title: 'Expense report', to: reportLink },
+  { title: 'R47 PDF' },
+];
 
 const pdfUrl = ref<string | null>(null);
 const loading = ref(true);
@@ -102,8 +115,8 @@ function print() {
 
 <template>
   <AuthenticatedLayout
-    :crumbs="[{ title: 'My reports', to: { name: 'reports' } }, { title: 'Expense report', to: { name: 'report-edit', params: { id: reportId } } }, { title: 'R47 PDF' }]"
-    :back="{ name: 'report-edit', params: { id: reportId } }"
+    :crumbs="crumbs"
+    :back="reportLink"
   >
     <template #actions>
       <v-btn class="press" variant="text" prepend-icon="mdi-printer-outline" :disabled="!pdfUrl" @click="print">Print</v-btn>
