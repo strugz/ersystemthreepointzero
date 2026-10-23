@@ -310,12 +310,45 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 | `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `…/signature` (SystemAdministrator) | Register and maintain accounts; load the signature printed on the R47 |
 | `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/revoke` (SystemAdministrator) | Grant, revoke |
 | `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list |
-| `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches; stored in `app_settings` |
+| `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches, account email domains; stored in `app_settings` |
+| `GET /api/admin/crm/employees?search&includeInactive` · `GET …/{employeeId}` (SystemAdministrator) | CRM employee lookup for the user form (see CRM employee link) |
 | `GET /api/admin/audit?event&actorUserId&from&to` (SystemAdministrator, Finance) | Append-only audit trail |
 
 First-time setup (plan flow 1): sign in as `admin`, create accounts and master data, set the rules, grant the
 signatory roles, then give each signatory a scope (Scope page) so reports route to them.
 `department_signatories` (the initials printed on the R47 footer) is still maintained by SQL.
+
+### CRM employee link
+
+The CRM holds no employee email, so an account is tied to the CRM by the CRM **employee ID** (e.g. `CNT-001`),
+stored in `users.crm_employee_id` (script `018`). The later CRM activity endpoints (visits and service work to
+claim on expense lines) take this ID. The data contract with the CRM team is
+`Document/CRM-API-Integration-Spec.md`; their side is the "CRM Employee Lookup API for ERFWeb".
+
+- **Picking.** On New user and Edit, the CRM link field searches the CRM by name, initials or employee ID
+  (2 characters or more; "Include people who have left" adds leavers). The admin picks one person; the stored
+  ID shows in the read-only **CRM employee ID** box beside it. Names are never matched automatically.
+- **Prefill.** Picking fills **Full name** and **Mobile no.** from the CRM (`fullName`, `mobileNumber` = CRM
+  `CNTNUM`) only when those fields are empty. Email, department and the other fields are entered by hand.
+- **Rules (`UserAdminService`).** One CRM employee links to one account (also a unique index). On create, and on
+  edit when the link changes, the server asks the CRM whether the ID exists; an ordinary profile edit never calls
+  the CRM. Clearing the field and saving removes the link. The ID is in the `Admin.UserCreated` /
+  `Admin.UserUpdated` audit rows.
+- **Server to CRM.** `CrmEmployeeDirectory` calls `GET {Crm:BaseUrl}/employees?search=` and
+  `/employees/{employeeId}` with the key in `X-Api-Key`. It logs only the HTTP status, never the search text,
+  the key or the response. The browser never calls the CRM.
+- **Errors.** 400 when the search is shorter than 2 characters; 503 `crm_not_configured` without the `Crm`
+  section; 503 `crm_unavailable` when the CRM refuses (wrong key, 5xx), times out or answers unreadable JSON.
+  The account can always be saved without a link.
+
+### Account email domains
+
+The Email field on the user form is a name plus a domain dropdown. The domains are the setting
+`Accounts.EmailDomains` (default `marsmandrysdale.com`), edited under **Settings → Account email domains**: type a
+domain and press Enter; the first one is the default for new accounts. `EmailDomainRules` trims, lower-cases,
+drops a leading `@` and duplicates, and refuses an invalid domain, an empty list or more than 20. Typing a full
+address (with `@`) in the name box keeps it as typed, for addresses outside the list; the server accepts any valid
+email. No database script: a missing row falls back to the default.
 
 ## Scope & rate profiles (plan Phase 2)
 
