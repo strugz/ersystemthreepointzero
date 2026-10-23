@@ -91,8 +91,8 @@ const workNav = computed<NavItem[]>(() => {
   return items;
 });
 
-// Signatory structure entries: scope for every entitlement reader; rates for all of them except a
-// System Administrator who holds no other reader role (they only manage scope). Gating is display only.
+// Signatory structure entries: scope and rates for every entitlement reader; the System
+// Administrator maintains both. Gating is display only.
 const entitlementNav = computed<NavItem[]>(() => {
   const roles = session.user?.roles;
   const items: NavItem[] = [];

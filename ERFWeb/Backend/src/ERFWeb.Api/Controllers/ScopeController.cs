@@ -6,9 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace ERFWeb.Api.Controllers;
 
 /// <summary>
-/// Scope assignments: who signs for whom (RBAC v0.6 flow 3). Level 1 scope is set by a Level 2
-/// Signatory or the Business Owner; Level 2 scope by the Business Owner, with the bootstrap
-/// exceptions decided in the service.
+/// Scope assignments: who signs for whom (RBAC v0.6 flow 3). Only a System Administrator sets
+/// scope at either level.
 /// </summary>
 [ApiController]
 [Route("api/scope")]

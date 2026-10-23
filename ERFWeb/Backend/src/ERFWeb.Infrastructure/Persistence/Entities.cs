@@ -65,14 +65,14 @@ public class AppSetting
 }
 
 /// <summary>
-/// One additive role on an account (RBAC v0.6). Privileged roles start PendingActivation and
-/// become Active when countersigned; the Employee base role is never stored here.
+/// One additive role on an account (RBAC v0.6). A grant is Active until revoked; the countersign
+/// and bootstrap columns are history from the dual-approval period. The Employee base role is never stored here.
 /// </summary>
 public class UserRoleGrant
 {
     public long UserId { get; set; }
     public UserRole Role { get; set; }
-    public RoleGrantStatus Status { get; set; } = RoleGrantStatus.PendingActivation;
+    public RoleGrantStatus Status { get; set; } = RoleGrantStatus.Active;
     public long? GrantedByUserId { get; set; }
     public DateTimeOffset GrantedAt { get; set; }
     public long? CountersignedByUserId { get; set; }

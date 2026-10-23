@@ -1,21 +1,18 @@
 import type { RoleGrantStatus } from './types';
 
 export const grantStatusLabel: Record<RoleGrantStatus, string> = {
-  PendingActivation: 'Pending activation',
   Active: 'Active',
   Revoked: 'Revoked',
 };
 
 /** Tone class from main.css (.pill--*). */
 export const grantStatusTone: Record<RoleGrantStatus, string> = {
-  PendingActivation: 'pill--warning',
   Active: 'pill--success',
   Revoked: 'pill--neutral',
 };
 
 /** Vuetify color name, for components that take a `color` prop rather than a pill class. */
 export const grantStatusColor: Record<RoleGrantStatus, string> = {
-  PendingActivation: 'warning',
   Active: 'success',
   Revoked: 'grey',
 };

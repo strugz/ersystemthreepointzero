@@ -11,7 +11,6 @@ public class RoleRulesTests
     [InlineData(UserRole.SystemAdministrator, UserRole.SignatoryLevel2)]
     [InlineData(UserRole.SystemAdministrator, UserRole.Finance)]
     [InlineData(UserRole.SystemAdministrator, UserRole.ExpenseVerifier)]
-    [InlineData(UserRole.SystemAdministrator, UserRole.BusinessOwner)]
     [InlineData(UserRole.Finance, UserRole.SystemAdministrator)]
     public void SystemAdministrator_cannot_hold_a_transacting_role(UserRole held, UserRole adding)
     {
@@ -41,64 +40,24 @@ public class RoleRulesTests
 
     [Theory]
     [InlineData(UserRole.SignatoryLevel1, UserRole.SignatoryLevel2)]
-    [InlineData(UserRole.SignatoryLevel2, UserRole.BusinessOwner)]
-    [InlineData(UserRole.Finance, UserRole.BusinessOwner)]
     [InlineData(UserRole.ExpenseVerifier, UserRole.SignatoryLevel1)]
     [InlineData(UserRole.Employee, UserRole.SystemAdministrator)]
     public void Allowed_combinations_return_no_violation(UserRole held, UserRole adding) =>
         Assert.Null(RoleRules.StackingViolation([held], adding));
 
     [Fact]
-    public void Employee_is_the_base_role_and_everything_else_is_privileged()
+    public void Employee_is_the_only_base_role()
     {
         Assert.True(RoleRules.IsBaseRole(UserRole.Employee));
-        Assert.False(RoleRules.IsPrivileged(UserRole.Employee));
         foreach (var role in Enum.GetValues<UserRole>().Where(r => r != UserRole.Employee))
         {
-            Assert.True(RoleRules.IsPrivileged(role), role.ToString());
+            Assert.False(RoleRules.IsBaseRole(role), role.ToString());
         }
     }
 
     [Fact]
     public void Self_change_is_detected_by_id() =>
         Assert.True(RoleRules.IsSelfChange(7, 7));
-
-    [Fact]
-    public void Business_owner_countersigns_without_bootstrap()
-    {
-        var decision = RoleRules.Countersign(countersignerUserId: 3, [UserRole.Employee, UserRole.BusinessOwner], granterUserId: 1, targetUserId: 2, businessOwnerExists: true);
-        Assert.True(decision.IsAllowed);
-        Assert.False(decision.IsBootstrap);
-    }
-
-    [Fact]
-    public void Second_administrator_countersigns_as_bootstrap_only_while_no_owner_exists()
-    {
-        var bootstrap = RoleRules.Countersign(3, [UserRole.SystemAdministrator], granterUserId: 1, targetUserId: 2, businessOwnerExists: false);
-        Assert.True(bootstrap.IsAllowed);
-        Assert.True(bootstrap.IsBootstrap);
-
-        var refused = RoleRules.Countersign(3, [UserRole.SystemAdministrator], granterUserId: 1, targetUserId: 2, businessOwnerExists: true);
-        Assert.False(refused.IsAllowed);
-        Assert.Contains("Business Owner", refused.Reason);
-    }
-
-    [Fact]
-    public void Granter_and_target_can_never_countersign()
-    {
-        var granter = RoleRules.Countersign(1, [UserRole.BusinessOwner], granterUserId: 1, targetUserId: 2, businessOwnerExists: true);
-        Assert.False(granter.IsAllowed);
-
-        var target = RoleRules.Countersign(2, [UserRole.BusinessOwner], granterUserId: 1, targetUserId: 2, businessOwnerExists: true);
-        Assert.False(target.IsAllowed);
-    }
-
-    [Fact]
-    public void Plain_employee_cannot_countersign()
-    {
-        var decision = RoleRules.Countersign(3, [UserRole.Employee, UserRole.Finance], granterUserId: 1, targetUserId: 2, businessOwnerExists: false);
-        Assert.False(decision.IsAllowed);
-    }
 }
 
 public class AccountRulesTests

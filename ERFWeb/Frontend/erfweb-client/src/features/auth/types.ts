@@ -4,8 +4,7 @@ export type UserRole =
   | 'SignatoryLevel2'
   | 'Finance'
   | 'ExpenseVerifier'
-  | 'SystemAdministrator'
-  | 'BusinessOwner';
+  | 'SystemAdministrator';
 
 export interface AuthenticatedUser {
   userId: number;

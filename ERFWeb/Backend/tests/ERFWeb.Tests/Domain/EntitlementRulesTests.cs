@@ -227,59 +227,32 @@ public class EntitlementAuthorityTests
         new(id, roles.Append(UserRole.Employee).ToHashSet(), grade, dept);
 
     [Fact]
-    public void Level2_sets_level1_scope_but_not_their_own()
+    public void Only_a_system_administrator_sets_scope()
     {
-        var l2 = Actor(3, null, 10, UserRole.SignatoryLevel2);
-        Assert.True(EntitlementAuthority.ForScope(l2, holderUserId: 1, level: 1, businessOwnerExists: true, areaHasLevel2Coverage: true).IsAllowed);
-        Assert.False(EntitlementAuthority.ForScope(l2, holderUserId: 3, level: 1, businessOwnerExists: true, areaHasLevel2Coverage: true).IsAllowed);
-    }
-
-    [Fact]
-    public void Level2_scope_belongs_to_the_owner_with_bootstrap_exceptions()
-    {
-        var l2 = Actor(3, null, 10, UserRole.SignatoryLevel2);
-        var admin = Actor(9, null, null, UserRole.SystemAdministrator);
-        var owner = Actor(8, null, null, UserRole.BusinessOwner);
-
-        Assert.False(EntitlementAuthority.ForScope(l2, 4, 2, businessOwnerExists: true, areaHasLevel2Coverage: true).IsAllowed);
-        Assert.True(EntitlementAuthority.ForScope(l2, 4, 2, businessOwnerExists: false, areaHasLevel2Coverage: true).IsBootstrap);
-        Assert.True(EntitlementAuthority.ForScope(admin, 4, 2, businessOwnerExists: true, areaHasLevel2Coverage: false).IsBootstrap);
-        Assert.False(EntitlementAuthority.ForScope(admin, 4, 2, businessOwnerExists: true, areaHasLevel2Coverage: true).IsAllowed);
-        Assert.False(EntitlementAuthority.ForScope(admin, 4, 1, businessOwnerExists: false, areaHasLevel2Coverage: false).IsAllowed);
-        var ownerDecision = EntitlementAuthority.ForScope(owner, 4, 2, businessOwnerExists: true, areaHasLevel2Coverage: true);
-        Assert.True(ownerDecision.IsAllowed);
-        Assert.False(ownerDecision.IsBootstrap);
+        Assert.True(EntitlementAuthority.ForScope(Actor(9, null, null, UserRole.SystemAdministrator)).IsAllowed);
+        Assert.False(EntitlementAuthority.ForScope(Actor(3, null, 10, UserRole.SignatoryLevel2)).IsAllowed);
+        Assert.False(EntitlementAuthority.ForScope(Actor(1, null, 10, UserRole.SignatoryLevel1)).IsAllowed);
+        Assert.False(EntitlementAuthority.ForScope(Actor(2, null, 10, UserRole.Finance)).IsAllowed);
     }
 
     [Theory]
-    [InlineData(RateTargetType.Individual, 3L, null, null, false)]
-    [InlineData(RateTargetType.Grade, null, "G5", null, false)]
-    [InlineData(RateTargetType.Department, null, null, 10L, false)]
+    [InlineData(RateTargetType.Individual, 9L, null, null, false)]
     [InlineData(RateTargetType.Individual, 4L, null, null, true)]
-    [InlineData(RateTargetType.Grade, null, "G3", null, true)]
-    [InlineData(RateTargetType.Department, null, null, 11L, true)]
-    public void Nobody_sets_a_rate_that_applies_to_themselves(RateTargetType type, long? user, string? grade, long? dept, bool allowed)
+    [InlineData(RateTargetType.Grade, null, "G5", null, true)]
+    [InlineData(RateTargetType.Department, null, null, 10L, true)]
+    [InlineData(RateTargetType.Company, null, null, null, true)]
+    public void Administrator_sets_rates_except_one_naming_themselves(RateTargetType type, long? user, string? grade, long? dept, bool allowed)
     {
-        var l2 = Actor(3, "g5", 10, UserRole.SignatoryLevel2);
-        Assert.Equal(allowed, EntitlementAuthority.ForRates(l2, new RateTarget(type, user, grade, dept), businessOwnerExists: true).IsAllowed);
+        var admin = Actor(9, "g5", 10, UserRole.SystemAdministrator);
+        Assert.Equal(allowed, EntitlementAuthority.ForRates(admin, new RateTarget(type, user, grade, dept)).IsAllowed);
     }
 
     [Fact]
-    public void Company_default_is_the_owners_with_a_bootstrap_for_level2()
-    {
-        var l2 = Actor(3, null, 10, UserRole.SignatoryLevel2);
-        var company = new RateTarget(RateTargetType.Company, null, null, null);
-        Assert.False(EntitlementAuthority.ForRates(l2, company, businessOwnerExists: true).IsAllowed);
-        Assert.True(EntitlementAuthority.ForRates(l2, company, businessOwnerExists: false).IsBootstrap);
-        Assert.True(EntitlementAuthority.ForRates(Actor(8, null, null, UserRole.BusinessOwner), company, businessOwnerExists: true).IsAllowed);
-    }
-
-    [Fact]
-    public void Only_level2_and_owner_set_rates()
+    public void Only_a_system_administrator_sets_rates()
     {
         var target = new RateTarget(RateTargetType.Individual, 100, null, null);
-        Assert.False(EntitlementAuthority.ForRates(Actor(1, null, null, UserRole.SignatoryLevel1), target, true).IsAllowed);
-        Assert.False(EntitlementAuthority.ForRates(Actor(2, null, null, UserRole.Finance), target, true).IsAllowed);
-        Assert.False(EntitlementAuthority.ForRates(Actor(9, null, null, UserRole.SystemAdministrator), target, true).IsAllowed);
+        Assert.False(EntitlementAuthority.ForRates(Actor(1, null, null, UserRole.SignatoryLevel1), target).IsAllowed);
+        Assert.False(EntitlementAuthority.ForRates(Actor(3, null, null, UserRole.SignatoryLevel2), target).IsAllowed);
+        Assert.False(EntitlementAuthority.ForRates(Actor(2, null, null, UserRole.Finance), target).IsAllowed);
     }
 }

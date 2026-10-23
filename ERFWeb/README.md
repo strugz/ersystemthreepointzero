@@ -103,6 +103,7 @@ psql -d erfweb -f Database/013_approval_delegations.sql  # Phase 7: approval del
 psql -d erfweb -f Database/014_email_deliveries.sql      # Phase 7: R47 email delivery log (sent status)
 psql -d erfweb -f Database/015_security_and_schema_versions.sql # Phase 8.3: forced password change, schema_versions
 psql -d erfweb -f Database/016_fare_modes.sql             # fare modes (Taxi, Grab, Jeepney, ...) on fare legs
+psql -d erfweb -f Database/017_admin_only_authority.sql  # no countersign, no Business Owner: activates pending grants
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -283,17 +284,16 @@ the endpoint set its own. HSTS is left to nginx (it serves other applications on
 ## Administration & accounts (plan Phase 1, RBAC v0.6)
 
 Roles are additive rows in `user_roles` (script `006`): `Employee` (implicit, everyone), `SignatoryLevel1`,
-`SignatoryLevel2`, `Finance`, `ExpenseVerifier`, `SystemAdministrator`, and `BusinessOwner` (the designated
-countersigner, CFO or HR Head, modelled as a grant so it gets the same dual-approval trail). The old
+`SignatoryLevel2`, `Finance`, `ExpenseVerifier`, and `SystemAdministrator`. The old
 `users.role` column is migrated by `006` (`Manager` → `SignatoryLevel1`, `Admin` → `SystemAdministrator`) and dropped.
 
 Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 
-- **Dual approval (9.8).** A privileged grant saves as `PendingActivation`; it becomes `Active` only when the
-  Business Owner countersigns. While no Business Owner exists, a *second* System Administrator may countersign
-  and the grant is flagged `isBootstrap` (plan open item 12.3a). The granter can never countersign their own grant.
-- **No self-change (9.7).** An administrator cannot edit, deactivate, reset, or change roles on their own account,
-  which is why `006` seeds a second administrator (`admin2`).
+- **No countersign.** A grant is `Active` as soon as a System Administrator saves it. Dual approval (9.8) and the
+  `BusinessOwner` role were dropped by script `017`, which activated any grant still pending and deleted Business
+  Owner grants (both audited). The `countersigned_*` and `is_bootstrap` columns remain as history.
+- **No self-change (9.7).** An administrator cannot edit, deactivate, reset, or change roles on their own account.
+  One administrator (`admin`) is enough; `admin2` from `006` is optional and can be deactivated.
 - **Stacking (section 3).** A System Administrator holds no transacting role; Finance cannot be a Signatory;
   Finance cannot be an Expense Verifier. Violations return 400 with `errors.role`.
 - **Separation of duties.** A System Administrator never sees report contents (`ReportAccessPolicy`) and never
@@ -306,16 +306,16 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 | Endpoint (policy) | Purpose |
 | --- | --- |
 | `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `…/signature` (SystemAdministrator) | Register and maintain accounts; load the signature printed on the R47 |
-| `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/countersign` (BusinessOwner or SystemAdministrator) · `POST …/roles/{role}/revoke` | Grant, countersign, revoke |
+| `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/revoke` (SystemAdministrator) | Grant, revoke |
 | `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list |
 | `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches; stored in `app_settings` |
 | `GET /api/admin/audit?event&actorUserId&from&to` (SystemAdministrator, Finance) | Append-only audit trail |
 
-First-time setup (plan flow 1): sign in as `admin`, create accounts and master data, set the rules; grant the extra
-roles and have `admin2` countersign them until a Business Owner is active, after which only the Business Owner
-countersigns. `department_signatories` (the initials printed on the R47 footer) is still maintained by SQL.
+First-time setup (plan flow 1): sign in as `admin`, create accounts and master data, set the rules, grant the
+signatory roles, then give each signatory a scope (Scope page) so reports route to them.
+`department_signatories` (the initials printed on the R47 footer) is still maintained by SQL.
 
-## Scope & rate profiles (plan Phase 2, Level 2 only)
+## Scope & rate profiles (plan Phase 2)
 
 Script `007` adds `scope_assignments` (+ `scope_assignment_members`) and `rate_profiles`, `rate_profile_lines`,
 `rate_profile_assignments`, and copies the old `approval_routes` and `employee_rates` rows across as bootstrap
@@ -342,19 +342,19 @@ Department > Company on the expense date. A change that starts before today need
 `GET /api/lookups/my-rates?date=` gives the line editor the rates in force on that date. A person assigned a
 profile gets only that profile's lines; categories it does not define are zero.
 
-**Authority** (Domain `EntitlementAuthority`). Level 1 scope: a Level 2 Signatory or the Business Owner. Level 2
-scope: the Business Owner; before one exists, another Level 2 may set it, and a System Administrator may create it
-only while no Level 2 covers the area; both are flagged `isBootstrap`. Nobody changes a scope they hold (9.13).
-Rates: a Level 2 Signatory or the Business Owner (9.15), never for a target that includes themselves, by person,
-grade, or department (9.12); the company default is the Business Owner's (a Level 2 bootstrap before one exists).
-Finance and Level 1 read scope and rates; every change is in the audit trail Finance reviews.
+**Authority** (Domain `EntitlementAuthority`). Scope at both levels and rates are administration settings: only a
+System Administrator changes them. The administrator holds no signatory role, so never sets scope they hold; the
+one self-interest guard left is that they cannot name themselves in a rate assignment (9.12). Grade, department
+and company targets stay open because the only administrator may share them. Older rows created under the
+previous Level 2 / Business Owner rules may still show `isBootstrap`. Signatories and Finance read scope and rates;
+every change is in the audit trail Finance reviews.
 
 | Endpoint (policy) | Purpose |
 | --- | --- |
-| `GET /api/scope/assignments` · `GET …/{id}` · `GET /api/scope/coverage?date` (signatories, Business Owner, Finance, System Administrator) | Read scope and who covers whom |
-| `POST /api/scope/assignments` · `PUT …/{id}` (Level 2, Business Owner, System Administrator; service decides) | Create; change members, limit, end date, active |
+| `GET /api/scope/assignments` · `GET …/{id}` · `GET /api/scope/coverage?date` (signatories, Finance, System Administrator) | Read scope and who covers whom |
+| `POST /api/scope/assignments` · `PUT …/{id}` (System Administrator) | Create; change members, limit, end date, active |
 | `GET /api/rates/profiles` · `GET …/{id}` · `GET /api/rates/assignments` · `GET /api/rates/resolve?userId&date` | Read profiles, versions, assignments, what applies to a person on a date |
-| `POST/PUT /api/rates/profiles` · `POST …/{id}/lines` · `POST /api/rates/assignments` · `POST …/{id}/end` (Level 2, Business Owner) | Maintain profiles, add rate versions, assign and end |
+| `POST/PUT /api/rates/profiles` · `POST …/{id}/lines` · `POST /api/rates/assignments` · `POST …/{id}/end` (System Administrator) | Maintain profiles, add rate versions, assign and end |
 | `GET /api/lookups/departments` (any signed-in user) | Department picker |
 
 Change notifications to affected employees (9.14) go through `IEntitlementChangeNotifier`, which still only logs:

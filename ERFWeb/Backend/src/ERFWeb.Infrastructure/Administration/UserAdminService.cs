@@ -104,8 +104,7 @@ public sealed class UserAdminService(
             p.IsActive, p.HasSignature, p.WorkWithEnabled, p.CreatedAt,
             ActiveRoles: new[] { UserRole.Employee }
                 .Concat(grants.Where(g => g.UserId == p.Id && g.Status == RoleGrantStatus.Active).Select(g => g.Role).OrderBy(r => r))
-                .ToList(),
-            PendingRoles: grants.Where(g => g.UserId == p.Id && g.Status == RoleGrantStatus.PendingActivation).Select(g => g.Role).OrderBy(r => r).ToList()))
+                .ToList()))
             .ToList();
 
         return new PagedResult<UserListItemDto>(items, total, query.NormalizedPage, query.NormalizedPageSize);

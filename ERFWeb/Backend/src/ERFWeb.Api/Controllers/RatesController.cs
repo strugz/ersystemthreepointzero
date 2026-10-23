@@ -8,7 +8,7 @@ namespace ERFWeb.Api.Controllers;
 
 /// <summary>
 /// Rate profiles (RBAC v0.6 flow 4): effective-dated, versioned entitlements assigned to a person,
-/// job grade, department, or the company. Only a Level 2 Signatory or the Business Owner changes them.
+/// job grade, department, or the company. Only a System Administrator changes them.
 /// </summary>
 [ApiController]
 [Route("api/rates")]

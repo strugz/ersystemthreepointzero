@@ -7,7 +7,6 @@ export const roleLabels: Record<UserRole, string> = {
   Finance: 'Finance',
   ExpenseVerifier: 'Expense Verifier',
   SystemAdministrator: 'System Administrator',
-  BusinessOwner: 'Business Owner',
 };
 
 /** Human label for a role enum value; an unknown value (newer server) falls back to the raw name. */
@@ -22,7 +21,6 @@ export const grantableRoles: UserRole[] = [
   'Finance',
   'ExpenseVerifier',
   'SystemAdministrator',
-  'BusinessOwner',
 ];
 
 export const roleOptions = (Object.keys(roleLabels) as UserRole[]).map((value) => ({ value, title: roleLabels[value] }));

@@ -1,6 +1,6 @@
 import type { UserRole } from '@/features/auth/types';
 
-export type RoleGrantStatus = 'PendingActivation' | 'Active' | 'Revoked';
+export type RoleGrantStatus = 'Active' | 'Revoked';
 
 export interface PagedResult<T> {
   items: T[];
@@ -41,7 +41,6 @@ export interface UserListItem {
   workWithEnabled: boolean;
   createdAt: string;
   activeRoles: UserRole[];
-  pendingRoles: UserRole[];
 }
 
 export interface RoleGrant {
