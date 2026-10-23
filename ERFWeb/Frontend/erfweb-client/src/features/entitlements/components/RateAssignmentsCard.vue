@@ -10,7 +10,7 @@ import { rateTargetText, targetTypeLabel } from '../labels';
 import type { RateAssignment } from '../types';
 
 /**
- * Who a profile applies to. Ending an assignment asks for the last day it applies (yesterday at the
+ * Who a profile applies to. Edit corrects an assignment, ended ones too, in place. Ending an assignment asks for the last day it applies (yesterday at the
  * earliest; the server enforces it) and an optional reason.
  */
 const props = withDefaults(
@@ -26,6 +26,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   create: [];
+  edit: [assignment: RateAssignment];
   end: [assignment: RateAssignment, effectiveTo: string, changeReason: string | null];
   'clear-end-errors': [];
 }>();
@@ -129,8 +130,9 @@ const endMessage = computed(() =>
         <div class="text-caption text-medium-emphasis">
           {{ a.assignedByName ?? '—' }} · {{ formatDateTime(a.assignedAt) }}<template v-if="a.changeReason"> · “{{ a.changeReason }}”</template>
         </div>
-        <div v-if="canWrite && !isEnded(a)" class="mt-1">
-          <v-btn class="press" size="small" variant="text" color="error" :disabled="disabled || acting" @click="askEnd(a)">End</v-btn>
+        <div v-if="canWrite" class="mt-1 d-flex ga-1">
+          <v-btn class="press" size="small" variant="text" prepend-icon="mdi-pencil-outline" :disabled="disabled || acting" @click="emit('edit', a)">Edit</v-btn>
+          <v-btn v-if="!isEnded(a)" class="press" size="small" variant="text" color="error" :disabled="disabled || acting" @click="askEnd(a)">End</v-btn>
         </div>
       </li>
     </ul>
@@ -162,7 +164,18 @@ const endMessage = computed(() =>
               <div class="text-caption text-medium-emphasis text-no-wrap">{{ formatDateTime(a.assignedAt) }}</div>
               <div v-if="a.changeReason" class="text-caption text-medium-emphasis text-truncate" style="max-width: 240px" :title="a.changeReason">{{ a.changeReason }}</div>
             </td>
-            <td v-if="canWrite" class="r">
+            <td v-if="canWrite" class="r text-no-wrap">
+              <v-btn
+                class="press"
+                size="small"
+                variant="text"
+                prepend-icon="mdi-pencil-outline"
+                :disabled="disabled || acting"
+                :aria-label="`Edit assignment for ${rateTargetText(a)}`"
+                @click="emit('edit', a)"
+              >
+                Edit
+              </v-btn>
               <v-btn
                 v-if="!isEnded(a)"
                 class="press"

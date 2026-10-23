@@ -207,6 +207,19 @@ export interface CreateRateAssignmentInput {
   backdateOverride: boolean;
 }
 
+/** Corrects one assignment in place; the profile stays, and a reason is required. */
+export interface UpdateRateAssignmentInput {
+  targetType: RateTargetType;
+  userId: number | null;
+  jobGrade: string | null;
+  departmentId: number | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  changeReason: string;
+  backdateOverride: boolean;
+  rowVersion: number;
+}
+
 export interface EndRateAssignmentInput {
   effectiveTo: string;
   changeReason?: string | null;

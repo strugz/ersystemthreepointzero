@@ -175,6 +175,37 @@ public static class RateRules
             : "This change starts in the past. Tick the backdate override and give a reason.";
     }
 
+    /// <summary>
+    /// The first day an assignment correction changes who gets the profile, or null when it changes
+    /// nothing. A new target changes the whole old and new period; moved dates change only the days
+    /// between the old and new start or end. Compared with today it decides whether the backdate
+    /// override is needed, so fixing only a future end date of a running assignment stays free.
+    /// </summary>
+    public static DateOnly? AssignmentCorrectionStart(
+        DateOnly oldFrom, DateOnly? oldTo, DateOnly newFrom, DateOnly? newTo, bool targetChanged)
+    {
+        if (targetChanged)
+        {
+            return oldFrom < newFrom ? oldFrom : newFrom;
+        }
+
+        DateOnly? first = null;
+        if (oldFrom != newFrom)
+        {
+            first = oldFrom < newFrom ? oldFrom : newFrom;
+        }
+
+        if (oldTo != newTo)
+        {
+            // The first day that is covered by one end and not the other.
+            var end = (oldTo ?? DateOnly.MaxValue) < (newTo ?? DateOnly.MaxValue) ? oldTo!.Value : newTo!.Value;
+            var changedFrom = end.AddDays(1);
+            first = first is { } f && f < changedFrom ? f : changedFrom;
+        }
+
+        return first;
+    }
+
     /// <summary>Two assignments for the same target overlap in time.</summary>
     public static bool Overlaps(DateOnly fromA, DateOnly? toA, DateOnly fromB, DateOnly? toB) =>
         fromA <= (toB ?? DateOnly.MaxValue) && fromB <= (toA ?? DateOnly.MaxValue);

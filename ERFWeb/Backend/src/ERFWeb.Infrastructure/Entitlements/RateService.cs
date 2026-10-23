@@ -291,7 +291,7 @@ public sealed class RateService(
     public async Task<RateAssignmentDto> CreateAssignmentAsync(CreateRateAssignmentRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var target = ValidTarget(request);
+        var target = ValidTarget(request.TargetType, request.UserId, request.JobGrade, request.DepartmentId);
         var today = context.Today;
         var from = request.EffectiveFrom ?? today;
         if (request.EffectiveTo is { } to && to < from)
@@ -360,6 +360,116 @@ public sealed class RateService(
 
         await NotifyAsync(EntitlementAuditEvents.AssignmentCreated, $"Rate profile assignment {outcome.Id} created", outcome.Affected, outcome.Before, outcome.After, ct);
         return (await AssignmentsAsync(a => a.Id == outcome.Id, ct)).Single();
+    }
+
+    /// <summary>
+    /// Corrects one assignment in place (a wrong target or date), unlike CreateAssignmentAsync, which
+    /// ends the open assignment for the target. The profile stays; to move a target to another
+    /// profile, assign that profile. Filed ERFs keep their amounts; the old values stay in
+    /// record_history and the audit entry.
+    /// </summary>
+    public async Task<RateAssignmentDto> UpdateAssignmentAsync(long assignmentId, UpdateRateAssignmentRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var target = ValidTarget(request.TargetType, request.UserId, request.JobGrade, request.DepartmentId);
+        var errors = new Dictionary<string, string[]>();
+        if (string.IsNullOrWhiteSpace(request.ChangeReason))
+        {
+            errors["changeReason"] = ["Give a reason for the correction."];
+        }
+        else if (request.ChangeReason.Length > 500)
+        {
+            errors["changeReason"] = ["The reason must be at most 500 characters."];
+        }
+
+        if (request.EffectiveTo is { } to && to < request.EffectiveFrom)
+        {
+            errors["effectiveTo"] = ["The end date must be on or after the start date."];
+        }
+
+        if (errors.Count > 0)
+        {
+            throw new ValidationException(errors);
+        }
+
+        var today = context.Today;
+        var outcome = await tx.ExecuteAsync(async token =>
+        {
+            var entity = await db.RateProfileAssignments.FirstOrDefaultAsync(a => a.Id == assignmentId, token)
+                ?? throw new NotFoundException("Rate profile assignment not found.");
+            var profile = await db.RateProfiles.AsNoTracking().FirstAsync(p => p.Id == entity.RateProfileId, token);
+            if (!profile.IsActive)
+            {
+                throw new ConflictException("The profile is inactive. Reactivate it before changing its assignments.");
+            }
+
+            var oldTarget = new RateTarget(entity.TargetType, entity.UserId, entity.JobGrade, entity.DepartmentId);
+            var targetChanged = oldTarget != target;
+            if (targetChanged)
+            {
+                await EnsureTargetExistsAsync(target, token);
+            }
+
+            // ck_rate_assign_no_self_rate: the original assigner can never be the person it applies to.
+            if (target.UserId is { } person && person == entity.AssignedByUserId)
+            {
+                throw new ValidationException("userId", "This assignment was made by that person, so it cannot apply to them. Ask another administrator to assign it.");
+            }
+
+            // Both the people who lose the profile and those who gain it are checked (9.12).
+            Authorize(await context.ActorAsync(token), targetChanged ? [oldTarget, target] : [target]);
+
+            var clash = await db.RateProfileAssignments.AsNoTracking()
+                .Where(a => a.Id != assignmentId && a.TargetType == target.Type && a.UserId == target.UserId && a.JobGrade == target.JobGrade && a.DepartmentId == target.DepartmentId)
+                .Select(a => new { a.EffectiveFrom, a.EffectiveTo })
+                .ToListAsync(token);
+            if (clash.FirstOrDefault(a => RateRules.Overlaps(a.EffectiveFrom, a.EffectiveTo, request.EffectiveFrom, request.EffectiveTo)) is { } other)
+            {
+                throw new ConflictException(
+                    $"Another assignment for this target runs {other.EffectiveFrom:yyyy-MM-dd} to {(other.EffectiveTo is { } t ? t.ToString("yyyy-MM-dd") : "open")}. The dates cannot overlap it.");
+            }
+
+            var changedFrom = RateRules.AssignmentCorrectionStart(entity.EffectiveFrom, entity.EffectiveTo, request.EffectiveFrom, request.EffectiveTo, targetChanged);
+            if (changedFrom is { } first
+                && RateRules.BackdateProblem(first, today, replacesEarlierRate: true, request.BackdateOverride, request.ChangeReason) is { } backdate)
+            {
+                throw new ValidationException("effectiveFrom", backdate);
+            }
+
+            var before = new { target = oldTarget.Type.ToString(), oldTarget.UserId, oldTarget.JobGrade, oldTarget.DepartmentId, from = entity.EffectiveFrom, to = entity.EffectiveTo };
+            entity.TargetType = target.Type;
+            entity.UserId = target.UserId;
+            entity.JobGrade = target.JobGrade;
+            entity.DepartmentId = target.DepartmentId;
+            entity.EffectiveFrom = request.EffectiveFrom;
+            entity.EffectiveTo = request.EffectiveTo;
+            entity.ChangeReason = Clean(request.ChangeReason);
+            db.SetRowVersion(entity, request.RowVersion);
+            await db.SaveWithConcurrencyAsync(token);
+
+            var after = new { target = target.Type.ToString(), target.UserId, target.JobGrade, target.DepartmentId, from = entity.EffectiveFrom, to = entity.EffectiveTo };
+            await audit.WriteAsync(new WorkflowAuditEntry(EntitlementAuditEvents.AssignmentCorrected, null, user.UserId,
+                JsonSerializer.Serialize(new
+                {
+                    assignmentId,
+                    profile = profile.Name,
+                    reason = entity.ChangeReason,
+                    backdate = changedFrom < today,
+                    before,
+                    after,
+                })), token);
+
+            var affected = await AffectedByTargetAsync(target, token);
+            if (targetChanged)
+            {
+                affected = affected.Union(await AffectedByTargetAsync(oldTarget, token)).ToList();
+            }
+
+            return (Affected: affected, Before: JsonSerializer.Serialize(before), After: JsonSerializer.Serialize(after));
+        }, ct);
+
+        await NotifyAsync(EntitlementAuditEvents.AssignmentCorrected, $"Rate profile assignment {assignmentId} corrected", outcome.Affected, outcome.Before, outcome.After, ct);
+        return (await AssignmentsAsync(a => a.Id == assignmentId, ct)).Single();
     }
 
     public async Task<RateAssignmentDto> EndAssignmentAsync(long assignmentId, EndRateAssignmentRequest request, CancellationToken ct = default)
@@ -493,15 +603,15 @@ public sealed class RateService(
             : throw new ValidationException("currency", "The currency does not exist or is inactive.");
     }
 
-    private static RateTarget ValidTarget(CreateRateAssignmentRequest r)
+    private static RateTarget ValidTarget(RateTargetType type, long? userId, string? jobGrade, long? departmentId)
     {
-        var grade = string.IsNullOrWhiteSpace(r.JobGrade) ? null : r.JobGrade.Trim();
-        return r.TargetType switch
+        var grade = string.IsNullOrWhiteSpace(jobGrade) ? null : jobGrade.Trim();
+        return type switch
         {
-            RateTargetType.Individual when r.UserId is not null && grade is null && r.DepartmentId is null => new RateTarget(r.TargetType, r.UserId, null, null),
-            RateTargetType.Grade when grade is not null && r.UserId is null && r.DepartmentId is null => new RateTarget(r.TargetType, null, grade, null),
-            RateTargetType.Department when r.DepartmentId is not null && r.UserId is null && grade is null => new RateTarget(r.TargetType, null, null, r.DepartmentId),
-            RateTargetType.Company when r.UserId is null && grade is null && r.DepartmentId is null => new RateTarget(r.TargetType, null, null, null),
+            RateTargetType.Individual when userId is not null && grade is null && departmentId is null => new RateTarget(type, userId, null, null),
+            RateTargetType.Grade when grade is not null && userId is null && departmentId is null => new RateTarget(type, null, grade, null),
+            RateTargetType.Department when departmentId is not null && userId is null && grade is null => new RateTarget(type, null, null, departmentId),
+            RateTargetType.Company when userId is null && grade is null && departmentId is null => new RateTarget(type, null, null, null),
             _ => throw new ValidationException("targetType",
                 "Give exactly the field the target needs: a person for Individual, a job grade for Grade, a department for Department, nothing for Company."),
         };

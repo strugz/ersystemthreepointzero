@@ -235,6 +235,20 @@ public class RateRulesTests
     }
 
     [Fact]
+    public void Assignment_correction_starts_at_the_first_changed_day()
+    {
+        var oct1 = new DateOnly(2026, 10, 1);
+        var nov30 = new DateOnly(2026, 11, 30);
+        Assert.Null(RateRules.AssignmentCorrectionStart(oct1, null, oct1, null, targetChanged: false));
+        Assert.Equal(oct1, RateRules.AssignmentCorrectionStart(oct1, null, oct1, null, targetChanged: true));
+        Assert.Equal(new DateOnly(2026, 9, 1), RateRules.AssignmentCorrectionStart(oct1, null, new DateOnly(2026, 9, 1), null, targetChanged: false));
+        Assert.Equal(oct1, RateRules.AssignmentCorrectionStart(oct1, null, new DateOnly(2026, 10, 15), null, targetChanged: false));
+        Assert.Equal(new DateOnly(2026, 12, 1), RateRules.AssignmentCorrectionStart(oct1, null, oct1, nov30, targetChanged: false));
+        Assert.Equal(new DateOnly(2026, 12, 1), RateRules.AssignmentCorrectionStart(oct1, nov30, oct1, null, targetChanged: false));
+        Assert.Equal(new DateOnly(2026, 10, 21), RateRules.AssignmentCorrectionStart(oct1, nov30, oct1, new DateOnly(2026, 10, 20), targetChanged: false));
+    }
+
+    [Fact]
     public void Backdating_a_first_rate_needs_no_override()
     {
         var today = new DateOnly(2026, 10, 13);

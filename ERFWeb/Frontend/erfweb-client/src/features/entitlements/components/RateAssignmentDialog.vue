@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import { todayIso } from '@/shared/format';
+import { addDaysIso, todayIso } from '@/shared/format';
 import { fieldErrors, personItems, textOrNull } from '../forms';
 import type { FieldErrors } from '../forms';
 import { targetTypeOptions } from '../labels';
-import type { CreateRateAssignmentInput, DepartmentOption, PersonOption, RateAssignment, RateTargetType } from '../types';
+import type { CreateRateAssignmentInput, DepartmentOption, PersonOption, RateAssignment, RateTargetType, UpdateRateAssignmentInput } from '../types';
 
 /**
  * Assigns a profile to one target. The target type decides the single field sent (person, job
  * grade, department, or nothing for company-wide). An open assignment for the same target is
  * closed by the server. Starting before today while ending another assignment for the same target
  * needs the backdate override and a reason; a first assignment for a target only fills a gap.
+ *
+ * With `editing`, it corrects that assignment in place instead: the profile stays, a reason is
+ * required, the period may not overlap another assignment for the same target, and the override is
+ * needed only when the correction changes a day before today.
  */
 const props = withDefaults(
   defineProps<{
@@ -21,15 +25,18 @@ const props = withDefaults(
     departments: DepartmentOption[];
     /** Every assignment, ended ones included; null while unknown (then any backdate asks for the override). */
     existing?: RateAssignment[] | null;
+    /** The assignment being corrected; null to create a new one. */
+    editing?: RateAssignment | null;
     saving?: boolean;
     errors?: FieldErrors;
   }>(),
-  { existing: null, saving: false, errors: null },
+  { existing: null, editing: null, saving: false, errors: null },
 );
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   save: [input: CreateRateAssignmentInput];
+  update: [input: UpdateRateAssignmentInput];
 }>();
 
 interface Form {
@@ -55,12 +62,24 @@ const blank = (): Form => ({
   backdateOverride: false,
 });
 
+const fromAssignment = (a: RateAssignment): Form => ({
+  targetType: a.targetType,
+  userId: a.userId,
+  jobGrade: a.jobGrade ?? '',
+  departmentId: a.departmentId,
+  effectiveFrom: a.effectiveFrom,
+  effectiveTo: a.effectiveTo,
+  changeReason: '',
+  backdateOverride: false,
+});
+
 const form = reactive<Form>(blank());
+const isEdit = computed(() => !!props.editing);
 
 watch(
   () => props.modelValue,
   (open) => {
-    if (open) Object.assign(form, blank());
+    if (open) Object.assign(form, props.editing ? fromAssignment(props.editing) : blank());
   },
 );
 
@@ -89,11 +108,46 @@ const replacesEarlierAssignment = computed(() => {
   const to = form.effectiveTo || null;
   return props.existing.some((a) => sameTarget(a) && (!to || a.effectiveFrom <= to) && (!a.effectiveTo || a.effectiveTo >= from));
 });
-const isBackdated = computed(() => !!form.effectiveFrom && form.effectiveFrom < today && replacesEarlierAssignment.value);
+const targetChanged = computed(() => {
+  const a = props.editing;
+  if (!a) return false;
+  return (
+    a.targetType !== form.targetType ||
+    (form.targetType === 'Individual' && a.userId !== form.userId) ||
+    (form.targetType === 'Grade' && (a.jobGrade ?? '') !== form.jobGrade.trim()) ||
+    (form.targetType === 'Department' && a.departmentId !== form.departmentId)
+  );
+});
+
+// Mirrors RateRules.AssignmentCorrectionStart: the first day the correction changes who gets the
+// profile. A new target changes the whole period; moved dates only the days between old and new.
+const correctionStart = computed<string | null>(() => {
+  const a = props.editing;
+  if (!a || !form.effectiveFrom) return null;
+  const min = (x: string, y: string) => (x < y ? x : y);
+  if (targetChanged.value) return min(a.effectiveFrom, form.effectiveFrom);
+  let first = a.effectiveFrom !== form.effectiveFrom ? min(a.effectiveFrom, form.effectiveFrom) : null;
+  const oldTo = a.effectiveTo;
+  const newTo = form.effectiveTo || null;
+  if (oldTo !== newTo) {
+    // The first day covered by one end and not the other.
+    const end = oldTo && newTo ? min(oldTo, newTo) : (oldTo ?? newTo)!;
+    const changed = addDaysIso(end, 1);
+    first = first && first < changed ? first : changed;
+  }
+  return first;
+});
+
+const isBackdated = computed(() =>
+  isEdit.value
+    ? !!correctionStart.value && correctionStart.value < today
+    : !!form.effectiveFrom && form.effectiveFrom < today && replacesEarlierAssignment.value,
+);
 watch(isBackdated, (b) => {
   if (!b) form.backdateOverride = false;
 });
-const reasonMissing = computed(() => isBackdated.value && !form.changeReason.trim());
+const reasonRequired = computed(() => isBackdated.value || isEdit.value);
+const reasonMissing = computed(() => reasonRequired.value && !form.changeReason.trim());
 const toBeforeFrom = computed(() => !!form.effectiveTo && !!form.effectiveFrom && form.effectiveTo < form.effectiveFrom);
 
 const targetChosen = computed(() => {
@@ -110,7 +164,12 @@ const targetChosen = computed(() => {
 });
 
 const canSave = computed(
-  () => !props.saving && targetChosen.value && !toBeforeFrom.value && (!isBackdated.value || (form.backdateOverride && !reasonMissing.value)),
+  () =>
+    !props.saving &&
+    targetChosen.value &&
+    !toBeforeFrom.value &&
+    !(isEdit.value && (!form.effectiveFrom || reasonMissing.value)) &&
+    (!isBackdated.value || (form.backdateOverride && !reasonMissing.value)),
 );
 
 const err = (field: string) => fieldErrors(props.errors, field);
@@ -118,6 +177,20 @@ const err = (field: string) => fieldErrors(props.errors, field);
 function save() {
   if (!canSave.value) return;
   const t = form.targetType;
+  if (props.editing) {
+    emit('update', {
+      targetType: t,
+      userId: t === 'Individual' ? form.userId : null,
+      jobGrade: t === 'Grade' ? form.jobGrade.trim() : null,
+      departmentId: t === 'Department' ? form.departmentId : null,
+      effectiveFrom: form.effectiveFrom,
+      effectiveTo: form.effectiveTo || null,
+      changeReason: form.changeReason.trim(),
+      backdateOverride: isBackdated.value && form.backdateOverride,
+      rowVersion: props.editing.rowVersion,
+    });
+    return;
+  }
   emit('save', {
     profileId: props.profileId,
     targetType: t,
@@ -139,7 +212,7 @@ function close() {
 <template>
   <v-dialog :model-value="modelValue" max-width="560" scrollable :persistent="saving" @update:model-value="close">
     <v-card>
-      <v-card-title class="text-subtitle-1 font-weight-bold">Assign {{ profileName }}</v-card-title>
+      <v-card-title class="text-subtitle-1 font-weight-bold">{{ isEdit ? `Edit assignment · ${profileName}` : `Assign ${profileName}` }}</v-card-title>
       <v-card-text>
         <v-form :disabled="saving" @submit.prevent="save">
           <fieldset class="group">
@@ -196,12 +269,15 @@ function close() {
             </v-col>
           </v-row>
 
-          <p class="text-caption text-medium-emphasis mb-2">An open assignment for the same target is ended automatically.</p>
+          <p v-if="isEdit" class="text-caption text-medium-emphasis mb-2">
+            Corrects this assignment in place; filed reports keep their amounts. The period cannot overlap another assignment for the same target.
+          </p>
+          <p v-else class="text-caption text-medium-emphasis mb-2">An open assignment for the same target is ended automatically.</p>
 
           <v-expand-transition>
             <div v-if="isBackdated">
               <v-alert type="warning" variant="tonal" density="compact" class="mb-2">
-                This assignment starts before today. Confirm the backdate and give a reason.
+                {{ isEdit ? 'This correction changes days before today.' : 'This assignment starts before today.' }} Confirm the backdate and give a reason.
               </v-alert>
               <v-checkbox v-model="form.backdateOverride" color="warning" label="Backdate override" hide-details="auto" :error-messages="err('backdateOverride')" />
             </div>
@@ -209,13 +285,13 @@ function close() {
 
           <v-textarea
             v-model="form.changeReason"
-            :label="isBackdated ? 'Reason for change *' : 'Reason for change (optional)'"
+            :label="reasonRequired ? 'Reason for change *' : 'Reason for change (optional)'"
             rows="2"
             auto-grow
             maxlength="500"
             counter
             class="mt-2"
-            :error-messages="err('changeReason') ?? (reasonMissing && form.backdateOverride ? ['A reason is required to backdate.'] : undefined)"
+            :error-messages="err('changeReason') ?? (reasonMissing && form.backdateOverride && !isEdit ? ['A reason is required to backdate.'] : undefined)"
           />
         </v-form>
       </v-card-text>
@@ -223,7 +299,7 @@ function close() {
       <v-card-actions class="px-4 py-3">
         <v-spacer />
         <v-btn class="press" variant="text" :disabled="saving" @click="close">Cancel</v-btn>
-        <v-btn class="press" color="primary" variant="flat" :loading="saving" :disabled="!canSave" @click="save">Assign</v-btn>
+        <v-btn class="press" color="primary" variant="flat" :loading="saving" :disabled="!canSave" @click="save">{{ isEdit ? 'Save changes' : 'Assign' }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

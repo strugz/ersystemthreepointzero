@@ -385,7 +385,10 @@ A planned change adds a version and closes the open one the day before, so a rep
 on its expense date. **Edit** corrects one version in place (amount, rule, receipt, cap, dates; category and meal
 stay) with a required reason, audited as `Rates.LineCorrected`; its dates may not overlap another version. Filed
 reports keep their own amounts, and the old values stay in `record_history`. A profile reaches a person by assignment, resolved Individual > Grade >
-Department > Company on the expense date. A change that starts before today and replaces what is in force (a new version, a correction, an assignment that ends another for the same target) needs `backdateOverride` and a reason; the first rate line for a category/meal and the first assignment for a target may start in the past freely, e.g. to cover claims from before go-live.
+Department > Company on the expense date. **Edit** on an assignment (`PUT /api/rates/assignments/{id}`) corrects
+its target or dates in place (the profile stays) with a required reason, audited as `Rates.AssignmentCorrected`;
+its period may not overlap another assignment for the same target, and it needs `backdateOverride` only when it
+changes a day before today. A change that starts before today and replaces what is in force (a new version, a correction, an assignment that ends another for the same target) needs `backdateOverride` and a reason; the first rate line for a category/meal and the first assignment for a target may start in the past freely, e.g. to cover claims from before go-live.
 `GET /api/lookups/my-rates?date=` gives the line editor the rates in force on that date. A person assigned a
 profile gets only that profile's lines; categories it does not define are zero.
 

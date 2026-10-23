@@ -13,6 +13,7 @@ import type {
   ResolvedRates,
   ScopeAssignment,
   ScopeAssignmentQuery,
+  UpdateRateAssignmentInput,
   UpdateRateLineInput,
   UpdateRateProfileInput,
   UpdateScopeAssignmentInput,
@@ -50,6 +51,7 @@ export const ratesApi = {
 
   assignments: (query: RateAssignmentQuery = {}) => api.get<RateAssignment[]>(`/rates/assignments${qs({ ...query })}`),
   createAssignment: (input: CreateRateAssignmentInput) => api.post<RateAssignment>('/rates/assignments', input),
+  updateAssignment: (id: number, input: UpdateRateAssignmentInput) => api.put<RateAssignment>(`/rates/assignments/${id}`, input),
   endAssignment: (id: number, input: EndRateAssignmentInput) => api.post<RateAssignment>(`/rates/assignments/${id}/end`, input),
 
   resolve: (userId: number, date?: string) => api.get<ResolvedRates>(`/rates/resolve${qs({ userId, date })}`),
