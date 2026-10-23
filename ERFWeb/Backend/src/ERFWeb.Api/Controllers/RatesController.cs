@@ -52,6 +52,17 @@ public sealed class RatesController(IRateService rates) : ControllerBase
     public async Task<ActionResult<RateProfileDetailDto>> AddLine(long id, [FromBody] AddRateLineRequest request, CancellationToken ct) =>
         Ok(await rates.AddLineAsync(id, request, ct));
 
+    /// <summary>Corrects one version in place; the dates may not overlap another version of the same rate.</summary>
+    [HttpPut("profiles/{id:long}/lines/{lineId:long}")]
+    [Authorize(Policy = Policies.RateManager)]
+    [ProducesResponseType<RateProfileDetailDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<RateProfileDetailDto>> UpdateLine(long id, long lineId, [FromBody] UpdateRateLineRequest request, CancellationToken ct) =>
+        Ok(await rates.UpdateLineAsync(id, lineId, request, ct));
+
     [HttpGet("assignments")]
     [ProducesResponseType<IReadOnlyList<RateAssignmentDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<RateAssignmentDto>>> Assignments(

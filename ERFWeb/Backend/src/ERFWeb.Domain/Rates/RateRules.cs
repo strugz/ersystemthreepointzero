@@ -137,6 +137,27 @@ public static class RateRules
     }
 
     /// <summary>
+    /// Checks the dates of a correction made in place to one version. The corrected period must not
+    /// overlap any other version of the same category/meal, so a date still resolves to one line.
+    /// </summary>
+    public static string? CorrectionProblem(IEnumerable<RateLineCandidate> otherVersionsForKey, DateOnly from, DateOnly? to)
+    {
+        ArgumentNullException.ThrowIfNull(otherVersionsForKey);
+        if (to is { } end && end < from)
+        {
+            return "The end date must be on or after the start date.";
+        }
+
+        var clash = otherVersionsForKey
+            .Where(l => Overlaps(l.EffectiveFrom, l.EffectiveTo, from, to))
+            .OrderBy(l => l.EffectiveFrom)
+            .FirstOrDefault();
+        return clash is null
+            ? null
+            : $"Another version runs {clash.EffectiveFrom:yyyy-MM-dd} to {(clash.EffectiveTo is { } t ? t.ToString("yyyy-MM-dd") : "open")}. The dates cannot overlap it.";
+    }
+
+    /// <summary>
     /// A change that starts before today rewrites a period that may already hold filed ERFs, so it
     /// needs an explicit override and a reason (spec 2.4 lock 4).
     /// </summary>

@@ -101,7 +101,8 @@ public sealed record RateLineDto(
     string? ChangedByName,
     string? ChangeReason,
     bool BackdateOverride,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    uint RowVersion);
 
 public sealed record RateAssignmentDto(
     long Id,
@@ -148,6 +149,19 @@ public sealed record AddRateLineRequest(
     string? ChangeReason,
     bool BackdateOverride);
 
+/// <summary>Corrects one version in place; its category and meal stay. A reason is required.</summary>
+public sealed record UpdateRateLineRequest(
+    RateType RateType,
+    decimal Amount,
+    string? Currency,
+    int? FrequencyCap,
+    bool RequiresReceipt,
+    DateOnly EffectiveFrom,
+    DateOnly? EffectiveTo,
+    string? ChangeReason,
+    bool BackdateOverride,
+    uint RowVersion);
+
 public sealed record CreateRateAssignmentRequest(
     long ProfileId,
     RateTargetType TargetType,
@@ -179,6 +193,7 @@ public interface IRateService
     Task<RateProfileDetailDto> CreateProfileAsync(CreateRateProfileRequest request, CancellationToken ct = default);
     Task<RateProfileDetailDto> UpdateProfileAsync(long profileId, UpdateRateProfileRequest request, CancellationToken ct = default);
     Task<RateProfileDetailDto> AddLineAsync(long profileId, AddRateLineRequest request, CancellationToken ct = default);
+    Task<RateProfileDetailDto> UpdateLineAsync(long profileId, long lineId, UpdateRateLineRequest request, CancellationToken ct = default);
 
     Task<IReadOnlyList<RateAssignmentDto>> ListAssignmentsAsync(RateAssignmentQuery query, CancellationToken ct = default);
     Task<RateAssignmentDto> CreateAssignmentAsync(CreateRateAssignmentRequest request, CancellationToken ct = default);
@@ -218,6 +233,7 @@ public static class EntitlementAuditEvents
     public const string ProfileCreated = "Rates.ProfileCreated";
     public const string ProfileUpdated = "Rates.ProfileUpdated";
     public const string LineAdded = "Rates.LineAdded";
+    public const string LineCorrected = "Rates.LineCorrected";
     public const string AssignmentCreated = "Rates.AssignmentCreated";
     public const string AssignmentEnded = "Rates.AssignmentEnded";
 }

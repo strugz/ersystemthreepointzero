@@ -209,6 +209,20 @@ public class RateRulesTests
         Assert.False(RateRules.PlanVersion([latest], new DateOnly(2026, 10, 1), null).IsValid);
     }
 
+    [Fact]
+    public void Correction_may_not_overlap_another_version()
+    {
+        var earlier = new RateLineCandidate(1, 1, ExpenseCategory.Meals, "Dinner", RateType.FixedPerDay, 150m, false, Jan1, new DateOnly(2026, 6, 30));
+        var later = new RateLineCandidate(3, 1, ExpenseCategory.Meals, "Dinner", RateType.FixedPerDay, 220m, false, new DateOnly(2026, 11, 1), null);
+        Assert.Null(RateRules.CorrectionProblem([earlier, later], new DateOnly(2026, 7, 1), new DateOnly(2026, 10, 31)));
+        Assert.NotNull(RateRules.CorrectionProblem([earlier, later], new DateOnly(2026, 6, 30), new DateOnly(2026, 10, 31)));
+        Assert.NotNull(RateRules.CorrectionProblem([earlier, later], new DateOnly(2026, 7, 1), null));
+    }
+
+    [Fact]
+    public void Correction_end_cannot_precede_its_start() =>
+        Assert.NotNull(RateRules.CorrectionProblem([], new DateOnly(2026, 7, 1), new DateOnly(2026, 6, 30)));
+
     [Theory]
     [InlineData(0, false, null, true)]
     [InlineData(-1, false, null, false)]

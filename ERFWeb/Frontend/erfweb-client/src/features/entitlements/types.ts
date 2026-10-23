@@ -113,6 +113,7 @@ export interface RateLine {
   changeReason: string | null;
   backdateOverride: boolean;
   createdAt: string;
+  rowVersion: number;
 }
 
 export interface RateAssignment {
@@ -172,6 +173,20 @@ export interface AddRateLineInput {
   effectiveTo: string | null;
   changeReason: string | null;
   backdateOverride: boolean;
+}
+
+/** Corrects one version in place; category and meal stay, and a reason is required. */
+export interface UpdateRateLineInput {
+  rateType: RateType;
+  amount: number;
+  currency: string | null;
+  frequencyCap: number | null;
+  requiresReceipt: boolean;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  changeReason: string;
+  backdateOverride: boolean;
+  rowVersion: number;
 }
 
 export interface RateAssignmentQuery {
