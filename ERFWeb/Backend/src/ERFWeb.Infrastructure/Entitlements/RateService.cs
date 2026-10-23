@@ -266,7 +266,7 @@ public sealed class RateService(
             await audit.WriteAsync(new WorkflowAuditEntry(EntitlementAuditEvents.LineCorrected, null, user.UserId,
                 JsonSerializer.Serialize(new { profileId, category = line.Category.ToString(), line.SubCategory, reason = line.ChangeReason, backdate = line.BackdateOverride, before, after })), token);
 
-            var affected = await AffectedByProfileAsync(profileId, request.EffectiveFrom, token);
+            var affected = await AffectedByProfileAsync(profileId, from, token);
             return (Affected: affected, Before: JsonSerializer.Serialize(before), After: JsonSerializer.Serialize(after), profile.Name);
         }, ct);
 
