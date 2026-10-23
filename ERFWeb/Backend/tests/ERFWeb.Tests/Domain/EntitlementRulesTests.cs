@@ -231,7 +231,14 @@ public class RateRulesTests
     public void Backdating_needs_override_and_reason(int days, bool overrideFlag, string? reason, bool ok)
     {
         var today = new DateOnly(2026, 10, 13);
-        Assert.Equal(ok, RateRules.BackdateProblem(today.AddDays(days), today, overrideFlag, reason) is null);
+        Assert.Equal(ok, RateRules.BackdateProblem(today.AddDays(days), today, replacesEarlierRate: true, overrideFlag, reason) is null);
+    }
+
+    [Fact]
+    public void Backdating_a_first_rate_needs_no_override()
+    {
+        var today = new DateOnly(2026, 10, 13);
+        Assert.Null(RateRules.BackdateProblem(today.AddDays(-30), today, replacesEarlierRate: false, backdateOverride: false, reason: null));
     }
 }
 
