@@ -365,9 +365,10 @@ Activity API for ERFWeb".
   `crmActivitiesAvailable`) lists all the employee's activities on the line's date: Completed ones first, which
   can be picked, then Open and Cancelled ones, shown greyed out so the day is complete (one CRM call per status).
   Changing the line's date and reopening lists that day. Picking one
-  fills Date (`activityDate`), Particulars (`subject`), Location (`customer.name`), Work With (the other people,
+  fills Date (`activityDate`), Location (`customer.name`), Work With (the other people,
   by their ERFWeb name where linked), Service no., Instrument and Serial no., and on a Transportation line the
-  first fare leg (`travel.origin` → `travel.destination`). The line keeps the link (`expense_lines.crm_activity_id`,
+  first fare leg (`travel.origin` → `travel.destination`). Particulars keeps the category default (Meals,
+  Transportation, Toll, Parking…) and stays editable. The line keeps the link (`expense_lines.crm_activity_id`,
   script `020`); removing the chip makes it an ordinary typed line. Typing lines by hand always works.
 - **Rules (`CrmActivityClaimCheck`).** When a line gains or changes its link, the server asks the CRM
   (`GET /activities/{activityId}`) that the activity exists, is Completed, belongs to the employee (owner or
