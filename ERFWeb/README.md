@@ -191,7 +191,7 @@ with an approval step assigned to them.
 
 Pipeline: `ExpenseReportDocumentLoader` (LINQ read model) → Domain `R47Bucketing` / `R47Layout`
 (column bucketing — each column carries the line total (amount × multiplier), VAT is its own memo column —
-per-date "Work With" grouping, Crystal-style pagination by height — `R47Report:RowsPerPage` is the detail area in text lines, wrapped particulars count for more, a group header is never orphaned and is repeated with its date when a group continues on the next page — and the running cash-advance reconciliation: each page carries `cash advance − prior pages' expenses`, less this page's total, giving that page's BAL DUE) → `R47Document` (QuestPDF, US Letter landscape) → `R47PdfRenderer`.
+per-date "Work With" grouping, Crystal-style pagination by height — `R47Report:DetailHeight` is the detail area in points (255, about 19 single-line rows; each wrapped line of a long client heading or particulars adds 8.2 pt; the old `RowsPerPage` key is ignored), grid text is 5.8 pt `R47Report:GridFont` (Tahoma) as on the Crystal printout, a group header is never orphaned and is repeated with its date when a group continues on the next page — and the running cash-advance reconciliation: each page carries `cash advance − prior pages' expenses`, less this page's total, giving that page's BAL DUE) → `R47Document` (QuestPDF, US Letter landscape) → `R47PdfRenderer`.
 
 Form constants (company, document code, effectivity date, revision, rows per page, UTC offset, QuestPDF
 license tier) live in the `R47Report` section of `appsettings.json` (`R47ReportOptions`). The MDMPI logo

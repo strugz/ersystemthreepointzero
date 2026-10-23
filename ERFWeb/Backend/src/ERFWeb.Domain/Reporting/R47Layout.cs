@@ -6,11 +6,21 @@ namespace ERFWeb.Domain.Reporting;
 /// </summary>
 public static class R47Layout
 {
-    /// <summary>
-    /// Height of the detail area, in text lines. A single-line row uses one; a wrapped
-    /// particulars/invoice uses more. Calibrated against the reference printouts.
-    /// </summary>
-    public const int DefaultLinesPerPage = 16;
+    // Grid geometry measured on the legacy Crystal printout (MARER08OCT2026), in points.
+
+    /// <summary>Height of the detail area between the column headings and the page-totals row.</summary>
+    public const float DefaultDetailHeight = 255f;
+
+    /// <summary>A row whose texts all fit on one line.</summary>
+    public const float SingleRowHeight = 13.3f;
+
+    /// <summary>Line pitch of wrapped grid text; a wrapped row grows by this per extra line.</summary>
+    public const float WrappedLineHeight = 8.2f;
+
+    private const float RowPadding = 2f;
+
+    /// <summary>Printed height of a row whose tallest text wraps to <paramref name="lines"/> lines.</summary>
+    public static float RowHeight(int lines) => Math.Max(SingleRowHeight, lines * WrappedLineHeight + RowPadding);
 
     /// <summary>
     /// Builds grid rows: a group header whenever the (date, location, work-with) key changes,
@@ -36,7 +46,7 @@ public static class R47Layout
             if (key != lastKey)
             {
                 var showDate = line.TransactionDate != lastDate;
-                var headerLines = R47TextMetrics.LineCount(headerText, R47TextMetrics.ParticularsCapacity, bold: true);
+                var headerLines = R47TextMetrics.LineCount(headerText, R47TextMetrics.ParticularsCapacity);
                 rows.Add(new R47GroupHeaderRow(line.TransactionDate, showDate, headerText, headerLines));
                 lastKey = key;
                 lastDate = line.TransactionDate;
@@ -54,7 +64,7 @@ public static class R47Layout
     /// <summary>
     /// Fills pages by height the way Crystal does:
     /// <list type="bullet">
-    /// <item>a page holds <paramref name="linesPerPage"/> text lines; wrapped rows count for more than one;</item>
+    /// <item>a page holds <paramref name="detailHeight"/> points of rows; a wrapped row is taller (<see cref="RowHeight"/>);</item>
     /// <item>a group header is never orphaned — if the header plus its first detail do not fit, the
     /// whole group starts on the next page;</item>
     /// <item>when a group is split across pages, its header (with the date) is repeated at the top of
@@ -64,19 +74,22 @@ public static class R47Layout
     /// Per page: carried = cashAdvance − Σ(prior pages' grand totals); lessExpense = this page's
     /// grand total; balanceDue = carried − lessExpense. A report with no lines still yields one page.
     /// </summary>
-    public static IReadOnlyList<R47Page> Paginate(IReadOnlyList<R47Row> rows, decimal cashAdvanceAmount, int linesPerPage = DefaultLinesPerPage)
+    public static IReadOnlyList<R47Page> Paginate(IReadOnlyList<R47Row> rows, decimal cashAdvanceAmount, float detailHeight = DefaultDetailHeight)
     {
         ArgumentNullException.ThrowIfNull(rows);
-        if (linesPerPage < 1)
+        if (detailHeight < SingleRowHeight)
         {
-            throw new ArgumentOutOfRangeException(nameof(linesPerPage));
+            throw new ArgumentOutOfRangeException(nameof(detailHeight));
         }
 
         var pages = new List<R47Page>();
         var current = new List<R47Row>();
-        var used = 0;
+        var used = 0f;
         var priorExpenses = 0m;
         R47GroupHeaderRow? openGroup = null;
+
+        // Heights are sums of fractional points; the tolerance keeps an exactly-full page from spilling.
+        bool Fits(float height) => used + height <= detailHeight + 0.01f;
 
         void Flush()
         {
@@ -96,31 +109,31 @@ public static class R47Layout
                 case R47GroupHeaderRow header:
                     {
                         openGroup = header;
-                        var firstDetail = i + 1 < rows.Count && rows[i + 1] is R47DetailRow d ? d.Lines : 0;
-                        if (used > 0 && used + header.Lines + firstDetail > linesPerPage)
+                        var firstDetail = i + 1 < rows.Count && rows[i + 1] is R47DetailRow d ? d.Height : 0f;
+                        if (used > 0 && !Fits(header.Height + firstDetail))
                         {
                             Flush();
                         }
 
                         current.Add(current.Count == 0 ? header with { ShowDate = true } : header);
-                        used += header.Lines;
+                        used += header.Height;
                         break;
                     }
 
                 case R47DetailRow detail:
                     {
-                        if (used > 0 && used + detail.Lines > linesPerPage)
+                        if (used > 0 && !Fits(detail.Height))
                         {
                             Flush();
-                            if (openGroup is not null && openGroup.Lines + detail.Lines <= linesPerPage)
+                            if (openGroup is not null && Fits(openGroup.Height + detail.Height))
                             {
                                 current.Add(openGroup with { ShowDate = true });
-                                used += openGroup.Lines;
+                                used += openGroup.Height;
                             }
                         }
 
                         current.Add(detail);
-                        used += detail.Lines;
+                        used += detail.Height;
                         break;
                     }
             }

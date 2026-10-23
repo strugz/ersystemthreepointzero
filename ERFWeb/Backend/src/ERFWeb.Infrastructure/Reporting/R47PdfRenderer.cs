@@ -24,7 +24,7 @@ public sealed class R47PdfRenderer : IExpenseReportPdfRenderer
         ArgumentNullException.ThrowIfNull(document);
 
         var rows = R47Layout.BuildRows(document.Lines);
-        var pages = R47Layout.Paginate(rows, document.CashAdvanceTotal, _options.RowsPerPage);
+        var pages = R47Layout.Paginate(rows, document.CashAdvanceTotal, _options.DetailHeight);
         var pdf = new R47Document(document, pages, printedAt, _options, R47Assets.Logo);
         return pdf.GeneratePdf();
     }

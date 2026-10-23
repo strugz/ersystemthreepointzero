@@ -12,7 +12,8 @@ namespace ERFWeb.Infrastructure.Reporting;
 /// The R47 "EXPENSE REPORT" controlled form as a QuestPDF document. One <c>Page</c> is
 /// emitted per pre-paginated <see cref="R47Page"/>, each carrying the full header, grid,
 /// per-page totals, cash-advance reconciliation, promissory footer, and signatory blocks.
-/// Geometry is calibrated to the legacy printout (US Letter landscape, 792×612 pt).
+/// Geometry and type sizes are measured from the legacy Crystal printout (MARER08OCT2026,
+/// US Letter landscape, 792×612 pt).
 /// </summary>
 internal sealed class R47Document(
     ExpenseReportDocumentDto dto,
@@ -24,14 +25,30 @@ internal sealed class R47Document(
     private static readonly Color Red = Color.FromHex("#C00000");
     private static readonly Color Blue = Color.FromHex("#1F1FBF");
     private const float Border = 0.6f;
-    private const float RowHeight = 13f;
 
-    // Grid column widths (pt); sum = 740 = page width − margins.
-    private static readonly float[] GridColumns = [42, 146, 52, 50, 52, 52, 50, 52, 65, 52, 15, 60, 52];
+    // Type sizes of the reference printout (pt).
+    private const float BodySize = 7.1f;
+    private const float GridTextSize = 5.8f;
+    private const float AmountSize = 6.6f;
+    private const float DateSize = 6.2f;
+    private const float SmallSize = 6.2f;
+
+    private const float TotalsRowHeight = 15.2f;
+    private const float GrandTotalRowHeight = 13.5f;
+    private const float CellPadding = 1.5f;
+
+    // Grid column widths (pt); sum = 748 = page width − margins.
+    private static readonly float[] GridColumns = [45, 148, 51, 50, 53, 53, 50, 60, 57.5f, 54, 36, 37, 53.5f];
+
+    // PARTICULARS wraps inside a fixed text box, as Crystal does, so the rendered wrap matches
+    // R47TextMetrics.ParticularsCapacity (20,500/1000 em × 5.8 pt ≈ 118.9 pt).
+    private const float ParticularsTextWidth = 119f;
+    private const float GroupHeaderIndent = 3f;
+    private const float DetailIndent = 5f;
 
     // The DATE stamp and the blank box under it sit over the last four grid columns
-    // (Representation, Oth, VAT, Grand Total) so their lines continue the grid's; the
-    // DATE label spans Representation + Oth so its divider meets the VAT column line.
+    // (Representation, Other Exp., VAT, Grand Total) so their lines continue the grid's; the
+    // DATE label spans Representation + Other Exp. so its divider meets the VAT column line.
     private static readonly float DateBoxWidth = GridColumns[^4..].Sum();
     private static readonly float DateLabelWidth = GridColumns[^4] + GridColumns[^3];
 
@@ -53,25 +70,25 @@ internal sealed class R47Document(
     private void ComposePage(PageDescriptor page, R47Page data)
     {
         page.Size(PageSizes.Letter.Landscape());
-        page.MarginLeft(26);
-        page.MarginRight(26);
-        page.MarginTop(17);
-        page.MarginBottom(20);
-        page.DefaultTextStyle(s => s.FontFamily(opt.BodyFont).FontSize(8));
+        page.MarginLeft(25);
+        page.MarginRight(19);
+        page.MarginTop(8);
+        page.MarginBottom(12);
+        page.DefaultTextStyle(s => s.FontFamily(opt.BodyFont).FontSize(BodySize));
 
         page.Content().Column(col =>
         {
             col.Item().Element(c => ComposeHeader(c, data.PageNumber));
-            col.Item().PaddingTop(3).Element(ComposePrintedDate);
+            col.Item().Element(ComposePrintedDate);
             col.Item().Element(ComposeEmployeeBlock);
             col.Item().Element(c => ComposeGrid(c, data));
             col.Item().Element(c => ComposeRevolvingFundRow(c, data));
-            col.Item().PaddingTop(7).Element(c => ComposeCashAdvanceBlock(c, data));
-            col.Item().PaddingTop(6).Element(ComposeFooter);
-            col.Item().PaddingTop(4).PaddingLeft(2).Text(text =>
+            col.Item().PaddingTop(1).Element(c => ComposeCashAdvanceBlock(c, data));
+            col.Item().Element(ComposeFooter);
+            col.Item().PaddingTop(3).Text(text =>
             {
-                text.Span("ER Reference Number:   ").FontSize(7.5f);
-                text.Span(dto.ReferenceNo ?? string.Empty).FontSize(7.5f).FontColor(Red);
+                text.Span("ER Reference Number:   ").FontSize(SmallSize);
+                text.Span(dto.ReferenceNo ?? string.Empty).FontSize(SmallSize).FontColor(Red);
             });
         });
     }
@@ -84,24 +101,24 @@ internal sealed class R47Document(
         {
             t.ColumnsDefinition(cols =>
             {
-                cols.ConstantColumn(105);
+                cols.ConstantColumn(118);
                 cols.RelativeColumn();
-                cols.ConstantColumn(112);
-                cols.ConstantColumn(112);
+                cols.ConstantColumn(104);
+                cols.ConstantColumn(102);
             });
 
             // Reference form: the logo sits in the same box as the company name (no divider).
             t.Cell().RowSpan(2).Padding(6).AlignCenter().AlignMiddle()
-                .Height(72).Image(logo).FitArea();
+                .Height(76).Image(logo).FitArea();
 
             t.Cell().BorderBottom(Border).BorderRight(Border).AlignCenter().AlignMiddle().PaddingVertical(4)
-                .Text(opt.CompanyName).FontFamily(opt.HeaderFont).FontSize(13).Bold();
+                .Text(opt.CompanyName).FontFamily(opt.HeaderFont).FontSize(14.8f).Bold();
 
             InfoCell(t, "Document Code:", opt.DocumentCode, borderRight: true);
             InfoCell(t, "Page No.", pageNumber.ToString(CultureInfo.InvariantCulture), borderRight: false);
 
             t.Cell().BorderRight(Border).AlignCenter().AlignMiddle().PaddingVertical(6)
-                .Text(opt.Title).FontFamily(opt.HeaderFont).FontSize(17).Bold();
+                .Text(opt.Title).FontFamily(opt.HeaderFont).FontSize(19.6f).Bold();
 
             InfoCell(t, "Effectivity Date", opt.EffectivityDate, borderRight: true, bottomBorder: false);
             InfoCell(t, "Revision No.", opt.RevisionNo, borderRight: false, bottomBorder: false);
@@ -118,8 +135,8 @@ internal sealed class R47Document(
 
         cell.Padding(4).Column(col =>
         {
-            col.Item().Text(label).FontFamily(opt.HeaderFont).FontSize(8.5f).Bold();
-            col.Item().PaddingTop(5).AlignCenter().Text(value).FontFamily(opt.HeaderFont).FontSize(13).Bold();
+            col.Item().Text(label).FontFamily(opt.HeaderFont).FontSize(8.2f).Bold();
+            col.Item().PaddingTop(5).AlignCenter().Text(value).FontFamily(opt.HeaderFont).FontSize(13.1f).Bold();
         });
     }
 
@@ -127,12 +144,12 @@ internal sealed class R47Document(
     {
         var local = printedAt.ToOffset(TimeSpan.FromHours(opt.UtcOffsetHours));
         var stamp = string.Create(CultureInfo.InvariantCulture,
-            $"{local:MM/dd/yyyy}   {local:h:mm:ss}{local.ToString("tt", CultureInfo.InvariantCulture).ToLowerInvariant()}");
+            $"{local:MM/dd/yyyy}  {local:h:mm:ss}{local.ToString("tt", CultureInfo.InvariantCulture).ToLowerInvariant()}");
 
         c.AlignRight().Width(DateBoxWidth).Border(Border).Row(r =>
         {
-            r.ConstantItem(DateLabelWidth).BorderRight(Border).PaddingLeft(4).PaddingVertical(1).Text("DATE").Bold().FontSize(7.5f);
-            r.RelativeItem().PaddingLeft(4).PaddingVertical(1).Text(stamp).FontSize(7.5f);
+            r.ConstantItem(DateLabelWidth).BorderRight(Border).PaddingLeft(4).PaddingVertical(1).Text("DATE").Bold();
+            r.RelativeItem().PaddingLeft(4).PaddingVertical(1).Text(stamp);
         });
     }
 
@@ -144,13 +161,13 @@ internal sealed class R47Document(
             {
                 col.Item().BorderBottom(Border).Row(r =>
                 {
-                    r.ConstantItem(105).PaddingLeft(4).PaddingVertical(1.5f).Text("EMPLOYEE:").Bold();
-                    r.RelativeItem().PaddingVertical(1.5f).Text(dto.EmployeeFullName);
+                    r.ConstantItem(105).PaddingLeft(5).PaddingVertical(2).Text("EMPLOYEE:").Bold();
+                    r.RelativeItem().PaddingVertical(2).Text(dto.EmployeeFullName);
                 });
                 col.Item().Row(r =>
                 {
-                    r.ConstantItem(105).PaddingLeft(4).PaddingVertical(1.5f).Text("PURPOSE OF EXPENSE:").Bold();
-                    r.RelativeItem().PaddingVertical(1.5f).Text(dto.Purpose);
+                    r.ConstantItem(105).PaddingLeft(5).PaddingVertical(2).Text("PURPOSE OF EXPENSE:").Bold();
+                    r.RelativeItem().PaddingVertical(2).Text(dto.Purpose);
                 });
             });
 
@@ -175,31 +192,33 @@ internal sealed class R47Document(
             HeaderCell(t, "PARTICULARS", Red, rowSpan: 2);
             HeaderCell(t, "Invoice/OR\nNumber", Red, rowSpan: 2);
             HeaderCell(t, "LOCAL TRAVEL", Red, colSpan: 6, bold: false);
-            HeaderCell(t, "Representation", Red, rowSpan: 2, size: 6.5f);
-            HeaderCell(t, "Oth", Red, rowSpan: 2, size: 6.5f);
+            HeaderCell(t, "Representation", Red, rowSpan: 2, size: SmallSize);
+            HeaderCell(t, "Other Exp.", Red, rowSpan: 2, size: SmallSize);
             HeaderCell(t, "VAT", Red, rowSpan: 2);
             HeaderCell(t, "GRAND\nTOTAL", Red, rowSpan: 2);
             // Header row 2 (auto-placed into the free slots under LOCAL TRAVEL)
             foreach (var sub in new[] { "MEALS", "TRANSP.", "TOLL", "PARKING", "OTHERS", "TOTAL" })
             {
-                HeaderCell(t, sub, Colors.Black, size: 6.5f);
+                HeaderCell(t, sub, Colors.Black, size: SmallSize);
             }
 
-            // Printed rows are ruled and sized by their estimated line count (Crystal fills by height).
+            // Printed rows are ruled and sized by their estimated wrapped height (Crystal fills by height).
             foreach (var row in data.Rows)
             {
-                var h = RowHeight * row.Lines;
+                var h = row.Height;
                 switch (row)
                 {
                     case R47GroupHeaderRow g:
-                        RuledCell(t, h).Text(g.ShowDate ? g.Date.ToString("dd-MMM-yy", CultureInfo.InvariantCulture) : string.Empty);
-                        RuledCell(t, h).PaddingLeft(4).Text(g.Text).Bold();
+                        RuledCell(t, h).AlignCenter()
+                            .Text(g.ShowDate ? g.Date.ToString("d-MMM-yy", CultureInfo.InvariantCulture) : string.Empty)
+                            .FontSize(DateSize);
+                        GridText(RuledCell(t, h).PaddingLeft(GroupHeaderIndent).AlignLeft().Width(ParticularsTextWidth), g.Text);
                         for (var k = 2; k < GridColumns.Length; k++) RuledCell(t, h);
                         break;
                     case R47DetailRow d:
                         RuledCell(t, h);
-                        RuledCell(t, h).PaddingLeft(6).Text(d.Particulars);
-                        RuledCell(t, h).Text(d.InvoiceOrNo ?? string.Empty);
+                        GridText(RuledCell(t, h).PaddingLeft(DetailIndent).AlignLeft().Width(ParticularsTextWidth), d.Particulars);
+                        GridText(RuledCell(t, h), d.InvoiceOrNo ?? string.Empty);
                         AmountCell(t, d.Buckets.Meals, h);
                         AmountCell(t, d.Buckets.Transportation, h);
                         AmountCell(t, d.Buckets.Toll, h);
@@ -215,20 +234,20 @@ internal sealed class R47Document(
             }
 
             // The rest of the detail area stays blank (column rules only) so the totals row is anchored.
-            var spare = Math.Max(0, opt.RowsPerPage - data.UsedLines);
+            var spare = Math.Max(0f, opt.DetailHeight - data.UsedHeight);
             if (spare > 0)
             {
                 for (var k = 0; k < GridColumns.Length; k++)
                 {
-                    t.Cell().BorderVertical(Border).MinHeight(RowHeight * spare);
+                    t.Cell().BorderVertical(Border).MinHeight(spare);
                 }
             }
 
             // Page totals row
             var tot = data.PageTotals;
-            RuledCell(t, RowHeight);
-            RuledCell(t, RowHeight);
-            RuledCell(t, RowHeight);
+            RuledCell(t, TotalsRowHeight);
+            RuledCell(t, TotalsRowHeight);
+            RuledCell(t, TotalsRowHeight);
             TotalCell(t, tot.Meals, dashZero: true);
             TotalCell(t, tot.Transportation, dashZero: true);
             TotalCell(t, tot.Toll, dashZero: true);
@@ -242,7 +261,7 @@ internal sealed class R47Document(
         });
     }
 
-    private static void HeaderCell(TableDescriptor t, string text, Color color, uint rowSpan = 1, uint colSpan = 1, bool bold = true, float size = 7f)
+    private static void HeaderCell(TableDescriptor t, string text, Color color, uint rowSpan = 1, uint colSpan = 1, bool bold = true, float size = BodySize)
     {
         var cell = t.Cell();
         if (rowSpan > 1) cell = cell.RowSpan(rowSpan);
@@ -254,34 +273,39 @@ internal sealed class R47Document(
 
     /// <summary>A fully ruled grid cell of a fixed height (one or more text lines).</summary>
     private static IContainer RuledCell(TableDescriptor t, float height) =>
-        t.Cell().Border(Border).MinHeight(height).PaddingHorizontal(2).PaddingVertical(1).AlignMiddle();
+        t.Cell().Border(Border).MinHeight(height).PaddingHorizontal(CellPadding).PaddingVertical(1).AlignMiddle();
 
-    private static void AmountCell(TableDescriptor t, decimal value, float height) =>
-        RuledCell(t, height).AlignRight().Text(value == 0 ? string.Empty : Money(value));
+    /// <summary>Grid text at the reference size and line pitch, so wrapped rows match <see cref="R47Layout.RowHeight"/>.</summary>
+    private void GridText(IContainer c, string text) =>
+        c.Text(text).FontFamily(opt.GridFont).FontSize(GridTextSize).LineHeight(R47Layout.WrappedLineHeight / GridTextSize);
 
-    private static void TotalCell(TableDescriptor t, decimal value, bool dashZero) =>
-        RuledCell(t, RowHeight).AlignRight().Text(value == 0 ? (dashZero ? "-" : string.Empty) : Money(value)).Bold();
+    private void AmountCell(TableDescriptor t, decimal value, float height) =>
+        RuledCell(t, height).AlignRight().Text(value == 0 ? string.Empty : Money(value)).FontFamily(opt.GridFont).FontSize(AmountSize);
+
+    private void TotalCell(TableDescriptor t, decimal value, bool dashZero) =>
+        RuledCell(t, TotalsRowHeight).AlignRight().Text(value == 0 ? (dashZero ? "-" : string.Empty) : Money(value))
+            .FontFamily(opt.GridFont).FontSize(AmountSize).Bold();
 
     // ---- Revolving fund + GRAND TOTAL row (same column grid for alignment) ----
 
     private void ComposeRevolvingFundRow(IContainer c, R47Page data)
     {
-        c.PaddingTop(3).Table(t =>
+        c.Table(t =>
         {
             t.ColumnsDefinition(cols =>
             {
                 foreach (var w in GridColumns) cols.ConstantColumn(w);
             });
 
-            t.Cell().ColumnSpan(3).AlignMiddle().PaddingLeft(4)
-                .Text("IF WITH REVOLVING FUND. PLEASE INDICATE THE AMOUNT HERE").FontSize(6.5f).FontColor(Blue);
-            t.Cell().Border(Border).MinHeight(RowHeight).PaddingHorizontal(2).AlignRight().AlignMiddle()
-                .Text(dto.RevolvingFundAmount == 0 ? "0" : Money(dto.RevolvingFundAmount));
+            t.Cell().ColumnSpan(3).AlignMiddle().PaddingLeft(6)
+                .Text("IF WITH REVOLVING FUND. PLEASE INDICATE THE AMOUNT HERE").FontSize(SmallSize).FontColor(Blue);
+            t.Cell().Border(Border).MinHeight(GrandTotalRowHeight).PaddingHorizontal(2).AlignRight().AlignMiddle()
+                .Text(dto.RevolvingFundAmount == 0 ? "0" : Money(dto.RevolvingFundAmount)).FontFamily(opt.GridFont).FontSize(AmountSize);
             t.Cell().ColumnSpan(5);
-            t.Cell().ColumnSpan(3).Border(Border).MinHeight(RowHeight).PaddingLeft(4).AlignMiddle()
+            t.Cell().ColumnSpan(3).Border(Border).MinHeight(GrandTotalRowHeight).PaddingLeft(4).AlignMiddle()
                 .Text("GRAND TOTAL").Bold();
-            t.Cell().Border(Border).MinHeight(RowHeight).PaddingHorizontal(2).AlignRight().AlignMiddle()
-                .Text(Money(data.PageTotals.GrandTotal, dashZero: true)).Bold();
+            t.Cell().Border(Border).MinHeight(GrandTotalRowHeight).PaddingHorizontal(2).AlignRight().AlignMiddle()
+                .Text(Money(data.PageTotals.GrandTotal, dashZero: true)).FontFamily(opt.GridFont).FontSize(AmountSize).Bold();
         });
     }
 
@@ -295,39 +319,41 @@ internal sealed class R47Document(
 
         c.Row(row =>
         {
-            row.ConstantItem(375).Border(Border).Table(t =>
+            row.ConstantItem(379).Border(Border).Table(t =>
             {
                 t.ColumnsDefinition(cols =>
                 {
-                    cols.ConstantColumn(60);
+                    cols.ConstantColumn(65);
                     cols.RelativeColumn();
                     cols.ConstantColumn(70);
                     cols.ConstantColumn(80);
                 });
 
                 t.Cell().ColumnSpan(4).BorderBottom(Border).AlignCenter().PaddingVertical(1.5f)
-                    .Text("CASH ADVANCE RECEIVED").Bold().FontColor(Red);
+                    .Text("CASH ADVANCE RECEIVED").FontSize(7.9f).Bold().FontColor(Red);
 
                 foreach (var h in new[] { "DATE", "REFERENCE DOCUMENT", "REF. NO.", "Amount" })
                 {
-                    t.Cell().BorderBottom(Border).BorderRight(Border).AlignCenter().PaddingVertical(1).Text(h);
+                    t.Cell().BorderBottom(Border).BorderRight(Border).AlignCenter().PaddingVertical(1.5f).Text(h).FontSize(8);
                 }
 
                 foreach (var ca in rows)
                 {
-                    t.Cell().BorderRight(Border).PaddingVertical(1).AlignCenter()
+                    t.Cell().BorderRight(Border).PaddingVertical(1.5f).AlignCenter()
                         .Text(ca.AdvanceDate?.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture) ?? string.Empty);
-                    t.Cell().BorderRight(Border).PaddingVertical(1).PaddingLeft(3).Text(ca.ReferenceDocument ?? string.Empty);
-                    t.Cell().BorderRight(Border).PaddingVertical(1).PaddingLeft(3).Text(ca.ReferenceNo ?? string.Empty);
-                    t.Cell().BorderRight(Border).PaddingVertical(1).PaddingRight(3).AlignRight().Text(ca.Amount.ToString("#,##0.00", CultureInfo.InvariantCulture));
+                    t.Cell().BorderRight(Border).PaddingVertical(1.5f).PaddingLeft(3).Text(ca.ReferenceDocument ?? string.Empty);
+                    t.Cell().BorderRight(Border).PaddingVertical(1.5f).PaddingLeft(3).Text(ca.ReferenceNo ?? string.Empty);
+                    t.Cell().BorderRight(Border).PaddingVertical(1.5f).PaddingRight(3).AlignRight()
+                        .Text(ca.Amount.ToString("#,##0.00", CultureInfo.InvariantCulture)).FontFamily(opt.GridFont).FontSize(AmountSize);
                 }
 
                 t.Cell().BorderTop(Border);
                 t.Cell().ColumnSpan(2).BorderTop(Border).PaddingLeft(20).PaddingVertical(1.5f).Text("TOTAL").Bold();
-                t.Cell().BorderTop(Border).PaddingVertical(1.5f).PaddingRight(3).AlignRight().Text(dto.CashAdvanceTotal.ToString("#,##0.00", CultureInfo.InvariantCulture)).Bold();
+                t.Cell().BorderTop(Border).PaddingVertical(1.5f).PaddingRight(3).AlignRight()
+                    .Text(dto.CashAdvanceTotal.ToString("#,##0.00", CultureInfo.InvariantCulture)).FontFamily(opt.GridFont).FontSize(AmountSize).Bold();
             });
 
-            row.ConstantItem(6);
+            row.ConstantItem(4);
 
             row.RelativeItem().Column(col =>
             {
@@ -340,24 +366,27 @@ internal sealed class R47Document(
                         text.Span("BAL DUE TO:   ").Bold();
                         // The legacy report never stored this; it follows the sign of the remainder.
                         text.Span(BalanceDueRules.DueTo(rec.BalanceDue, opt.CompanyShortName)).Bold();
-                        text.Span($"      (If  due to {opt.CompanyShortName}, Cashier to issue OR; indicate Ref. and OR date.)").FontSize(6.5f).FontColor(Red);
+                        text.Span($"      (If  due to {opt.CompanyShortName}, Cashier to issue OR; indicate Ref. and OR date.)").FontSize(5.7f).FontColor(Red);
                     });
-                    r.ConstantItem(52).Border(Border).PaddingHorizontal(2).AlignRight().AlignMiddle()
-                        .Text(Money(rec.BalanceDue, dashZero: true)).Bold();
+                    AmountBox(r, Money(rec.BalanceDue, dashZero: true));
                 });
             });
         });
     }
 
-    private static void ReconLine(ColumnDescriptor col, string label, Color color, decimal value)
+    private void ReconLine(ColumnDescriptor col, string label, Color color, decimal value)
     {
         col.Item().Row(r =>
         {
             r.RelativeItem().PaddingVertical(2).Text(label).Bold().FontColor(color);
-            r.ConstantItem(52).Border(Border).PaddingHorizontal(2).AlignRight().AlignMiddle()
-                .Text(Money(value, dashZero: true)).Bold();
+            AmountBox(r, Money(value, dashZero: true));
         });
     }
+
+    /// <summary>A reconciliation amount, boxed under the GRAND TOTAL column.</summary>
+    private void AmountBox(RowDescriptor r, string text) =>
+        r.ConstantItem(GridColumns[^1]).Border(Border).PaddingHorizontal(2).AlignRight().AlignMiddle()
+            .Text(text).FontFamily(opt.GridFont).FontSize(AmountSize).Bold();
 
     // ---- Footer: promissory + employee signature | signatories ----
 
@@ -367,7 +396,7 @@ internal sealed class R47Document(
 
         c.Border(Border).Row(row =>
         {
-            row.ConstantItem(300).BorderRight(Border).Padding(6).Column(col =>
+            row.ConstantItem(300).BorderRight(Border).PaddingHorizontal(6).PaddingTop(5).PaddingBottom(3).Column(col =>
             {
                 col.Item().Text(
                         "I PROMISE TO RETURN ANY AMOUNT DUE TO THE COMPANY,\n" +
@@ -375,11 +404,11 @@ internal sealed class R47Document(
                         "ADVANCES RECEIVED. THIS ALSO AUTHORIZES THE COMPANY\n" +
                         "TO DEDUCT FROM MY SALARY, ANY UNLIQUIDATED PORTION\n" +
                         "PURSUANT TO THE POLICY ON CASH ADVANCES.")
-                    .FontSize(8.5f).FontColor(Blue).LineHeight(1.25f);
+                    .FontColor(Blue).LineHeight(1.45f);
 
                 // Signature over printed name, like the signatory lines: the signature first so the
                 // name is drawn on top of an opaque (JPEG or non-transparent PNG) background.
-                col.Item().PaddingTop(2).AlignCenter().Width(160).Height(30).Layers(layers =>
+                col.Item().AlignCenter().Width(160).Height(20).Layers(layers =>
                 {
                     if (dto.EmployeeSignature is { Length: > 0 } bytes)
                     {
@@ -388,15 +417,15 @@ internal sealed class R47Document(
                         layers.Layer().AlignCenter().AlignMiddle().Image(bytes).FitArea();
                     }
 
-                    layers.PrimaryLayer().AlignCenter().AlignBottom().Text(dto.EmployeeFullName).FontSize(8.5f);
+                    layers.PrimaryLayer().AlignCenter().AlignBottom().Text(dto.EmployeeFullName);
                 });
                 col.Item().AlignCenter().Width(160).LineHorizontal(0.8f);
-                col.Item().AlignCenter().Text("EMPLOYEE'S SIGNATURE").Bold().FontSize(7.5f);
+                col.Item().AlignCenter().Text("EMPLOYEE'S SIGNATURE").Bold().FontSize(7.9f);
             });
 
             row.RelativeItem().Column(col =>
             {
-                col.Item().PaddingLeft(20).PaddingTop(3).Text("(Signature Over Printed Name)").FontSize(7).FontColor(Red);
+                col.Item().PaddingLeft(20).PaddingTop(3).Text("(Signature Over Printed Name)").FontColor(Red);
                 SignatoryLine(col, "ENDORSED BY :", sig.EndorsedBy, sig.EndorserSignature, topBorder: false);
                 SignatoryLine(col, "REVIEWED BY :", sig.ReviewedBy, null, topBorder: true);
                 SignatoryLine(col, "APPROVED BY :", sig.ApprovedBy, sig.ApproverSignature, topBorder: true, tall: true);
@@ -412,8 +441,8 @@ internal sealed class R47Document(
 
         item.MinHeight(tall ? 28 : 18).PaddingLeft(20).AlignMiddle().Row(r =>
         {
-            r.ConstantItem(70).AlignMiddle().Text(label).Bold().FontSize(7.5f);
-            r.RelativeItem().Height(tall ? 28 : 22).Layers(layers =>
+            r.ConstantItem(70).AlignMiddle().Text(label).Bold();
+            r.RelativeItem().Height(tall ? 28 : 18).Layers(layers =>
             {
                 // Signature first so the name is drawn on top: a JPEG (or a PNG without
                 // transparency) has an opaque background that would otherwise hide the name.

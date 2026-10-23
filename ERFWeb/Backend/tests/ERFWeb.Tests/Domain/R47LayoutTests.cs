@@ -38,31 +38,40 @@ public class R47LayoutTests
             r => Assert.IsType<R47DetailRow>(r));
     }
 
-    // Wrap behaviour observed on the reference printout (MUMER16AUG2026, pages 2–5).
+    // Wrap behaviour observed on the reference printout (MARER08OCT2026).
     [Theory]
-    [InlineData("MDMPI Work With NONE", 1)]
-    [InlineData("SLMCGC - AU480 - 2022054754 Work With JSO", 2)]
-    [InlineData("MMC - DXI 800 - 603220 Work With RLN/JSO", 2)]
-    [InlineData("AMCALMANZA - DXH 520 - BF020105 Work With NONE", 2)]
-    [InlineData("LPCMC - ACCESS 2E - 571487 Work With NONE", 2)]
+    [InlineData("MDMPI", 1)]
+    [InlineData("US VETERANS EMBASSY OUT PATIENT CLINIC", 2)]
+    [InlineData("MCU-FDT Medical Foundation - GEM 3500 - (SN: 70060897) - 70060897", 2)]
+    [InlineData("Alabang Medical Clinic - Almanza - DXH 520 - (SN: BF020105) - BF020105", 2)]
     public void LineCount_GroupHeaders_MatchReferencePrintout(string header, int expected) =>
-        Assert.Equal(expected, R47TextMetrics.LineCount(header, R47TextMetrics.ParticularsCapacity, bold: true));
+        Assert.Equal(expected, R47TextMetrics.LineCount(header, R47TextMetrics.ParticularsCapacity));
 
     [Theory]
+    [InlineData("Toll", 1)]
     [InlineData("SUCAT - NICHOLS (TOLL)", 1)]
     [InlineData("SUCAT - NICHOLS (TOLL) - MEDICARD INSTRUMENTS INVENTORY", 2)]
-    [InlineData("MEAL - MEDICARD INSTRUMENTS INVENTORY", 2)]
-    [InlineData("ALABANG - NICHOLS (TOLL) - MEDICARD INSTRUMENTS INVENTORY", 3)]
-    [InlineData("NICHOLS - FESTIVAL (TOLL) - MEDICARD INSTRUMENTS INVENTORY", 3)]
-    public void LineCount_Particulars_MatchReferencePrintout(string particulars, int expected) =>
+    [InlineData("SUCAT - NICHOLS (TOLL) - MEDICARD INSTRUMENTS INVENTORY - SLMCGC - AU480 - 2022054754 WORK WITH JSO", 3)]
+    public void LineCount_Particulars_FollowTheParticularsTextWidth(string particulars, int expected) =>
         Assert.Equal(expected, R47TextMetrics.LineCount(particulars, R47TextMetrics.ParticularsCapacity));
 
     [Theory]
-    [InlineData("2667789054", 1)]
-    [InlineData("35000123581-00", 1)]
-    [InlineData("9BEUOTWB-0007", 2)]   // breaks mid-token on the JCAER printout
-    public void LineCount_InvoiceNumbers_MatchReferencePrintout(string invoice, int expected) =>
+    [InlineData("00000247967", 1)]
+    [InlineData("01000291926", 1)]
+    [InlineData("5001000291926", 1)]
+    [InlineData("SI-0001234567-89", 2)]   // wider than the column: breaks mid-token
+    public void LineCount_InvoiceNumbers_FollowTheInvoiceColumnWidth(string invoice, int expected) =>
         Assert.Equal(expected, R47TextMetrics.LineCount(invoice, R47TextMetrics.InvoiceCapacity));
+
+    [Theory]
+    [InlineData(1, 13.3f)]
+    [InlineData(2, 18.4f)]
+    [InlineData(3, 26.6f)]
+    public void RowHeight_MatchesReferencePrintout(int lines, float expected) =>
+        Assert.Equal(expected, R47Layout.RowHeight(lines), precision: 2);
+
+    /// <summary>Detail-area height holding exactly <paramref name="rows"/> single-line rows.</summary>
+    private static float SingleRows(int rows) => rows * R47Layout.SingleRowHeight;
 
     [Fact]
     public void Paginate_RunningReconciliation_MatchesReferencePrintout()
@@ -70,7 +79,7 @@ public class R47LayoutTests
         // MUMER16AUG2026: page totals 1,601 / 912 / 1,050 / 904 / 250 with no cash advance.
         var rows = new List<R47Row> { Detail(1601m), Detail(912m), Detail(1050m), Detail(904m), Detail(250m) };
 
-        var pages = R47Layout.Paginate(rows, cashAdvanceAmount: 0m, linesPerPage: 1);
+        var pages = R47Layout.Paginate(rows, cashAdvanceAmount: 0m, SingleRows(1));
 
         Assert.Equal(5, pages.Count);
         Assert.Equal((0m, 1601m, -1601m), Rec(pages[0]));
@@ -85,30 +94,30 @@ public class R47LayoutTests
     {
         var rows = new List<R47Row> { Detail(3000m), Detail(1000m) };
 
-        var pages = R47Layout.Paginate(rows, cashAdvanceAmount: 5000m, linesPerPage: 1);
+        var pages = R47Layout.Paginate(rows, cashAdvanceAmount: 5000m, SingleRows(1));
 
         Assert.Equal((5000m, 3000m, 2000m), Rec(pages[0]));
         Assert.Equal((2000m, 1000m, 1000m), Rec(pages[1]));
     }
 
     [Fact]
-    public void Paginate_FillsByLines_AndNeverOrphansAGroupHeader()
+    public void Paginate_FillsByHeight_AndNeverOrphansAGroupHeader()
     {
-        // Reference page 1: 14 single-line rows, then the 20-Aug group whose header wraps to 2 lines.
-        // 14 + 2 + 1 > 16, so the whole group moves to page 2 and page 1 keeps 2 blank lines.
+        // 14 single-line rows, then a group whose header wraps to 2 lines: 14 + header + first
+        // detail is taller than 16 single rows, so the whole group moves to page 2.
         var rows = new List<R47Row>();
         for (var i = 0; i < 14; i++) rows.Add(i % 4 == 0 ? Header(17 + i / 4) : Detail(84m));
         rows.Add(Header(20, lines: 2));
         rows.Add(Detail(84m));
         rows.Add(Detail(65m));
 
-        var pages = R47Layout.Paginate(rows, 0m, linesPerPage: 16);
+        var pages = R47Layout.Paginate(rows, 0m, SingleRows(16));
 
         Assert.Equal(2, pages.Count);
         Assert.Equal(14, pages[0].Rows.Count);
-        Assert.Equal(14, pages[0].UsedLines);
+        Assert.Equal(SingleRows(14), pages[0].UsedHeight, precision: 2);
         Assert.IsType<R47GroupHeaderRow>(pages[1].Rows[0]);
-        Assert.Equal(4, pages[1].UsedLines);
+        Assert.Equal(R47Layout.RowHeight(2) + SingleRows(2), pages[1].UsedHeight, precision: 2);
     }
 
     [Fact]
@@ -124,10 +133,10 @@ public class R47LayoutTests
             Detail(84m), Detail(84m), Detail(250m),
         };
 
-        var pages = R47Layout.Paginate(rows, 0m, linesPerPage: 6);
+        var pages = R47Layout.Paginate(rows, 0m, SingleRows(6));
 
         Assert.Equal(2, pages.Count);
-        // page 1: header + 3 details + header + 1 detail = 6 lines
+        // page 1: header + 3 details + header + 1 detail = 6 single rows
         Assert.Equal(6, pages[0].Rows.Count);
         // page 2 opens with the repeated 24-Aug header, date shown
         var cont = Assert.IsType<R47GroupHeaderRow>(pages[1].Rows[0]);
@@ -150,7 +159,7 @@ public class R47LayoutTests
             new R47GroupHeaderRow(new DateOnly(2026, 8, 26), false, "MEDLCTR Work With RLN", 1), Detail(118m),
         };
 
-        var pages = R47Layout.Paginate(rows, 0m, linesPerPage: 5);
+        var pages = R47Layout.Paginate(rows, 0m, SingleRows(5));
 
         Assert.Equal(2, pages.Count);
         var second = Assert.IsType<R47GroupHeaderRow>(pages[1].Rows[0]);
@@ -165,7 +174,7 @@ public class R47LayoutTests
         Assert.Single(pages);
         Assert.Empty(pages[0].Rows);
         Assert.Equal(0m, pages[0].PageTotals.GrandTotal);
-        Assert.Equal(0, pages[0].UsedLines);
+        Assert.Equal(0f, pages[0].UsedHeight);
     }
 
     private static (decimal Carried, decimal Less, decimal Balance) Rec(R47Page p) =>
