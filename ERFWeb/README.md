@@ -69,6 +69,7 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Attachments:MaxFileSizeMb` / `MaxFilesPerReport` / `AllowedContentTypes` | Receipt upload limits (also sets the Kestrel/multipart body limit) |
 | `ReferenceNumber:Prefix` / `Digits` / `UtcOffsetHours` | ERF reference number series, e.g. `ERF-2026-000142` (prefix, zero-padding, which local year a filing belongs to) |
 | `Lasius:*` (optional) | Notification SMS gateway URL, API key and header (see Notification SMS) |
+| `Crm:*` (optional) | CRM employee lookup: `BaseUrl` (e.g. `https://<crm-host>/api2/erf/v1`), `ApiKey`, `ApiKeyHeaderName` (`X-Api-Key`), `TimeoutSeconds`. Without it the Add User CRM search answers 503 and accounts save unlinked |
 | `Smtp:*` (optional) | Mail server, sender mailbox and login for report email (see Report email) |
 | `Kestrel:*` (server) | Endpoint the API listens on behind nginx |
 | `RateLimiting:SignInPerMinute` (optional, default 30) | Sign-in and password-change attempts allowed per client address per minute (429 `rate_limited` beyond) |
@@ -104,6 +105,7 @@ psql -d erfweb -f Database/014_email_deliveries.sql      # Phase 7: R47 email de
 psql -d erfweb -f Database/015_security_and_schema_versions.sql # Phase 8.3: forced password change, schema_versions
 psql -d erfweb -f Database/016_fare_modes.sql             # fare modes (Taxi, Grab, Jeepney, ...) on fare legs
 psql -d erfweb -f Database/017_admin_only_authority.sql  # no countersign, no Business Owner: activates pending grants
+psql -d erfweb -f Database/018_crm_employee_link.sql     # users.crm_employee_id: an account's link to its CRM employee
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -114,7 +116,7 @@ against the same database unless you first baseline the migration history.
 
 **Starting over with the data (keeps the administrators).** `Database/maintenance/reset_data_keep_admins.sql` runs a
 `DELETE FROM` on every table and deletes every user except `admin` (`admin2` is deleted too). Only `admin` (with its System Administrator role),
-its department, the PHP currency and `schema_versions` stay. Create a second administrator again from the
+its department, the PHP currency, the fare modes and `schema_versions` stay. It runs as one transaction and stops without deleting anything if `admin` is missing. Create a second administrator again from the
 administration console afterwards, since an administrator cannot change their own account. It is destructive and has no rollback, so
 take a `pg_dump` first:
 
@@ -308,12 +310,45 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 | `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `…/signature` (SystemAdministrator) | Register and maintain accounts; load the signature printed on the R47 |
 | `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/revoke` (SystemAdministrator) | Grant, revoke |
 | `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list |
-| `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches; stored in `app_settings` |
+| `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches, account email domains; stored in `app_settings` |
+| `GET /api/admin/crm/employees?search&includeInactive` · `GET …/{employeeId}` (SystemAdministrator) | CRM employee lookup for the user form (see CRM employee link) |
 | `GET /api/admin/audit?event&actorUserId&from&to` (SystemAdministrator, Finance) | Append-only audit trail |
 
 First-time setup (plan flow 1): sign in as `admin`, create accounts and master data, set the rules, grant the
 signatory roles, then give each signatory a scope (Scope page) so reports route to them.
 `department_signatories` (the initials printed on the R47 footer) is still maintained by SQL.
+
+### CRM employee link
+
+The CRM holds no employee email, so an account is tied to the CRM by the CRM **employee ID** (e.g. `CNT-001`),
+stored in `users.crm_employee_id` (script `018`). The later CRM activity endpoints (visits and service work to
+claim on expense lines) take this ID. The data contract with the CRM team is
+`Document/CRM-API-Integration-Spec.md`; their side is the "CRM Employee Lookup API for ERFWeb".
+
+- **Picking.** On New user and Edit, the CRM link field searches the CRM by name, initials or employee ID
+  (2 characters or more; "Include people who have left" adds leavers). The admin picks one person; the stored
+  ID shows in the read-only **CRM employee ID** box beside it. Names are never matched automatically.
+- **Prefill.** Picking fills **Full name** and **Mobile no.** from the CRM (`fullName`, `mobileNumber` = CRM
+  `CNTNUM`) only when those fields are empty. Email, department and the other fields are entered by hand.
+- **Rules (`UserAdminService`).** One CRM employee links to one account (also a unique index). On create, and on
+  edit when the link changes, the server asks the CRM whether the ID exists; an ordinary profile edit never calls
+  the CRM. Clearing the field and saving removes the link. The ID is in the `Admin.UserCreated` /
+  `Admin.UserUpdated` audit rows.
+- **Server to CRM.** `CrmEmployeeDirectory` calls `GET {Crm:BaseUrl}/employees?search=` and
+  `/employees/{employeeId}` with the key in `X-Api-Key`. It logs only the HTTP status, never the search text,
+  the key or the response. The browser never calls the CRM.
+- **Errors.** 400 when the search is shorter than 2 characters; 503 `crm_not_configured` without the `Crm`
+  section; 503 `crm_unavailable` when the CRM refuses (wrong key, 5xx), times out or answers unreadable JSON.
+  The account can always be saved without a link.
+
+### Account email domains
+
+The Email field on the user form is a name plus a domain dropdown. The domains are the setting
+`Accounts.EmailDomains` (default `marsmandrysdale.com`), edited under **Settings → Account email domains**: type a
+domain and press Enter; the first one is the default for new accounts. `EmailDomainRules` trims, lower-cases,
+drops a leading `@` and duplicates, and refuses an invalid domain, an empty list or more than 20. Typing a full
+address (with `@`) in the name box keeps it as typed, for addresses outside the list; the server accepts any valid
+email. No database script: a missing row falls back to the default.
 
 ## Scope & rate profiles (plan Phase 2)
 
@@ -700,7 +735,7 @@ Settings that matter for the live site:
 | `Cors:AllowedOrigins` | `https://ersystemthreepointzero.onrender.com` (the Render address; no `localhost` on the server) |
 | `Authentication:CrossSiteCookies` | `true` while the frontend is on `onrender.com`; `false` once it moves to a `mdmpi.com.ph` address |
 | `Kestrel` | the address the service listens on (`http://192.168.4.206:5080/5081`), which nginx forwards to |
-| `Smtp`, `Lasius` | email and SMS; without them those features are skipped, not broken |
+| `Smtp`, `Lasius`, `Crm` | email, SMS and the CRM employee lookup; without them those features are skipped, not broken |
 | `Logging:File:Directory` | where log files go (default `logs`) |
 | `ReverseProxy:KnownProxies` | nginx's IP address as the server sees it (ask IT), e.g. `["192.168.4.x"]`; until it is set, rate limits count all users together |
 | `RateLimiting` | `SignInPerMinute` (30) and `ApiPerMinute` (1200); raise them if many users share one address and see 429 |

@@ -13,14 +13,18 @@ const snack = useSnackbar();
 
 const departments = ref<Department[]>([]);
 const costCenters = ref<CostCenter[]>([]);
+/** Undefined until the settings load; the form then falls back to its default domain. */
+const emailDomains = ref<string[] | undefined>(undefined);
 const lookupsLoading = ref(true);
 const saving = ref(false);
 const errors = ref<Record<string, string[]> | null>(null);
 
 onMounted(async () => {
-  const [d, c] = await Promise.allSettled([adminApi.departments(false), adminApi.costCenters(false)]);
+  const [d, c, s] = await Promise.allSettled([adminApi.departments(false), adminApi.costCenters(false), adminApi.settings()]);
   if (d.status === 'fulfilled') departments.value = d.value;
   if (c.status === 'fulfilled') costCenters.value = c.value;
+  // An API older than the domain list sends none; keep the form's default.
+  if (s.status === 'fulfilled' && s.value.emailDomains?.length) emailDomains.value = s.value.emailDomains;
   if (d.status === 'rejected' || c.status === 'rejected') {
     snack.error('Some reference lists could not be loaded; you can still create the account.');
   }
@@ -60,6 +64,7 @@ async function create(input: CreateUserInput) {
         mode="create"
         :departments="departments"
         :cost-centers="costCenters"
+        :email-domains="emailDomains"
         :saving="saving"
         :errors="errors"
         @submit="create"

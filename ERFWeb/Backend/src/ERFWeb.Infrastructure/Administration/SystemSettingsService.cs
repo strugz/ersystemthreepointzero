@@ -22,6 +22,7 @@ public static class SystemSettingKeys
     public const string EmailNotificationsEnabled = "Notifications.EmailEnabled";
     public const string SmsNotificationsEnabled = "Notifications.SmsEnabled";
     public const string NotificationFromAddress = "Notifications.FromAddress";
+    public const string EmailDomains = "Accounts.EmailDomains";
 
     public static readonly IReadOnlyDictionary<string, string> Defaults = new Dictionary<string, string>
     {
@@ -36,6 +37,7 @@ public static class SystemSettingKeys
         [EmailNotificationsEnabled] = "false",
         [SmsNotificationsEnabled] = "false",
         [NotificationFromAddress] = "",
+        [EmailDomains] = EmailDomainRules.DefaultDomain,
     };
 }
 
@@ -76,7 +78,8 @@ public sealed class SystemSettingsService(
             Bool(values, SystemSettingKeys.SmsNotificationsEnabled),
             Text(values, SystemSettingKeys.NotificationFromAddress),
             latest?.UpdatedAt,
-            updatedByName);
+            updatedByName,
+            EmailDomainRules.Parse(Raw(values, SystemSettingKeys.EmailDomains)));
     }
 
     public async Task<SystemSettingsDto> UpdateAsync(UpdateSystemSettingsRequest request, CancellationToken ct = default)
@@ -98,6 +101,12 @@ public sealed class SystemSettingsService(
             [SystemSettingKeys.SmsNotificationsEnabled] = request.SmsNotificationsEnabled ? "true" : "false",
             [SystemSettingKeys.NotificationFromAddress] = request.NotificationFromAddress?.Trim() ?? string.Empty,
         };
+
+        // A client that predates the domain list sends none; leave the stored list as it is.
+        if (request.EmailDomains is not null)
+        {
+            incoming[SystemSettingKeys.EmailDomains] = EmailDomainRules.Format(EmailDomainRules.Normalize(request.EmailDomains).Domains);
+        }
 
         await tx.ExecuteAsync(async token =>
         {
@@ -169,6 +178,11 @@ public sealed class SystemSettingsService(
         if (!string.IsNullOrWhiteSpace(r.NotificationFromAddress) && (r.NotificationFromAddress.Length > 200 || !r.NotificationFromAddress.Contains('@')))
         {
             errors["notificationFromAddress"] = ["Enter a valid sender email address."];
+        }
+
+        if (r.EmailDomains is not null && EmailDomainRules.Normalize(r.EmailDomains).Error is { } domainError)
+        {
+            errors["emailDomains"] = [domainError];
         }
 
         if (errors.Count > 0)

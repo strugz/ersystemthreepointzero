@@ -60,7 +60,8 @@ public sealed record UserDetailDto(
     DateTimeOffset CreatedAt,
     bool CoolingPeriodElapsed,
     IReadOnlyList<RoleGrantDto> RoleGrants,
-    uint RowVersion);
+    uint RowVersion,
+    string? CrmEmployeeId = null);
 
 public sealed record UserListQuery : PagedRequest
 {
@@ -80,7 +81,8 @@ public sealed record CreateUserRequest(
     string? MobileNo,
     long? DepartmentId,
     long? CostCenterId,
-    bool WorkWithEnabled);
+    bool WorkWithEnabled,
+    string? CrmEmployeeId = null);
 
 public sealed record UpdateUserRequest(
     string FullName,
@@ -91,7 +93,8 @@ public sealed record UpdateUserRequest(
     long? DepartmentId,
     long? CostCenterId,
     bool WorkWithEnabled,
-    uint RowVersion);
+    uint RowVersion,
+    string? CrmEmployeeId = null);
 
 public sealed record SetUserActiveRequest(bool IsActive, uint RowVersion);
 
@@ -190,7 +193,8 @@ public sealed record SystemSettingsDto(
     bool SmsNotificationsEnabled,
     string? NotificationFromAddress,
     DateTimeOffset? UpdatedAt,
-    string? UpdatedByName);
+    string? UpdatedByName,
+    IReadOnlyList<string> EmailDomains);
 
 public sealed record UpdateSystemSettingsRequest(
     decimal Level2ThresholdAmount,
@@ -203,7 +207,8 @@ public sealed record UpdateSystemSettingsRequest(
     int CoolingPeriodDays,
     bool EmailNotificationsEnabled,
     bool SmsNotificationsEnabled,
-    string? NotificationFromAddress);
+    string? NotificationFromAddress,
+    IReadOnlyList<string>? EmailDomains = null);
 
 public interface ISystemSettingsService
 {

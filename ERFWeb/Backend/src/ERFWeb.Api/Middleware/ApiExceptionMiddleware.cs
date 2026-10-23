@@ -28,6 +28,7 @@ public sealed class ApiExceptionMiddleware(RequestDelegate next, ILogger<ApiExce
                 NotFoundException => StatusCodes.Status404NotFound,
                 ForbiddenException => StatusCodes.Status403Forbidden,
                 ConflictException => StatusCodes.Status409Conflict,
+                ServiceUnavailableException => StatusCodes.Status503ServiceUnavailable,
                 _ => StatusCodes.Status400BadRequest,
             };
             await WriteAsync(context, Build(context, status, ex.Message, ex.Code));

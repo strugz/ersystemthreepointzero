@@ -5,6 +5,7 @@ using ERFWeb.Api.Middleware;
 using ERFWeb.Api.Security;
 using ERFWeb.Application.Common;
 using ERFWeb.Infrastructure;
+using ERFWeb.Infrastructure.Crm;
 using ERFWeb.Infrastructure.Expenses;
 using ERFWeb.Infrastructure.Notifications;
 using ERFWeb.Infrastructure.Reporting;
@@ -109,6 +110,10 @@ builder.Services.Configure<LasiusOptions>(config.GetSection(LasiusOptions.Sectio
 // SMTP for report email: optional in the same way. Without Smtp:Host and Smtp:FromAddress the API starts,
 // "Email R47" answers "Email is not configured" (503) and workflow emails are skipped (logged).
 builder.Services.Configure<SmtpOptions>(config.GetSection(SmtpOptions.SectionName));
+
+// CRM employee lookup: optional in the same way. Without Crm:BaseUrl and Crm:ApiKey the API starts and the
+// Add User CRM search answers "CRM lookup is not configured" (503); accounts can still be saved unlinked.
+builder.Services.Configure<CrmOptions>(config.GetSection(CrmOptions.SectionName));
 
 // Keep Kestrel/form limits in step with the configured attachment size (plus headroom for the multipart envelope).
 builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = (attachmentMaxMb + 1) * 1024L * 1024L);

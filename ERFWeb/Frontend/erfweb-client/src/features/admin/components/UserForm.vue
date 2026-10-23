@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue';
-import type { CostCenter, CreateUserInput, Department, UserDetail, UserProfileInput } from '../types';
+import { computed, reactive, ref, watch } from 'vue';
+import type { CostCenter, CreateUserInput, CrmEmployee, Department, UserDetail, UserProfileInput } from '../types';
+import CrmEmployeePicker from './CrmEmployeePicker.vue';
 
 /**
  * Create / edit account profile. Emits the typed input; the parent owns the API call, the row version
@@ -13,12 +14,14 @@ const props = withDefaults(
     initial?: UserDetail | null;
     departments: Department[];
     costCenters: CostCenter[];
+    /** Company email domains from the settings; the first is the default. */
+    emailDomains?: string[];
     saving?: boolean;
     disabled?: boolean;
     /** Server validation errors keyed by field (camelCase or PascalCase, both are mapped). */
     errors?: Record<string, string[]> | null;
   }>(),
-  { initial: null, saving: false, disabled: false, errors: null },
+  { initial: null, emailDomains: () => ['marsmandrysdale.com'], saving: false, disabled: false, errors: null },
 );
 
 const emit = defineEmits<{
@@ -44,10 +47,39 @@ const blank = (): FormState => ({
   departmentId: null,
   costCenterId: null,
   workWithEnabled: true,
+  crmEmployeeId: null,
 });
 
 const form = reactive<FormState>(blank());
 let snapshot = JSON.stringify(form);
+
+// Email is typed as a name plus a company domain from the dropdown. Typing a full address (with '@')
+// keeps it as typed, for an address at a domain that is not in the list.
+const emailName = ref('');
+const emailDomain = ref('');
+const defaultDomain = computed(() => props.emailDomains[0] ?? '');
+const domainItems = computed(() =>
+  emailDomain.value && !props.emailDomains.includes(emailDomain.value) ? [...props.emailDomains, emailDomain.value] : props.emailDomains,
+);
+const typedFullAddress = computed(() => emailName.value.includes('@'));
+
+function splitEmail(email: string) {
+  const at = email.lastIndexOf('@');
+  const domain = at > 0 ? props.emailDomains.find((d) => d === email.slice(at + 1).toLowerCase()) : undefined;
+  emailName.value = domain ? email.slice(0, at) : email;
+  emailDomain.value = domain ?? defaultDomain.value;
+}
+
+function composeEmail(): string {
+  const name = emailName.value.trim();
+  if (!name || name.includes('@')) return name;
+  return emailDomain.value ? `${name}@${emailDomain.value}` : name;
+}
+
+// Synchronous, so the form is complete before load() takes its "unchanged" snapshot.
+watch([emailName, emailDomain], () => (form.email = composeEmail()), { flush: 'sync' });
+// The domain list arrives from the settings after the form may have loaded: split the address again.
+watch(() => props.emailDomains, () => splitEmail(form.email ?? ''));
 
 function load(value: UserDetail | null) {
   Object.assign(form, blank());
@@ -61,8 +93,10 @@ function load(value: UserDetail | null) {
       departmentId: value.departmentId,
       costCenterId: value.costCenterId,
       workWithEnabled: value.workWithEnabled,
+      crmEmployeeId: value.crmEmployeeId,
     });
   }
+  splitEmail(form.email ?? '');
   snapshot = JSON.stringify(form);
 }
 watch(() => props.initial, load, { immediate: true, deep: true });
@@ -121,7 +155,14 @@ function submit() {
     departmentId: form.departmentId,
     costCenterId: form.costCenterId,
     workWithEnabled: form.workWithEnabled,
+    crmEmployeeId: form.crmEmployeeId,
   });
+}
+
+// Picking a CRM person fills an empty name and mobile number from the CRM; it never overwrites what is already typed.
+function onCrmPicked(employee: CrmEmployee) {
+  if (!form.fullName.trim() && employee.fullName) form.fullName = employee.fullName.trim();
+  if (!(form.mobileNo ?? '').trim() && employee.mobileNo) form.mobileNo = employee.mobileNo.trim();
 }
 
 defineExpose({ isDirty });
@@ -159,6 +200,19 @@ defineExpose({ isDirty });
       <v-divider class="my-4" />
     </template>
 
+    <div class="lbl mb-2">CRM link</div>
+    <v-row dense>
+      <v-col cols="12">
+        <CrmEmployeePicker
+          v-model="form.crmEmployeeId"
+          :disabled="saving || disabled"
+          :error-messages="fieldErrors('crmEmployeeId')"
+          @picked="onCrmPicked"
+        />
+      </v-col>
+    </v-row>
+    <v-divider class="my-4" />
+
     <div class="lbl mb-2">Profile</div>
     <v-row dense>
       <v-col cols="12" sm="6">
@@ -171,13 +225,24 @@ defineExpose({ isDirty });
         <v-text-field v-model="form.jobGrade" label="Job grade" maxlength="20" :error-messages="fieldErrors('jobGrade')" />
       </v-col>
       <v-col cols="12" sm="6">
-        <v-text-field
-          v-model="form.email"
-          label="Email"
-          type="email"
-          maxlength="200"
-          :error-messages="fieldErrors('email') ?? (emailInvalid ? ['Enter a valid email address.'] : undefined)"
-        />
+        <div class="d-flex ga-2">
+          <v-text-field
+            v-model="emailName"
+            label="Email"
+            autocomplete="off"
+            maxlength="200"
+            class="flex-grow-1"
+            :error-messages="fieldErrors('email') ?? (emailInvalid ? ['Enter a valid email address.'] : undefined)"
+          />
+          <v-select
+            v-model="emailDomain"
+            :items="domainItems"
+            label="Domain"
+            prefix="@"
+            :disabled="typedFullAddress"
+            class="email-domain"
+          />
+        </div>
       </v-col>
       <v-col cols="12" sm="6">
         <v-text-field v-model="form.mobileNo" label="Mobile no." type="tel" maxlength="30" hint="For SMS reminders" persistent-hint :error-messages="fieldErrors('mobileNo')" />
@@ -219,3 +284,10 @@ defineExpose({ isDirty });
     </div>
   </v-form>
 </template>
+
+<style scoped>
+.email-domain {
+  flex: 0 1 55%;
+  min-width: 0;
+}
+</style>

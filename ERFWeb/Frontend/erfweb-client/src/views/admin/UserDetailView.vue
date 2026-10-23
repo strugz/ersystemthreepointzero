@@ -30,6 +30,8 @@ const loading = ref(true);
 const loadError = ref<string | null>(null);
 const departments = ref<Department[]>([]);
 const costCenters = ref<CostCenter[]>([]);
+/** Undefined until the settings load; the form then falls back to its default domain. */
+const emailDomains = ref<string[] | undefined>(undefined);
 
 async function load() {
   loading.value = true;
@@ -49,9 +51,11 @@ async function load() {
 }
 
 async function loadLookups() {
-  const [d, c] = await Promise.allSettled([adminApi.departments(), adminApi.costCenters()]);
+  const [d, c, s] = await Promise.allSettled([adminApi.departments(), adminApi.costCenters(), adminApi.settings()]);
   if (d.status === 'fulfilled') departments.value = d.value;
   if (c.status === 'fulfilled') costCenters.value = c.value;
+  // An API older than the domain list sends none; keep the form's default.
+  if (s.status === 'fulfilled' && s.value.emailDomains?.length) emailDomains.value = s.value.emailDomains;
 }
 
 onMounted(async () => {
@@ -96,6 +100,7 @@ async function saveProfile(input: CreateUserInput) {
       departmentId: input.departmentId,
       costCenterId: input.costCenterId,
       workWithEnabled: input.workWithEnabled,
+      crmEmployeeId: input.crmEmployeeId,
       rowVersion: user.value.rowVersion,
     });
     editOpen.value = false;
@@ -252,6 +257,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
                 :initial="user"
                 :departments="departments"
                 :cost-centers="costCenters"
+                :email-domains="emailDomains"
                 :saving="savingProfile"
                 :errors="profileErrors"
                 @submit="saveProfile"
@@ -271,6 +277,10 @@ async function revoke(grant: RoleGrant, note: string | null) {
                 <span class="val" :class="{ muted: user.costCenterId === null }">
                   {{ costCenters.find((c) => c.id === user?.costCenterId)?.name ?? (user.costCenterId === null ? '—' : `#${user.costCenterId}`) }}
                 </span>
+              </div>
+              <div class="field">
+                <span class="lbl">CRM employee</span>
+                <span class="val mono" :class="{ muted: !user.crmEmployeeId }">{{ user.crmEmployeeId || 'Not linked' }}</span>
               </div>
               <div class="field"><span class="lbl">Work With</span><span class="val">{{ user.workWithEnabled ? 'Listed on expense lines' : 'Not listed' }}</span></div>
               <div class="field"><span class="lbl">Created</span><span class="val">{{ formatDateTime(user.createdAt) }}</span></div>
