@@ -69,7 +69,7 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Attachments:MaxFileSizeMb` / `MaxFilesPerReport` / `AllowedContentTypes` | Receipt upload limits (also sets the Kestrel/multipart body limit) |
 | `ReferenceNumber:Prefix` / `Digits` / `UtcOffsetHours` | ERF reference number series, e.g. `ERF-2026-000142` (prefix, zero-padding, which local year a filing belongs to) |
 | `Lasius:*` (optional) | Notification SMS gateway URL, API key and header (see Notification SMS) |
-| `Crm:*` (optional) | CRM employee lookup: `BaseUrl` (e.g. `https://<crm-host>/api2/erf/v1`), `ApiKey`, `ApiKeyHeaderName` (`X-Api-Key`), `TimeoutSeconds`. Without it the Add User CRM search answers 503 and accounts save unlinked |
+| `Crm:*` (optional) | CRM employee and activity lookups: `BaseUrl` (e.g. `https://<crm-host>/api2/erf/v1`), `ApiKey`, `ApiKeyHeaderName` (`X-Api-Key`), `TimeoutSeconds`. Without it the Add User CRM search answers 503, accounts save unlinked, and the line editor hides **From CRM** |
 | `Smtp:*` (optional) | Mail server, sender mailbox and login for report email (see Report email) |
 | `Kestrel:*` (server) | Endpoint the API listens on behind nginx |
 | `RateLimiting:SignInPerMinute` (optional, default 30) | Sign-in and password-change attempts allowed per client address per minute (429 `rate_limited` beyond) |
@@ -107,6 +107,7 @@ psql -d erfweb -f Database/016_fare_modes.sql             # fare modes (Taxi, Gr
 psql -d erfweb -f Database/017_admin_only_authority.sql  # no countersign, no Business Owner: activates pending grants
 psql -d erfweb -f Database/018_crm_employee_link.sql     # users.crm_employee_id: an account's link to its CRM employee
 psql -d erfweb -f Database/019_user_r47_reviewed_by.sql  # users.r47_reviewed_by: an employee's own R47 REVIEWED BY
+psql -d erfweb -f Database/020_expense_line_crm_activity.sql  # expense_lines.crm_activity_id: the CRM activity a line came from
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -228,7 +229,8 @@ trigger stamps `record_history.changed_by`.
 | `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller) |
 | `POST /api/reports/{id}/file` | File / re-file → `ForApproval`; snapshots the approval route into `approval_steps` |
 | `POST /api/reports/{id}/reopen` | Pull a `ForApproval`/`Approved` report back to `New` (supersedes the cycle) |
-| `GET /api/lookups/work-with` · `my-rates` · `my-filing-readiness` | Editor lookups |
+| `GET /api/lookups/work-with` · `my-rates` · `my-filing-readiness` | Editor lookups (`crmActivitiesAvailable` turns on **From CRM**) |
+| `GET /api/reports/{id}/crm-activities?date=YYYY-MM-DD` (report owner) | The owner's CRM activities on the line's date, every status, Completed first and marked when already claimed (see CRM activities on expense lines) |
 
 Rules (Domain, unit-tested): a report is editable only while `New` or `Returned`; filing requires ≥ 1 active
 line, the employee's signature on file, a configured approval route, a purpose, a cash-advance amount for a
@@ -350,6 +352,34 @@ claim on expense lines) take this ID. The data contract with the CRM team is
 - **Errors.** 400 when the search is shorter than 2 characters; 503 `crm_not_configured` without the `Crm`
   section; 503 `crm_unavailable` when the CRM refuses (wrong key, 5xx), times out or answers unreadable JSON.
   The account can always be saved without a link.
+
+### CRM activities on expense lines
+
+An employee whose account is linked to the CRM can pre-fill an expense line from a completed CRM activity: a
+Sales itinerary visit (`ITI-…`) or a PS/TSG service report (`SR-…`), including reports where another engineer
+listed them as work-with. The CRM supplies what, where, when and with whom; the employee still picks the
+category and enters the amount, Invoice/OR, VAT and receipts. Their side is the CRM team's "CRM Employee and
+Activity API for ERFWeb".
+
+- **Picking.** **From CRM** in the line editor (shown when `my-filing-readiness` reports
+  `crmActivitiesAvailable`) lists all the employee's activities on the line's date: Completed ones first, which
+  can be picked, then Open and Cancelled ones, shown greyed out so the day is complete (one CRM call per status).
+  Changing the line's date and reopening lists that day. Picking one
+  fills Date (`activityDate`), Particulars (`subject`), Location (`customer.name`), Work With (the other people,
+  by their ERFWeb name where linked), Service no., Instrument and Serial no., and on a Transportation line the
+  first fare leg (`travel.origin` → `travel.destination`). The line keeps the link (`expense_lines.crm_activity_id`,
+  script `020`); removing the chip makes it an ordinary typed line. Typing lines by hand always works.
+- **Rules (`CrmActivityClaimCheck`).** When a line gains or changes its link, the server asks the CRM
+  (`GET /activities/{activityId}`) that the activity exists, is Completed, belongs to the employee (owner or
+  companion), and covers the line's date (any day from its start to its completion for multi-day work). One
+  activity may fill several lines of one report (a meal and a fare from one visit), but not lines of another of
+  the employee's reports unless that report was Rejected. A line that keeps its link saves without calling the CRM.
+- **Server to CRM.** `CrmActivityDirectory` calls `GET {Crm:BaseUrl}/activities?employeeId=&dateFrom=&dateTo=&status=`
+  with the account's own `crm_employee_id`; it logs only the HTTP status. The browser never calls the CRM.
+- **Errors.** 400 when the date is outside the report period; 409 when the CRM no longer knows the
+  linked employee ID (relink the account); 503 `crm_not_configured` / `crm_unavailable` as for the lookup.
+- **Not used yet.** `distanceKm`, `isOutOfTown` and the customer branch/city are always null in the CRM for
+  now; the "claimed" callback to the CRM is not built.
 
 ### Account email domains
 
@@ -748,7 +778,7 @@ Settings that matter for the live site:
 | `Cors:AllowedOrigins` | `https://ersystemthreepointzero.onrender.com` (the Render address; no `localhost` on the server) |
 | `Authentication:CrossSiteCookies` | `true` while the frontend is on `onrender.com`; `false` once it moves to a `mdmpi.com.ph` address |
 | `Kestrel` | the address the service listens on (`http://192.168.4.206:5080/5081`), which nginx forwards to |
-| `Smtp`, `Lasius`, `Crm` | email, SMS and the CRM employee lookup; without them those features are skipped, not broken |
+| `Smtp`, `Lasius`, `Crm` | email, SMS and the CRM employee and activity lookups; without them those features are skipped, not broken |
 | `Logging:File:Directory` | where log files go (default `logs`) |
 | `ReverseProxy:KnownProxies` | nginx's IP address as the server sees it (ask IT), e.g. `["192.168.4.x"]`; until it is set, rate limits count all users together |
 | `RateLimiting` | `SignInPerMinute` (30) and `ApiPerMinute` (1200); raise them if many users share one address and see 429 |

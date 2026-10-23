@@ -2,6 +2,7 @@ import { api, apiUrl } from '@/shared/api/client';
 import type {
   Attachment,
   CashAdvanceLine,
+  CrmActivityPickList,
   EmployeeRates,
   ExpenseLine,
   ExpenseReportDetail,
@@ -64,4 +65,6 @@ export const expensesApi = {
   myRates: (date?: string) => api.get<EmployeeRates>(`/lookups/my-rates${qs({ date })}`),
   filingReadiness: () => api.get<FilingReadiness>('/lookups/my-filing-readiness'),
   fareModes: () => api.get<FareModeOption[]>('/lookups/fare-modes'),
+  /** The employee's CRM activities on one day, Completed first (the server calls the CRM). */
+  crmActivities: (id: string, date: string) => api.get<CrmActivityPickList>(`${r(id)}/crm-activities${qs({ date })}`),
 };

@@ -71,7 +71,8 @@ public sealed record ExpenseLineDto(
     uint RowVersion,
     IReadOnlyList<ExpenseMealItemDto> Meals,
     IReadOnlyList<ExpenseTransportItemDto> Transports,
-    LineAdjustmentDto? Adjustment = null);
+    LineAdjustmentDto? Adjustment = null,
+    string? CrmActivityId = null);
 
 /// <summary>An approver lowered this line before the first approval; the original amount is kept.</summary>
 public sealed record LineAdjustmentDto(decimal OriginalAmount, decimal OriginalTotal, string? AdjustedByName, DateTimeOffset AdjustedAt, string? Reason);
@@ -173,7 +174,10 @@ public sealed record SaveCashAdvanceLineRequest(
     decimal Amount,
     uint? RowVersion);
 
-/// <summary>Create or replace one expense line. <see cref="RowVersion"/> is required on update.</summary>
+/// <summary>
+/// Create or replace one expense line. <see cref="RowVersion"/> is required on update. <see cref="CrmActivityId"/>
+/// links the line to the CRM activity it was pre-filled from; null for a line typed by hand.
+/// </summary>
 public sealed record SaveExpenseLineRequest(
     DateOnly TransactionDate,
     string? Particulars,
@@ -194,7 +198,8 @@ public sealed record SaveExpenseLineRequest(
     string? Remarks,
     IReadOnlyList<ExpenseMealItemDto>? Meals,
     IReadOnlyList<ExpenseTransportItemDto>? Transports,
-    uint? RowVersion);
+    uint? RowVersion,
+    string? CrmActivityId = null);
 
 public sealed record UploadAttachmentRequest(string FileName, string ContentType, byte[] Content);
 
@@ -216,6 +221,46 @@ public interface IExpenseLineService
     Task<ExpenseLineDto> AddAsync(Guid reportId, SaveExpenseLineRequest request, CancellationToken ct = default);
     Task<ExpenseLineDto> UpdateAsync(Guid reportId, long lineId, SaveExpenseLineRequest request, CancellationToken ct = default);
     Task RemoveAsync(Guid reportId, long lineId, CancellationToken ct = default);
+}
+
+/// <summary>
+/// One CRM activity of the employee's day, offered to pre-fill an expense line. Only a
+/// <see cref="Claimable"/> (Completed) one can be picked; Open and Cancelled ones are listed so the day is
+/// complete. <see cref="WorkWith"/> names the other people on the activity, using their ERFWeb names where
+/// linked. <see cref="ClaimedInReferenceNo"/> is set when the activity is already on another of the
+/// employee's reports (null reference: not filed yet), and <see cref="LinesInThisReport"/> counts the lines
+/// of this report that already use it.
+/// </summary>
+public sealed record CrmActivityOptionDto(
+    string ActivityId,
+    string? ActivityType,
+    string? Status,
+    bool Claimable,
+    DateOnly ActivityDate,
+    string? Subject,
+    string? ServiceNumber,
+    string? CustomerName,
+    string? InstrumentName,
+    string? SerialNumber,
+    string? Role,
+    string? WorkWith,
+    string? TravelOrigin,
+    string? TravelDestination,
+    bool IsOvernight,
+    bool ClaimedElsewhere,
+    string? ClaimedInReferenceNo,
+    int LinesInThisReport);
+
+/// <summary>The employee's CRM activities on <see cref="Date"/>; <see cref="Linked"/> is false when the account has no CRM link.</summary>
+public sealed record CrmActivityPickListDto(
+    bool Linked,
+    DateOnly Date,
+    IReadOnlyList<CrmActivityOptionDto> Items);
+
+public interface ICrmActivityPickService
+{
+    /// <summary>The current employee's CRM activities on one day (the line's date), in every status, Completed first.</summary>
+    Task<CrmActivityPickListDto> ListForDateAsync(Guid reportId, DateOnly date, CancellationToken ct = default);
 }
 
 public interface ICashAdvanceService

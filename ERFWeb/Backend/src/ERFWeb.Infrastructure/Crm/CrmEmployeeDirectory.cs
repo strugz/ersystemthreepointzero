@@ -1,6 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
-using System.Text.Json;
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Crm;
 using Microsoft.Extensions.Logging;
@@ -18,11 +16,15 @@ public sealed class CrmEmployeeDirectory(HttpClient http, IOptions<CrmOptions> o
     public const int MinSearchLength = 2;
     public const int MaxEmployeeIdLength = 50;
 
-    private const string Unavailable = "The CRM could not be reached. Try again later, or save the account without a CRM link.";
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    private readonly CrmOptions _options = options.Value;
+    private readonly CrmApi _api = new(
+        http,
+        options.Value,
+        logger,
+        "an employee lookup",
+        "The CRM lookup is not set up on the server yet. Save the account without a CRM link, or contact the system administrator.",
+        "The CRM could not be reached. Try again later, or save the account without a CRM link.");
 
-    public bool IsConfigured => _options.IsConfigured;
+    public bool IsConfigured => _api.IsConfigured;
 
     public async Task<PagedResult<CrmEmployeeDto>> SearchAsync(CrmEmployeeSearchQuery query, CancellationToken ct = default)
     {
@@ -37,14 +39,14 @@ public sealed class CrmEmployeeDirectory(HttpClient http, IOptions<CrmOptions> o
             + $"&includeInactive={(query.IncludeInactive ? "true" : "false")}"
             + $"&page={query.NormalizedPage}&pageSize={query.NormalizedPageSize}";
 
-        using var response = await SendAsync(path, ct);
+        using var response = await _api.SendAsync(path, ct);
         if (response.StatusCode == HttpStatusCode.BadRequest)
         {
             throw new ValidationException("search", "The CRM did not accept that search. Try different words.");
         }
 
-        EnsureSuccess(response);
-        var page = await ReadAsync<CrmPage>(response, ct);
+        _api.EnsureSuccess(response);
+        var page = await _api.ReadAsync<CrmPage>(response, ct);
         var items = (page.Items ?? []).Where(e => !string.IsNullOrWhiteSpace(e.EmployeeId)).Select(Map).ToList();
         return new PagedResult<CrmEmployeeDto>(items, page.TotalCount, page.Page < 1 ? query.NormalizedPage : page.Page, page.PageSize < 1 ? query.NormalizedPageSize : page.PageSize);
     }
@@ -57,65 +59,15 @@ public sealed class CrmEmployeeDirectory(HttpClient http, IOptions<CrmOptions> o
             return null;
         }
 
-        using var response = await SendAsync($"employees/{Uri.EscapeDataString(id)}", ct);
+        using var response = await _api.SendAsync($"employees/{Uri.EscapeDataString(id)}", ct);
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
             return null;
         }
 
-        EnsureSuccess(response);
-        var employee = await ReadAsync<CrmEmployee>(response, ct);
+        _api.EnsureSuccess(response);
+        var employee = await _api.ReadAsync<CrmEmployee>(response, ct);
         return string.IsNullOrWhiteSpace(employee.EmployeeId) ? null : Map(employee);
-    }
-
-    private async Task<HttpResponseMessage> SendAsync(string relativePath, CancellationToken ct)
-    {
-        if (!IsConfigured)
-        {
-            throw new ServiceUnavailableException("The CRM lookup is not set up on the server yet. Save the account without a CRM link, or contact the system administrator.", "crm_not_configured");
-        }
-
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"{_options.BaseUrl!.TrimEnd('/')}/{relativePath}");
-        request.Headers.TryAddWithoutValidation(_options.ApiKeyHeaderName, _options.ApiKey);
-        request.Headers.Accept.ParseAdd("application/json");
-
-        try
-        {
-            return await http.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct);
-        }
-        catch (Exception ex) when (ex is HttpRequestException || (ex is TaskCanceledException && !ct.IsCancellationRequested))
-        {
-            // Only the exception type is logged; its message can carry the request URL with the search text.
-            logger.LogWarning("The CRM did not answer an employee lookup ({Error}).", ex.GetType().Name);
-            throw new ServiceUnavailableException(Unavailable, "crm_unavailable");
-        }
-    }
-
-    private void EnsureSuccess(HttpResponseMessage response)
-    {
-        if (response.IsSuccessStatusCode)
-        {
-            return;
-        }
-
-        // 401 (wrong key), 503 (key not set on the CRM), 5xx: nothing the admin can fix from this screen.
-        logger.LogWarning("The CRM refused an employee lookup (HTTP {Status}).", (int)response.StatusCode);
-        throw new ServiceUnavailableException(Unavailable, "crm_unavailable");
-    }
-
-    private async Task<T> ReadAsync<T>(HttpResponseMessage response, CancellationToken ct)
-        where T : class
-    {
-        try
-        {
-            return await response.Content.ReadFromJsonAsync<T>(Json, ct)
-                ?? throw new JsonException("Empty body.");
-        }
-        catch (JsonException)
-        {
-            logger.LogWarning("The CRM answered an employee lookup with a body ERFWeb could not read (HTTP {Status}).", (int)response.StatusCode);
-            throw new ServiceUnavailableException(Unavailable, "crm_unavailable");
-        }
     }
 
     private static CrmEmployeeDto Map(CrmEmployee e) => new(
