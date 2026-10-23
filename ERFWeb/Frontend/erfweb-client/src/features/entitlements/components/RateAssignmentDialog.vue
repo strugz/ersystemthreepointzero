@@ -4,12 +4,13 @@ import { todayIso } from '@/shared/format';
 import { fieldErrors, personItems, textOrNull } from '../forms';
 import type { FieldErrors } from '../forms';
 import { targetTypeOptions } from '../labels';
-import type { CreateRateAssignmentInput, DepartmentOption, PersonOption, RateTargetType } from '../types';
+import type { CreateRateAssignmentInput, DepartmentOption, PersonOption, RateAssignment, RateTargetType } from '../types';
 
 /**
  * Assigns a profile to one target. The target type decides the single field sent (person, job
  * grade, department, or nothing for company-wide). An open assignment for the same target is
- * closed by the server. Starting before today needs the backdate override and a reason.
+ * closed by the server. Starting before today while ending another assignment for the same target
+ * needs the backdate override and a reason; a first assignment for a target only fills a gap.
  */
 const props = withDefaults(
   defineProps<{
@@ -18,10 +19,12 @@ const props = withDefaults(
     profileName: string;
     people: PersonOption[];
     departments: DepartmentOption[];
+    /** Every assignment, ended ones included; null while unknown (then any backdate asks for the override). */
+    existing?: RateAssignment[] | null;
     saving?: boolean;
     errors?: FieldErrors;
   }>(),
-  { saving: false, errors: null },
+  { existing: null, saving: false, errors: null },
 );
 
 const emit = defineEmits<{
@@ -64,7 +67,29 @@ watch(
 const personOptions = computed(() => personItems(props.people));
 const departmentItems = computed(() => props.departments.map((d) => ({ value: d.id, title: d.name })));
 
-const isBackdated = computed(() => !!form.effectiveFrom && form.effectiveFrom < today);
+const sameTarget = (a: RateAssignment) => {
+  if (a.targetType !== form.targetType) return false;
+  switch (form.targetType) {
+    case 'Individual':
+      return a.userId === form.userId;
+    case 'Grade':
+      return a.jobGrade === form.jobGrade.trim();
+    case 'Department':
+      return a.departmentId === form.departmentId;
+    default:
+      return true;
+  }
+};
+
+// Mirrors the server: the new assignment ends any for the same target that overlaps its period.
+// With none, a past start only fills a gap (e.g. claims from before go-live).
+const replacesEarlierAssignment = computed(() => {
+  if (!props.existing) return true;
+  const from = form.effectiveFrom;
+  const to = form.effectiveTo || null;
+  return props.existing.some((a) => sameTarget(a) && (!to || a.effectiveFrom <= to) && (!a.effectiveTo || a.effectiveTo >= from));
+});
+const isBackdated = computed(() => !!form.effectiveFrom && form.effectiveFrom < today && replacesEarlierAssignment.value);
 watch(isBackdated, (b) => {
   if (!b) form.backdateOverride = false;
 });
