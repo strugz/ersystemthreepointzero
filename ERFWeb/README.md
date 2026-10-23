@@ -116,7 +116,7 @@ against the same database unless you first baseline the migration history.
 
 **Starting over with the data (keeps the administrators).** `Database/maintenance/reset_data_keep_admins.sql` runs a
 `DELETE FROM` on every table and deletes every user except `admin` (`admin2` is deleted too). Only `admin` (with its System Administrator role),
-its department, the PHP currency and `schema_versions` stay. Create a second administrator again from the
+its department, the PHP currency, the fare modes and `schema_versions` stay. It runs as one transaction and stops without deleting anything if `admin` is missing. Create a second administrator again from the
 administration console afterwards, since an administrator cannot change their own account. It is destructive and has no rollback, so
 take a `pg_dump` first:
 
