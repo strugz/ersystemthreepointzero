@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-26
 
-- **Cost center budgets** (not yet committed). A cost center is one department's spending code with one overall
+- **Cost center budgets** (PR #31). A cost center is one department's spending code with one overall
   budget per calendar year, for monitoring only. The System Administrator sets the department (now required, one
   active cost center per department) and the current year's budget on **Master data → Cost centers**; each new year
   gets its own budget there, and earlier years stay saved (read-only in the cost center list, and on the Budgets page).
