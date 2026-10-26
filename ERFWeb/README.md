@@ -11,6 +11,29 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 
 **Putting a change live?** Follow the [Deployment guide](#deployment-guide) at the end of this file.
 
+## Change log
+
+Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
+section of the root `CLAUDE.md`) in the same change.
+
+### 2026-10-26
+
+- **R47 Work With prints as initials** (not yet committed). Each group header reads `<location> Work w/: <initials>`:
+  every Work With name becomes the first letter of each word ("Jay C Abaoag" → `JCA`), several names are joined
+  by `/`, and a one-word entry is kept as typed (`JSO`). Full names no longer print on the R47. Domain
+  `R47Layout.WorkWithInitials`, tests in `R47LayoutTests`.
+- **Sort expense lines into the R47 order** (PR #29). The editor's **Sort** menu (date or total) saves the order
+  as `sort_order` through `PUT /api/reports/{id}/lines/order`; the lines table always shows the saved order,
+  grouped like the R47. No database script.
+- **CRM picker day arrows and File report from the R47 preview** (PR #28). **From CRM** steps a day at a time with
+  previous/next arrows inside the report period; picking an activity sets the line's date. The claimant's R47
+  preview shows **File report** / **Re-file report** when the report can be filed, opening the editor's filing
+  checklist (`/reports/:id?file=1`).
+- **Phase 8.4–8.6** (PR #27). Daily SLA approval reminders ([SLA reminders](#sla-reminders-plan-phase-84)),
+  guardrail tests without a database and the append-only `workflow_audit` (script `021`,
+  [Guardrail tests](#guardrail-tests-plan-phase-85)), and the nightly backup and health monitor
+  ([Backups and monitoring](#backups-and-monitoring-plan-phase-86)).
+
 ## Layout
 
 ```
@@ -207,7 +230,7 @@ with an approval step assigned to them.
 
 Pipeline: `ExpenseReportDocumentLoader` (LINQ read model) → Domain `R47Bucketing` / `R47Layout`
 (column bucketing — each column carries the line total (amount × multiplier), VAT is its own memo column —
-per-date "Work With" grouping, Crystal-style pagination by height — `R47Report:DetailHeight` is the detail area in points (255, about 19 single-line rows; each wrapped line of a long client heading or particulars adds 8.2 pt; the old `RowsPerPage` key is ignored), grid text is 5.8 pt `R47Report:GridFont` (Tahoma) as on the Crystal printout, a group header is never orphaned and is repeated with its date when a group continues on the next page — and the running cash-advance reconciliation: each page carries `cash advance − prior pages' expenses`, less this page's total, giving that page's BAL DUE) → `R47Document` (QuestPDF, US Letter landscape) → `R47PdfRenderer`.
+per-date "Work With" grouping — the header prints `<location> Work w/: <initials>`, each Work With name shortened to its initials (`R47Layout.WorkWithInitials`: "Jay C Abaoag" → `JCA`, names joined by `/`, a one-word entry kept as typed) so full names never print — Crystal-style pagination by height — `R47Report:DetailHeight` is the detail area in points (255, about 19 single-line rows; each wrapped line of a long client heading or particulars adds 8.2 pt; the old `RowsPerPage` key is ignored), grid text is 5.8 pt `R47Report:GridFont` (Tahoma) as on the Crystal printout, a group header is never orphaned and is repeated with its date when a group continues on the next page — and the running cash-advance reconciliation: each page carries `cash advance − prior pages' expenses`, less this page's total, giving that page's BAL DUE) → `R47Document` (QuestPDF, US Letter landscape) → `R47PdfRenderer`.
 
 Form constants (company, document code, effectivity date, revision, rows per page, UTC offset, QuestPDF
 license tier) live in the `R47Report` section of `appsettings.json` (`R47ReportOptions`). The MDMPI logo
@@ -227,6 +250,8 @@ signature prints over their full name above EMPLOYEE'S SIGNATURE.
 > changes, and set `R47Report:QuestPdfLicense` to `Professional`/`Enterprise` if a paid tier is ever needed.
 
 SPA: `/reports/:id/pdf` (view / print / download / open in new tab); the dashboard has a report-ID launcher.
+When the claimant previews a report they can file (draft or returned), the page also shows **File report** /
+**Re-file report**, which opens the editor at `/reports/:id?file=1` to run the filing checklist and confirmation.
 
 ## Authoring & filing (plan Phase 4)
 
@@ -381,7 +406,8 @@ Activity API for ERFWeb".
 - **Picking.** **From CRM** in the line editor (shown when `my-filing-readiness` reports
   `crmActivitiesAvailable`) lists all the employee's activities on the line's date: Completed ones first, which
   can be picked, then Open and Cancelled ones, shown greyed out so the day is complete (one CRM call per status).
-  Changing the line's date and reopening lists that day. Picking one
+  The previous/next day arrows step one day at a time inside the report period (the API refuses days outside
+  it), so an empty day no longer means closing the picker. Picking one
   fills Date (`activityDate`), Location (`customer.name`), Work With (the other people,
   by their ERFWeb name where linked), Service no., Instrument and Serial no., and on a Transportation line the
   first fare leg (`travel.origin` → `travel.destination`). Particulars keeps the category default (Meals,

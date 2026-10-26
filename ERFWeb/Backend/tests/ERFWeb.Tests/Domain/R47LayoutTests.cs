@@ -29,13 +29,33 @@ public class R47LayoutTests
         var rows = R47Layout.BuildRows(lines);
 
         Assert.Collection(rows,
-            r => { var h = Assert.IsType<R47GroupHeaderRow>(r); Assert.True(h.ShowDate); Assert.Equal("SLMCGC JSO", h.Text); },
+            r => { var h = Assert.IsType<R47GroupHeaderRow>(r); Assert.True(h.ShowDate); Assert.Equal("SLMCGC Work w/: JSO", h.Text); },
             r => Assert.IsType<R47DetailRow>(r),
             r => Assert.IsType<R47DetailRow>(r),
-            r => { var h = Assert.IsType<R47GroupHeaderRow>(r); Assert.False(h.ShowDate); Assert.Equal("MMC RLN/JSO", h.Text); },
+            r => { var h = Assert.IsType<R47GroupHeaderRow>(r); Assert.False(h.ShowDate); Assert.Equal("MMC Work w/: RLN/JSO", h.Text); },
             r => Assert.IsType<R47DetailRow>(r),
             r => { var h = Assert.IsType<R47GroupHeaderRow>(r); Assert.True(h.ShowDate); Assert.Equal("MDMPI", h.Text); },
             r => Assert.IsType<R47DetailRow>(r));
+    }
+
+    [Theory]
+    [InlineData("Jay C Abaoag", "JCA")]
+    [InlineData("Jay C Abaoag, Romewel A Magdalita", "JCA/RAM")]
+    [InlineData("Jay C Abaoag and Ma. Cristina Dela Cruz", "JCA/MCDC")]
+    [InlineData("JSO", "JSO")]
+    [InlineData("RLN/JSO", "RLN/JSO")]
+    [InlineData("  ", "")]
+    [InlineData(null, "")]
+    public void WorkWithInitials_ShortensFullNamesToInitials(string? workWith, string expected) =>
+        Assert.Equal(expected, R47Layout.WorkWithInitials(workWith));
+
+    [Fact]
+    public void BuildRows_PrintsWorkWithAsInitials()
+    {
+        var rows = R47Layout.BuildRows([Line(7, "US VETERANS EMBASSY OUT PATIENT CLINIC", "Jay C Abaoag", "Meals", ExpenseCategory.Meals, 200m, 1)]);
+
+        var header = Assert.IsType<R47GroupHeaderRow>(rows[0]);
+        Assert.Equal("US VETERANS EMBASSY OUT PATIENT CLINIC Work w/: JCA", header.Text);
     }
 
     // Wrap behaviour observed on the reference printout (MARER08OCT2026).
