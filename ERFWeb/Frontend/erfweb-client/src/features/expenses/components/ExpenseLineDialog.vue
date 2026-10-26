@@ -33,6 +33,9 @@ const props = withDefaults(
     crmList?: CrmActivityPickList | null;
     crmLoading?: boolean;
     crmError?: string | null;
+    /** The report period, which bounds the days the CRM picker can step to. */
+    periodFrom?: string | null;
+    periodTo?: string | null;
   }>(),
   {
     line: null,
@@ -46,6 +49,8 @@ const props = withDefaults(
     crmList: null,
     crmLoading: false,
     crmError: null,
+    periodFrom: null,
+    periodTo: null,
   },
 );
 
@@ -54,7 +59,7 @@ const emit = defineEmits<{
   save: [input: SaveExpenseLineInput];
   /** Rates depend on the expense date; the parent refetches them for the date shown. */
   'date-change': [date: string];
-  /** The employee opened the CRM picker; the parent loads the activities of that day. */
+  /** The employee opened the CRM picker or stepped to another day; the parent loads the activities of that day. */
   'crm-load': [date: string];
 }>();
 
@@ -272,10 +277,17 @@ function removeLeg(index: number) {
 // the employee still chooses the category and enters the amount, Invoice/OR and VAT.
 const crmOpen = ref(false);
 const pickedActivity = ref<CrmActivityOption | null>(null);
+// The day the picker shows; starts at the line's date and steps on its own until an activity is picked.
+const crmDay = ref(todayIso());
 
 function openCrm() {
   crmOpen.value = true;
-  emit('crm-load', form.transactionDate);
+  showCrmDay(form.transactionDate);
+}
+
+function showCrmDay(date: string) {
+  crmDay.value = date;
+  emit('crm-load', date);
 }
 
 function applyActivity(a: CrmActivityOption) {
@@ -681,11 +693,15 @@ function close() {
 
   <CrmActivityPicker
     v-model="crmOpen"
+    :date="crmDay"
+    :min-date="periodFrom"
+    :max-date="periodTo"
     :list="crmList"
     :loading="crmLoading"
     :error="crmError"
+    @update:date="showCrmDay"
     @pick="applyActivity"
-    @retry="emit('crm-load', form.transactionDate)"
+    @retry="emit('crm-load', crmDay)"
   />
 </template>
 

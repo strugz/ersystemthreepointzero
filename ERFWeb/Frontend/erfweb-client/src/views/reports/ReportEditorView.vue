@@ -107,12 +107,25 @@ function onLineDateChange(date: string) {
 }
 onBeforeUnmount(() => clearTimeout(ratesTimer));
 
+// "File report" on the R47 preview lands here (?file=1) so filing keeps one checklist and one confirmation.
+const fileRequested = route.query.file === '1';
+
 onMounted(async () => {
   await load();
+  let lookups: Promise<unknown> = Promise.resolve();
   if (report.value?.canEdit) {
-    void loadLookups();
+    lookups = loadLookups();
   } else if (report.value) {
-    void expensesApi.filingReadiness().then((v) => (readiness.value = v)).catch(() => undefined);
+    lookups = expensesApi.filingReadiness().then((v) => (readiness.value = v)).catch(() => undefined);
+  }
+  if (fileRequested) {
+    void router.replace({ query: { ...route.query, file: undefined } });
+    await lookups;
+    if (canFileNow.value) {
+      fileDialog.value = true;
+    } else if (report.value?.canFile) {
+      snack.info('Finish the filing checklist before you file.');
+    }
   }
 });
 
@@ -583,6 +596,8 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :crm-list="crmList"
         :crm-loading="crmLoading"
         :crm-error="crmError"
+        :period-from="report?.dateFrom ?? null"
+        :period-to="report?.dateTo ?? null"
         @save="saveLine"
         @date-change="onLineDateChange"
         @crm-load="loadCrmActivities"
