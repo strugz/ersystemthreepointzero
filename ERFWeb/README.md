@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-26
 
-- **R47 Work With prints as initials** (not yet committed). Each group header reads `<location> Work w/: <initials>`:
+- **R47 Work With prints as initials** (PR #30). Each group header reads `<location> Work w/: <initials>`:
   every Work With name becomes the first letter of each word ("Jay C Abaoag" → `JCA`), several names are joined
   by `/`, and a one-word entry is kept as typed (`JSO`). Full names no longer print on the R47. Domain
   `R47Layout.WorkWithInitials`, tests in `R47LayoutTests`.

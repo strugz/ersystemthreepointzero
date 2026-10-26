@@ -92,7 +92,7 @@ Every change that adds, removes or changes behaviour, an endpoint, a setting, a 
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
-- **2026-10-26:** R47 Work With prints as initials (not yet committed). Sort expense lines into the R47 order (PR #29). CRM picker previous/next day arrows and File report / Re-file report from the R47 preview (PR #28). Phase 8.4 SLA reminders, 8.5 guardrail tests and append-only `workflow_audit` (script `021`), 8.6 nightly backup and health monitor (PR #27).
+- **2026-10-26:** R47 Work With prints as initials (PR #30). Sort expense lines into the R47 order (PR #29). CRM picker previous/next day arrows and File report / Re-file report from the R47 preview (PR #28). Phase 8.4 SLA reminders, 8.5 guardrail tests and append-only `workflow_audit` (script `021`), 8.6 nightly backup and health monitor (PR #27).
 
 ### Other agent configuration
 
