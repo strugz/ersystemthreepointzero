@@ -74,13 +74,16 @@ const adminNav = computed<NavItem[]>(() => {
   return items;
 });
 
-// Work queues: approvals for signatories, the receipt queue for Finance, verifications for the
-// Expense Verifier. Gating is display only.
+// Work queues: approvals for signatories, cost center budgets for signatories and Finance, the receipt
+// queue for Finance, verifications for the Expense Verifier. Gating is display only.
 const workNav = computed<NavItem[]>(() => {
   const items: NavItem[] = [];
   if (session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2')) {
     items.push({ title: 'Approvals', icon: 'mdi-check-decagram-outline', to: { name: 'approvals' }, exact: false });
     items.push({ title: 'Delegations', icon: 'mdi-account-arrow-right-outline', to: { name: 'delegations' }, exact: false });
+  }
+  if (session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2') || session.hasRole('Finance')) {
+    items.push({ title: 'Budgets', icon: 'mdi-chart-donut', to: { name: 'cost-center-budgets' }, exact: false });
   }
   if (session.hasRole('Finance')) {
     items.push({ title: 'Finance queue', icon: 'mdi-receipt-text-check-outline', to: { name: 'finance-queue' }, exact: false });
@@ -114,7 +117,7 @@ const navGroups = computed(() =>
   ].filter((g) => g.items.length > 0),
 );
 
-const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications']);
+const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications', 'cost-center-budgets']);
 
 const roleSummary = computed(() => (session.user?.roles ?? []).map(roleLabel).join(' · '));
 const moreOpen = ref(false);

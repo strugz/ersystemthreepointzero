@@ -142,9 +142,22 @@ public sealed record DepartmentDto(long Id, string? Code, string Name, bool IsAc
 /// <param name="ReviewedBy">Blank clears it (back to the Rules default); null leaves it as it is.</param>
 public sealed record SaveDepartmentRequest(string? Code, string Name, bool IsActive, uint? RowVersion, string? ReviewedBy = null);
 
-public sealed record CostCenterDto(long Id, string Code, string Name, long? DepartmentId, string? DepartmentName, bool IsActive, uint RowVersion);
+/// <summary>A cost center's overall budget for one calendar year.</summary>
+public sealed record CostCenterBudgetDto(int Year, decimal Amount);
 
-public sealed record SaveCostCenterRequest(string Code, string Name, long? DepartmentId, bool IsActive, uint? RowVersion);
+/// <param name="Budgets">The yearly budgets, newest year first.</param>
+public sealed record CostCenterDto(
+    long Id, string Code, string Name, long? DepartmentId, string? DepartmentName, bool IsActive, uint RowVersion,
+    IReadOnlyList<CostCenterBudgetDto> Budgets);
+
+/// <param name="Amount">Null removes that year's budget.</param>
+public sealed record CostCenterBudgetInput(int Year, decimal? Amount);
+
+/// <param name="DepartmentId">Required: a cost center is one department's, and a department has one active cost center.</param>
+/// <param name="Budgets">The years to set or clear; years left out keep their budget. Null changes no budget.</param>
+public sealed record SaveCostCenterRequest(
+    string Code, string Name, long? DepartmentId, bool IsActive, uint? RowVersion,
+    IReadOnlyList<CostCenterBudgetInput>? Budgets = null);
 
 public sealed record CurrencyDto(string Code, string Name, bool IsDefault, bool IsActive, uint RowVersion);
 

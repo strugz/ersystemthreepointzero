@@ -18,6 +18,15 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-26
 
+- **Cost center budgets** (PR #31). A cost center is one department's spending code with one overall
+  budget per calendar year, for monitoring only. The System Administrator sets the department (now required, one
+  active cost center per department) and the current year's budget on **Master data → Cost centers**; each new year
+  gets its own budget there, and earlier years stay saved (read-only in the cost center list, and on the Budgets page).
+  The new **Budgets** page (`/summaries/budgets`) shows budget, used, remaining and % used per cost center, with the
+  spending per employee and category; Finance sees every cost center, a signatory those of the departments their
+  scope covers. Spending is counted by the department saved on the report when it is filed (script `022`, which also
+  fills it in for reports already filed). The per-user Cost center field is no longer shown on the user form.
+  `SchemaVersion.Required` is now 22. Sample data: `Database/maintenance/sample_cost_center_ims.sql`.
 - **R47 Work With prints as initials** (PR #30). Each group header reads `<location> Work w/: <initials>`:
   every Work With name becomes the first letter of each word ("Jay C Abaoag" → `JCA`), several names are joined
   by `/`, and a one-word entry is kept as typed (`JSO`). Full names no longer print on the R47. Domain
@@ -135,6 +144,7 @@ psql -d erfweb -f Database/018_crm_employee_link.sql     # users.crm_employee_id
 psql -d erfweb -f Database/019_user_r47_reviewed_by.sql  # users.r47_reviewed_by: an employee's own R47 REVIEWED BY
 psql -d erfweb -f Database/020_expense_line_crm_activity.sql  # expense_lines.crm_activity_id: the CRM activity a line came from
 psql -d erfweb -f Database/021_workflow_audit_append_only.sql # Phase 8.5: the database refuses UPDATE/DELETE/TRUNCATE of workflow_audit (9.9)
+psql -d erfweb -f Database/022_cost_center_budgets.sql   # cost_center_budgets + expense_reports.department_id (filing department)
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -361,7 +371,7 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 | --- | --- |
 | `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `…/signature` (SystemAdministrator) | Register and maintain accounts; load the signature printed on the R47 |
 | `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/revoke` (SystemAdministrator) | Grant, revoke |
-| `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list |
+| `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list. A cost center needs a department and carries `budgets` (`[{ year, amount }]`); saving sends the years to set or clear (`amount: null`) |
 | `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches, account email domains; stored in `app_settings` |
 | `GET /api/admin/crm/employees?search&includeInactive` · `GET …/{employeeId}` (SystemAdministrator) | CRM employee lookup for the user form (see CRM employee link) |
 | `GET /api/admin/audit?event&actorUserId&from&to` (SystemAdministrator, Finance) | Append-only audit trail |
@@ -523,6 +533,7 @@ steps are 409.
 | `GET /api/finance/queue/export?status&openOnly&search` (Finance) | The queue for the same filters as CSV |
 | `GET /api/finance/aging` · `GET /api/finance/aging/export?format=Csv\|Pdf` (Finance) | Open reports by days since final approval (0-7, 8-15, 16-30, 31-60, over 60) |
 | `GET /api/summaries/expenses?from&to&scope=Mine\|Approvals\|All&departmentId&approvedOnly` · `/expenses/export?…&format=Csv\|Pdf` (any user; scope checked) | Expense summary by expense date: Mine for everyone, Approvals for signatories, All for Finance. CSV is one row per line; PDF has employee totals by category, then the lines. Exports are capped at 10,000 rows and audited as `ExportGenerated` |
+| `GET /api/summaries/budgets?year&approvedOnly` · `/budgets/export?year&approvedOnly` (Finance, Level 1, Level 2; 403 otherwise) | Cost center budgets for a calendar year: budget, used, remaining, % used, and spending per employee and category. Finance sees every active cost center, a signatory those of the departments a Department or Exclusion scope assignment of theirs covers today. CSV is one row per cost center, audited as `ExportGenerated` |
 
 `GET /api/reports/{id}` now also returns `review` (what the viewer may do as an approver, from the same rules)
 and `finance` (receipt status). SPA screens: **Approvals** (`/approvals`) and the review page (`/review/{id}`)
@@ -593,6 +604,26 @@ preview.
 **Summaries and exports:** the endpoints are listed under Approvals & Finance above (expense summary as CSV/PDF,
 approval inbox and Finance queue CSV, Finance aging). SPA: **Summary** page and export buttons on the Approvals and
 Finance pages. No database script.
+
+**Cost center budgets** (script `022`): a cost center is one department's spending code (department required, one
+active cost center per department) with one overall budget per calendar year, kept in `cost_center_budgets`. It is
+for monitoring only; going over never blocks filing or approval, and nothing about it prints on the R47. **Used** is
+every active expense line dated in the year on a report that is For Approval or Approved (or Approved only, with the
+switch), counted against the department in `expense_reports.department_id`. Filing (and re-filing) sets that column
+to the employee's department, so moving an employee later never moves their past spending; the cost center is looked
+up from it, so a budget set after filing still counts the report. Script `022` fills it in for reports filed before
+it. The administrator sets the current year's budget in the cost center dialog on **Master data → Cost centers**
+(a new budget each year); earlier years' budgets are never changed there and show read-only in the list's **Earlier
+budgets** column. SPA: **Budgets** (`/summaries/budgets`,
+under Work queues) for signatories and Finance, with a year picker (this year and the four before) and a row per
+cost center that opens to its employees. The per-user `users.cost_center_id` is no longer
+edited in the user console; the column stays and is sent back unchanged.
+To try it with a sample, `Database/maintenance/sample_cost_center_ims.sql` (after `022`) adds cost center `CC-IMS`
+for the IMS department with a 2026 budget of 500,000.00 (edit the year and amount at its top):
+
+```
+psql -d erms_db -f Database/maintenance/sample_cost_center_ims.sql
+```
 
 **Health and theme:** `GET /api/health` (anonymous) returns
 `{ status, service, version, database, schemaVersion, requiredSchemaVersion }`: 200 when the database answers within 5

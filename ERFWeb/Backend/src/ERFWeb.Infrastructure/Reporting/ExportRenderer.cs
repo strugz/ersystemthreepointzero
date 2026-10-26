@@ -82,6 +82,27 @@ public sealed class ExportRenderer
         return new ExportFile(pdf, PdfType, name + ".pdf");
     }
 
+    // ---------- Cost center budgets ----------
+
+    /// <summary>CSV: one row per cost center with its budget, spending, and spending per category.</summary>
+    public ExportFile CostCenterBudgetReport(CostCenterBudgetReportDto report)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        var categories = ExpenseSummaryBuilder.Categories;
+        var header = new List<object?> { "Year", "Cost center", "Name", "Department", "Budget", "Used", "Remaining", "% used", "Over budget", "Lines" };
+        header.AddRange(categories.Select(c => (object?)CategoryLabel(c)));
+        var csv = new CsvBuilder().Row([.. header]);
+        foreach (var c in report.CostCenters)
+        {
+            var cells = new List<object?> { report.Year, c.Code, c.Name, c.DepartmentName, c.Budget, c.Used, c.Remaining, c.PercentUsed, c.OverBudget, c.LineCount };
+            cells.AddRange(categories.Select(cat => (object?)c.ByCategory[cat]));
+            csv.Row([.. cells]);
+        }
+
+        var suffix = report.ApprovedOnly ? "_ApprovedOnly" : string.Empty;
+        return new ExportFile(csv.ToBytes(), CsvType, $"CostCenterBudgets_{report.Year}{suffix}.csv");
+    }
+
     // ---------- Approver inbox ----------
 
     public ExportFile ApprovalInboxReport(IReadOnlyList<ApprovalInboxItemDto> items, ApprovalInboxView view, DateTimeOffset generatedAt)

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
-import type { CostCenter, CreateUserInput, CrmEmployee, Department, UserDetail, UserProfileInput } from '../types';
+import type { CreateUserInput, CrmEmployee, Department, UserDetail, UserProfileInput } from '../types';
 import CrmEmployeePicker from './CrmEmployeePicker.vue';
 
 /**
@@ -13,7 +13,6 @@ const props = withDefaults(
     mode: 'create' | 'edit';
     initial?: UserDetail | null;
     departments: Department[];
-    costCenters: CostCenter[];
     /** Company email domains from the settings; the first is the default. */
     emailDomains?: string[];
     saving?: boolean;
@@ -111,13 +110,6 @@ const departmentItems = computed(() =>
     .filter((d) => d.isActive || d.id === form.departmentId)
     .map((d) => ({ value: d.id, title: d.code ? `${d.code} · ${d.name}` : d.name })),
 );
-// Cost centers follow the chosen department when they are linked to one; unlinked ones always show.
-const costCenterItems = computed(() =>
-  props.costCenters
-    .filter((c) => (c.isActive || c.id === form.costCenterId) && (c.departmentId === null || form.departmentId === null || c.departmentId === form.departmentId))
-    .map((c) => ({ value: c.id, title: `${c.code} · ${c.name}` })),
-);
-
 // What prints in REVIEWED BY while this account has none of its own.
 const reviewedByFallback = computed(() => {
   const own = props.departments.find((d) => d.id === form.departmentId)?.reviewedBy;
@@ -161,6 +153,7 @@ function submit() {
     email: text(form.email),
     mobileNo: text(form.mobileNo),
     departmentId: form.departmentId,
+    // Not edited here any more (a report counts against its department's cost center); sent back unchanged.
     costCenterId: form.costCenterId,
     workWithEnabled: form.workWithEnabled,
     crmEmployeeId: form.crmEmployeeId,
@@ -263,15 +256,6 @@ defineExpose({ isDirty });
           label="Department"
           clearable
           :error-messages="fieldErrors('departmentId')"
-        />
-      </v-col>
-      <v-col cols="12" sm="6">
-        <v-select
-          v-model="form.costCenterId"
-          :items="costCenterItems"
-          label="Cost center"
-          clearable
-          :error-messages="fieldErrors('costCenterId')"
         />
       </v-col>
       <v-col cols="12" sm="6">

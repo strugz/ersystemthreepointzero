@@ -204,7 +204,10 @@ public sealed class UserAdminService(
         await tx.ExecuteAsync(async token =>
         {
             var entity = await LoadAsync(userId, token);
-            await EnsureReferencesAsync(request.DepartmentId, request.CostCenterId, token);
+
+            // The console no longer edits the per-user cost center (the department's counts) and sends the stored
+            // one back; check it only when it changes, so a since-deactivated cost center never blocks a profile save.
+            await EnsureReferencesAsync(request.DepartmentId, request.CostCenterId == entity.CostCenterId ? null : request.CostCenterId, token);
             await EnsureCrmLinkFreeAsync(crmEmployeeId, userId, token);
 
             var before = Snapshot(entity);

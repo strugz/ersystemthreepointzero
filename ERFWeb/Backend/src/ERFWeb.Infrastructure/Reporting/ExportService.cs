@@ -13,6 +13,7 @@ namespace ERFWeb.Infrastructure.Reporting;
 /// </summary>
 public sealed class ExportService(
     IExpenseSummaryService summaries,
+    ICostCenterBudgetService budgets,
     IApprovalService approvals,
     IFinanceService finance,
     ExportRenderer renderer,
@@ -26,6 +27,15 @@ public sealed class ExportService(
         var file = renderer.ExpenseSummaryReport(report, format);
         await AuditAsync("ExpenseSummary", format, report.Summary.Lines.Count,
             new { from = query.From, to = query.To, scope = query.Scope.ToString(), query.DepartmentId, query.ApprovedOnly }, ct);
+        return file;
+    }
+
+    public async Task<ExportFile> CostCenterBudgetsAsync(CostCenterBudgetQuery query, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var report = await budgets.BuildAsync(query, ct);
+        var file = renderer.CostCenterBudgetReport(report);
+        await AuditAsync("CostCenterBudgets", ExportFormat.Csv, report.CostCenters.Count, new { query.Year, query.ApprovedOnly }, ct);
         return file;
     }
 

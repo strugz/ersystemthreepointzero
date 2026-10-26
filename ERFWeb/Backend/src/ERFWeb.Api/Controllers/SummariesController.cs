@@ -7,11 +7,12 @@ namespace ERFWeb.Api.Controllers;
 /// <summary>
 /// The expense summary on screen and as CSV or PDF. Any signed-in user may ask; the service limits
 /// the scope (Mine for everyone, Approvals for signatories, All for Finance) and returns 403 otherwise.
+/// Cost center budgets: Finance and signatories only (the service decides which cost centers).
 /// </summary>
 [ApiController]
 [Route("api/summaries")]
 [Authorize]
-public sealed class SummariesController(IExpenseSummaryService summaries, IExportService exports) : ControllerBase
+public sealed class SummariesController(IExpenseSummaryService summaries, ICostCenterBudgetService budgets, IExportService exports) : ControllerBase
 {
     [HttpGet("expenses")]
     [Produces("application/json")]
@@ -41,6 +42,24 @@ public sealed class SummariesController(IExpenseSummaryService summaries, IExpor
         CancellationToken ct = default)
     {
         var file = await exports.ExpenseSummaryAsync(new ExpenseSummaryQuery(from, to, scope, departmentId, approvedOnly), format, ct);
+        return File(file.Content, file.ContentType, file.FileName);
+    }
+
+    [HttpGet("budgets")]
+    [Produces("application/json")]
+    [ProducesResponseType<CostCenterBudgetReportDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<CostCenterBudgetReportDto>> Budgets([FromQuery] int year, [FromQuery] bool approvedOnly = false, CancellationToken ct = default) =>
+        Ok(await budgets.BuildAsync(new CostCenterBudgetQuery(year, approvedOnly), ct));
+
+    [HttpGet("budgets/export")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ExportBudgets([FromQuery] int year, [FromQuery] bool approvedOnly = false, CancellationToken ct = default)
+    {
+        var file = await exports.CostCenterBudgetsAsync(new CostCenterBudgetQuery(year, approvedOnly), ct);
         return File(file.Content, file.ContentType, file.FileName);
     }
 }

@@ -54,6 +54,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/summaries/budgets',
+    name: 'cost-center-budgets',
+    component: () => import('@/views/reports/CostCenterBudgetView.vue'),
+    meta: { requiresAuth: true, roles: ['SignatoryLevel1', 'SignatoryLevel2', 'Finance'] },
+  },
+  {
     path: '/approvals',
     name: 'approvals',
     component: () => import('@/views/approvals/ApprovalInboxView.vue'),

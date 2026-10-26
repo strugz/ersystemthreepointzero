@@ -34,6 +34,44 @@ export interface ExpenseSummary {
   total: number;
 }
 
+// Mirrors ERFWeb.Application.Features.Reporting.BudgetContracts (cost center budgets).
+
+/** One employee's share of a cost center's year. */
+export interface BudgetEmployeeTotals {
+  employeeUserId: number;
+  employeeName: string;
+  lineCount: number;
+  byCategory: Record<ExpenseCategory, number>;
+  total: number;
+}
+
+/** One cost center's year. Remaining and percentUsed are null while no budget is set (percentUsed also for a zero budget). */
+export interface CostCenterBudgetRow {
+  costCenterId: number;
+  code: string;
+  name: string;
+  departmentId: number;
+  departmentName: string;
+  budget: number | null;
+  used: number;
+  remaining: number | null;
+  percentUsed: number | null;
+  overBudget: boolean;
+  lineCount: number;
+  byCategory: Record<ExpenseCategory, number>;
+  /** Largest spender first. */
+  employees: BudgetEmployeeTotals[];
+}
+
+export interface CostCenterBudgetReport {
+  year: number;
+  approvedOnly: boolean;
+  generatedAt: string;
+  costCenters: CostCenterBudgetRow[];
+  totalBudget: number;
+  totalUsed: number;
+}
+
 // Mirrors ERFWeb.Application.Features.Notifications.EmailContracts (report email).
 
 export interface ReportEmailSent {
