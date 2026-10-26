@@ -26,6 +26,9 @@
 -- =====================================================================
 BEGIN;
 
+-- Script 021 makes workflow_audit append-only; this maintenance script deletes audit rows on purpose.
+SET LOCAL erfweb.allow_audit_purge = 'on';
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin') THEN
