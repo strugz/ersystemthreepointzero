@@ -7,6 +7,7 @@ import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import { useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
+import { formatMoney } from '@/shared/format';
 import { adminApi } from '@/features/admin/api';
 import MasterDataTable from '@/features/admin/components/MasterDataTable.vue';
 import type { Draft, MasterDataColumn, MasterDataField } from '@/features/admin/components/MasterDataTable.vue';
@@ -146,11 +147,37 @@ function saveDepartment(draft: Draft, existing: Department | null) {
 }
 
 // ---- cost centers -----------------------------------------------------------
+// A cost center is one department's, with one overall budget per calendar year. The dialog sets
+// the current year's only; earlier years stay saved and are read on the Budgets page.
+const thisYear = new Date().getFullYear();
+const budgetKey = `budget${thisYear}`; // matches the API's error key for this year's budget
+// `?.`: an API deployed before budgets sends none; the list still shows.
+const currentBudget = (c: CostCenter) => c.budgets?.find((b) => b.year === thisYear)?.amount ?? null;
 const costCentersTable = ref<{ close: () => void } | null>(null);
 const costCenterColumns: MasterDataColumn<CostCenter>[] = [
   { key: 'code', label: 'Code', mono: true },
   { key: 'name', label: 'Name' },
   { key: 'departmentName', label: 'Department', hideOnPhone: true },
+  {
+    key: 'budget',
+    label: `Budget ${thisYear}`,
+    mono: true,
+    render: (c) => {
+      const amount = currentBudget(c);
+      return amount === null ? 'Not set' : formatMoney(amount);
+    },
+  },
+  {
+    // Read-only: the dialog sets only the current year, so earlier budgets are shown here (newest first).
+    key: 'earlierBudgets',
+    label: 'Earlier budgets',
+    hideOnPhone: true,
+    render: (c) =>
+      (c.budgets ?? [])
+        .filter((b) => b.year < thisYear)
+        .map((b) => `${b.year}: ${formatMoney(b.amount)}`)
+        .join(' · ') || '—',
+  },
 ];
 const costCenterFields = computed<MasterDataField[]>(() => [
   { key: 'code', label: 'Code', type: 'text', required: true, maxlength: 20, upper: true },
@@ -159,14 +186,38 @@ const costCenterFields = computed<MasterDataField[]>(() => [
     key: 'departmentId',
     label: 'Department',
     type: 'select',
+    required: true,
     items: departments.items.value.filter((d) => d.isActive).map((d) => ({ value: d.id, title: d.name })),
-    hint: 'Optional; limits which accounts can pick this cost center',
+    hint: 'The department whose spending this cost center counts; a department has one active cost center',
+  },
+  {
+    key: budgetKey,
+    label: `Budget ${thisYear}`,
+    type: 'text',
+    maxlength: 20,
+    hint: `Overall budget for ${thisYear}, e.g. 1200000; leave blank for none. Earlier years are kept.`,
   },
   { key: 'isActive', label: 'Active', type: 'switch' },
 ]);
-const costCenterDraft = (c: CostCenter): Draft => ({ code: c.code, name: c.name, departmentId: c.departmentId, isActive: c.isActive });
+const costCenterDraft = (c: CostCenter): Draft => {
+  const amount = currentBudget(c);
+  return { code: c.code, name: c.name, departmentId: c.departmentId, isActive: c.isActive, [budgetKey]: amount === null ? '' : String(amount) };
+};
 function saveCostCenter(draft: Draft, existing: CostCenter | null) {
-  const input = { code: str(draft, 'code'), name: str(draft, 'name'), departmentId: num(draft, 'departmentId'), isActive: bool(draft, 'isActive') };
+  // Typed amounts may carry thousands separators. NaN marks text that is not an amount (JSON would send it as null, clearing the budget).
+  const text = str(draft, budgetKey).replace(/,/g, '').trim();
+  const amount = text === '' ? null : Number(text);
+  if (amount !== null && !Number.isFinite(amount)) {
+    costCenters.errors.value = { [budgetKey]: ['Enter an amount, e.g. 1200000.'] };
+    return;
+  }
+  const input = {
+    code: str(draft, 'code'),
+    name: str(draft, 'name'),
+    departmentId: num(draft, 'departmentId'),
+    isActive: bool(draft, 'isActive'),
+    budgets: [{ year: thisYear, amount }],
+  };
   void runSave(
     costCenters,
     costCentersTable.value,

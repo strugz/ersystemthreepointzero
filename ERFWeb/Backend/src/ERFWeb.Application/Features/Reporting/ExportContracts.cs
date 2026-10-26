@@ -92,6 +92,7 @@ public interface IExportService
     const int MaxRows = 10_000;
 
     Task<ExportFile> ExpenseSummaryAsync(ExpenseSummaryQuery query, ExportFormat format, CancellationToken ct = default);
+    Task<ExportFile> CostCenterBudgetsAsync(CostCenterBudgetQuery query, CancellationToken ct = default);
     Task<ExportFile> ApprovalInboxAsync(ApprovalInboxView view, string? search, CancellationToken ct = default);
     Task<ExportFile> FinanceQueueAsync(FinanceQueueQuery query, CancellationToken ct = default);
     Task<ExportFile> FinanceAgingAsync(ExportFormat format, CancellationToken ct = default);

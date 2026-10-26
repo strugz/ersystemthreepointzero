@@ -19,6 +19,16 @@ public class CostCenter
     public bool IsActive { get; set; } = true;
 }
 
+/// <summary>A cost center's overall budget for one calendar year (monitoring only).</summary>
+public class CostCenterBudget
+{
+    public long CostCenterId { get; set; }
+    public int BudgetYear { get; set; }
+    public decimal Amount { get; set; }
+    public long? UpdatedByUserId { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
 public class Currency
 {
     public string Code { get; set; } = string.Empty;
@@ -149,6 +159,10 @@ public class ExpenseReport
     public DateOnly? DateFrom { get; set; }
     public DateOnly? DateTo { get; set; }
     public ReportStatus Status { get; set; } = ReportStatus.New;
+
+    /// <summary>The employee's department when the report was last filed; its cost center counts the spending.</summary>
+    public long? DepartmentId { get; set; }
+
     public decimal RevolvingFundAmount { get; set; }
     public int CurrentCycle { get; set; } = 1;
     public DateTimeOffset? FiledAt { get; set; }

@@ -39,7 +39,7 @@ public sealed class ReportFilingService(
 
             var employee = await db.Users.AsNoTracking()
                 .Where(u => u.Id == report.EmployeeUserId)
-                .Select(u => new { u.FullName, u.CreatedAt, HasSignature = u.Signature != null && u.Signature.Length > 0 })
+                .Select(u => new { u.FullName, u.CreatedAt, u.DepartmentId, HasSignature = u.Signature != null && u.Signature.Length > 0 })
                 .FirstAsync(token);
 
             // Spec 9.11: a newly registered employee files only after the cooling period.
@@ -91,6 +91,9 @@ public sealed class ReportFilingService(
             report.ReferenceNo ??= await referenceNumbers.NextAsync(now, token);
 
             report.Status = ReportStatus.ForApproval;
+
+            // The department's cost center counts this report's spending; snapshotted so a later move does not shift it.
+            report.DepartmentId = employee.DepartmentId;
             report.FiledAt = now;
             report.ApprovedAt = null;
             report.CancelNote = null;

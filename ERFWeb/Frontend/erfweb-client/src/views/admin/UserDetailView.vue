@@ -16,7 +16,7 @@ import SignatureUpload from '@/features/admin/components/SignatureUpload.vue';
 import ResetPasswordDialog from '@/features/admin/components/ResetPasswordDialog.vue';
 import { roleLabel } from '@/features/auth/labels';
 import type { UserRole } from '@/features/auth/types';
-import type { CostCenter, CreateUserInput, Department, RoleGrant, UserDetail } from '@/features/admin/types';
+import type { CreateUserInput, Department, RoleGrant, UserDetail } from '@/features/admin/types';
 
 const route = useRoute();
 const router = useRouter();
@@ -29,7 +29,6 @@ const user = ref<UserDetail | null>(null);
 const loading = ref(true);
 const loadError = ref<string | null>(null);
 const departments = ref<Department[]>([]);
-const costCenters = ref<CostCenter[]>([]);
 /** Undefined until the settings load; the form then falls back to its default domain. */
 const emailDomains = ref<string[] | undefined>(undefined);
 
@@ -51,9 +50,8 @@ async function load() {
 }
 
 async function loadLookups() {
-  const [d, c, s] = await Promise.allSettled([adminApi.departments(), adminApi.costCenters(), adminApi.settings()]);
+  const [d, s] = await Promise.allSettled([adminApi.departments(), adminApi.settings()]);
   if (d.status === 'fulfilled') departments.value = d.value;
-  if (c.status === 'fulfilled') costCenters.value = c.value;
   // An API older than the domain list sends none; keep the form's default.
   if (s.status === 'fulfilled' && s.value.emailDomains?.length) emailDomains.value = s.value.emailDomains;
 }
@@ -257,7 +255,6 @@ async function revoke(grant: RoleGrant, note: string | null) {
                 mode="edit"
                 :initial="user"
                 :departments="departments"
-                :cost-centers="costCenters"
                 :email-domains="emailDomains"
                 :saving="savingProfile"
                 :errors="profileErrors"
@@ -273,12 +270,6 @@ async function revoke(grant: RoleGrant, note: string | null) {
               <div class="field"><span class="lbl">Email</span><span class="val" :class="{ muted: !user.email }">{{ user.email || '—' }}</span></div>
               <div class="field"><span class="lbl">Mobile no.</span><span class="val" :class="{ muted: !user.mobileNo }">{{ user.mobileNo || '—' }}</span></div>
               <div class="field"><span class="lbl">Department</span><span class="val" :class="{ muted: !user.departmentName }">{{ user.departmentName || '—' }}</span></div>
-              <div class="field">
-                <span class="lbl">Cost center</span>
-                <span class="val" :class="{ muted: user.costCenterId === null }">
-                  {{ costCenters.find((c) => c.id === user?.costCenterId)?.name ?? (user.costCenterId === null ? '—' : `#${user.costCenterId}`) }}
-                </span>
-              </div>
               <div class="field">
                 <span class="lbl">CRM employee</span>
                 <span class="val mono" :class="{ muted: !user.crmEmployeeId }">{{ user.crmEmployeeId || 'Not linked' }}</span>

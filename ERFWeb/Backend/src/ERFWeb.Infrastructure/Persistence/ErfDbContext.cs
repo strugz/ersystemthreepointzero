@@ -12,6 +12,7 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
 {
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<CostCenter> CostCenters => Set<CostCenter>();
+    public DbSet<CostCenterBudget> CostCenterBudgets => Set<CostCenterBudget>();
     public DbSet<Currency> Currencies => Set<Currency>();
     public DbSet<Site> Sites => Set<Site>();
     public DbSet<FareMode> FareModes => Set<FareMode>();
@@ -84,6 +85,14 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.Property(x => x.IsActive).HasDefaultValue(true);
             e.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId);
             AddConcurrencyToken(e);
+        });
+
+        b.Entity<CostCenterBudget>(e =>
+        {
+            e.ToTable("cost_center_budgets");
+            e.HasKey(x => new { x.CostCenterId, x.BudgetYear });
+            e.Property(x => x.UpdatedAt).HasDefaultValueSql("now()");
+            e.HasOne<CostCenter>().WithMany().HasForeignKey(x => x.CostCenterId);
         });
 
         b.Entity<Currency>(e =>
@@ -185,7 +194,9 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.HasIndex(x => x.ReferenceNo).IsUnique();
             e.HasIndex(x => x.EmployeeUserId);
             e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.DepartmentId);
             e.HasOne<User>().WithMany().HasForeignKey(x => x.EmployeeUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.Restrict);
             AddConcurrencyToken(e);
         });
 

@@ -118,7 +118,11 @@ function fieldErrors(field: string): string[] | undefined {
 }
 
 const canSave = computed(
-  () => !props.saving && props.fields.every((f) => !f.required || f.type !== 'text' || String(draft[f.key] ?? '').trim() !== ''),
+  () =>
+    !props.saving &&
+    props.fields.every(
+      (f) => !f.required || f.type === 'switch' || (f.type === 'select' ? draft[f.key] !== null && draft[f.key] !== undefined : String(draft[f.key] ?? '').trim() !== ''),
+    ),
 );
 
 function onText(field: MasterDataField, value: string) {
@@ -218,7 +222,7 @@ function save() {
                 v-else-if="f.type === 'select'"
                 v-model="draft[f.key]"
                 :items="f.items ?? []"
-                :label="f.label"
+                :label="f.label + (f.required ? ' *' : '')"
                 :hint="f.hint"
                 :persistent-hint="!!f.hint"
                 clearable

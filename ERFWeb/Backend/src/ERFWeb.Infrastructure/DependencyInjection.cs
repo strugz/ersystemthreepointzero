@@ -98,6 +98,7 @@ public static class DependencyInjection
 
         // Summaries and exports (Phase 7)
         services.AddScoped<IExpenseSummaryService, ExpenseSummaryService>();
+        services.AddScoped<ICostCenterBudgetService, CostCenterBudgetService>();
         services.AddSingleton<ExportRenderer>();
         services.AddScoped<IExportService, ExportService>();
 

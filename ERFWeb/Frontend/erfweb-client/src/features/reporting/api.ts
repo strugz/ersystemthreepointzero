@@ -1,6 +1,6 @@
 import { api, apiUrl } from '@/shared/api/client';
 import type { ExportFormat } from '@/shared/download';
-import type { ExpenseSummary, ExpenseSummaryQuery, ReportEmailDelivery, ReportEmailSent } from './types';
+import type { CostCenterBudgetReport, ExpenseSummary, ExpenseSummaryQuery, ReportEmailDelivery, ReportEmailSent } from './types';
 
 function summaryParams(query: ExpenseSummaryQuery) {
   const params = new URLSearchParams({ from: query.from, to: query.to, scope: query.scope, approvedOnly: String(query.approvedOnly) });
@@ -31,4 +31,11 @@ export const reportingApi = {
     params.set('format', format);
     return api.getFile(`/summaries/expenses/export?${params.toString()}`, `ExpenseSummary.${format.toLowerCase()}`);
   },
+
+  /** Budget vs used per cost center for a calendar year. Finance sees all; a signatory the departments their scope covers (403 otherwise). */
+  costCenterBudgets: (year: number, approvedOnly: boolean) =>
+    api.get<CostCenterBudgetReport>(`/summaries/budgets?year=${year}&approvedOnly=${approvedOnly}`),
+  /** CSV: one row per cost center with its budget, spending, and spending per category. */
+  exportCostCenterBudgets: (year: number, approvedOnly: boolean) =>
+    api.getFile(`/summaries/budgets/export?year=${year}&approvedOnly=${approvedOnly}`, `CostCenterBudgets_${year}.csv`),
 };

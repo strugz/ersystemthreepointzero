@@ -161,6 +161,12 @@ export interface DepartmentInput {
   reviewedBy: string;
 }
 
+/** A cost center's overall budget for one calendar year. */
+export interface CostCenterBudget {
+  year: number;
+  amount: number;
+}
+
 export interface CostCenter {
   id: number;
   code: string;
@@ -169,14 +175,19 @@ export interface CostCenter {
   departmentName: string | null;
   isActive: boolean;
   rowVersion: number;
+  /** Newest year first. */
+  budgets: CostCenterBudget[];
 }
 
 export interface CostCenterInput {
   code: string;
   name: string;
+  /** Required by the API: a cost center is one department's. */
   departmentId: number | null;
   isActive: boolean;
   rowVersion?: number;
+  /** Years to set or clear (amount null clears); years left out keep their budget. */
+  budgets?: { year: number; amount: number | null }[];
 }
 
 export interface Currency {
