@@ -1,22 +1,29 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { formatDate } from '@/shared/format';
+import { addDaysIso, formatDate } from '@/shared/format';
 import type { CrmActivityOption, CrmActivityPickList } from '../types';
 
-// Lists every CRM activity of the employee on the line's date; picking one pre-fills the line. Open and
-// Cancelled activities, and one already on another report (one activity, one report), show but cannot be picked.
+// Lists every CRM activity of the employee on one day (first the line's date; the arrows step a day at a time
+// inside the report period); picking one pre-fills the line, date included. Open and Cancelled activities, and
+// one already on another report (one activity, one report), show but cannot be picked.
 const props = withDefaults(
   defineProps<{
     modelValue: boolean;
+    /** The day shown. */
+    date: string;
+    /** The report period; the API refuses days outside it. */
+    minDate?: string | null;
+    maxDate?: string | null;
     list?: CrmActivityPickList | null;
     loading?: boolean;
     error?: string | null;
   }>(),
-  { list: null, loading: false, error: null },
+  { minDate: null, maxDate: null, list: null, loading: false, error: null },
 );
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
+  'update:date': [date: string];
   pick: [activity: CrmActivityOption];
   retry: [];
 }>();
@@ -28,6 +35,14 @@ watch(
     if (open) search.value = '';
   },
 );
+
+const canGoBack = computed(() => !props.loading && (!props.minDate || props.date > props.minDate));
+const canGoForward = computed(() => !props.loading && (!props.maxDate || props.date < props.maxDate));
+
+function stepDay(days: number) {
+  search.value = '';
+  emit('update:date', addDaysIso(props.date, days));
+}
 
 const items = computed(() => {
   const all = props.list?.items ?? [];
@@ -64,14 +79,34 @@ function pick(a: CrmActivityOption) {
       <header class="crm__head">
         <div>
           <h2 class="crm__title">Pick a CRM activity</h2>
-          <p v-if="list?.linked" class="crm__sub">
-            Your CRM activities on {{ formatDate(list.date) }}. Change the line's date to see another day. You still enter the amount and receipt.
-          </p>
+          <p class="crm__sub">Your CRM activities, one day at a time. Picking one sets the line's date. You still enter the amount and receipt.</p>
         </div>
         <v-btn class="press" icon="mdi-close" variant="text" size="small" aria-label="Close" @click="emit('update:modelValue', false)" />
       </header>
 
       <v-card-text class="crm__body">
+        <div v-if="!list || list.linked" class="crm__day" role="group" aria-label="Day">
+          <v-btn
+            class="press"
+            icon="mdi-chevron-left"
+            variant="text"
+            size="small"
+            aria-label="Previous day"
+            :disabled="!canGoBack"
+            @click="stepDay(-1)"
+          />
+          <span class="crm__date" aria-live="polite">{{ formatDate(date) }}</span>
+          <v-btn
+            class="press"
+            icon="mdi-chevron-right"
+            variant="text"
+            size="small"
+            aria-label="Next day"
+            :disabled="!canGoForward"
+            @click="stepDay(1)"
+          />
+        </div>
+
         <div v-if="loading" class="crm__state">
           <v-progress-circular indeterminate size="28" color="primary" />
           <span>Asking the CRM…</span>
@@ -99,7 +134,7 @@ function pick(a: CrmActivityOption) {
             class="mb-3"
           />
           <p v-if="!items.length" class="crm__empty">
-            {{ list.items.length ? 'No activity matches the filter.' : 'No CRM activities on this date.' }}
+            {{ list.items.length ? 'No activity matches the filter.' : 'No CRM activities on this date. Try the previous or next day.' }}
           </p>
           <ul v-else class="crm__list">
             <li v-for="a in items" :key="a.activityId">
@@ -160,6 +195,19 @@ function pick(a: CrmActivityOption) {
 }
 .crm__body {
   padding: 12px 24px 20px !important;
+}
+.crm__day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.crm__date {
+  min-width: 120px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--ink);
 }
 .crm__state {
   display: flex;

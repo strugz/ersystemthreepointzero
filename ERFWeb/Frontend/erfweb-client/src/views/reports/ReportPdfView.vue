@@ -7,6 +7,8 @@ import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import { reviewLink, reviewOriginCrumb } from '@/views/approvals/reviewCrumbs';
 import { reportingApi } from '@/features/reporting/api';
+import { expensesApi } from '@/features/expenses/api';
+import type { ExpenseReportDetail } from '@/features/expenses/types';
 import type { ReportEmailDelivery } from '@/features/reporting/types';
 import { newIdempotencyKey } from '@/features/notifications/api';
 import { ApiError } from '@/shared/api/client';
@@ -81,11 +83,27 @@ async function emailPdf() {
   }
 }
 
+// The claimant previewing a draft or returned report can go on to file it; the editor runs the
+// filing checklist and confirmation (it opens them on ?file=1).
+const report = ref<ExpenseReportDetail | null>(null);
+const fileLink: RouteLocationRaw = { name: 'report-edit', params: { id: reportId }, query: { file: '1' } };
+const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file report' : 'File report'));
+
+async function loadReport() {
+  try {
+    report.value = await expensesApi.get(reportId);
+  } catch {
+    // Only offers the File button; the preview works without it.
+    report.value = null;
+  }
+}
+
 onMounted(async () => {
   try {
     const blob = await reportingApi.fetchPdf(reportId);
     pdfUrl.value = URL.createObjectURL(blob);
     void loadEmails();
+    if (!fromReview) void loadReport();
   } catch (err) {
     if (err instanceof ApiError) {
       error.value =
@@ -122,12 +140,25 @@ function print() {
       <v-btn class="press" variant="text" prepend-icon="mdi-printer-outline" :disabled="!pdfUrl" @click="print">Print</v-btn>
       <v-btn class="press" variant="text" prepend-icon="mdi-email-outline" :disabled="!pdfUrl" :loading="emailing" @click="emailPdf">Email</v-btn>
       <v-btn class="press" variant="outlined" prepend-icon="mdi-download-outline" :href="pdfUrl ?? undefined" :download="`ExpenseReport-${reportId}.pdf`" :disabled="!pdfUrl">Download</v-btn>
-      <v-btn class="press" color="primary" variant="flat" prepend-icon="mdi-open-in-new" :href="reportingApi.pdfUrl(reportId)" target="_blank" rel="noopener" :disabled="!pdfUrl">Open in new tab</v-btn>
+      <v-btn
+        class="press"
+        color="primary"
+        :variant="report?.canFile ? 'outlined' : 'flat'"
+        prepend-icon="mdi-open-in-new"
+        :href="reportingApi.pdfUrl(reportId)"
+        target="_blank"
+        rel="noopener"
+        :disabled="!pdfUrl"
+      >
+        Open in new tab
+      </v-btn>
+      <v-btn v-if="report?.canFile" class="press" color="primary" variant="flat" prepend-icon="mdi-send-outline" :to="fileLink">{{ fileLabel }}</v-btn>
     </template>
     <template #bottom>
       <v-btn class="press" variant="text" prepend-icon="mdi-email-outline" :disabled="!pdfUrl" :loading="emailing" @click="emailPdf">Email</v-btn>
       <v-btn class="press" variant="outlined" prepend-icon="mdi-download-outline" :href="pdfUrl ?? undefined" :download="`ExpenseReport-${reportId}.pdf`" :disabled="!pdfUrl">Download</v-btn>
-      <v-btn class="press" color="primary" variant="flat" prepend-icon="mdi-open-in-new" :href="reportingApi.pdfUrl(reportId)" target="_blank" rel="noopener" :disabled="!pdfUrl">Open</v-btn>
+      <v-btn v-if="report?.canFile" class="press" color="primary" variant="flat" prepend-icon="mdi-send-outline" :to="fileLink">File</v-btn>
+      <v-btn v-else class="press" color="primary" variant="flat" prepend-icon="mdi-open-in-new" :href="reportingApi.pdfUrl(reportId)" target="_blank" rel="noopener" :disabled="!pdfUrl">Open</v-btn>
     </template>
 
     <div v-if="!xs" class="mb-4">
