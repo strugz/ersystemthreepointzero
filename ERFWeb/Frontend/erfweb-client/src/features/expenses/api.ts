@@ -44,6 +44,8 @@ export const expensesApi = {
   updateLine: (id: string, lineId: number, input: SaveExpenseLineInput) =>
     api.put<ExpenseLine>(`${r(id)}/lines/${lineId}`, input),
   removeLine: (id: string, lineId: number) => api.del<void>(`${r(id)}/lines/${lineId}`),
+  /** Saves the order the R47 prints the lines in; must list every line of the report once. */
+  reorderLines: (id: string, lineIds: number[]) => api.put<void>(`${r(id)}/lines/order`, { lineIds }),
 
   addCashAdvance: (id: string, input: SaveCashAdvanceLineInput) => api.post<CashAdvanceLine>(`${r(id)}/cash-advances`, input),
   updateCashAdvance: (id: string, lineId: number, input: SaveCashAdvanceLineInput) =>

@@ -10,6 +10,7 @@ import { describeError, useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { expensesApi } from '@/features/expenses/api';
 import { reportTypeLabel, usesCashAdvance, usesRevolvingFund } from '@/features/expenses/labels';
+import { lineSortOptions, sortedLineIds, type LineSort } from '@/features/expenses/lineOrder';
 import ReportStatusChip from '@/features/expenses/components/ReportStatusChip.vue';
 import ReportDetailsCard from '@/features/expenses/components/ReportDetailsCard.vue';
 import ReportTotalsCard from '@/features/expenses/components/ReportTotalsCard.vue';
@@ -255,6 +256,23 @@ async function confirmRemoveLine() {
     await handleMutationError(err, 'Unable to remove the expense line.');
   } finally {
     busyLineId.value = null;
+  }
+}
+
+// The R47 prints lines in their saved order, so sorting saves a new order rather than only re-sorting the screen.
+const reordering = ref(false);
+
+async function sortLines(sort: LineSort) {
+  if (!report.value) return;
+  reordering.value = true;
+  try {
+    await expensesApi.reorderLines(reportId, sortedLineIds(report.value.lines, sort));
+    snack.success('Line order saved. The R47 prints in this order.');
+    await load();
+  } catch (err) {
+    await handleMutationError(err, 'Unable to sort the expense lines.');
+  } finally {
+    reordering.value = false;
   }
 }
 
@@ -537,10 +555,21 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
           <div class="card-h">
             <div class="d-flex align-baseline ga-3 flex-wrap">
               <span class="card-t">Expense lines</span>
-              <span class="card-meta">{{ report.lines.length }} line{{ report.lines.length === 1 ? '' : 's' }}<span class="d-none d-md-inline"> · grouped by date and Work With, as printed</span></span>
+              <span class="card-meta">{{ report.lines.length }} line{{ report.lines.length === 1 ? '' : 's' }}<span class="d-none d-md-inline"> · in the order the R47 prints them</span></span>
             </div>
-            <v-btn v-if="report.canEdit && report.lines.length && !xs" class="press" size="small" variant="outlined" prepend-icon="mdi-plus" @click="openAddLine">Add line</v-btn>
-            <span v-else-if="xs" class="mono card-t">{{ formatMoney(report.totalAmount) }}</span>
+            <div class="d-flex align-center ga-2">
+              <v-menu v-if="report.canEdit && report.lines.length > 1" location="bottom end">
+                <template #activator="{ props: menuProps }">
+                  <v-btn v-bind="menuProps" class="press" size="small" variant="text" prepend-icon="mdi-sort" :loading="reordering">Sort</v-btn>
+                </template>
+                <v-list density="compact">
+                  <v-list-subheader>Sort the R47 by</v-list-subheader>
+                  <v-list-item v-for="o in lineSortOptions" :key="o.value" :title="o.label" @click="sortLines(o.value)" />
+                </v-list>
+              </v-menu>
+              <v-btn v-if="report.canEdit && report.lines.length && !xs" class="press" size="small" variant="outlined" prepend-icon="mdi-plus" @click="openAddLine">Add line</v-btn>
+              <span v-else-if="xs" class="mono card-t">{{ formatMoney(report.totalAmount) }}</span>
+            </div>
           </div>
           <ExpenseLinesTable :lines="report.lines" :editable="report.canEdit" :busy-line-id="busyLineId" @add="openAddLine" @edit="openEditLine" @remove="removingLine = $event" />
         </v-card>

@@ -201,6 +201,9 @@ public sealed record SaveExpenseLineRequest(
     uint? RowVersion,
     string? CrmActivityId = null);
 
+/// <summary>Every active line of the report, in the order the R47 should print them.</summary>
+public sealed record ReorderExpenseLinesRequest(IReadOnlyList<long> LineIds);
+
 public sealed record UploadAttachmentRequest(string FileName, string ContentType, byte[] Content);
 
 // ---------------------------------------------------------------------------------
@@ -221,6 +224,7 @@ public interface IExpenseLineService
     Task<ExpenseLineDto> AddAsync(Guid reportId, SaveExpenseLineRequest request, CancellationToken ct = default);
     Task<ExpenseLineDto> UpdateAsync(Guid reportId, long lineId, SaveExpenseLineRequest request, CancellationToken ct = default);
     Task RemoveAsync(Guid reportId, long lineId, CancellationToken ct = default);
+    Task ReorderAsync(Guid reportId, ReorderExpenseLinesRequest request, CancellationToken ct = default);
 }
 
 /// <summary>

@@ -111,6 +111,41 @@ public sealed class ExpenseLineService(
             await db.SaveWithConcurrencyAsync(token);
         }, ct);
 
+    /// <summary>Saves the order the lines print on the R47 (and show in the editor) as 1..n.</summary>
+    public Task ReorderAsync(Guid reportId, ReorderExpenseLinesRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.LineIds is null)
+        {
+            throw new ValidationException("lineIds", "lineIds is required.");
+        }
+
+        return tx.ExecuteAsync(async token =>
+        {
+            var report = await gate.LoadEditableAsync(reportId, token);
+            var lines = await db.ExpenseLines.Where(l => l.ReportId == reportId && l.IsActive).ToListAsync(token);
+            if (!ExpenseLineRules.IsCompleteOrder(request.LineIds, lines.Select(l => l.Id).ToHashSet()))
+            {
+                throw new ConflictException("The expense lines changed since you loaded the report. Reload and sort again.");
+            }
+
+            var byId = lines.ToDictionary(l => l.Id);
+            var now = clock.UtcNow;
+            for (var i = 0; i < request.LineIds.Count; i++)
+            {
+                var line = byId[request.LineIds[i]];
+                if (line.SortOrder != i + 1)
+                {
+                    line.SortOrder = i + 1;
+                    line.UpdatedAt = now;
+                }
+            }
+
+            report.UpdatedAt = now;
+            await db.SaveWithConcurrencyAsync(token);
+        }, ct);
+    }
+
     /// <summary>Validates the line and its fare legs; returns the fare modes the legs name, for saving them.</summary>
     private async Task<IReadOnlyDictionary<long, FareModeRule>> ValidateAsync(
         SaveExpenseLineRequest r, ExpenseReport report, long? lineId, CancellationToken ct)
