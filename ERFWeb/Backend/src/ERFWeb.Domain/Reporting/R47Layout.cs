@@ -22,6 +22,34 @@ public static class R47Layout
     /// <summary>Printed height of a row whose tallest text wraps to <paramref name="lines"/> lines.</summary>
     public static float RowHeight(int lines) => Math.Max(SingleRowHeight, lines * WrappedLineHeight + RowPadding);
 
+    private static readonly char[] WorkWithSeparators = [',', '/', ';', '&'];
+
+    /// <summary>
+    /// Shortens the Work With text to initials: each name ("Jay C Abaoag", from the picker or a CRM
+    /// activity's comma-separated list) becomes the first letter of each word ("JCA"), joined by "/".
+    /// A one-word entry is kept as typed, since employees often enter initials already ("JSO").
+    /// </summary>
+    public static string WorkWithInitials(string? workWith)
+    {
+        if (string.IsNullOrWhiteSpace(workWith))
+        {
+            return string.Empty;
+        }
+
+        var names = workWith.Split(WorkWithSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .SelectMany(n => n.Split(" and ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Select(name =>
+            {
+                var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                return words.Length == 1
+                    ? words[0]
+                    : string.Concat(words.Select(w => w.FirstOrDefault(char.IsLetter)).Where(c => c != default).Select(char.ToUpperInvariant));
+            })
+            .Where(n => n.Length > 0);
+
+        return string.Join("/", names);
+    }
+
     /// <summary>
     /// Builds grid rows: a group header whenever the (date, location, work-with) key changes,
     /// with the date printed only on the first group of each date; then one detail row per line.
@@ -37,10 +65,11 @@ public static class R47Layout
 
         foreach (var line in lines.OrderBy(l => l.SortOrder))
         {
-            // The header is exactly what the employee entered: the location, then the Work With text
-            // verbatim when there is one. Nothing is added by the report.
+            // The header is the location, then "Work w/:" and the Work With people as initials
+            // (the legacy "RLN/JSO" form) so full names never print on the R47.
             var location = R47Bucketing.LocationText(line);
-            var headerText = string.IsNullOrWhiteSpace(line.WorkWith) ? location : $"{location} {line.WorkWith.Trim()}";
+            var workWith = WorkWithInitials(line.WorkWith);
+            var headerText = workWith.Length == 0 ? location : $"{location} Work w/: {workWith}";
             var key = $"{line.TransactionDate:O}|{headerText}";
 
             if (key != lastKey)

@@ -66,6 +66,14 @@ Whenever a turn changes files, end the final message with a **Changed files** se
 - Follow it with **What happens next**: what the user will see or what behaves differently, what is still needed before it takes effect (database script to apply, backend deploy before frontend, config), and what was verified versus not verified (build, tests, browser).
 - State whether anything is committed, pushed or deployed.
 
+### Keep README.md and CLAUDE.md in step with every change
+
+Every change that adds, removes or changes behaviour, an endpoint, a setting, a database script, a screen, a deployment step or a rule also updates, in the same change (same commit or PR):
+
+- **The area's README.** `ERFWeb/README.md` for ERFWeb, `Web/README.md` for the web portal, `README.md` for the desktop app. Update the section that describes the feature, and for ERFWeb add a dated line to its **Change log** (newest first; say "not yet committed" until it is, and the PR number once it has one).
+- **This file.** Add a dated line to **Recent changes** below, and update any fact here that the change made stale (configuration sections, database rules, deployment, integrations).
+- Before reporting done, check both files against the diff. A change is not finished while either file describes the old behaviour.
+
 ### ERFWeb (standalone web ERF system)
 
 `ERFWeb/` is a third, separate application: ASP.NET Core (net10.0) + EF Core on **PostgreSQL** (Npgsql, snake_case, LINQ only, no stored procedures) and a Vue 3 + Vuetify SPA. It is not in `ER System.sln`, the installer, or `Web/`, and current work is scoped to it: do not modify the desktop app while working there. `ERFWeb/README.md` is its reference (configuration, database scripts, features by plan phase, deployment); the governing plan is `ERFWeb/Document/ERFWeb - Project Documentation and Implementation Plan.docx`.
@@ -78,6 +86,13 @@ Whenever a turn changes files, end the final message with a **Changed files** se
 - **Notifications:** `IApprovalNotifier` is layered Logging → SMS (Lasius) → Email (MailKit, R47 attached). Delivery runs after the workflow commits and never fails it; each send is claimed once per idempotency key in `sms_deliveries` / `email_deliveries`, and only counts (never numbers, addresses or text) go to logs and `workflow_audit`. Daily SLA reminders (Phase 8.4) are separate: `ApprovalReminderJob` (a `BackgroundService` in the API) runs `ApprovalReminderService` once a working day; it uses the SMS and SMTP gateways directly (there is no signed-in user) and claims each reminder once in `reminder_deliveries`. Timing rules are in Domain `ApprovalReminderRules` and the Settings SLA days.
 - **Backups and monitoring (Phase 8.6):** not part of the API. Two Windows scheduled tasks on the API server, set up with `Backend/tools/Install-ErfWebMaintenance.cmd` (settings at its top) and documented step by step in `Backend/tools/README.txt`: a nightly `pg_dump` (`Backup-ErfWebDatabase.ps1`) and a 5-minute check of `/erf/health` and the backup's age (`Test-ErfWebHealth.ps1`), both reading the DB login and `Smtp` from the server's `appsettings.json`. PostgreSQL 18 runs on a different server from the API; the API server uses pgAdmin's `runtime` folder for `pg_dump`/`pg_restore`. These are Windows PowerShell 5.1 scripts: keep them ASCII-only and `.cmd` files CRLF.
 - **CRM:** an account links to the CRM by the CRM `employeeId` in `users.crm_employee_id` (the CRM has no employee email); CRM activity calls take that ID. An expense line pre-filled from a CRM activity stores its `activityId` in `expense_lines.crm_activity_id` (one activity: many lines of one report, never a second non-Rejected report; `CrmActivityClaimCheck`). Only the ERFWeb server calls the CRM (`CrmEmployeeDirectory`, `CrmActivityDirectory`, shared `CrmApi`, `X-Api-Key`), logging only HTTP status, never search text, IDs or the key. The contract is `ERFWeb/Document/CRM-API-Integration-Spec.md` plus the CRM team's "CRM Employee and Activity API for ERFWeb" doc; follow their field names exactly (e.g. `mobileNumber`).
+- **R47 Work With:** group headers print `<location> Work w/: <initials>` (Domain `R47Layout.WorkWithInitials`); full Work With names never print on the R47. Line order on the R47 is the saved `expense_lines.sort_order`, set by the editor's Sort menu through `PUT /api/reports/{id}/lines/order`.
+
+### Recent changes
+
+Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
+
+- **2026-10-26:** R47 Work With prints as initials (PR #30). Sort expense lines into the R47 order (PR #29). CRM picker previous/next day arrows and File report / Re-file report from the R47 preview (PR #28). Phase 8.4 SLA reminders, 8.5 guardrail tests and append-only `workflow_audit` (script `021`), 8.6 nightly backup and health monitor (PR #27).
 
 ### Other agent configuration
 
