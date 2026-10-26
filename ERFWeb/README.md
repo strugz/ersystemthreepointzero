@@ -16,6 +16,8 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 ```
 ERFWeb/
   Backend/   ERFWeb.sln  ->  src/{Api,Application,Domain,Infrastructure}  +  tests/ERFWeb.Tests
+             tools/  publish, deploy and service scripts, plus the nightly backup and health monitor (README.txt)
+  Database/  numbered SQL scripts (NNN_*.sql) and maintenance/ reset scripts
   Frontend/  erfweb-client (Vue 3 + Vuetify SPA)
 ```
 
@@ -722,6 +724,7 @@ the **backend live first**, so the new screens never call an API that does not e
 | Backend and frontend | [A](#a-before-you-start) → [C](#c-build-the-backend-release-on-your-pc) → [D](#d-deploy-the-backend-on-the-server) → [E](#e-deploy-the-frontend-render) → [F](#f-check-that-it-works) |
 | A new database script (`ERFWeb/Database/NNN_*.sql`) | [A](#a-before-you-start) → [B](#b-update-the-database-only-when-there-is-a-new-script) → then the backend steps |
 | Server settings only (`appsettings.json` on the server) | [Change a server setting](#change-a-server-setting) |
+| Nightly backup and health monitor (once per server, or to change its settings) | [Backups and monitoring](#backups-and-monitoring-plan-phase-86) |
 
 ### A. Before you start
 
@@ -752,7 +755,10 @@ the **backend live first**, so the new screens never call an API that does not e
 before `COMMIT;` record it:
 `INSERT INTO schema_versions (version, name) VALUES (16, '016_name') ON CONFLICT (version) DO NOTHING;`
 When the backend code depends on it, raise `SchemaVersion.Required` in
-`Backend/src/ERFWeb.Infrastructure/Persistence/SchemaVersion.cs` to that number in the same change.
+`Backend/src/ERFWeb.Infrastructure/Persistence/SchemaVersion.cs` to that number in the same change. A script the code
+does not depend on (such as `021`, the append-only audit trail) leaves it as it is, so it can be run before or after
+a deploy. A script that must delete `workflow_audit` rows needs `SET LOCAL erfweb.allow_audit_purge = 'on';` right
+after `BEGIN;` (see the maintenance scripts).
 
 ### C. Build the backend release on your PC
 
