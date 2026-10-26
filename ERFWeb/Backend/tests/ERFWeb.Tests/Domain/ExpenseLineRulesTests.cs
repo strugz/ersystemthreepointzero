@@ -35,6 +35,18 @@ public class ExpenseLineRulesTests
         Assert.Equal(expected, ExpenseLineRules.AllowsVat(invoice));
 
     [Fact]
+    public void IsCompleteOrder_AcceptsEveryActiveLineOnceInAnyOrder() =>
+        Assert.True(ExpenseLineRules.IsCompleteOrder([3, 1, 2], [1, 2, 3]));
+
+    [Theory]
+    [InlineData(new long[] { 1, 2 })]          // a line added since the client loaded
+    [InlineData(new long[] { 1, 2, 3, 4 })]    // a line removed since
+    [InlineData(new long[] { 1, 1, 2 })]       // duplicate
+    [InlineData(new long[] { 1, 2, 9 })]       // another report's line
+    public void IsCompleteOrder_RejectsStaleOrForeignLists(long[] ordered) =>
+        Assert.False(ExpenseLineRules.IsCompleteOrder(ordered, [1, 2, 3]));
+
+    [Fact]
     public void Validate_ValidLocalLine_HasNoErrors()
     {
         var errors = ExpenseLineRules.Validate(

@@ -4,9 +4,10 @@ import { useDisplay } from 'vuetify';
 import { formatDate, formatMoney } from '@/shared/format';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import { categoryLabel, r47Column } from '../labels';
+import { groupLines, type LineGroup } from '../lineOrder';
 import type { ExpenseLine } from '../types';
 
-// Lines grouped the way the R47 prints them: by date, then by Work With.
+// Lines in their saved order, grouped the way the R47 prints them (see lineOrder.ts).
 // Tablet/desktop render a ledger table; phones render the same groups as a list.
 // `adjustable` is the approver's mode: the only change offered is lowering a line amount (with a reason).
 const props = withDefaults(
@@ -30,34 +31,12 @@ function openLine(line: ExpenseLine) {
 
 const { xs, smAndDown } = useDisplay();
 
-interface Group {
-  key: string;
-  date: string;
-  location: string | null;
-  workWith: string | null;
-  lines: ExpenseLine[];
-  total: number;
-}
-
-const groups = computed<Group[]>(() => {
-  const map = new Map<string, Group>();
-  for (const line of props.lines) {
-    const key = `${line.transactionDate}|${line.workWith ?? ''}`;
-    let g = map.get(key);
-    if (!g) {
-      g = { key, date: line.transactionDate, location: line.location, workWith: line.workWith, lines: [], total: 0 };
-      map.set(key, g);
-    }
-    g.lines.push(line);
-    g.total += line.totalAmount;
-  }
-  return [...map.values()];
-});
+const groups = computed(() => groupLines(props.lines));
 
 const grandTotal = computed(() => props.lines.reduce((s, l) => s + l.totalAmount, 0));
 const vatTotal = computed(() => props.lines.reduce((s, l) => s + l.vatAmount, 0));
 
-function groupLabel(g: Group): string {
+function groupLabel(g: LineGroup): string {
   const parts = [g.location, g.workWith].filter(Boolean);
   return parts.length ? parts.join(' · ') : '—';
 }

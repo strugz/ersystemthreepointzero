@@ -33,6 +33,19 @@ public sealed class ExpenseLinesController(IExpenseLineService lines) : Controll
     public async Task<ActionResult<ExpenseLineDto>> Update(Guid reportId, long lineId, [FromBody] SaveExpenseLineRequest request, CancellationToken ct) =>
         Ok(await lines.UpdateAsync(reportId, lineId, request, ct));
 
+    /// <summary>Sets the line order the R47 prints. Must list every active line once; a stale list → 409.</summary>
+    [HttpPut("order")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reorder(Guid reportId, [FromBody] ReorderExpenseLinesRequest request, CancellationToken ct)
+    {
+        await lines.ReorderAsync(reportId, request, ct);
+        return NoContent();
+    }
+
     [HttpDelete("{lineId:long}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

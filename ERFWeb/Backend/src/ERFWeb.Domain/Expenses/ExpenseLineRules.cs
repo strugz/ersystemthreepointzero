@@ -35,6 +35,19 @@ public static class ExpenseLineRules
     public static bool AllowsVat(string? invoiceOrNo) => !string.IsNullOrWhiteSpace(invoiceOrNo);
 
     /// <summary>
+    /// A new line order (the order the R47 prints) must name every active line of the report exactly
+    /// once; anything else means the client's list is stale (a line was added or removed meanwhile).
+    /// </summary>
+    public static bool IsCompleteOrder(IReadOnlyCollection<long> orderedLineIds, IReadOnlyCollection<long> activeLineIds)
+    {
+        ArgumentNullException.ThrowIfNull(orderedLineIds);
+        ArgumentNullException.ThrowIfNull(activeLineIds);
+        return orderedLineIds.Count == activeLineIds.Count
+            && orderedLineIds.Distinct().Count() == orderedLineIds.Count
+            && orderedLineIds.All(activeLineIds.Contains);
+    }
+
+    /// <summary>
     /// Validates the business fields of a line. Returns field → message pairs; empty when valid.
     /// </summary>
     public static IReadOnlyDictionary<string, string[]> Validate(
