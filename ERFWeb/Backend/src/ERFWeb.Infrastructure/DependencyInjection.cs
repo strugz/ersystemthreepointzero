@@ -121,6 +121,10 @@ public static class DependencyInjection
         services.AddSingleton<IEmailGateway, MailKitEmailGateway>();
         services.AddScoped<IReportEmailService, ReportEmailService>();
 
+        // Daily SLA reminders (Phase 8.4); the API's ApprovalReminderJob runs it when Reminders:Enabled is true.
+        services.AddOptions<ReminderOptions>();
+        services.AddScoped<IApprovalReminderService, ApprovalReminderService>();
+
         return services;
     }
 }

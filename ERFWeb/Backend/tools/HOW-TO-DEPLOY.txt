@@ -8,6 +8,7 @@ together. The full guide is "Deployment guide" in ERFWeb/README.md.
   release.txt                 the version inside, as /erf/health reports it (e.g. 0.1.0+b1b0da4)
   Deploy-ErfWeb.cmd           UPDATE the server to this release        <- normal use
   Install-ErfWebService.cmd   FIRST install on a new server only
+  Install-ErfWebMaintenance.cmd  nightly database backup + health emails (once per server; see the README)
   appsettings.Example.json    template for the server's appsettings.json (every setting the API reads)
   *.ps1                       the scripts the .cmd files run
 

@@ -11,6 +11,8 @@
             release.txt                 the version inside, as /api/health reports it
             Deploy-ErfWeb.cmd           double-click on the server to update it to this release
             Install-ErfWebService.cmd   first install on a new server only
+            Install-ErfWebMaintenance.cmd  nightly database backup and health monitor (once per server)
+            README.txt                  step-by-step setup of the backup and health monitor
             appsettings.Example.json    template for the server's appsettings.json
             HOW-TO-DEPLOY.txt           the steps, for whoever is at the server
             *.ps1                       the scripts the .cmd files run
@@ -56,7 +58,9 @@ foreach ($leftover in @('appsettings.json', 'appsettings.Development.json')) {
 
 Compress-Archive -Path (Join-Path $staging '*') -DestinationPath (Join-Path $release 'ERFWeb-Api.zip')
 # Everything the server needs travels with the release, so nothing is copied from the repo by hand.
-foreach ($tool in @('Deploy-ErfWeb.cmd', 'Deploy-ErfWeb.ps1', 'Install-ErfWebService.cmd', 'Install-ErfWebService.ps1', 'HOW-TO-DEPLOY.txt')) {
+foreach ($tool in @('Deploy-ErfWeb.cmd', 'Deploy-ErfWeb.ps1', 'Install-ErfWebService.cmd', 'Install-ErfWebService.ps1',
+        'Install-ErfWebMaintenance.cmd', 'Install-ErfWebMaintenance.ps1', 'Backup-ErfWebDatabase.ps1', 'Test-ErfWebHealth.ps1',
+        'ErfWebMaintenance.Common.ps1', 'README.txt', 'HOW-TO-DEPLOY.txt')) {
     Copy-Item (Join-Path $PSScriptRoot $tool) $release
 }
 Copy-Item (Join-Path $staging 'appsettings.Example.json') $release

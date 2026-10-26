@@ -16,6 +16,8 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 ```
 ERFWeb/
   Backend/   ERFWeb.sln  ->  src/{Api,Application,Domain,Infrastructure}  +  tests/ERFWeb.Tests
+             tools/  publish, deploy and service scripts, plus the nightly backup and health monitor (README.txt)
+  Database/  numbered SQL scripts (NNN_*.sql) and maintenance/ reset scripts
   Frontend/  erfweb-client (Vue 3 + Vuetify SPA)
 ```
 
@@ -71,6 +73,7 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Lasius:*` (optional) | Notification SMS gateway URL, API key and header (see Notification SMS) |
 | `Crm:*` (optional) | CRM employee and activity lookups: `BaseUrl` (e.g. `https://<crm-host>/api2/erf/v1`), `ApiKey`, `ApiKeyHeaderName` (`X-Api-Key`), `TimeoutSeconds`. Without it the Add User CRM search answers 503, accounts save unlinked, and the line editor hides **From CRM** |
 | `Smtp:*` (optional) | Mail server, sender mailbox and login for report email (see Report email) |
+| `Reminders:Enabled` / `RunAt` (optional) | Daily SLA approval reminders; off unless `Enabled` is `true`, run at `RunAt` (`HH:mm`, business time, default `08:00`) on working days (see SLA reminders) |
 | `Kestrel:*` (server) | Endpoint the API listens on behind nginx |
 | `RateLimiting:SignInPerMinute` (optional, default 30) | Sign-in and password-change attempts allowed per client address per minute (429 `rate_limited` beyond) |
 | `RateLimiting:ApiPerMinute` (optional, default 1200) | All other API requests per client address per minute; only stops runaway clients |
@@ -108,6 +111,7 @@ psql -d erfweb -f Database/017_admin_only_authority.sql  # no countersign, no Bu
 psql -d erfweb -f Database/018_crm_employee_link.sql     # users.crm_employee_id: an account's link to its CRM employee
 psql -d erfweb -f Database/019_user_r47_reviewed_by.sql  # users.r47_reviewed_by: an employee's own R47 REVIEWED BY
 psql -d erfweb -f Database/020_expense_line_crm_activity.sql  # expense_lines.crm_activity_id: the CRM activity a line came from
+psql -d erfweb -f Database/021_workflow_audit_append_only.sql # Phase 8.5: the database refuses UPDATE/DELETE/TRUNCATE of workflow_audit (9.9)
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -148,6 +152,18 @@ migrationBuilder.Sql(ERFWeb.Infrastructure.Persistence.HistorySql.CreateTriggers
 // Down():
 migrationBuilder.Sql(ERFWeb.Infrastructure.Persistence.HistorySql.DropAll);
 ```
+
+**Audit trail is append-only (script 021).** A trigger refuses any change to or deletion of `workflow_audit` rows,
+and `TRUNCATE`. The maintenance scripts that clear audit rows (`reset_data_keep_admins`, `reset_reports`,
+`delete_users_keep_admin`) opt in for their own transaction with `SET LOCAL erfweb.allow_audit_purge = 'on'`; the
+API never does. Any other script that must delete audit rows needs the same line.
+
+### Guardrail tests (plan Phase 8.5)
+
+The RBAC v0.6 guardrails 9.1–9.18 are tested without a database: the Domain rules (`tests/ERFWeb.Tests/Domain`)
+and the code itself (`Architecture/GuardrailCodeTests`, named `G9_NN_…`): only the System Administrator policy may
+change roles, scope and rates; Finance and the administrator read the audit trail; the audit endpoint only reads;
+the Finance service has no reject; and no server code updates or deletes audit rows.
 
 ### Schema notes
 
@@ -651,6 +667,36 @@ called; without a key, a second send of the same report within 10 minutes is a r
 and the PDF are never logged or stored. `workflow_audit` records `EmailSent`, `EmailFailed` or `EmailUnconfirmed`
 with the kind and counts only.
 
+## SLA reminders (plan Phase 8.4)
+
+A background job inside the API service sends approval reminders once a working day (Monday to Friday) at
+`Reminders:RunAt` in the business time zone (`ReferenceNumber:UtcOffsetHours`). It is off unless
+`Reminders:Enabled` is `true`, so a developer PC pointed at a shared database never sends any:
+
+```json
+"Reminders": { "Enabled": true, "RunAt": "08:00" }
+```
+
+The timing is the System Administrator's **Settings** (Domain `ApprovalReminderRules`, no holiday calendar):
+
+* A step's clock starts when it becomes the approver's turn (the filing, or the previous step's approval) and
+  counts working days.
+* After **SLA days** for its level (`Workflow.SlaDaysLevel1` / `SlaDaysLevel2`, default 3) the approver is
+  reminded, then every 2 working days until they act. Their delegate, when one is in force, gets it too. An SLA
+  of 0 turns reminders off for that level.
+* A Level 1 step still waiting **Escalation after days** (`Workflow.EscalationAfterDays`, default 3) past its SLA
+  is reported once to the report's Level 2, who can follow up, override, or assign a delegate.
+* Each reminder goes by email (R47 attached) and SMS to the people it is for only, never the claimant.
+
+Each reminder is claimed once in `reminder_deliveries` (unique per report, step, reminder number, channel and
+audience: `Approver` or `Level2`) before it is sent, so a restart or a second run that day sends nothing twice.
+A reminder the gateway refused (`Failed`) is retried on the next run while it is still the current one; one with
+no answer (`Unconfirmed`) is not. Nobody with an address or number on file: `Skipped` with `failure_code`
+`NoContact`. A channel whose `Smtp` or `Lasius` section is missing is left alone until it is configured. A service
+started after `RunAt` on a working day runs at once. `workflow_audit` records `ReminderSent`, `ReminderFailed` or
+`ReminderUnconfirmed` with counts only; the log has one line per run (`SLA reminder run: …`). No new script: the
+table is in `001`.
+
 ## Deployment guide
 
 Step-by-step instructions for putting a change live. Read **How it is set up** once; after that, find your kind
@@ -678,6 +724,7 @@ the **backend live first**, so the new screens never call an API that does not e
 | Backend and frontend | [A](#a-before-you-start) → [C](#c-build-the-backend-release-on-your-pc) → [D](#d-deploy-the-backend-on-the-server) → [E](#e-deploy-the-frontend-render) → [F](#f-check-that-it-works) |
 | A new database script (`ERFWeb/Database/NNN_*.sql`) | [A](#a-before-you-start) → [B](#b-update-the-database-only-when-there-is-a-new-script) → then the backend steps |
 | Server settings only (`appsettings.json` on the server) | [Change a server setting](#change-a-server-setting) |
+| Nightly backup and health monitor (once per server, or to change its settings) | [Backups and monitoring](#backups-and-monitoring-plan-phase-86) |
 
 ### A. Before you start
 
@@ -708,7 +755,10 @@ the **backend live first**, so the new screens never call an API that does not e
 before `COMMIT;` record it:
 `INSERT INTO schema_versions (version, name) VALUES (16, '016_name') ON CONFLICT (version) DO NOTHING;`
 When the backend code depends on it, raise `SchemaVersion.Required` in
-`Backend/src/ERFWeb.Infrastructure/Persistence/SchemaVersion.cs` to that number in the same change.
+`Backend/src/ERFWeb.Infrastructure/Persistence/SchemaVersion.cs` to that number in the same change. A script the code
+does not depend on (such as `021`, the append-only audit trail) leaves it as it is, so it can be run before or after
+a deploy. A script that must delete `workflow_audit` rows needs `SET LOCAL erfweb.allow_audit_purge = 'on';` right
+after `BEGIN;` (see the maintenance scripts).
 
 ### C. Build the backend release on your PC
 
@@ -780,6 +830,7 @@ Settings that matter for the live site:
 | `Authentication:CrossSiteCookies` | `true` while the frontend is on `onrender.com`; `false` once it moves to a `mdmpi.com.ph` address |
 | `Kestrel` | the address the service listens on (`http://192.168.4.206:5080/5081`), which nginx forwards to |
 | `Smtp`, `Lasius`, `Crm` | email, SMS and the CRM employee and activity lookups; without them those features are skipped, not broken |
+| `Reminders` | `Enabled: true` and `RunAt` (e.g. `08:00`) on the server only, for the daily SLA reminders |
 | `Logging:File:Directory` | where log files go (default `logs`) |
 | `ReverseProxy:KnownProxies` | nginx's IP address as the server sees it (ask IT), e.g. `["192.168.4.x"]`; until it is set, rate limits count all users together |
 | `RateLimiting` | `SignInPerMinute` (30) and `ApiPerMinute` (1200); raise them if many users share one address and see 429 |
@@ -801,6 +852,46 @@ Settings that matter for the live site:
 * **Frontend:** Render dashboard → the static site → **Events** → pick the previous deploy → **Rollback**.
 * **Database:** run the commented Rollback block at the end of the script, only after the backend that needs the
   script has been rolled back.
+
+### Backups and monitoring (plan Phase 8.6)
+
+Two Windows scheduled tasks on the API server, set up once with `Install-ErfWebMaintenance.cmd` from a release
+folder (fill in the SETTINGS lines at its top first; `Backend/tools/README.txt` has the step-by-step guide) or `Install-ErfWebMaintenance.ps1` for the other options. Both read the
+database login and the `Smtp` mailbox from the server's `appsettings.json`, so no password is stored twice, and
+email alerts to `-AlertTo` (default jca.mdmpi@marsmandrysdale.com).
+
+| Task | When | What it does |
+| --- | --- | --- |
+| **ERFWeb Database Backup** (`Backup-ErfWebDatabase.ps1`) | every night at 01:00 | `pg_dump` (custom format) of the database to `D:\ERFWeb-Backups\erms_db_yyyyMMdd_HHmm.dump`; checks the file with `pg_restore --list` (whole archive readable, table data present, `workflow_audit` included); copies it to the network share (`-CopyTo`) and checks the copy's size; deletes backups older than 14 days in both places. Log: `D:\ERFWeb-Backups\backup-log.txt`. Emails on any failure |
+| **ERFWeb Health Check** (`Test-ErfWebHealth.ps1`) | every 5 minutes | Calls `https://sr.mdmpi.com.ph/erf/health` (nginx, API and database together) and emails "ERFWeb is DOWN" after 2 failed checks in a row, then "back up" when it recovers; also emails when the newest backup is older than 26 hours. Log (changes only): `C:\ProgramData\ERFWeb\health-log.txt` |
+
+**Before installing:**
+
+* PostgreSQL runs on another server, so install the **PostgreSQL command line tools** on the API server (the
+  PostgreSQL installer's "Command Line Tools" component), the **same major version as the database server or
+  newer**. The script finds them in `C:\Program Files\PostgreSQL\<version>\bin`, or pass `-PgBin`.
+* Ask IT for the network share. The tasks run as `SYSTEM` (the share then sees the server's computer account,
+  e.g. `MDMPI\SERVERNAME$`, which needs write access) or as a service account given with `-RunAsUser`.
+* Check that `D:` exists, or pass `-BackupDir`.
+
+**After installing:** run `Start-ScheduledTask -TaskName 'ERFWeb Database Backup'` in an administrator PowerShell,
+then read `D:\ERFWeb-Backups\backup-log.txt`: the last line should be `Backup OK: …` and the share should hold the
+same file. Running the installer again replaces both tasks; `-Uninstall` removes them and keeps the backups.
+
+**Limits:** the monitor runs on the API server, so it cannot report that whole server being off (IT's own
+monitoring should). Email goes through `System.Net.Mail`, which supports STARTTLS (`Security: StartTls`, as the
+company mail server uses) but not `SslOnConnect`.
+
+**Restoring a backup** (only on purpose; this replaces data). Into a new, empty database first, to look before
+replacing anything:
+
+```bash
+createdb -h <db-host> -U <user> erms_db_restored
+pg_restore -h <db-host> -U <user> -d erms_db_restored --no-owner D:\ERFWeb-Backups\erms_db_20261026_0100.dump
+```
+
+To put a backup back into `erms_db` itself, stop the API first (`Stop-Service ERFWeb.Api`), take a fresh backup of
+the current state, then `pg_restore --clean --if-exists --no-owner -d erms_db <file>`, and start the API again.
 
 ### Manage the service
 
@@ -865,6 +956,8 @@ Every log line written for that request carries the same id.
 | A new feature answers 404 | The frontend went live before the backend that has the endpoint | Deploy the backend (step D) |
 | An image or link loads the website page instead | The frontend builds that address without `VITE_API_BASE_URL` | Use `apiUrl(...)` from `shared/api/client.ts` for every API address |
 | Email not sent | `Smtp` settings wrong, or the server cannot reach the mail server | `email_deliveries.status` and `smtp_status_code` in the database, and the log file |
+| Backup failure email, or "Database backup is MISSING" | `pg_dump` not installed or older than the database server, share not writable, or the task did not run | `D:\ERFWeb-Backups\backup-log.txt`, then Task Scheduler → **ERFWeb Database Backup** → History |
+| No SLA reminders | `Reminders:Enabled` is not `true`, SLA days are 0, or nothing is overdue yet | The log line `SLA reminders are off` or `SLA reminder run: …`, and `reminder_deliveries` |
 
 ### Local development against the live API
 

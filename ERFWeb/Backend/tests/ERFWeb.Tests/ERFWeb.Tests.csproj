@@ -16,5 +16,6 @@
     <ProjectReference Include="..\..\src\ERFWeb.Domain\ERFWeb.Domain.csproj" />
     <ProjectReference Include="..\..\src\ERFWeb.Application\ERFWeb.Application.csproj" />
     <ProjectReference Include="..\..\src\ERFWeb.Infrastructure\ERFWeb.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ERFWeb.Api\ERFWeb.Api.csproj" />
   </ItemGroup>
 </Project>

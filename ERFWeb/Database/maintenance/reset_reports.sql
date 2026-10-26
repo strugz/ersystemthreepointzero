@@ -22,6 +22,9 @@
 -- =====================================================================
 BEGIN;
 
+-- Script 021 makes workflow_audit append-only; this maintenance script deletes audit rows on purpose.
+SET LOCAL erfweb.allow_audit_purge = 'on';
+
 INSERT INTO workflow_audit (event, actor_user_id, detail)
 SELECT 'Reports.ResetByScript', NULL,
        jsonb_build_object(
