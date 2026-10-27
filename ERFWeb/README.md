@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-27
 
-- **R47 signatory signatures above the names** (not yet committed). ENDORSED BY and APPROVED BY signatures
+- **R47 signatory signatures above the names** (PR #34). ENDORSED BY and APPROVED BY signatures
   print in their own band above the printed name instead of over it, so the name stays readable.
 - **Approve from the R47 PDF** (PR #33). A signatory who opens the R47 PDF from a review sees
   **Approve** beside Print, Email and Download (and in the mobile bottom bar) when they may approve. It uses the
