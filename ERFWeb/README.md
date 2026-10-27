@@ -18,6 +18,10 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-27
 
+- **Approve from the R47 PDF** (not yet committed). A signatory who opens the R47 PDF from a review sees
+  **Approve** beside Print, Email and Download (and in the mobile bottom bar) when they may approve. It uses the
+  same confirmation and API as the review page; a final approval returns to the queue, an approval that moves
+  to the next level reloads the PDF.
 - **Several CRM activities on one expense line** (PR #32). A client visit that served several
   instruments is several CRM activities; the **From CRM** picker now has a checkbox on each activity and
   **Use N activities**, and the line takes the service no., instrument and serial of every ticked activity joined
@@ -565,7 +569,8 @@ steps are 409.
 
 `GET /api/reports/{id}` now also returns `review` (what the viewer may do as an approver, from the same rules)
 and `finance` (receipt status). SPA screens: **Approvals** (`/approvals`) and the review page (`/review/{id}`)
-for signatories, **Finance queue** (`/finance`) for Finance. Workflow notifications go through
+for signatories, **Finance queue** (`/finance`) for Finance. The R47 PDF opened from a review also shows
+**Approve** when the viewer may approve (`review.canApprove`). Workflow notifications go through
 `IApprovalNotifier.NotifyWorkflowEventAsync`, which logs every event and sends the SMS and email described below.
 
 ## Verification & queries (plan Phase 6, Flow 6)
