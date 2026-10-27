@@ -12,7 +12,8 @@ namespace ERFWeb.Infrastructure.Notifications;
 
 /// <summary>
 /// Emails a report's R47 PDF, at most once per idempotency key, to its claimant and its Level 1 and
-/// Level 2 signatories (and, for a manual send, the sender), whoever has an address on file.
+/// Level 2 signatories (and, for a manual send, the sender), whoever has an address on file. A workflow
+/// event addressed to particular people (a verification step) goes to those people only.
 /// <para>
 /// Same delivery discipline as <see cref="SmsService"/>: the (sender, key) pair is claimed with an insert
 /// the unique index lets only one request win; a retry of a sent email replays "sent"; only an email the
@@ -90,6 +91,30 @@ public sealed class ReportEmailService(
             : await SendCoreAsync(report, content, idempotencyKey, includeSender: false, ct);
     }
 
+    public async Task<EmailSendResult> SendToUsersAboutReportAsync(
+        Guid reportId, IReadOnlyList<long> userIds, ReportEmailContent content, string idempotencyKey, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(userIds);
+        ArgumentNullException.ThrowIfNull(content);
+        if (EmailRules.IdempotencyKeyError(idempotencyKey) is { } keyError)
+        {
+            return new EmailSendResult(EmailSendOutcome.InvalidRequest, Errors: new Dictionary<string, string[]> { ["idempotencyKey"] = [keyError] });
+        }
+
+        var report = await FindReportAsync(reportId, ct);
+        if (report is null)
+        {
+            return new EmailSendResult(EmailSendOutcome.ReportNotFound);
+        }
+
+        if (report.Status == ReportStatus.New)
+        {
+            return new EmailSendResult(EmailSendOutcome.ReportNotFiled);
+        }
+
+        return await SendToAddressesAsync(report, content, idempotencyKey, await AddressesAsync(userIds.Distinct().ToList(), ct), ct);
+    }
+
     public async Task<IReadOnlyList<ReportEmailDeliveryDto>> HistoryAsync(Guid reportId, CancellationToken ct = default) =>
         await (
             from d in db.EmailDeliveries.AsNoTracking()
@@ -107,7 +132,11 @@ public sealed class ReportEmailService(
             return new EmailSendResult(EmailSendOutcome.ReportNotFiled);
         }
 
-        var addresses = await RecipientAddressesAsync(report, includeSender, ct);
+        return await SendToAddressesAsync(report, content, key, await RecipientAddressesAsync(report, includeSender, ct), ct);
+    }
+
+    private async Task<EmailSendResult> SendToAddressesAsync(ReportRow report, ReportEmailContent content, string key, IReadOnlyList<string> addresses, CancellationToken ct)
+    {
         if (addresses.Count == 0)
         {
             return new EmailSendResult(EmailSendOutcome.NoRecipients);
@@ -150,7 +179,12 @@ public sealed class ReportEmailService(
             ordered.Add(user.UserId);
         }
 
-        var ids = ordered.Distinct().ToList();
+        return await AddressesAsync(ordered.Distinct().ToList(), ct);
+    }
+
+    /// <summary>The usable addresses of the active users among <paramref name="ids"/>, in that order; a shared mailbox gets one copy.</summary>
+    private async Task<IReadOnlyList<string>> AddressesAsync(IReadOnlyList<long> ids, CancellationToken ct)
+    {
         var emailById = await db.Users.AsNoTracking()
             .Where(u => ids.Contains(u.Id) && u.IsActive)
             .ToDictionaryAsync(u => u.Id, u => u.Email, ct);

@@ -70,6 +70,12 @@ public interface IReportEmailService
     /// </summary>
     Task<EmailSendResult> SendAboutReportAsync(Guid reportId, ReportEmailContent content, string idempotencyKey, CancellationToken ct = default);
 
+    /// <summary>
+    /// Server-initiated email about a report to the named users only (e.g. the verifiers on a verification
+    /// request), with the R47 attached, as the signed-in user, at most once per key.
+    /// </summary>
+    Task<EmailSendResult> SendToUsersAboutReportAsync(Guid reportId, IReadOnlyList<long> userIds, ReportEmailContent content, string idempotencyKey, CancellationToken ct = default);
+
     /// <summary>The latest emails about the report (the "sent status"), newest first.</summary>
     Task<IReadOnlyList<ReportEmailDeliveryDto>> HistoryAsync(Guid reportId, CancellationToken ct = default);
 }

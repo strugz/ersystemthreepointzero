@@ -12,7 +12,8 @@ namespace ERFWeb.Infrastructure.Notifications;
 
 /// <summary>
 /// Sends a notification SMS through Lasius, at most once per idempotency key, to a user's text group and,
-/// when the SMS is about a report, to the report's Level 1 and Level 2 signatories as well.
+/// when the SMS is about a report, to the report's Level 1 and Level 2 signatories as well. A workflow
+/// event addressed to particular people (a verification step) texts each of them alone instead.
 /// <para>
 /// Before calling the gateway the service claims the (sender, key) pair with an insert that the unique
 /// index lets only one request win. A retry of a sent message replays "sent"; a retry while it is still
@@ -105,26 +106,7 @@ public sealed class SmsService(
             }
         }
 
-        if (numbers.Count == 0)
-        {
-            return new SmsSendResult(SmsSendOutcome.NoTextGroup);
-        }
-
-        if (!gateway.IsConfigured)
-        {
-            return new SmsSendResult(SmsSendOutcome.NotConfigured);
-        }
-
-        var messageHash = Sha256Hex(message);
-        key ??= AutoKey(claimant.Id, request.ReportId, messageHash, clock.UtcNow);
-
-        var (deliveryId, early) = await ClaimAsync(key, claimant.Id, request.ReportId, messageHash, numbers.Count, ct);
-        if (early is not null)
-        {
-            return early;
-        }
-
-        return await DeliverAsync(deliveryId, claimant.Id, request.ReportId, numbers, message);
+        return await SendToNumbersAsync(claimant.Id, request.ReportId, numbers, message, key, ct);
     }
 
     public async Task<SmsSendResult> SendAboutReportAsync(Guid reportId, string message, string idempotencyKey, CancellationToken ct = default)
@@ -136,6 +118,68 @@ public sealed class SmsService(
         return claimantId is { } id
             ? await SendAsync(new SendSmsRequest(id, message, idempotencyKey, reportId), ct)
             : new SmsSendResult(SmsSendOutcome.ReportNotFound);
+    }
+
+    public async Task<SmsSendResult> SendToUserAboutReportAsync(Guid reportId, long userId, string message, string idempotencyKey, CancellationToken ct = default)
+    {
+        var errors = new Dictionary<string, string[]>();
+        if (SmsRules.MessageError(message) is { } messageError)
+        {
+            errors["message"] = [messageError];
+        }
+
+        var keyError = string.IsNullOrWhiteSpace(idempotencyKey) ? "An idempotency key is required." : SmsRules.IdempotencyKeyError(idempotencyKey);
+        if (keyError is not null)
+        {
+            errors["idempotencyKey"] = [keyError];
+        }
+
+        if (errors.Count > 0)
+        {
+            return new SmsSendResult(SmsSendOutcome.InvalidRequest, Errors: errors);
+        }
+
+        var recipient = await db.Users.AsNoTracking()
+            .Where(u => u.Id == userId && u.IsActive)
+            .Select(u => new { u.MobileNo })
+            .FirstOrDefaultAsync(ct);
+        if (recipient is null)
+        {
+            return new SmsSendResult(SmsSendOutcome.UserNotFound);
+        }
+
+        if (!await db.ExpenseReports.AsNoTracking().AnyAsync(r => r.Id == reportId, ct))
+        {
+            return new SmsSendResult(SmsSendOutcome.ReportNotFound);
+        }
+
+        return await SendToNumbersAsync(userId, reportId, SmsRules.RecipientNumbers(recipient.MobileNo), message.Trim(), idempotencyKey, ct);
+    }
+
+    /// <summary>Claims the key (or derives one) and sends to the numbers already chosen for the recipient.</summary>
+    private async Task<SmsSendResult> SendToNumbersAsync(
+        long recipientUserId, Guid? reportId, IReadOnlyList<string> numbers, string message, string? key, CancellationToken ct)
+    {
+        if (numbers.Count == 0)
+        {
+            return new SmsSendResult(SmsSendOutcome.NoTextGroup);
+        }
+
+        if (!gateway.IsConfigured)
+        {
+            return new SmsSendResult(SmsSendOutcome.NotConfigured);
+        }
+
+        var messageHash = Sha256Hex(message);
+        key ??= AutoKey(recipientUserId, reportId, messageHash, clock.UtcNow);
+
+        var (deliveryId, early) = await ClaimAsync(key, recipientUserId, reportId, messageHash, numbers.Count, ct);
+        if (early is not null)
+        {
+            return early;
+        }
+
+        return await DeliverAsync(deliveryId, recipientUserId, reportId, numbers, message);
     }
 
     /// <summary>

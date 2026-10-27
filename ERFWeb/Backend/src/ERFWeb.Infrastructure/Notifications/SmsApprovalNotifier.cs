@@ -9,7 +9,8 @@ namespace ERFWeb.Infrastructure.Notifications;
 /// <summary>
 /// Adds SMS to the logging notifier. Filing, re-filing, each approval and a return send one SMS to the
 /// employee and the report's Level 1 and Level 2 signatories, whoever has a mobile number. Other
-/// workflow events (reject, override, line adjustments, Finance steps) are only logged for now.
+/// workflow events (reject, override, line adjustments, Finance steps) are only logged for now, except
+/// events addressed to their recipients (verification steps), which text each recipient alone.
 /// <para>
 /// Runs after the workflow has committed and never throws: an SMS problem is logged, never a failed
 /// action. Each event has a fixed key per report, approval cycle and step, so it texts once; a new
@@ -41,6 +42,37 @@ public sealed class SmsApprovalNotifier(
         {
             await SendAsync(notification.ReportId, sms.Message, sms.Key, notification.Kind);
         }
+        else if (ComposeAddressedSms(notification) is { } addressed)
+        {
+            foreach (var userId in notification.RecipientUserIds.Distinct())
+            {
+                await SendToUserAsync(notification.ReportId, userId, addressed, $"{notification.DeliveryKey}:{userId}", notification.Kind);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The SMS for an event addressed to its recipients (a verification step), or null for other events.
+    /// One message for all of them, shortened to fit one notification. Public for tests.
+    /// </summary>
+    public static string? ComposeAddressedSms(WorkflowEventNotification n)
+    {
+        ArgumentNullException.ThrowIfNull(n);
+        if (string.IsNullOrWhiteSpace(n.DeliveryKey) || n.RecipientUserIds.Count == 0)
+        {
+            return null;
+        }
+
+        var text = $"{n.ReferenceNo ?? "An expense report"} of {n.EmployeeName}: {n.Summary.Trim()}";
+        const string Tail = " See ERFWeb.";
+        var room = SmsRules.MaxMessageLength - Tail.Length;
+        if (text.Length > room)
+        {
+            // Plain dots, as in a return note: "…" would shrink every segment to 70 characters.
+            text = text[..(room - 3)].TrimEnd() + "...";
+        }
+
+        return text + Tail;
     }
 
     /// <summary>
@@ -113,6 +145,26 @@ public sealed class SmsApprovalNotifier(
         catch (Exception ex)
         {
             logger.LogError(ex, "{Label} SMS for report {ReportId} failed.", label, reportId);
+        }
+    }
+
+    private async Task SendToUserAsync(Guid reportId, long userId, string message, string key, string label)
+    {
+        try
+        {
+            var result = await sms.SendToUserAboutReportAsync(reportId, userId, message, key, CancellationToken.None);
+            if (result.Outcome == SmsSendOutcome.Sent)
+            {
+                logger.LogInformation("{Label} SMS for report {ReportId} sent to {RecipientCount} number(s) of one user.", label, reportId, result.RecipientCount);
+            }
+            else
+            {
+                logger.LogWarning("{Label} SMS for report {ReportId} not sent to one user: {Outcome}.", label, reportId, result.Outcome);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{Label} SMS for report {ReportId} failed for one user.", label, reportId);
         }
     }
 }

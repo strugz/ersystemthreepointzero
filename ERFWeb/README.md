@@ -18,6 +18,11 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-26
 
+- **Verification SMS and email** (no PR yet). Verification steps now text and email the people they
+  concern instead of only being logged: a new request reaches the claimant and the Expense Verifiers who may take
+  it, a finding reaches Finance (and the claimant once closed), a query reaches the Level 2 Signatory, and Level
+  2's decision reaches the claimant, Finance and the verifier. Each person is texted alone; one email with the R47
+  goes to all of them. See **Verification & queries**. No database script.
 - **Cost center budgets** (PR #31). A cost center is one department's spending code with one overall
   budget per calendar year, for monitoring only. The System Administrator sets the department (now required, one
   active cost center per department) and the current year's budget on **Master data → Cost centers**; each new year
@@ -566,6 +571,22 @@ Level 2 sees reports they were queried about. The claimant sees which line is un
 the finding, and Level 2's decision, but not Finance's reason, the verifier's notes, or the query (open decision
 9c, defaulted to not showing findings to the claimant until it is decided).
 
+**Notifications (SMS and email).** Each step texts and emails only the people it names, never the person who acted:
+
+| Step | Who hears | Message |
+| --- | --- | --- |
+| Finance raises | Claimant; every active Expense Verifier except one who approved the report | Which line is to be verified; clearance is paused |
+| Pick up | Nobody | — |
+| Finding | Finance requester; also the claimant when it closes the request | Completed (verified / with a note), or not verified and going to Level 2 |
+| Finance queries | The Level 2 Signatory queried | Finance's query note |
+| Level 2 decides | Claimant, Finance requester, verifier | Let through, or returned / rejected with Level 2's reason |
+
+Messages read "`<ref>` of `<employee>`: `<what happened>`". The SMS is shortened to fit 320 characters and ends
+"See ERFWeb."; Finance's reason and the verifier's note are never in a message. Each recipient gets their own SMS
+(key `{event}:{requestId}:{userId}` in `sms_deliveries`); one email with the R47 attached goes to all of them (key
+`{event}:{requestId}` in `email_deliveries`), so each step notifies once. Both run after the step commits and never
+fail it.
+
 | Endpoint (policy) | Purpose |
 | --- | --- |
 | `POST /api/verifications` (Finance) | Raise `{ reportId, lineId, reason }` |
@@ -653,7 +674,8 @@ for approval in ERFWeb."). It runs after the filing commits and never fails a fi
 the approver: "… was approved by X and is now waiting for Y's approval", "… was fully approved by X. Please submit
 the original receipts to Finance.", or "… was returned by X: "note". Please update and re-file it in ERFWeb." (a long
 note is shortened to fit). The key `{event}:{reportId}:{cycle}:{step}` texts once per decision. Reject, override,
-line adjustments and Finance steps send no SMS (a rejection is emailed; see Report email).
+line adjustments and Finance steps send no SMS (a rejection is emailed; see Report email). Verification steps text
+their own recipients; see **Verification & queries**.
 
 Configure the gitignored `appsettings.json` (template in `appsettings.Example.json`):
 
@@ -693,7 +715,8 @@ and shows the last email.
 re-filing, each approval step, the final approval, a return and a rejection email the employee and the Level 1 and
 Level 2 signatories, with the R47 rendered after the event attached and the approver's remarks quoted. Keys
 `filed:{reportId}:{cycle}` and `{event}:{reportId}:{cycle}:{step}` email once per event. It runs after the
-workflow commits and never fails it. Override, line adjustments and Finance steps send no email.
+workflow commits and never fails it. Override, line adjustments and Finance steps send no email. Verification
+steps email their own recipients; see **Verification & queries**.
 
 Configure the gitignored `appsettings.json` (template in `appsettings.Example.json`); `Security` is `Auto`,
 `None`, `StartTls` or `SslOnConnect`, and `Username` may be empty for a relay that needs no login:

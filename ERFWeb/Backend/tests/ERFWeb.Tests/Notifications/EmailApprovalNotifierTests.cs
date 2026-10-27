@@ -1,6 +1,7 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Approvals;
 using ERFWeb.Application.Features.Notifications;
+using ERFWeb.Application.Features.Verification;
 using ERFWeb.Domain.Notifications;
 using ERFWeb.Infrastructure.Notifications;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -61,6 +62,37 @@ public class EmailApprovalNotifierTests
             new WorkflowEventNotification(ApprovalAuditEvents.Approved, ReportId, "ERF-2026-000001", "Jay Bryan Abaoag", [], "Approved")));
 
     [Fact]
+    public async Task VerificationEvent_EmailsOnlyItsRecipientsOnce()
+    {
+        var (email, sms) = (new FakeEmail(), new FakeSms());
+        var n = new WorkflowEventNotification(VerificationAuditEvents.QueryRaised, ReportId, "ERF-2026-000001", "Jay Bryan Abaoag", [21],
+            "Finance needs your decision on a line that could not be verified: no OR.", DeliveryKey: "QueryRaised:9");
+
+        await Create(email, sms).NotifyWorkflowEventAsync(n);
+
+        Assert.Empty(email.Calls);
+        var call = Assert.Single(email.UserCalls);
+        Assert.Equal([21L], call.UserIds);
+        Assert.Equal("QueryRaised:9", call.Key);
+        Assert.Equal(VerificationAuditEvents.QueryRaised, call.Content.Kind);
+        Assert.Equal("ERF-2026-000001 - your decision is needed on a verification query", call.Content.Subject);
+        Assert.Contains("ERF-2026-000001 of Jay Bryan Abaoag: Finance needs your decision", call.Content.Body);
+        Assert.Equal(["QueryRaised:9:21"], sms.UserCalls);
+    }
+
+    [Theory]
+    [InlineData(VerificationAuditEvents.Requested, "ERF-2026-000001 - a line was sent for verification")]
+    [InlineData(VerificationAuditEvents.Found, "ERF-2026-000001 - verification finding recorded")]
+    [InlineData(VerificationAuditEvents.QueryDecided, "ERF-2026-000001 - verification query decided")]
+    public void VerificationEvents_HaveTheirOwnSubject(string kind, string subject) =>
+        Assert.Equal(subject, EmailApprovalNotifier.ComposeAddressedEmail(
+            new WorkflowEventNotification(kind, ReportId, "ERF-2026-000001", "Jay Bryan Abaoag", [3], "summary", DeliveryKey: $"{kind}:1"))?.Subject);
+
+    [Fact]
+    public void EventsWithoutADeliveryKey_AreNotAddressed() =>
+        Assert.Null(EmailApprovalNotifier.ComposeAddressedEmail(Decision(ApprovalAuditEvents.Cleared, step: 1)));
+
+    [Fact]
     public async Task Notifier_NeverThrowsWhenTheEmailFails() =>
         await Create(new FakeEmail(throws: true), new FakeSms()).NotifyWorkflowEventAsync(Decision(ApprovalAuditEvents.FullyApproved, step: 2));
 
@@ -115,6 +147,15 @@ public class EmailApprovalNotifierTests
             return Task.FromResult(new EmailSendResult(EmailSendOutcome.Sent, 3));
         }
 
+        public List<(IReadOnlyList<long> UserIds, ReportEmailContent Content, string Key)> UserCalls { get; } = [];
+
+        public Task<EmailSendResult> SendToUsersAboutReportAsync(
+            Guid reportId, IReadOnlyList<long> userIds, ReportEmailContent content, string idempotencyKey, CancellationToken ct = default)
+        {
+            UserCalls.Add((userIds, content, idempotencyKey));
+            return Task.FromResult(new EmailSendResult(EmailSendOutcome.Sent, userIds.Count));
+        }
+
         public Task<IReadOnlyList<ReportEmailDeliveryDto>> HistoryAsync(Guid reportId, CancellationToken ct = default) =>
             throw new NotSupportedException();
     }
@@ -129,6 +170,14 @@ public class EmailApprovalNotifierTests
         public Task<SmsSendResult> SendAboutReportAsync(Guid reportId, string message, string idempotencyKey, CancellationToken ct = default)
         {
             Calls.Add(idempotencyKey);
+            return Task.FromResult(new SmsSendResult(SmsSendOutcome.Sent, 1));
+        }
+
+        public List<string> UserCalls { get; } = [];
+
+        public Task<SmsSendResult> SendToUserAboutReportAsync(Guid reportId, long userId, string message, string idempotencyKey, CancellationToken ct = default)
+        {
+            UserCalls.Add(idempotencyKey);
             return Task.FromResult(new SmsSendResult(SmsSendOutcome.Sent, 1));
         }
     }
