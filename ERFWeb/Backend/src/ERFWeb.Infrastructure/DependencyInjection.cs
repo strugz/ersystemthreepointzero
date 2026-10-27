@@ -125,6 +125,7 @@ public static class DependencyInjection
         // Daily SLA reminders (Phase 8.4); the API's ApprovalReminderJob runs it when Reminders:Enabled is true.
         services.AddOptions<ReminderOptions>();
         services.AddScoped<IApprovalReminderService, ApprovalReminderService>();
+        services.AddScoped<IReminderStatusService, ReminderStatusService>();
 
         return services;
     }

@@ -7,7 +7,8 @@ import { useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { adminApi } from '@/features/admin/api';
 import SettingsForm from '@/features/admin/components/SettingsForm.vue';
-import type { SystemSettings, SystemSettingsInput } from '@/features/admin/types';
+import ReminderStatusCard from '@/features/admin/components/ReminderStatusCard.vue';
+import type { ReminderStatus, SystemSettings, SystemSettingsInput } from '@/features/admin/types';
 
 const snack = useSnackbar();
 const { xs } = useDisplay();
@@ -31,6 +32,24 @@ async function load() {
   }
 }
 onMounted(load);
+
+// Loaded on its own so the rules stay editable when the reminder status cannot be read.
+const reminders = ref<ReminderStatus | null>(null);
+const remindersLoading = ref(false);
+const remindersError = ref<string | null>(null);
+
+async function loadReminders() {
+  remindersLoading.value = true;
+  remindersError.value = null;
+  try {
+    reminders.value = await adminApi.reminderStatus();
+  } catch {
+    remindersError.value = 'Unable to load the SLA reminder status.';
+  } finally {
+    remindersLoading.value = false;
+  }
+}
+onMounted(loadReminders);
 
 async function save(input: SystemSettingsInput) {
   saving.value = true;
@@ -71,5 +90,7 @@ async function save(input: SystemSettingsInput) {
       </p>
       <SettingsForm :initial="settings" :saving="saving" :errors="errors" @submit="save" />
     </template>
+
+    <ReminderStatusCard class="mt-4" :status="reminders" :loading="remindersLoading" :error="remindersError" @refresh="loadReminders" />
   </AuthenticatedLayout>
 </template>
