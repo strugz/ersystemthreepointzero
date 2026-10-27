@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
@@ -8,6 +8,10 @@ import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import { reviewLink, reviewOriginCrumb } from '@/views/approvals/reviewCrumbs';
 import { reportingApi } from '@/features/reporting/api';
 import { expensesApi } from '@/features/expenses/api';
+import { approvalsApi } from '@/features/approvals/api';
+import { approvalActionCopy } from '@/features/approvals/labels';
+import ApprovalActionDialog from '@/features/approvals/components/ApprovalActionDialog.vue';
+import type { ApprovalActionKind } from '@/features/approvals/types';
 import type { ExpenseReportDetail } from '@/features/expenses/types';
 import type { ReportEmailDelivery } from '@/features/reporting/types';
 import { newIdempotencyKey } from '@/features/notifications/api';
@@ -16,6 +20,7 @@ import { useSnackbar, describeError } from '@/shared/composables/useSnackbar';
 import { formatDateTime } from '@/shared/format';
 
 const route = useRoute();
+const router = useRouter();
 const { xs } = useDisplay();
 const reportId = String(route.params.id);
 
@@ -84,26 +89,76 @@ async function emailPdf() {
 }
 
 // The claimant previewing a draft or returned report can go on to file it; the editor runs the
-// filing checklist and confirmation (it opens them on ?file=1).
+// filing checklist and confirmation (it opens them on ?file=1). An approver opened from a review can
+// approve here; the API decides (report.review.canApprove) and refuses anything stale.
 const report = ref<ExpenseReportDetail | null>(null);
 const fileLink: RouteLocationRaw = { name: 'report-edit', params: { id: reportId }, query: { file: '1' } };
 const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file report' : 'File report'));
+const canApprove = computed(() => fromReview && !!report.value?.review?.canApprove);
 
 async function loadReport() {
   try {
     report.value = await expensesApi.get(reportId);
   } catch {
-    // Only offers the File button; the preview works without it.
+    // Only offers the File / Approve buttons; the preview works without them.
     report.value = null;
+  }
+}
+
+async function loadPdf() {
+  const blob = await reportingApi.fetchPdf(reportId);
+  if (pdfUrl.value) URL.revokeObjectURL(pdfUrl.value);
+  pdfUrl.value = URL.createObjectURL(blob);
+}
+
+const action = ref<ApprovalActionKind | null>(null);
+const acting = ref(false);
+const actionError = ref<string | null>(null);
+
+function startApprove() {
+  actionError.value = null;
+  action.value = 'approve';
+}
+
+async function confirmAction(note: string | null) {
+  if (!report.value || !action.value) return;
+  const kind = action.value;
+  acting.value = true;
+  actionError.value = null;
+  try {
+    const result = await approvalsApi.act(reportId, kind, note, report.value.rowVersion);
+    report.value = result.report;
+    action.value = null;
+    snack.success(
+      kind === 'approve' && result.status === 'ForApproval' && result.nextApproverName
+        ? `Approved. Next: ${result.nextApproverName}.`
+        : approvalActionCopy[kind].done,
+    );
+    if (result.status !== 'ForApproval') {
+      await router.push(reviewOriginCrumb(route.query.from).to ?? { name: 'approvals' });
+      return;
+    }
+    // Still in approval (next level): show the R47 as it now stands.
+    await loadPdf().catch(() => undefined);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 400) {
+      actionError.value = describeError(err);
+    } else {
+      // 403 / 409: the report moved on or is not ours to act on; show the current state.
+      action.value = null;
+      snack.fromError(err, 'Unable to complete the action.');
+      await loadReport();
+    }
+  } finally {
+    acting.value = false;
   }
 }
 
 onMounted(async () => {
   try {
-    const blob = await reportingApi.fetchPdf(reportId);
-    pdfUrl.value = URL.createObjectURL(blob);
+    await loadPdf();
     void loadEmails();
-    if (!fromReview) void loadReport();
+    void loadReport();
   } catch (err) {
     if (err instanceof ApiError) {
       error.value =
@@ -143,7 +198,7 @@ function print() {
       <v-btn
         class="press"
         color="primary"
-        :variant="report?.canFile ? 'outlined' : 'flat'"
+        :variant="report?.canFile || canApprove ? 'outlined' : 'flat'"
         prepend-icon="mdi-open-in-new"
         :href="reportingApi.pdfUrl(reportId)"
         target="_blank"
@@ -153,11 +208,13 @@ function print() {
         Open in new tab
       </v-btn>
       <v-btn v-if="report?.canFile" class="press" color="primary" variant="flat" prepend-icon="mdi-send-outline" :to="fileLink">{{ fileLabel }}</v-btn>
+      <v-btn v-if="canApprove" class="press" color="success" variant="flat" prepend-icon="mdi-check" @click="startApprove">Approve</v-btn>
     </template>
     <template #bottom>
       <v-btn class="press" variant="text" prepend-icon="mdi-email-outline" :disabled="!pdfUrl" :loading="emailing" @click="emailPdf">Email</v-btn>
       <v-btn class="press" variant="outlined" prepend-icon="mdi-download-outline" :href="pdfUrl ?? undefined" :download="`ExpenseReport-${reportId}.pdf`" :disabled="!pdfUrl">Download</v-btn>
       <v-btn v-if="report?.canFile" class="press" color="primary" variant="flat" prepend-icon="mdi-send-outline" :to="fileLink">File</v-btn>
+      <v-btn v-else-if="canApprove" class="press" color="success" variant="flat" prepend-icon="mdi-check" @click="startApprove">Approve</v-btn>
       <v-btn v-else class="press" color="primary" variant="flat" prepend-icon="mdi-open-in-new" :href="reportingApi.pdfUrl(reportId)" target="_blank" rel="noopener" :disabled="!pdfUrl">Open</v-btn>
     </template>
 
@@ -174,6 +231,8 @@ function print() {
     <v-card v-else class="pdf-card">
       <iframe ref="frame" :src="pdfUrl ?? undefined" title="Expense Report PDF" class="pdf-frame" />
     </v-card>
+
+    <ApprovalActionDialog :action="action" :loading="acting" :error="actionError" @close="action = null" @confirm="confirmAction" />
   </AuthenticatedLayout>
 </template>
 
