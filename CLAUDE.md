@@ -93,7 +93,7 @@ Every change that adds, removes or changes behaviour, an endpoint, a setting, a 
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
-- **2026-10-27:** **Approve** on the R47 PDF page when opened from a review and the viewer may approve (not yet committed).
+- **2026-10-27:** **Approve** on the R47 PDF page when opened from a review and the viewer may approve (PR #33).
 - **2026-10-27:** One expense line can link several CRM activities (checkboxes in the From CRM picker; service no., instrument and serial joined with " / "; script `023`, `SchemaVersion.Required` 23) (PR #32).
 - **2026-10-27:** Scope assignments can be edited in full (signatory, level, type, department, effective-from), not only ended and re-created (PR #32).
 - **2026-10-26:** Verification steps send SMS and email to the claimant, Expense Verifiers, Finance and Level 2 as each step concerns them (PR #32). Cost center budgets: one cost center per department with a yearly budget, a **Budgets** page for signatories and Finance, filing department saved on the report (script `022`, `SchemaVersion.Required` 22; PR #31). R47 Work With prints as initials (PR #30). Sort expense lines into the R47 order (PR #29). CRM picker previous/next day arrows and File report / Re-file report from the R47 preview (PR #28). Phase 8.4 SLA reminders, 8.5 guardrail tests and append-only `workflow_audit` (script `021`), 8.6 nightly backup and health monitor (PR #27).

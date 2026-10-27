@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-27
 
-- **Approve from the R47 PDF** (not yet committed). A signatory who opens the R47 PDF from a review sees
+- **Approve from the R47 PDF** (PR #33). A signatory who opens the R47 PDF from a review sees
   **Approve** beside Print, Email and Download (and in the mobile bottom bar) when they may approve. It uses the
   same confirmation and API as the review page; a final approval returns to the queue, an approval that moves
   to the next level reloads the PDF.
