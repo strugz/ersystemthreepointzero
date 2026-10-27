@@ -18,6 +18,8 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-27
 
+- **R47 signatory signatures above the names** (PR #34). ENDORSED BY and APPROVED BY signatures
+  print in their own band above the printed name instead of over it, so the name stays readable.
 - **Approve from the R47 PDF** (PR #33). A signatory who opens the R47 PDF from a review sees
   **Approve** beside Print, Email and Download (and in the mobile bottom bar) when they may approve. It uses the
   same confirmation and API as the review page; a final approval returns to the queue, an approval that moves
@@ -274,8 +276,8 @@ is an embedded resource. Fidelity is checked against the reference printout: `R4
 writes `R47-sample-page1.pdf` to the test output folder for side-by-side comparison.
 
 Footer signatories: with a two-step route the Level 1 approver prints in ENDORSED BY and the Level 2 approver
-in APPROVED BY (a one-step route fills only APPROVED BY); each signature prints over the name once that step
-is approved. REVIEWED BY is not an approver; the first value set wins: the employee's own (**Users → Edit →
+in APPROVED BY (a one-step route fills only APPROVED BY); each signature prints in its own band just above the
+name (never covering it) once that step is approved. REVIEWED BY is not an approver; the first value set wins: the employee's own (**Users → Edit →
 Reviewed by (R47)**, `users.r47_reviewed_by`, script `019`), then the department's (**Master data → Departments →
 Reviewed by**), then the setting `Reports.R47ReviewedBy` (default `FINANCE`) under **Rules → Expense report (R47)**. The employee's
 signature prints over their full name above EMPLOYEE'S SIGNATURE.

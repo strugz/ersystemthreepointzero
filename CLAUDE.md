@@ -93,6 +93,7 @@ Every change that adds, removes or changes behaviour, an endpoint, a setting, a 
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
+- **2026-10-27:** R47 ENDORSED BY and APPROVED BY signatures print above the names, not over them (PR #34).
 - **2026-10-27:** **Approve** on the R47 PDF page when opened from a review and the viewer may approve (PR #33).
 - **2026-10-27:** One expense line can link several CRM activities (checkboxes in the From CRM picker; service no., instrument and serial joined with " / "; script `023`, `SchemaVersion.Required` 23) (PR #32).
 - **2026-10-27:** Scope assignments can be edited in full (signatory, level, type, department, effective-from), not only ended and re-created (PR #32).
