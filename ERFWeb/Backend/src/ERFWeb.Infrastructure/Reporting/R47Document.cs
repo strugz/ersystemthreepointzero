@@ -426,32 +426,42 @@ internal sealed class R47Document(
             row.RelativeItem().Column(col =>
             {
                 col.Item().PaddingLeft(20).PaddingTop(3).Text("(Signature Over Printed Name)").FontColor(Red);
-                SignatoryLine(col, "ENDORSED BY :", sig.EndorsedBy, sig.EndorserSignature, topBorder: false);
-                SignatoryLine(col, "REVIEWED BY :", sig.ReviewedBy, null, topBorder: true);
-                SignatoryLine(col, "APPROVED BY :", sig.ApprovedBy, sig.ApproverSignature, topBorder: true, tall: true);
+                SignedSignatoryLine(col, "ENDORSED BY :", sig.EndorsedBy, sig.EndorserSignature, topBorder: false);
+                SignatoryLine(col, "REVIEWED BY :", sig.ReviewedBy);
+                SignedSignatoryLine(col, "APPROVED BY :", sig.ApprovedBy, sig.ApproverSignature, topBorder: true);
             });
         });
     }
 
-    /// <summary>A signatory row: the approver's signature is drawn over the printed name.</summary>
-    private static void SignatoryLine(ColumnDescriptor col, string label, string? name, byte[]? signature, bool topBorder, bool tall = false)
+    /// <summary>A signatory row without a signature (REVIEWED BY).</summary>
+    private static void SignatoryLine(ColumnDescriptor col, string label, string? name) =>
+        col.Item().BorderTop(Border).MinHeight(18).PaddingLeft(20).AlignMiddle().Row(r =>
+        {
+            r.ConstantItem(70).AlignMiddle().Text(label).Bold();
+            r.RelativeItem().AlignMiddle().Text(name ?? string.Empty);
+        });
+
+    /// <summary>
+    /// A signatory row whose signature sits in its own band above the printed name, so the
+    /// signature never covers the name. The band is kept when unsigned so the form keeps its height.
+    /// </summary>
+    private static void SignedSignatoryLine(ColumnDescriptor col, string label, string? name, byte[]? signature, bool topBorder)
     {
         var item = col.Item();
         if (topBorder) item = item.BorderTop(Border);
 
-        item.MinHeight(tall ? 28 : 18).PaddingLeft(20).AlignMiddle().Row(r =>
+        item.PaddingLeft(20).PaddingBottom(3).Row(r =>
         {
-            r.ConstantItem(70).AlignMiddle().Text(label).Bold();
-            r.RelativeItem().Height(tall ? 28 : 18).Layers(layers =>
+            r.ConstantItem(70).AlignBottom().Text(label).Bold();
+            r.RelativeItem().Column(c =>
             {
-                // Signature first so the name is drawn on top: a JPEG (or a PNG without
-                // transparency) has an opaque background that would otherwise hide the name.
+                var band = c.Item().Height(18).PaddingLeft(10).Width(90);
                 if (signature is { Length: > 0 } bytes)
                 {
-                    layers.Layer().PaddingLeft(10).AlignMiddle().Width(90).Image(bytes).FitArea();
+                    band.AlignBottom().Image(bytes).FitArea();
                 }
 
-                layers.PrimaryLayer().AlignMiddle().Text(name ?? string.Empty);
+                c.Item().Text(name ?? string.Empty);
             });
         });
     }
