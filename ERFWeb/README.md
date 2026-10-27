@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-27
 
-- **Several CRM activities on one expense line** (no PR yet). A client visit that served several
+- **Several CRM activities on one expense line** (PR #32). A client visit that served several
   instruments is several CRM activities; the **From CRM** picker now has a checkbox on each activity and
   **Use N activities**, and the line takes the service no., instrument and serial of every ticked activity joined
   with " / " (e.g. `SR-FLD26286018 / SR-FLD26286048`). The line keeps every link in
@@ -26,7 +26,7 @@ section of the root `CLAUDE.md`) in the same change.
   `023` moves the existing links; `SchemaVersion.Required` is now 23. The API's line field is now
   `crmActivityIds` (a list): deploy the backend and the SPA together, since a line saved by the old SPA in
   between loses its links. See **CRM activities on expense lines**.
-- **Edit scope assignments in full** (no PR yet). The Scope edit dialog now changes the signatory, level,
+- **Edit scope assignments in full** (PR #32). The Scope edit dialog now changes the signatory, level,
   type, department and effective-from date as well as members, limit, end date and active, instead of requiring
   the assignment to be ended and created again. A new start date cannot be in the past; the holder and department
   are checked only when they change. Filed reports keep their routing. See **Scope & rate profiles**. No database
@@ -34,7 +34,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-26
 
-- **Verification SMS and email** (no PR yet). Verification steps now text and email the people they
+- **Verification SMS and email** (PR #32). Verification steps now text and email the people they
   concern instead of only being logged: a new request reaches the claimant and the Expense Verifiers who may take
   it, a finding reaches Finance (and the claimant once closed), a query reaches the Level 2 Signatory, and Level
   2's decision reaches the claimant, Finance and the verifier. Each person is texted alone; one email with the R47
