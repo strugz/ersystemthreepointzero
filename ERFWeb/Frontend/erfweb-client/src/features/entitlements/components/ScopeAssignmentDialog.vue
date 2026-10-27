@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import { formatDate, todayIso } from '@/shared/format';
+import { todayIso } from '@/shared/format';
 import { fieldErrors, numberOrNull, personItems, textOrNull } from '../forms';
 import type { FieldErrors } from '../forms';
-import { scopeLevelLabel, scopeLevelOptions, scopeTypeHint, scopeTypeLabel, scopeTypeOptions } from '../labels';
+import { scopeLevelOptions, scopeTypeHint, scopeTypeOptions } from '../labels';
 import type {
   CreateScopeAssignmentInput,
   DepartmentOption,
@@ -17,9 +17,9 @@ import type {
 /**
  * Create or edit one scope assignment. On create the type decides which fields apply:
  * Individual = named members only, Department = the whole department, Exclusion = department
- * minus the named members. Holder, level, type and department are fixed once created; to change
- * them, end the assignment and create another. The server is the authority on who may set which
- * level and whether the result would give someone two signatories (errors.scope).
+ * minus the named members. Every field can be edited; an unchanged effective-from date may stay
+ * in the past. The server is the authority on who may set which level and whether the result
+ * would give someone two signatories (errors.scope).
  */
 const props = withDefaults(
   defineProps<{
@@ -103,14 +103,25 @@ const usesMembers = computed(() => form.type !== 'Department');
 watch(
   () => form.type,
   (type) => {
-    if (isEdit.value) return;
     if (type === 'Individual') form.departmentId = null;
     if (type === 'Department') form.memberUserIds = [];
   },
 );
 
-const holderItems = computed(() => personItems(props.people));
-const departmentItems = computed(() => props.departments.map((d) => ({ value: d.id, title: d.name })));
+// The current holder and department stay selectable on edit even if they no longer appear in the lists
+// (holder lost the role, department deactivated); the server checks them only when they change.
+const holderItems = computed(() => {
+  const items = personItems(props.people);
+  const a = props.assignment;
+  if (a && !items.some((i) => i.value === a.holderUserId)) items.push({ value: a.holderUserId, title: a.holderName, subtitle: undefined });
+  return items;
+});
+const departmentItems = computed(() => {
+  const items = props.departments.map((d) => ({ value: d.id, title: d.name }));
+  const a = props.assignment;
+  if (a?.departmentId && a.departmentName && !items.some((i) => i.value === a.departmentId)) items.push({ value: a.departmentId, title: a.departmentName });
+  return items;
+});
 const memberItems = computed(() => {
   // Keep current members selectable even if they no longer appear in coverage (e.g. deactivated).
   const items = personItems(props.people.filter((p) => p.userId !== form.holderUserId));
@@ -121,13 +132,15 @@ const memberItems = computed(() => {
 });
 
 const membersLabel = computed(() => (form.type === 'Exclusion' ? 'People excluded *' : 'People covered *'));
-const fromInPast = computed(() => !isEdit.value && !!form.effectiveFrom && form.effectiveFrom < today);
+// An edit may keep a start date that has already passed; only a new start date must be today or later.
+const originalFrom = computed(() => props.assignment?.effectiveFrom ?? null);
+const fromMin = computed(() => (originalFrom.value && originalFrom.value < today ? originalFrom.value : today));
+const fromInPast = computed(() => !!form.effectiveFrom && form.effectiveFrom < today && form.effectiveFrom !== originalFrom.value);
 const toBeforeFrom = computed(() => !!form.effectiveTo && !!form.effectiveFrom && form.effectiveTo < form.effectiveFrom);
 
 const canSave = computed(() => {
   if (props.saving || toBeforeFrom.value) return false;
   if (usesMembers.value && form.memberUserIds.length === 0) return false;
-  if (isEdit.value) return true;
   if (!form.holderUserId || fromInPast.value) return false;
   if (usesDepartment.value && !form.departmentId) return false;
   return true;
@@ -143,7 +156,12 @@ function save() {
   const note = textOrNull(form.note);
   if (props.assignment) {
     emit('update', {
-      memberUserIds: usesMembers.value ? form.memberUserIds : undefined,
+      holderUserId: form.holderUserId as number,
+      level: form.level,
+      type: form.type,
+      departmentId: usesDepartment.value ? form.departmentId : null,
+      effectiveFrom: form.effectiveFrom || null,
+      memberUserIds: usesMembers.value ? form.memberUserIds : [],
       approvalLimit,
       effectiveTo,
       isActive: form.isActive,
@@ -184,68 +202,55 @@ function close() {
         </v-alert>
 
         <v-form :disabled="saving" @submit.prevent="save">
-          <!-- Fixed facts once created -->
-          <div v-if="assignment" class="facts mb-4">
-            <div class="field"><span class="lbl">Signatory</span><span class="val">{{ assignment.holderName }}</span></div>
-            <div class="field"><span class="lbl">Level</span><span class="val">{{ scopeLevelLabel[assignment.level] }}</span></div>
-            <div class="field"><span class="lbl">Covers</span><span class="val">{{ scopeTypeLabel[assignment.type] }}</span></div>
-            <div class="field">
-              <span class="lbl">Department</span>
-              <span class="val" :class="{ muted: !assignment.departmentName }">{{ assignment.departmentName ?? '—' }}</span>
+          <v-alert v-if="assignment" type="info" variant="tonal" density="compact" class="mb-4">
+            Changes apply to reports filed from now on. Reports already filed keep the signatories they were routed to.
+          </v-alert>
+
+          <v-autocomplete
+            v-model="form.holderUserId"
+            :items="holderItems"
+            item-props
+            label="Signatory *"
+            :autofocus="!assignment"
+            :error-messages="err('holderUserId')"
+            hint="The person who signs. The server checks they hold the matching signatory role."
+            persistent-hint
+            class="mb-2"
+          />
+
+          <fieldset class="group">
+            <legend class="lbl">Level</legend>
+            <v-radio-group v-model="form.level" inline hide-details="auto" :error-messages="err('level')">
+              <v-radio v-for="o in scopeLevelOptions" :key="o.value" :value="o.value" :label="o.title" />
+            </v-radio-group>
+          </fieldset>
+
+          <fieldset class="group">
+            <legend class="lbl">Covers</legend>
+            <v-radio-group v-model="form.type" hide-details="auto" :error-messages="err('type')">
+              <v-radio v-for="o in scopeTypeOptions" :key="o.value" :value="o.value">
+                <template #label>
+                  <div>
+                    <div>{{ o.title }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ scopeTypeHint[o.value] }}</div>
+                  </div>
+                </template>
+              </v-radio>
+            </v-radio-group>
+          </fieldset>
+
+          <v-expand-transition>
+            <div v-if="usesDepartment">
+              <v-autocomplete
+                v-model="form.departmentId"
+                :items="departmentItems"
+                label="Department *"
+                class="mt-3"
+                :error-messages="err('departmentId')"
+                :no-data-text="departments.length ? 'No match' : 'No departments available'"
+              />
             </div>
-            <div class="field"><span class="lbl">Effective from</span><span class="val">{{ formatDate(assignment.effectiveFrom) }}</span></div>
-            <p class="text-caption text-medium-emphasis facts__note mb-0">
-              Signatory, level, type and department cannot change. To change them, end this assignment and create another.
-            </p>
-          </div>
-
-          <template v-else>
-            <v-autocomplete
-              v-model="form.holderUserId"
-              :items="holderItems"
-              item-props
-              label="Signatory *"
-              autofocus
-              :error-messages="err('holderUserId')"
-              hint="The person who signs. The server checks they hold the matching signatory role."
-              persistent-hint
-              class="mb-2"
-            />
-
-            <fieldset class="group">
-              <legend class="lbl">Level</legend>
-              <v-radio-group v-model="form.level" inline hide-details="auto" :error-messages="err('level')">
-                <v-radio v-for="o in scopeLevelOptions" :key="o.value" :value="o.value" :label="o.title" />
-              </v-radio-group>
-            </fieldset>
-
-            <fieldset class="group">
-              <legend class="lbl">Covers</legend>
-              <v-radio-group v-model="form.type" hide-details="auto" :error-messages="err('type')">
-                <v-radio v-for="o in scopeTypeOptions" :key="o.value" :value="o.value">
-                  <template #label>
-                    <div>
-                      <div>{{ o.title }}</div>
-                      <div class="text-caption text-medium-emphasis">{{ scopeTypeHint[o.value] }}</div>
-                    </div>
-                  </template>
-                </v-radio>
-              </v-radio-group>
-            </fieldset>
-
-            <v-expand-transition>
-              <div v-if="usesDepartment">
-                <v-autocomplete
-                  v-model="form.departmentId"
-                  :items="departmentItems"
-                  label="Department *"
-                  class="mt-3"
-                  :error-messages="err('departmentId')"
-                  :no-data-text="departments.length ? 'No match' : 'No departments available'"
-                />
-              </div>
-            </v-expand-transition>
-          </template>
+          </v-expand-transition>
 
           <v-expand-transition>
             <div v-if="usesMembers">
@@ -277,16 +282,16 @@ function close() {
                 :error-messages="err('approvalLimit')"
               />
             </v-col>
-            <v-col v-if="!assignment" cols="6" sm="4">
+            <v-col cols="6" sm="4">
               <v-text-field
                 v-model="form.effectiveFrom"
                 type="date"
-                :min="today"
+                :min="fromMin"
                 label="Effective from"
                 :error-messages="fromInPast ? ['Cannot start in the past.'] : err('effectiveFrom')"
               />
             </v-col>
-            <v-col :cols="assignment ? 12 : 6" sm="4">
+            <v-col cols="6" sm="4">
               <v-text-field
                 v-model="form.effectiveTo"
                 type="date"
@@ -327,23 +332,10 @@ function close() {
 </template>
 
 <style scoped>
-.facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 20px;
-}
-.facts__note {
-  grid-column: 1 / -1;
-}
 .group {
   border: 0;
   margin: 8px 0 0;
   padding: 0;
   min-width: 0;
-}
-@media (max-width: 599.98px) {
-  .facts {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

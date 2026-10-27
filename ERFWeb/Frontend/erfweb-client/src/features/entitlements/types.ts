@@ -67,8 +67,13 @@ export interface CreateScopeAssignmentInput {
   note?: string | null;
 }
 
-/** Holder, level, type and department are fixed; to change them, end the assignment and create another. */
+/** Every field can change; a changed effective-from date cannot be in the past. Filed reports keep their routing. */
 export interface UpdateScopeAssignmentInput {
+  holderUserId: number;
+  level: ScopeLevel;
+  type: ScopeAssignmentType;
+  departmentId: number | null;
+  effectiveFrom: string | null;
   memberUserIds?: number[];
   approvalLimit?: number | null;
   effectiveTo?: string | null;

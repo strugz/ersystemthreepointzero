@@ -16,6 +16,14 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-10-27
+
+- **Edit scope assignments in full** (no PR yet). The Scope edit dialog now changes the signatory, level,
+  type, department and effective-from date as well as members, limit, end date and active, instead of requiring
+  the assignment to be ended and created again. A new start date cannot be in the past; the holder and department
+  are checked only when they change. Filed reports keep their routing. See **Scope & rate profiles**. No database
+  script.
+
 ### 2026-10-26
 
 - **Verification SMS and email** (no PR yet). Verification steps now text and email the people they
@@ -459,8 +467,11 @@ records, so existing employees keep their approvers and rates. The old tables ar
 department (`Department`), named people (`Individual`), or a department minus named people (`Exclusion`), with an
 optional approval limit and effective dates. Domain `ScopeRules` resolves an employee on a date: a by-name
 assignment beats a by-department one, and within the winning tier there must be exactly one holder. A save that
-would give anyone two signatories at one level is refused (400 `errors.scope`). `GET /api/scope/coverage` lists
-every active employee with their resolved Level 1 and Level 2, or the problem.
+would give anyone two signatories at one level is refused (400 `errors.scope`). Every field of an assignment can
+be edited, including the signatory, level, type and department; a changed effective-from date cannot be in the
+past, and a new signatory must hold the matching Active signatory role. Reports already filed keep the signatories
+they were routed to. `GET /api/scope/coverage` lists every active employee with their resolved Level 1 and
+Level 2, or the problem.
 
 **Routing at filing** (Domain `ApprovalRouting`, replaces `approval_routes`). Level 1 comes from scope. A Level 2
 step is added when the rules say Level 2 is always required (the default), when the total reaches the Level 2
@@ -491,7 +502,7 @@ every change is in the audit trail Finance reviews.
 | Endpoint (policy) | Purpose |
 | --- | --- |
 | `GET /api/scope/assignments` · `GET …/{id}` · `GET /api/scope/coverage?date` (signatories, Finance, System Administrator) | Read scope and who covers whom |
-| `POST /api/scope/assignments` · `PUT …/{id}` (System Administrator) | Create; change members, limit, end date, active |
+| `POST /api/scope/assignments` · `PUT …/{id}` (System Administrator) | Create; edit any field (signatory, level, type, department, members, limit, dates, active) |
 | `GET /api/rates/profiles` · `GET …/{id}` · `GET /api/rates/assignments` · `GET /api/rates/resolve?userId&date` | Read profiles, versions, assignments, what applies to a person on a date |
 | `POST/PUT /api/rates/profiles` · `POST …/{id}/lines` · `PUT …/{id}/lines/{lineId}` · `POST /api/rates/assignments` · `POST …/{id}/end` (System Administrator) | Maintain profiles, add or correct rate versions, assign and end |
 | `GET /api/lookups/departments` (any signed-in user) | Department picker |

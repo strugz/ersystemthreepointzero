@@ -39,8 +39,16 @@ public sealed record CreateScopeAssignmentRequest(
     DateOnly? EffectiveTo,
     string? Note);
 
-/// <summary>Holder, level, type, and department are fixed; to change them, end the assignment and create another.</summary>
+/// <summary>
+/// Every field can change. A new effective-from date cannot be in the past; an unchanged one may be. Reports
+/// already filed keep the routing they were filed with.
+/// </summary>
 public sealed record UpdateScopeAssignmentRequest(
+    long HolderUserId,
+    int Level,
+    ScopeAssignmentType Type,
+    long? DepartmentId,
+    DateOnly? EffectiveFrom,
     IReadOnlyList<long>? MemberUserIds,
     decimal? ApprovalLimit,
     DateOnly? EffectiveTo,
