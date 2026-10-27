@@ -93,7 +93,7 @@ Every change that adds, removes or changes behaviour, an endpoint, a setting, a 
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
-- **2026-10-27:** Each SLA reminder run is recorded in `workflow_audit` (`ReminderRun` / `ReminderRunFailed`) and shown on an **SLA reminders** card on the Rules page (`GET /api/admin/reminders/status`) (not yet committed).
+- **2026-10-27:** Each SLA reminder run is recorded in `workflow_audit` (`ReminderRun` / `ReminderRunFailed`) and shown on an **SLA reminders** card on the Rules page (`GET /api/admin/reminders/status`) (PR #35).
 - **2026-10-27:** R47 ENDORSED BY and APPROVED BY signatures print above the names, not over them (PR #34).
 - **2026-10-27:** **Approve** on the R47 PDF page when opened from a review and the viewer may approve (PR #33).
 - **2026-10-27:** One expense line can link several CRM activities (checkboxes in the From CRM picker; service no., instrument and serial joined with " / "; script `023`, `SchemaVersion.Required` 23) (PR #32).

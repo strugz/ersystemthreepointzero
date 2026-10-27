@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-27
 
-- **SLA reminder status on the Rules page** (not yet committed). Every daily reminder run is now recorded in
+- **SLA reminder status on the Rules page** (PR #35). Every daily reminder run is now recorded in
   `workflow_audit` (`ReminderRun` with its counts, or `ReminderRunFailed`), including a run with nothing to send.
   The System Administrator's **Rules** page has an **SLA reminders** card: on or off, run time, next run, whether
   email and SMS are set up, and the last run's time and result. `GET /api/admin/reminders/status`. See
