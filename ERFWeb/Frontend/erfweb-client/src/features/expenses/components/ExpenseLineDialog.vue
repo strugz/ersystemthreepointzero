@@ -84,7 +84,7 @@ const blank = (): SaveExpenseLineInput => ({
   meals: [],
   transports: [],
   rowVersion: null,
-  crmActivityId: null,
+  crmActivityIds: [],
 });
 
 const form = reactive<SaveExpenseLineInput>(blank());
@@ -130,7 +130,7 @@ function reset() {
   selectedMeals.value = [];
   showDetails.value = false;
   triedSave.value = false;
-  pickedActivity.value = null;
+  pickedActivities.value = [];
   applyCategoryDefaults();
   requestAnimationFrame(() => dateInput.value?.querySelector('input')?.focus());
 }
@@ -167,13 +167,13 @@ watch(
         meals: l.meals.map((m) => ({ ...m })),
         transports: l.transports.map((t) => ({ ...t })),
         rowVersion: l.rowVersion,
-        crmActivityId: l.crmActivityId ?? null,
+        crmActivityIds: [...(l.crmActivityIds ?? [])],
       } satisfies SaveExpenseLineInput);
     }
     selectedMeals.value = form.meals.map((m) => m.mealType);
     showDetails.value = !!(form.remarks || form.instrument || form.serialNumber || form.serviceNumber);
     triedSave.value = false;
-    pickedActivity.value = null;
+    pickedActivities.value = [];
     Object.assign(auto, { particulars: '', amount: 0 });
     applyCategoryDefaults();
   },
@@ -272,11 +272,12 @@ function addLeg() {
 function removeLeg(index: number) {
   form.transports.splice(index, 1);
 }
-// ---- CRM activity ------------------------------------------------------------------
-// Picking an activity fills what the CRM knows (date, client, service details, work-with, the trip);
-// the employee still chooses the category and enters the amount, Invoice/OR and VAT.
+// ---- CRM activities ----------------------------------------------------------------
+// Picking activities fills what the CRM knows (date, client, service details, work-with, the trip); the
+// employee still chooses the category and enters the amount, Invoice/OR and VAT. A visit that served several
+// instruments is several activities: their service no., instrument and serial are joined with " / ".
 const crmOpen = ref(false);
-const pickedActivity = ref<CrmActivityOption | null>(null);
+const pickedActivities = ref<CrmActivityOption[]>([]);
 // The day the picker shows; starts at the line's date and steps on its own until an activity is picked.
 const crmDay = ref(todayIso());
 
@@ -290,23 +291,34 @@ function showCrmDay(date: string) {
   emit('crm-load', date);
 }
 
-function applyActivity(a: CrmActivityOption) {
-  pickedActivity.value = a;
-  form.crmActivityId = a.activityId;
-  form.transactionDate = a.activityDate;
-  form.location = a.customerName ?? form.location;
-  form.workWith = a.workWith ?? form.workWith;
-  form.serviceNumber = a.serviceNumber ?? form.serviceNumber;
-  form.instrument = a.instrumentName ?? form.instrument;
-  form.serialNumber = a.serialNumber ?? form.serialNumber;
+/** The non-empty values joined by `separator` (repeats dropped when `distinct`), or null when there are none. */
+function joinValues(values: (string | null | undefined)[], separator: string, distinct = false): string | null {
+  const present = values.map((v) => v?.trim()).filter((v): v is string => !!v);
+  const kept = distinct ? [...new Set(present)] : present;
+  return kept.length ? kept.join(separator) : null;
+}
+
+function applyActivities(activities: CrmActivityOption[]) {
+  const first = activities[0];
+  if (!first) return;
+  pickedActivities.value = activities;
+  form.crmActivityIds = activities.map((a) => a.activityId);
+  form.transactionDate = first.activityDate;
+  form.location = joinValues(activities.map((a) => a.customerName), ' / ', true) ?? form.location;
+  form.workWith = joinValues(activities.flatMap((a) => a.workWith?.split(',') ?? []), ', ', true) ?? form.workWith;
+  // One entry per activity, repeats kept, so the nth service no., instrument and serial belong together
+  // (two units of the same model are two entries).
+  form.serviceNumber = joinValues(activities.map((a) => a.serviceNumber), ' / ') ?? form.serviceNumber;
+  form.instrument = joinValues(activities.map((a) => a.instrumentName), ' / ') ?? form.instrument;
+  form.serialNumber = joinValues(activities.map((a) => a.serialNumber), ' / ') ?? form.serialNumber;
   if (form.serviceNumber || form.instrument || form.serialNumber) showDetails.value = true;
   fillLegFromActivity();
 }
 
-/** On a Transportation line, the picked activity's trip fills the fare leg when no leg has a route yet. */
+/** On a Transportation line, the first picked activity with a trip fills the fare leg when no leg has a route yet. */
 function fillLegFromActivity() {
-  const a = pickedActivity.value;
-  if (!a || form.category !== 'Transportation' || !(a.travelOrigin || a.travelDestination)) return;
+  const a = pickedActivities.value.find((p) => p.travelOrigin || p.travelDestination);
+  if (!a || form.category !== 'Transportation') return;
   if (form.transports.some((t) => t.fareFrom || t.fareTo)) return;
   if (!form.transports.length) form.transports.push(newLeg());
   const leg = form.transports[0];
@@ -315,9 +327,9 @@ function fillLegFromActivity() {
   leg.fareTo = a.travelDestination ?? '';
 }
 
-function unlinkActivity() {
-  form.crmActivityId = null;
-  pickedActivity.value = null;
+function unlinkActivity(activityId: string) {
+  form.crmActivityIds = form.crmActivityIds.filter((id) => id !== activityId);
+  pickedActivities.value = pickedActivities.value.filter((a) => a.activityId !== activityId);
 }
 
 const legsTotal = computed(() => form.transports.reduce((s, t: ExpenseTransportItem) => s + (Number(t.fareAmount) || 0), 0));
@@ -501,16 +513,28 @@ function close() {
                 prepend-icon="mdi-briefcase-search-outline"
                 @click="openCrm"
               >
-                {{ form.crmActivityId ? 'Change CRM activity' : 'From CRM' }}
+                {{ form.crmActivityIds.length ? 'Change CRM activities' : 'From CRM' }}
               </v-btn>
             </div>
-            <div v-if="form.crmActivityId" class="crmlink">
-              <v-chip size="small" label variant="tonal" color="primary" closable prepend-icon="mdi-link-variant" @click:close="unlinkActivity">
-                <span class="mono">{{ form.crmActivityId }}</span>
+            <div v-if="form.crmActivityIds.length" class="crmlink">
+              <v-chip
+                v-for="id in form.crmActivityIds"
+                :key="id"
+                size="small"
+                label
+                variant="tonal"
+                color="primary"
+                closable
+                prepend-icon="mdi-link-variant"
+                @click:close="unlinkActivity(id)"
+              >
+                <span class="mono">{{ id }}</span>
               </v-chip>
-              <span class="crmlink__hint">Linked CRM activity. Remove the link to type this line by hand.</span>
+              <span class="crmlink__hint">
+                Linked CRM {{ form.crmActivityIds.length === 1 ? 'activity' : 'activities' }}. Remove the links to type this line by hand.
+              </span>
             </div>
-            <p v-if="fieldErrors('crmActivityId')" class="crmlink__error" role="alert">{{ fieldErrors('crmActivityId')?.join(' ') }}</p>
+            <p v-if="fieldErrors('crmActivityIds')" class="crmlink__error" role="alert">{{ fieldErrors('crmActivityIds')?.join(' ') }}</p>
             <v-text-field
               v-model="form.particulars"
               label="Particulars"
@@ -699,8 +723,9 @@ function close() {
     :list="crmList"
     :loading="crmLoading"
     :error="crmError"
+    :selected="form.crmActivityIds"
     @update:date="showCrmDay"
-    @pick="applyActivity"
+    @pick="applyActivities"
     @retry="emit('crm-load', crmDay)"
   />
 </template>

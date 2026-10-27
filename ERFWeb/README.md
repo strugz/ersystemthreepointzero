@@ -16,8 +16,29 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-10-27
+
+- **Several CRM activities on one expense line** (PR #32). A client visit that served several
+  instruments is several CRM activities; the **From CRM** picker now has a checkbox on each activity and
+  **Use N activities**, and the line takes the service no., instrument and serial of every ticked activity joined
+  with " / " (e.g. `SR-FLD26286018 / SR-FLD26286048`). The line keeps every link in
+  `expense_lines.crm_activity_ids`, and each one is still checked with the CRM and held to one report. Script
+  `023` moves the existing links; `SchemaVersion.Required` is now 23. The API's line field is now
+  `crmActivityIds` (a list): deploy the backend and the SPA together, since a line saved by the old SPA in
+  between loses its links. See **CRM activities on expense lines**.
+- **Edit scope assignments in full** (PR #32). The Scope edit dialog now changes the signatory, level,
+  type, department and effective-from date as well as members, limit, end date and active, instead of requiring
+  the assignment to be ended and created again. A new start date cannot be in the past; the holder and department
+  are checked only when they change. Filed reports keep their routing. See **Scope & rate profiles**. No database
+  script.
+
 ### 2026-10-26
 
+- **Verification SMS and email** (PR #32). Verification steps now text and email the people they
+  concern instead of only being logged: a new request reaches the claimant and the Expense Verifiers who may take
+  it, a finding reaches Finance (and the claimant once closed), a query reaches the Level 2 Signatory, and Level
+  2's decision reaches the claimant, Finance and the verifier. Each person is texted alone; one email with the R47
+  goes to all of them. See **Verification & queries**. No database script.
 - **Cost center budgets** (PR #31). A cost center is one department's spending code with one overall
   budget per calendar year, for monitoring only. The System Administrator sets the department (now required, one
   active cost center per department) and the current year's budget on **Master data → Cost centers**; each new year
@@ -145,6 +166,7 @@ psql -d erfweb -f Database/019_user_r47_reviewed_by.sql  # users.r47_reviewed_by
 psql -d erfweb -f Database/020_expense_line_crm_activity.sql  # expense_lines.crm_activity_id: the CRM activity a line came from
 psql -d erfweb -f Database/021_workflow_audit_append_only.sql # Phase 8.5: the database refuses UPDATE/DELETE/TRUNCATE of workflow_audit (9.9)
 psql -d erfweb -f Database/022_cost_center_budgets.sql   # cost_center_budgets + expense_reports.department_id (filing department)
+psql -d erfweb -f Database/023_expense_line_crm_activities.sql # expense_lines.crm_activity_ids: several CRM activities per line (re-run after the deploy)
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -417,17 +439,20 @@ Activity API for ERFWeb".
   `crmActivitiesAvailable`) lists all the employee's activities on the line's date: Completed ones first, which
   can be picked, then Open and Cancelled ones, shown greyed out so the day is complete (one CRM call per status).
   The previous/next day arrows step one day at a time inside the report period (the API refuses days outside
-  it), so an empty day no longer means closing the picker. Picking one
-  fills Date (`activityDate`), Location (`customer.name`), Work With (the other people,
-  by their ERFWeb name where linked), Service no., Instrument and Serial no., and on a Transportation line the
-  first fare leg (`travel.origin` → `travel.destination`). Particulars keeps the category default (Meals,
-  Transportation, Toll, Parking…) and stays editable. The line keeps the link (`expense_lines.crm_activity_id`,
-  script `020`); removing the chip makes it an ordinary typed line. Typing lines by hand always works.
-- **Rules (`CrmActivityClaimCheck`).** When a line gains or changes its link, the server asks the CRM
+  it), so an empty day no longer means closing the picker. Each pickable activity has a checkbox, so a visit that
+  served several instruments (one activity each) goes on one line: tick them and press **Use N activities**
+  (ticks are for one day; stepping to another day clears them). The ticked activities fill Date (`activityDate`),
+  Location (`customer.name`), Work With (the other people, by their ERFWeb name where linked), Service no.,
+  Instrument and Serial no., each joined with " / " in the order ticked (e.g.
+  `SR-FLD26286018 / SR-FLD26286048`), and on a Transportation line the first fare leg (`travel.origin` →
+  `travel.destination`). Particulars keeps the category default (Meals, Transportation, Toll, Parking…) and every
+  field stays editable. The line keeps the links in the order ticked (`expense_lines.crm_activity_ids`, scripts
+  `020` and `023`; at most 10); removing every chip makes it an ordinary typed line. Typing lines by hand always works.
+- **Rules (`CrmActivityClaimCheck`).** For each activity a line gains, the server asks the CRM
   (`GET /activities/{activityId}`) that the activity exists, is Completed, belongs to the employee (owner or
   companion), and covers the line's date (any day from its start to its completion for multi-day work). One
   activity may fill several lines of one report (a meal and a fare from one visit), but not lines of another of
-  the employee's reports unless that report was Rejected. A line that keeps its link saves without calling the CRM.
+  the employee's reports unless that report was Rejected. Links the line already had are not asked about again.
 - **Server to CRM.** `CrmActivityDirectory` calls `GET {Crm:BaseUrl}/activities?employeeId=&dateFrom=&dateTo=&status=`
   with the account's own `crm_employee_id`; it logs only the HTTP status. The browser never calls the CRM.
 - **Errors.** 400 when the date is outside the report period; 409 when the CRM no longer knows the
@@ -454,8 +479,11 @@ records, so existing employees keep their approvers and rates. The old tables ar
 department (`Department`), named people (`Individual`), or a department minus named people (`Exclusion`), with an
 optional approval limit and effective dates. Domain `ScopeRules` resolves an employee on a date: a by-name
 assignment beats a by-department one, and within the winning tier there must be exactly one holder. A save that
-would give anyone two signatories at one level is refused (400 `errors.scope`). `GET /api/scope/coverage` lists
-every active employee with their resolved Level 1 and Level 2, or the problem.
+would give anyone two signatories at one level is refused (400 `errors.scope`). Every field of an assignment can
+be edited, including the signatory, level, type and department; a changed effective-from date cannot be in the
+past, and a new signatory must hold the matching Active signatory role. Reports already filed keep the signatories
+they were routed to. `GET /api/scope/coverage` lists every active employee with their resolved Level 1 and
+Level 2, or the problem.
 
 **Routing at filing** (Domain `ApprovalRouting`, replaces `approval_routes`). Level 1 comes from scope. A Level 2
 step is added when the rules say Level 2 is always required (the default), when the total reaches the Level 2
@@ -486,7 +514,7 @@ every change is in the audit trail Finance reviews.
 | Endpoint (policy) | Purpose |
 | --- | --- |
 | `GET /api/scope/assignments` · `GET …/{id}` · `GET /api/scope/coverage?date` (signatories, Finance, System Administrator) | Read scope and who covers whom |
-| `POST /api/scope/assignments` · `PUT …/{id}` (System Administrator) | Create; change members, limit, end date, active |
+| `POST /api/scope/assignments` · `PUT …/{id}` (System Administrator) | Create; edit any field (signatory, level, type, department, members, limit, dates, active) |
 | `GET /api/rates/profiles` · `GET …/{id}` · `GET /api/rates/assignments` · `GET /api/rates/resolve?userId&date` | Read profiles, versions, assignments, what applies to a person on a date |
 | `POST/PUT /api/rates/profiles` · `POST …/{id}/lines` · `PUT …/{id}/lines/{lineId}` · `POST /api/rates/assignments` · `POST …/{id}/end` (System Administrator) | Maintain profiles, add or correct rate versions, assign and end |
 | `GET /api/lookups/departments` (any signed-in user) | Department picker |
@@ -565,6 +593,22 @@ line by a partial unique index). The optional `010` seeds a test Expense Verifie
 Level 2 sees reports they were queried about. The claimant sees which line is under verification, its status,
 the finding, and Level 2's decision, but not Finance's reason, the verifier's notes, or the query (open decision
 9c, defaulted to not showing findings to the claimant until it is decided).
+
+**Notifications (SMS and email).** Each step texts and emails only the people it names, never the person who acted:
+
+| Step | Who hears | Message |
+| --- | --- | --- |
+| Finance raises | Claimant; every active Expense Verifier except one who approved the report | Which line is to be verified; clearance is paused |
+| Pick up | Nobody | — |
+| Finding | Finance requester; also the claimant when it closes the request | Completed (verified / with a note), or not verified and going to Level 2 |
+| Finance queries | The Level 2 Signatory queried | Finance's query note |
+| Level 2 decides | Claimant, Finance requester, verifier | Let through, or returned / rejected with Level 2's reason |
+
+Messages read "`<ref>` of `<employee>`: `<what happened>`". The SMS is shortened to fit 320 characters and ends
+"See ERFWeb."; Finance's reason and the verifier's note are never in a message. Each recipient gets their own SMS
+(key `{event}:{requestId}:{userId}` in `sms_deliveries`); one email with the R47 attached goes to all of them (key
+`{event}:{requestId}` in `email_deliveries`), so each step notifies once. Both run after the step commits and never
+fail it.
 
 | Endpoint (policy) | Purpose |
 | --- | --- |
@@ -653,7 +697,8 @@ for approval in ERFWeb."). It runs after the filing commits and never fails a fi
 the approver: "… was approved by X and is now waiting for Y's approval", "… was fully approved by X. Please submit
 the original receipts to Finance.", or "… was returned by X: "note". Please update and re-file it in ERFWeb." (a long
 note is shortened to fit). The key `{event}:{reportId}:{cycle}:{step}` texts once per decision. Reject, override,
-line adjustments and Finance steps send no SMS (a rejection is emailed; see Report email).
+line adjustments and Finance steps send no SMS (a rejection is emailed; see Report email). Verification steps text
+their own recipients; see **Verification & queries**.
 
 Configure the gitignored `appsettings.json` (template in `appsettings.Example.json`):
 
@@ -693,7 +738,8 @@ and shows the last email.
 re-filing, each approval step, the final approval, a return and a rejection email the employee and the Level 1 and
 Level 2 signatories, with the R47 rendered after the event attached and the approver's remarks quoted. Keys
 `filed:{reportId}:{cycle}` and `{event}:{reportId}:{cycle}:{step}` email once per event. It runs after the
-workflow commits and never fails it. Override, line adjustments and Finance steps send no email.
+workflow commits and never fails it. Override, line adjustments and Finance steps send no email. Verification
+steps email their own recipients; see **Verification & queries**.
 
 Configure the gitignored `appsettings.json` (template in `appsettings.Example.json`); `Security` is `Auto`,
 `None`, `StartTls` or `SslOnConnect`, and `Username` may be empty for a relay that needs no login:

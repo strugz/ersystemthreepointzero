@@ -115,6 +115,10 @@ public class CrmActivityDirectoryTests
     public void Normalize_StoresOneSpelling(string? input, string? expected) =>
         Assert.Equal(expected, CrmActivityClaimCheck.Normalize(input));
 
+    [Fact]
+    public void NormalizeAll_KeepsPickOrderAndDropsBlanksAndRepeats() =>
+        Assert.Equal(["SR-2", "SR-1"], CrmActivityClaimCheck.NormalizeAll([" sr-2", null, "SR-1", " ", "Sr-2"]));
+
     private static CrmActivityDirectory Create(HttpMessageHandler handler, CrmOptions options) =>
         new(new HttpClient(handler), Options.Create(options), NullLogger<CrmActivityDirectory>.Instance);
 

@@ -30,6 +30,10 @@ public interface IApprovalNotifier
 /// <param name="NextApproverName">Who the report now waits for, after a Level 1 approval.</param>
 /// <param name="Cycle">Approval cycle the decision belongs to; with <paramref name="StepOrder"/> it makes the SMS key.</param>
 /// <param name="StepOrder">The step that acted.</param>
+/// <param name="DeliveryKey">
+/// Set for an event that is texted and emailed to <paramref name="RecipientUserIds"/> themselves (e.g. a
+/// verification step) rather than to the report's claimant and signatories; unique per event, so each sends once.
+/// </param>
 public sealed record WorkflowEventNotification(
     string Kind,
     Guid ReportId,
@@ -41,4 +45,5 @@ public sealed record WorkflowEventNotification(
     string? Note = null,
     string? NextApproverName = null,
     int? Cycle = null,
-    int? StepOrder = null);
+    int? StepOrder = null,
+    string? DeliveryKey = null);

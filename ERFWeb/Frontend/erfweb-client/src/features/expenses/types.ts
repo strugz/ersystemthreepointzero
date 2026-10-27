@@ -103,8 +103,8 @@ export interface ExpenseLine {
   transports: ExpenseTransportItem[];
   /** Set when an approver lowered the line before the first approval. */
   adjustment?: LineAdjustment | null;
-  /** The CRM activity (ITI-/SR-) the line was pre-filled from; null for a line typed by hand. */
-  crmActivityId?: string | null;
+  /** The CRM activities (ITI-/SR-) the line was pre-filled from; empty for a line typed by hand. */
+  crmActivityIds?: string[] | null;
 }
 
 export interface LineAdjustment {
@@ -225,7 +225,7 @@ export interface SaveExpenseLineInput {
   meals: ExpenseMealItem[];
   transports: ExpenseTransportItem[];
   rowVersion: number | null;
-  crmActivityId: string | null;
+  crmActivityIds: string[];
 }
 
 export interface ReportListQuery {

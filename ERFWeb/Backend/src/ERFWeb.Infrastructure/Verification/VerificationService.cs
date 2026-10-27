@@ -19,7 +19,8 @@ namespace ERFWeb.Infrastructure.Verification;
 /// transaction with its <c>workflow_audit</c> row and the request's row version (stale → 409);
 /// notifications go out after commit. A Level 2 decision to return or reject is a post-approval
 /// action: it changes the report status, drops it from the Finance queue, and closes its other
-/// requests in the same transaction.
+/// requests in the same transaction. Notifications (SMS and email) go only to the people each step
+/// names; picking a request up notifies nobody.
 /// </summary>
 public sealed class VerificationService(
     ErfDbContext db,
@@ -71,8 +72,10 @@ public sealed class VerificationService(
             await audit.WriteAsync(new WorkflowAuditEntry(VerificationAuditEvents.Requested, report.Id, user.UserId,
                 JsonSerializer.Serialize(new { requestId = entity.Id, lineId = line.Id, particulars = line.Particulars, reason })), token);
 
-            var verifiers = await ActiveHoldersAsync(UserRole.ExpenseVerifier, token);
-            return await NotificationAsync(VerificationAuditEvents.Requested, report, [report.EmployeeUserId, .. verifiers],
+            // Only verifiers who may take it (9.16): the claimant hears as claimant, and an approver of the report is left out.
+            var approvers = await reader.ApproversAsync(report.Id, token);
+            var verifiers = (await ActiveHoldersAsync(UserRole.ExpenseVerifier, token)).Where(id => !approvers.Contains(id));
+            return await NotificationAsync(VerificationAuditEvents.Requested, entity.Id, report, [report.EmployeeUserId, .. verifiers],
                 $"Finance asked for \"{line.Particulars}\" to be verified. Clearance is paused until it is resolved.", token);
         }, ct);
 
@@ -177,8 +180,8 @@ public sealed class VerificationService(
 
             var summary = request.Finding == VerificationFinding.NotVerified
                 ? "The verifier could not verify a line. Finance will refer it to the Level 2 Signatory."
-                : "Verification completed.";
-            return (report.Id, await NotificationAsync(VerificationAuditEvents.Found, report, recipients, summary, token));
+                : $"Verification completed: {(request.Finding == VerificationFinding.Verified ? "verified" : "verified with a note")}.";
+            return (report.Id, await NotificationAsync(VerificationAuditEvents.Found, v.Id, report, recipients, summary, token));
         }, ct);
 
         await NotifyAsync(notification, ct);
@@ -212,7 +215,7 @@ public sealed class VerificationService(
 
             await audit.WriteAsync(new WorkflowAuditEntry(VerificationAuditEvents.QueryRaised, report.Id, user.UserId,
                 JsonSerializer.Serialize(new { requestId = v.Id, queryTo = level2, note })), token);
-            return (report.Id, await NotificationAsync(VerificationAuditEvents.QueryRaised, report, [level2],
+            return (report.Id, await NotificationAsync(VerificationAuditEvents.QueryRaised, v.Id, report, [level2],
                 $"Finance needs your decision on a line that could not be verified: {note}", token));
         }, ct);
 
@@ -322,7 +325,7 @@ public sealed class VerificationService(
                 recipients.Add(verifier);
             }
 
-            return (report.Id, await NotificationAsync(VerificationAuditEvents.QueryDecided, report, recipients, summary, token));
+            return (report.Id, await NotificationAsync(VerificationAuditEvents.QueryDecided, v.Id, report, recipients, summary, token));
         }, ct);
 
         await NotifyAsync(notification, ct);
@@ -371,12 +374,16 @@ public sealed class VerificationService(
             .Select(g => g.UserId)
             .ToListAsync(ct);
 
+    /// <summary>
+    /// Addressed to <paramref name="recipients"/> (never the actor), who are texted and emailed. Each event
+    /// happens once per request, so the kind and request id make the delivery key.
+    /// </summary>
     private async Task<WorkflowEventNotification> NotificationAsync(
-        string kind, ExpenseReport report, IEnumerable<long> recipients, string summary, CancellationToken ct)
+        string kind, long requestId, ExpenseReport report, IEnumerable<long> recipients, string summary, CancellationToken ct)
     {
         var employeeName = await db.Users.AsNoTracking().Where(u => u.Id == report.EmployeeUserId).Select(u => u.FullName).FirstAsync(ct);
         return new WorkflowEventNotification(kind, report.Id, report.ReferenceNo, employeeName,
-            recipients.Where(id => id != user.UserId).Distinct().ToList(), summary);
+            recipients.Where(id => id != user.UserId).Distinct().ToList(), summary, DeliveryKey: $"{kind}:{requestId}");
     }
 
     private async Task NotifyAsync(WorkflowEventNotification notification, CancellationToken ct)

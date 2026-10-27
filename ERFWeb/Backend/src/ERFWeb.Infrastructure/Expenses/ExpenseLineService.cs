@@ -10,7 +10,7 @@ namespace ERFWeb.Infrastructure.Expenses;
 /// <summary>
 /// Expense line use cases. Each line's total, per-diem computation text and meal/transport
 /// children are (re)derived server-side from the request; the client never supplies totals.
-/// A CRM activity link is checked with the CRM before the transaction (see <see cref="CrmActivityClaimCheck"/>).
+/// CRM activity links are checked with the CRM before the transaction (see <see cref="CrmActivityClaimCheck"/>).
 /// </summary>
 public sealed class ExpenseLineService(
     ErfDbContext db,
@@ -23,13 +23,14 @@ public sealed class ExpenseLineService(
     public async Task<ExpenseLineDto> AddAsync(Guid reportId, SaveExpenseLineRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        await crmClaims.VerifyAsync(request.CrmActivityId, null, request.TransactionDate, ct);
+        var activityIds = CrmActivityClaimCheck.NormalizeAll(request.CrmActivityIds);
+        await crmClaims.VerifyAsync(activityIds, [], request.TransactionDate, ct);
 
         var lineId = await tx.ExecuteAsync(async token =>
         {
             var report = await gate.LoadEditableAsync(reportId, token);
             var modes = await ValidateAsync(request, report, null, token);
-            await crmClaims.EnsureNotClaimedElsewhereAsync(report, request.CrmActivityId, token);
+            await crmClaims.EnsureNotClaimedElsewhereAsync(report, activityIds, token);
 
             var nextSort = await db.ExpenseLines
                 .Where(l => l.ReportId == reportId)
@@ -44,7 +45,7 @@ public sealed class ExpenseLineService(
                 CreatedAt = now,
                 UpdatedAt = now,
             };
-            Apply(line, request, now);
+            Apply(line, request, activityIds, now);
             db.ExpenseLines.Add(line);
             await db.SaveChangesAsync(token);
 
@@ -65,24 +66,25 @@ public sealed class ExpenseLineService(
             throw new ValidationException("rowVersion", "rowVersion is required when updating a line.");
         }
 
-        var currentActivityId = await db.ExpenseLines.AsNoTracking()
+        var activityIds = CrmActivityClaimCheck.NormalizeAll(request.CrmActivityIds);
+        var currentActivityIds = await db.ExpenseLines.AsNoTracking()
             .Where(l => l.Id == lineId && l.ReportId == reportId)
-            .Select(l => l.CrmActivityId)
-            .FirstOrDefaultAsync(ct);
-        await crmClaims.VerifyAsync(request.CrmActivityId, currentActivityId, request.TransactionDate, ct);
+            .Select(l => l.CrmActivityIds)
+            .FirstOrDefaultAsync(ct) ?? [];
+        await crmClaims.VerifyAsync(activityIds, currentActivityIds, request.TransactionDate, ct);
 
         await tx.ExecuteAsync(async token =>
         {
             var report = await gate.LoadEditableAsync(reportId, token);
             var modes = await ValidateAsync(request, report, lineId, token);
-            await crmClaims.EnsureNotClaimedElsewhereAsync(report, request.CrmActivityId, token);
+            await crmClaims.EnsureNotClaimedElsewhereAsync(report, activityIds, token);
 
             var line = await db.ExpenseLines.FirstOrDefaultAsync(l => l.Id == lineId && l.ReportId == reportId && l.IsActive, token)
                 ?? throw new NotFoundException("Expense line not found.");
 
             db.SetRowVersion(line, request.RowVersion.Value);
             var now = clock.UtcNow;
-            Apply(line, request, now);
+            Apply(line, request, activityIds, now);
 
             var existingMeals = await db.ExpenseMealItems.Where(m => m.ExpenseLineId == lineId).ToListAsync(token);
             var existingTransports = await db.ExpenseTransportItems.Where(t => t.ExpenseLineId == lineId).ToListAsync(token);
@@ -193,7 +195,7 @@ public sealed class ExpenseLineService(
     }
 
     /// <summary>Copies request fields onto the entity and derives multiplier, total and computation text.</summary>
-    private static void Apply(ExpenseLine line, SaveExpenseLineRequest r, DateTimeOffset now)
+    private static void Apply(ExpenseLine line, SaveExpenseLineRequest r, List<string> activityIds, DateTimeOffset now)
     {
         var multiplier = r.Multiplier;
         string? computation = null;
@@ -223,7 +225,7 @@ public sealed class ExpenseLineService(
         line.TotalDays = r.IsPerdiem ? r.TotalDays : null;
         line.Computation = computation;
         line.Remarks = Clean(r.Remarks);
-        line.CrmActivityId = CrmActivityClaimCheck.Normalize(r.CrmActivityId);
+        line.CrmActivityIds = activityIds;
         line.UpdatedAt = now;
     }
 

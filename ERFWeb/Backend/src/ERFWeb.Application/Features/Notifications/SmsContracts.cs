@@ -56,6 +56,12 @@ public interface ISmsService
     /// signatories, sent as the signed-in user. Same outcomes and once-per-key guarantee as <see cref="SendAsync"/>.
     /// </summary>
     Task<SmsSendResult> SendAboutReportAsync(Guid reportId, string message, string idempotencyKey, CancellationToken ct = default);
+
+    /// <summary>
+    /// Server-initiated SMS about a report to one named user only (e.g. an Expense Verifier on a verification
+    /// request), sent as the signed-in user. Same outcomes and once-per-key guarantee as <see cref="SendAsync"/>.
+    /// </summary>
+    Task<SmsSendResult> SendToUserAboutReportAsync(Guid reportId, long userId, string message, string idempotencyKey, CancellationToken ct = default);
 }
 
 /// <summary>One message for the SMS gateway. Never log <see cref="Message"/>.</summary>

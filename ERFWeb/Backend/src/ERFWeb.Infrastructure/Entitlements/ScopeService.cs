@@ -122,22 +122,45 @@ public sealed class ScopeService(
         {
             var entity = await db.ScopeAssignments.FirstOrDefaultAsync(a => a.Id == id, token)
                 ?? throw new NotFoundException("Scope assignment not found.");
-            ThrowIfInvalid(ScopeRules.ShapeErrors(entity.SignatoryLevel, entity.AssignmentType, entity.DepartmentId, members,
-                entity.HolderUserId, entity.EffectiveFrom, request.EffectiveTo, request.ApprovalLimit));
+            var from = request.EffectiveFrom ?? entity.EffectiveFrom;
+            ThrowIfInvalid(ScopeRules.ShapeErrors(request.Level, request.Type, request.DepartmentId, members,
+                request.HolderUserId, from, request.EffectiveTo, request.ApprovalLimit));
+            if (from != entity.EffectiveFrom && from < context.Today)
+            {
+                throw new ValidationException("effectiveFrom", "Scope cannot start in the past; reports already filed keep their snapshot.");
+            }
+
+            // The holder and department are checked only when they change, so an assignment whose holder has since
+            // lost the role, or whose department was deactivated, can still be ended or narrowed.
+            if (request.HolderUserId != entity.HolderUserId || request.Level != entity.SignatoryLevel)
+            {
+                await EnsureHolderAsync(request.HolderUserId, request.Level, token);
+            }
+
+            if (request.DepartmentId != entity.DepartmentId)
+            {
+                await EnsureDepartmentAsync(request.DepartmentId, token);
+            }
+
             await EnsureMembersAsync(members, token);
 
             var oldMembers = await db.ScopeAssignmentMembers.Where(m => m.ScopeAssignmentId == id).ToListAsync(token);
             var existing = await context.ScopeCandidatesAsync(validHoldersOnly: true, token);
-            var proposed = new ScopeCandidate(id, entity.HolderUserId, entity.SignatoryLevel, entity.AssignmentType, entity.DepartmentId,
-                members.ToHashSet(), entity.EffectiveFrom, request.EffectiveTo, request.IsActive, request.ApprovalLimit);
+            var proposed = new ScopeCandidate(id, request.HolderUserId, request.Level, request.Type, request.DepartmentId,
+                members.ToHashSet(), from, request.EffectiveTo, request.IsActive, request.ApprovalLimit);
 
             await EnsureAuthorityAsync(token);
-            var checkFrom = entity.EffectiveFrom > context.Today ? entity.EffectiveFrom : context.Today;
-            await EnsureNoNewAmbiguityAsync(existing, existing.Where(c => c.Id != id).Append(proposed).ToList(), entity.SignatoryLevel, checkFrom, token);
+            var checkFrom = from > context.Today ? from : context.Today;
+            await EnsureNoNewAmbiguityAsync(existing, existing.Where(c => c.Id != id).Append(proposed).ToList(), request.Level, checkFrom, token);
 
             var before = Describe(entity, oldMembers.Select(m => m.UserId).ToList());
             var previous = EntitlementContext.ToCandidate(entity, oldMembers.Select(m => m.UserId).ToHashSet());
 
+            entity.HolderUserId = request.HolderUserId;
+            entity.SignatoryLevel = (short)request.Level;
+            entity.AssignmentType = request.Type;
+            entity.DepartmentId = request.DepartmentId;
+            entity.EffectiveFrom = from;
             entity.ApprovalLimit = request.ApprovalLimit;
             entity.EffectiveTo = request.EffectiveTo;
             entity.IsActive = request.IsActive;

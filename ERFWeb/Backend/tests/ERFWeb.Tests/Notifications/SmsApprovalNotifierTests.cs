@@ -104,6 +104,45 @@ public class SmsApprovalNotifierTests
     public void OtherDecisions_DoNotText(string kind) =>
         Assert.Null(SmsApprovalNotifier.ComposeWorkflowSms(Decision(kind, step: 1)));
 
+    [Fact]
+    public async Task VerificationEvent_TextsEachRecipientAloneOnce()
+    {
+        var sms = new FakeSms();
+        await Create(sms).NotifyWorkflowEventAsync(Verification([12, 34, 12], "Finance asked for \"Toll fee\" to be verified."));
+
+        Assert.Empty(sms.Calls);
+        Assert.Equal(["VerificationRequested:5:12", "VerificationRequested:5:34"], sms.UserCalls.Select(c => c.Key));
+        Assert.Equal([12L, 34L], sms.UserCalls.Select(c => c.UserId));
+        var call = sms.UserCalls[0];
+        Assert.Equal(ReportId, call.ReportId);
+        Assert.Equal("ERF-2026-000001 of Jay Bryan Abaoag: Finance asked for \"Toll fee\" to be verified. See ERFWeb.", call.Message);
+        Assert.Null(SmsRules.IdempotencyKeyError(call.Key));
+    }
+
+    [Fact]
+    public void VerificationEvent_ShortensALongSummary()
+    {
+        var message = SmsApprovalNotifier.ComposeAddressedSms(Verification([12], new string('x', 3000)));
+
+        Assert.NotNull(message);
+        Assert.Null(SmsRules.MessageError(message));
+        Assert.EndsWith("... See ERFWeb.", message);
+    }
+
+    [Fact]
+    public void EventsWithoutADeliveryKeyOrRecipients_AreNotAddressed()
+    {
+        Assert.Null(SmsApprovalNotifier.ComposeAddressedSms(Decision(ApprovalAuditEvents.Cleared, step: 1)));
+        Assert.Null(SmsApprovalNotifier.ComposeAddressedSms(Verification([], "summary")));
+    }
+
+    [Fact]
+    public async Task VerificationEvent_NeverThrowsWhenTheSmsFails() =>
+        await Create(new FakeSms(throws: true)).NotifyWorkflowEventAsync(Verification([12], "summary"));
+
+    private static WorkflowEventNotification Verification(IReadOnlyList<long> recipients, string summary) =>
+        new("VerificationRequested", ReportId, "ERF-2026-000001", "Jay Bryan Abaoag", recipients, summary, DeliveryKey: "VerificationRequested:5");
+
     private static WorkflowEventNotification Decision(string kind, int step, string actor = "Test Manager One", string? note = null, string? next = null) =>
         new(kind, ReportId, "ERF-2026-000001", "Jay Bryan Abaoag", [], "summary", actor, note, next, Cycle: 1, StepOrder: step);
 
@@ -129,6 +168,19 @@ public class SmsApprovalNotifierTests
 
             Calls.Add((reportId, message, idempotencyKey));
             return Task.FromResult(new SmsSendResult(SmsSendOutcome.Sent, 3));
+        }
+
+        public List<(Guid ReportId, long UserId, string Message, string Key)> UserCalls { get; } = [];
+
+        public Task<SmsSendResult> SendToUserAboutReportAsync(Guid reportId, long userId, string message, string idempotencyKey, CancellationToken ct = default)
+        {
+            if (throws)
+            {
+                throw new InvalidOperationException("gateway exploded");
+            }
+
+            UserCalls.Add((reportId, userId, message, idempotencyKey));
+            return Task.FromResult(new SmsSendResult(SmsSendOutcome.Sent, 1));
         }
     }
 }
