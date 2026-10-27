@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ERFWeb.Infrastructure.Notifications;
 
 /// <summary>
@@ -13,4 +15,8 @@ public sealed class ReminderOptions
 
     /// <summary>Time of day (business time zone, <c>ReferenceNumber:UtcOffsetHours</c>) to run on working days, "HH:mm".</summary>
     public string RunAt { get; set; } = "08:00";
+
+    /// <summary>False when <see cref="RunAt"/> is not a time such as 08:00; the job then does not run.</summary>
+    public bool TryGetRunAt(out TimeOnly runAt) =>
+        TimeOnly.TryParseExact(RunAt, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out runAt);
 }

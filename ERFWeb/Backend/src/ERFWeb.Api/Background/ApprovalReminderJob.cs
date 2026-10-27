@@ -1,4 +1,5 @@
-using System.Globalization;
+using System.Text.Json;
+using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Notifications;
 using ERFWeb.Domain.Approval;
 using ERFWeb.Infrastructure.Expenses;
@@ -19,6 +20,9 @@ public sealed class ApprovalReminderJob(
     IOptions<ReferenceNumberOptions> calendar,
     ILogger<ApprovalReminderJob> logger) : BackgroundService
 {
+    /// <summary>camelCase, like the other audit details.</summary>
+    private static readonly JsonSerializerOptions JsonDetail = new(JsonSerializerDefaults.Web);
+
     private readonly TimeProvider time = TimeProvider.System;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -29,7 +33,7 @@ public sealed class ApprovalReminderJob(
             return;
         }
 
-        if (!TimeOnly.TryParseExact(options.Value.RunAt, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var runAt))
+        if (!options.Value.TryGetRunAt(out var runAt))
         {
             logger.LogError("SLA reminders are off: Reminders:RunAt must be a time such as 08:00.");
             return;
@@ -67,6 +71,7 @@ public sealed class ApprovalReminderJob(
             logger.LogInformation(
                 "SLA reminder run: {StepsWaiting} step(s) waiting, {Sent} sent, {Failed} failed, {Skipped} skipped (no contact).",
                 result.StepsWaiting, result.Sent, result.Failed, result.Skipped);
+            await RecordAsync(ReminderAuditEvents.Run, JsonSerializer.Serialize(result, JsonDetail));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -75,6 +80,25 @@ public sealed class ApprovalReminderJob(
         catch (Exception ex)
         {
             logger.LogError(ex, "SLA reminder run failed; the next run goes ahead as scheduled.");
+            await RecordAsync(ReminderAuditEvents.RunFailed, JsonSerializer.Serialize(new { error = ex.GetType().Name }));
+        }
+    }
+
+    /// <summary>
+    /// Records the run in <c>workflow_audit</c> so the Rules page can show it, even when nothing was due.
+    /// A fresh scope, so a failed run's broken context does not stop its record.
+    /// </summary>
+    private async Task RecordAsync(string auditEvent, string detail)
+    {
+        try
+        {
+            await using var scope = scopes.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<IWorkflowAuditWriter>()
+                .WriteAsync(new WorkflowAuditEntry(auditEvent, null, null, detail), CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not record the SLA reminder run in the audit trail.");
         }
     }
 }

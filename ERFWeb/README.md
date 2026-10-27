@@ -18,6 +18,11 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-27
 
+- **SLA reminder status on the Rules page** (not yet committed). Every daily reminder run is now recorded in
+  `workflow_audit` (`ReminderRun` with its counts, or `ReminderRunFailed`), including a run with nothing to send.
+  The System Administrator's **Rules** page has an **SLA reminders** card: on or off, run time, next run, whether
+  email and SMS are set up, and the last run's time and result. `GET /api/admin/reminders/status`. See
+  **SLA reminders**. No database script; deploy the backend before the SPA.
 - **R47 signatory signatures above the names** (PR #34). ENDORSED BY and APPROVED BY signatures
   print in their own band above the printed name instead of over it, so the name stays readable.
 - **Approve from the R47 PDF** (PR #33). A signatory who opens the R47 PDF from a review sees
@@ -807,6 +812,13 @@ no answer (`Unconfirmed`) is not. Nobody with an address or number on file: `Ski
 started after `RunAt` on a working day runs at once. `workflow_audit` records `ReminderSent`, `ReminderFailed` or
 `ReminderUnconfirmed` with counts only; the log has one line per run (`SLA reminder run: …`). No new script: the
 table is in `001`.
+
+**Did today's run go through?** Every run, even one with nothing due, is recorded in `workflow_audit` as
+`ReminderRun` (detail: `stepsWaiting`, `sent`, `failed`, `skipped`) or `ReminderRunFailed` (detail: the exception
+type only). The **SLA reminders** card on the System Administrator's **Rules** page (`/admin/settings`,
+`GET /api/admin/reminders/status`) shows whether the server runs reminders (`Reminders:Enabled` and a valid
+`RunAt`), the run time and next run, whether email (`Smtp`) and SMS (`Lasius`) are set up, and the last run's time
+and result. "No run recorded yet" until the first run after this was deployed.
 
 ## Deployment guide
 

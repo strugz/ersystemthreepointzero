@@ -276,6 +276,29 @@ export interface SystemSettings extends SystemSettingsInput {
   updatedByName: string | null;
 }
 
+// ---- SLA reminders ------------------------------------------------------------
+
+/** The daily SLA reminder job, from the server's Reminders settings and its last recorded run. */
+export interface ReminderStatus {
+  enabled: boolean;
+  /** "HH:mm", business time zone, working days only. */
+  runAt: string;
+  emailConfigured: boolean;
+  smsConfigured: boolean;
+  nextRunAt: string | null;
+  lastRun: ReminderLastRun | null;
+}
+
+export interface ReminderLastRun {
+  at: string;
+  /** False when the run stopped on an error; the counts are then null. */
+  succeeded: boolean;
+  stepsWaiting: number | null;
+  sent: number | null;
+  failed: number | null;
+  skipped: number | null;
+}
+
 // ---- audit --------------------------------------------------------------------
 
 export interface AuditQuery {

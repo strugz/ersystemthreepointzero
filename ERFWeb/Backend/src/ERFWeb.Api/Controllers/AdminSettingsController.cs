@@ -1,6 +1,7 @@
 using ERFWeb.Api.Security;
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
+using ERFWeb.Application.Features.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,6 +23,18 @@ public sealed class AdminSettingsController(ISystemSettingsService settings) : C
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<SystemSettingsDto>> Update([FromBody] UpdateSystemSettingsRequest request, CancellationToken ct) =>
         Ok(await settings.UpdateAsync(request, ct));
+}
+
+/// <summary>Daily SLA reminder job: on or off, next run and what the last run did (Phase 8.4).</summary>
+[ApiController]
+[Route("api/admin/reminders")]
+[Authorize(Policy = Policies.SystemAdministrator)]
+[Produces("application/json")]
+public sealed class AdminRemindersController(IReminderStatusService reminders) : ControllerBase
+{
+    [HttpGet("status")]
+    [ProducesResponseType<ReminderStatusDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<ReminderStatusDto>> Status(CancellationToken ct) => Ok(await reminders.GetAsync(ct));
 }
 
 /// <summary>Read-only audit trail: System Administrator and Finance (spec 9.10).</summary>

@@ -16,6 +16,7 @@ import type {
   FareModeInput,
   GrantRoleInput,
   PagedResult,
+  ReminderStatus,
   RoleActionInput,
   SetActiveInput,
   Site,
@@ -93,6 +94,7 @@ export const adminApi = {
   // ---- settings ------------------------------------------------------------
   settings: () => api.get<SystemSettings>('/admin/settings'),
   updateSettings: (input: SystemSettingsInput) => api.put<SystemSettings>('/admin/settings', input),
+  reminderStatus: () => api.get<ReminderStatus>('/admin/reminders/status'),
 
   // ---- audit ---------------------------------------------------------------
   audit: (query: AuditQuery) => api.get<PagedResult<AuditEntry>>(`/admin/audit${qs({ ...query })}`),
