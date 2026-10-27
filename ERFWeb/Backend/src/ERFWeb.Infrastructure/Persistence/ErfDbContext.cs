@@ -215,8 +215,8 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
         b.Entity<ExpenseLine>(e =>
         {
             e.HasIndex(x => new { x.ReportId, x.SortOrder });
-            e.Property(x => x.CrmActivityId).HasMaxLength(50);
-            e.HasIndex(x => x.CrmActivityId);
+            e.Property(x => x.CrmActivityIds).HasColumnType("varchar(50)[]");
+            e.HasIndex(x => x.CrmActivityIds).HasMethod("gin");
             e.Property(x => x.IsActive).HasDefaultValue(true);
             e.Property(x => x.Multiplier).HasDefaultValue(1);
             e.Property(x => x.CreatedAt).HasDefaultValueSql("now()");

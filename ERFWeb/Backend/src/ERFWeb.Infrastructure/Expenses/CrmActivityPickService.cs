@@ -51,10 +51,13 @@ public sealed class CrmActivityPickService(ErfDbContext db, ICurrentUser user, R
         var claims = await (
             from l in db.ExpenseLines.AsNoTracking()
             join r in db.ExpenseReports.AsNoTracking() on l.ReportId equals r.Id
-            where l.CrmActivityId != null && ids.Contains(l.CrmActivityId!) && l.IsActive
+            where l.CrmActivityIds.Any(a => ids.Contains(a)) && l.IsActive
                 && r.EmployeeUserId == report.EmployeeUserId && r.Status != ReportStatus.Rejected
-            select new { ActivityId = l.CrmActivityId!, r.Id, r.ReferenceNo })
+            select new { l.CrmActivityIds, r.Id, r.ReferenceNo })
             .ToListAsync(ct);
+        var claimsById = claims
+            .SelectMany(c => c.CrmActivityIds, (c, activityId) => new { ActivityId = activityId, c.Id, c.ReferenceNo })
+            .ToList();
 
         // Work With prints the ERFWeb name of a linked colleague, else the name the CRM gives.
         var peopleIds = activities
@@ -71,7 +74,7 @@ public sealed class CrmActivityPickService(ErfDbContext db, ICurrentUser user, R
 
         var items = activities.Select(a =>
         {
-            var mine = claims.Where(c => c.ActivityId == a.ActivityId).ToList();
+            var mine = claimsById.Where(c => c.ActivityId == a.ActivityId).ToList();
             var elsewhere = mine.FirstOrDefault(c => c.Id != report.Id);
             var others = a.Companions.Append(a.Employee)
                 .OfType<CrmActivityPersonDto>()

@@ -220,7 +220,7 @@ async function saveLine(input: SaveExpenseLineInput) {
   savingLine.value = true;
   lineErrors.value = null;
   try {
-    if (input.crmActivityId || editingLine.value?.crmActivityId) crmList.value = null;
+    if (input.crmActivityIds.length || editingLine.value?.crmActivityIds?.length) crmList.value = null;
     if (editingLine.value) {
       await expensesApi.updateLine(reportId, editingLine.value.id, input);
       snack.success('Expense line updated.');

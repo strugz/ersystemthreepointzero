@@ -72,7 +72,7 @@ public sealed record ExpenseLineDto(
     IReadOnlyList<ExpenseMealItemDto> Meals,
     IReadOnlyList<ExpenseTransportItemDto> Transports,
     LineAdjustmentDto? Adjustment = null,
-    string? CrmActivityId = null);
+    IReadOnlyList<string>? CrmActivityIds = null);
 
 /// <summary>An approver lowered this line before the first approval; the original amount is kept.</summary>
 public sealed record LineAdjustmentDto(decimal OriginalAmount, decimal OriginalTotal, string? AdjustedByName, DateTimeOffset AdjustedAt, string? Reason);
@@ -175,8 +175,9 @@ public sealed record SaveCashAdvanceLineRequest(
     uint? RowVersion);
 
 /// <summary>
-/// Create or replace one expense line. <see cref="RowVersion"/> is required on update. <see cref="CrmActivityId"/>
-/// links the line to the CRM activity it was pre-filled from; null for a line typed by hand.
+/// Create or replace one expense line. <see cref="RowVersion"/> is required on update. <see cref="CrmActivityIds"/>
+/// links the line to the CRM activities it was pre-filled from (several instruments of one visit); empty or null
+/// for a line typed by hand.
 /// </summary>
 public sealed record SaveExpenseLineRequest(
     DateOnly TransactionDate,
@@ -199,7 +200,7 @@ public sealed record SaveExpenseLineRequest(
     IReadOnlyList<ExpenseMealItemDto>? Meals,
     IReadOnlyList<ExpenseTransportItemDto>? Transports,
     uint? RowVersion,
-    string? CrmActivityId = null);
+    IReadOnlyList<string>? CrmActivityIds = null);
 
 /// <summary>Every active line of the report, in the order the R47 should print them.</summary>
 public sealed record ReorderExpenseLinesRequest(IReadOnlyList<long> LineIds);

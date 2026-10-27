@@ -18,6 +18,14 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-27
 
+- **Several CRM activities on one expense line** (no PR yet). A client visit that served several
+  instruments is several CRM activities; the **From CRM** picker now has a checkbox on each activity and
+  **Use N activities**, and the line takes the service no., instrument and serial of every ticked activity joined
+  with " / " (e.g. `SR-FLD26286018 / SR-FLD26286048`). The line keeps every link in
+  `expense_lines.crm_activity_ids`, and each one is still checked with the CRM and held to one report. Script
+  `023` moves the existing links; `SchemaVersion.Required` is now 23. The API's line field is now
+  `crmActivityIds` (a list): deploy the backend and the SPA together, since a line saved by the old SPA in
+  between loses its links. See **CRM activities on expense lines**.
 - **Edit scope assignments in full** (no PR yet). The Scope edit dialog now changes the signatory, level,
   type, department and effective-from date as well as members, limit, end date and active, instead of requiring
   the assignment to be ended and created again. A new start date cannot be in the past; the holder and department
@@ -158,6 +166,7 @@ psql -d erfweb -f Database/019_user_r47_reviewed_by.sql  # users.r47_reviewed_by
 psql -d erfweb -f Database/020_expense_line_crm_activity.sql  # expense_lines.crm_activity_id: the CRM activity a line came from
 psql -d erfweb -f Database/021_workflow_audit_append_only.sql # Phase 8.5: the database refuses UPDATE/DELETE/TRUNCATE of workflow_audit (9.9)
 psql -d erfweb -f Database/022_cost_center_budgets.sql   # cost_center_budgets + expense_reports.department_id (filing department)
+psql -d erfweb -f Database/023_expense_line_crm_activities.sql # expense_lines.crm_activity_ids: several CRM activities per line (re-run after the deploy)
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -430,17 +439,20 @@ Activity API for ERFWeb".
   `crmActivitiesAvailable`) lists all the employee's activities on the line's date: Completed ones first, which
   can be picked, then Open and Cancelled ones, shown greyed out so the day is complete (one CRM call per status).
   The previous/next day arrows step one day at a time inside the report period (the API refuses days outside
-  it), so an empty day no longer means closing the picker. Picking one
-  fills Date (`activityDate`), Location (`customer.name`), Work With (the other people,
-  by their ERFWeb name where linked), Service no., Instrument and Serial no., and on a Transportation line the
-  first fare leg (`travel.origin` → `travel.destination`). Particulars keeps the category default (Meals,
-  Transportation, Toll, Parking…) and stays editable. The line keeps the link (`expense_lines.crm_activity_id`,
-  script `020`); removing the chip makes it an ordinary typed line. Typing lines by hand always works.
-- **Rules (`CrmActivityClaimCheck`).** When a line gains or changes its link, the server asks the CRM
+  it), so an empty day no longer means closing the picker. Each pickable activity has a checkbox, so a visit that
+  served several instruments (one activity each) goes on one line: tick them and press **Use N activities**
+  (ticks are for one day; stepping to another day clears them). The ticked activities fill Date (`activityDate`),
+  Location (`customer.name`), Work With (the other people, by their ERFWeb name where linked), Service no.,
+  Instrument and Serial no., each joined with " / " in the order ticked (e.g.
+  `SR-FLD26286018 / SR-FLD26286048`), and on a Transportation line the first fare leg (`travel.origin` →
+  `travel.destination`). Particulars keeps the category default (Meals, Transportation, Toll, Parking…) and every
+  field stays editable. The line keeps the links in the order ticked (`expense_lines.crm_activity_ids`, scripts
+  `020` and `023`; at most 10); removing every chip makes it an ordinary typed line. Typing lines by hand always works.
+- **Rules (`CrmActivityClaimCheck`).** For each activity a line gains, the server asks the CRM
   (`GET /activities/{activityId}`) that the activity exists, is Completed, belongs to the employee (owner or
   companion), and covers the line's date (any day from its start to its completion for multi-day work). One
   activity may fill several lines of one report (a meal and a fare from one visit), but not lines of another of
-  the employee's reports unless that report was Rejected. A line that keeps its link saves without calling the CRM.
+  the employee's reports unless that report was Rejected. Links the line already had are not asked about again.
 - **Server to CRM.** `CrmActivityDirectory` calls `GET {Crm:BaseUrl}/activities?employeeId=&dateFrom=&dateTo=&status=`
   with the account's own `crm_employee_id`; it logs only the HTTP status. The browser never calls the CRM.
 - **Errors.** 400 when the date is outside the report period; 409 when the CRM no longer knows the

@@ -191,7 +191,7 @@ their document wins; ERFWeb follows its field names exactly.
 | Multi-day work | One record per activity, flagged with `travel.isOvernight`; ERFWeb accepts any line date from `activityDate` to the date of `endAt`. |
 | Work-with | Companions get the service report too (`role: Companion`), so each person claims their own expenses. |
 | Not filled yet | `customer.branch`, `city`, `province`, `travel.distanceKm`, `travel.isOutOfTown` are always null. Location is `customer.name` alone. |
-| Claimed callback (section 5) | Not built; it needs a new CRM table. ERFWeb tracks claims itself (`expense_lines.crm_activity_id`). |
+| Claimed callback (section 5) | Not built; it needs a new CRM table. ERFWeb tracks claims itself (`expense_lines.crm_activity_ids`). |
 | Rate limit | 300 requests a minute for ERFWeb's key; 429 with `Retry-After` above that. |
 
 Still open:

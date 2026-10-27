@@ -211,8 +211,8 @@ public class ExpenseLine
     public string? Computation { get; set; }
     public string? Remarks { get; set; }
 
-    /// <summary>The CRM activityId (ITI-/SR-) the line was pre-filled from; null for a line typed by hand.</summary>
-    public string? CrmActivityId { get; set; }
+    /// <summary>The CRM activityIds (ITI-/SR-) the line was pre-filled from, in the order picked; empty for a line typed by hand.</summary>
+    public List<string> CrmActivityIds { get; set; } = [];
 
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;

@@ -4,8 +4,9 @@ import { addDaysIso, formatDate } from '@/shared/format';
 import type { CrmActivityOption, CrmActivityPickList } from '../types';
 
 // Lists every CRM activity of the employee on one day (first the line's date; the arrows step a day at a time
-// inside the report period); picking one pre-fills the line, date included. Open and Cancelled activities, and
-// one already on another report (one activity, one report), show but cannot be picked.
+// inside the report period). The employee ticks one or more (a visit that served several instruments) and the
+// ticked ones pre-fill the line, date included. Open and Cancelled activities, and one already on another
+// report (one activity, one report), show but cannot be ticked.
 const props = withDefaults(
   defineProps<{
     modelValue: boolean;
@@ -17,30 +18,38 @@ const props = withDefaults(
     list?: CrmActivityPickList | null;
     loading?: boolean;
     error?: string | null;
+    /** The activities the line already links; ticked when the picker opens. */
+    selected?: string[];
   }>(),
-  { minDate: null, maxDate: null, list: null, loading: false, error: null },
+  { minDate: null, maxDate: null, list: null, loading: false, error: null, selected: () => [] },
 );
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   'update:date': [date: string];
-  pick: [activity: CrmActivityOption];
+  /** The ticked activities, in the order ticked. */
+  pick: [activities: CrmActivityOption[]];
   retry: [];
 }>();
 
 const search = ref('');
+const checked = ref<string[]>([]);
 watch(
   () => props.modelValue,
   (open) => {
-    if (open) search.value = '';
+    if (!open) return;
+    search.value = '';
+    checked.value = [...props.selected];
   },
 );
 
 const canGoBack = computed(() => !props.loading && (!props.minDate || props.date > props.minDate));
 const canGoForward = computed(() => !props.loading && (!props.maxDate || props.date < props.maxDate));
 
+// A line's date must fall on every linked activity, so ticks are for one day only.
 function stepDay(days: number) {
   search.value = '';
+  checked.value = [];
   emit('update:date', addDaysIso(props.date, days));
 }
 
@@ -66,9 +75,22 @@ function blockedReason(a: CrmActivityOption): string | null {
   return null;
 }
 
-function pick(a: CrmActivityOption) {
+function toggle(a: CrmActivityOption) {
   if (blockedReason(a)) return;
-  emit('pick', a);
+  checked.value = checked.value.includes(a.activityId)
+    ? checked.value.filter((id) => id !== a.activityId)
+    : [...checked.value, a.activityId];
+}
+
+/** The ticked activities that are on the day shown, in the order ticked. */
+const picked = computed(() => {
+  const byId = new Map((props.list?.items ?? []).map((a) => [a.activityId, a]));
+  return checked.value.map((id) => byId.get(id)).filter((a): a is CrmActivityOption => !!a && !blockedReason(a));
+});
+
+function use() {
+  if (!picked.value.length) return;
+  emit('pick', picked.value);
   emit('update:modelValue', false);
 }
 </script>
@@ -78,8 +100,11 @@ function pick(a: CrmActivityOption) {
     <v-card class="crm">
       <header class="crm__head">
         <div>
-          <h2 class="crm__title">Pick a CRM activity</h2>
-          <p class="crm__sub">Your CRM activities, one day at a time. Picking one sets the line's date. You still enter the amount and receipt.</p>
+          <h2 class="crm__title">Pick CRM activities</h2>
+          <p class="crm__sub">
+            Your CRM activities, one day at a time. Tick each instrument the expense covers; their service no., instrument and serial
+            are joined with " / ". You still enter the amount and receipt.
+          </p>
         </div>
         <v-btn class="press" icon="mdi-close" variant="text" size="small" aria-label="Close" @click="emit('update:modelValue', false)" />
       </header>
@@ -140,13 +165,20 @@ function pick(a: CrmActivityOption) {
             <li v-for="a in items" :key="a.activityId">
               <button
                 type="button"
+                role="checkbox"
                 class="act press"
-                :class="{ 'act--off': !!blockedReason(a) }"
+                :class="{ 'act--off': !!blockedReason(a), 'act--on': checked.includes(a.activityId) }"
                 :disabled="!!blockedReason(a)"
-                :aria-label="`Use ${a.activityId}${a.customerName ? `, ${a.customerName}` : ''}`"
-                @click="pick(a)"
+                :aria-checked="checked.includes(a.activityId)"
+                :aria-label="`${a.activityId}${a.customerName ? `, ${a.customerName}` : ''}`"
+                @click="toggle(a)"
               >
                 <div class="act__top">
+                  <v-icon
+                    class="act__check"
+                    size="18"
+                    :icon="checked.includes(a.activityId) ? 'mdi-checkbox-marked' : 'mdi-checkbox-blank-outline'"
+                  />
                   <span class="act__date">{{ formatDate(a.activityDate) }}</span>
                   <span class="mono act__id">{{ a.activityId }}</span>
                   <v-chip v-if="a.activityType" size="x-small" label variant="tonal">{{ a.activityType }}</v-chip>
@@ -168,6 +200,18 @@ function pick(a: CrmActivityOption) {
           </ul>
         </template>
       </v-card-text>
+
+      <template v-if="list?.linked">
+        <v-divider />
+        <v-card-actions class="px-4 py-3">
+          <span class="crm__count">{{ picked.length ? `${picked.length} ticked` : 'Tick one or more activities' }}</span>
+          <v-spacer />
+          <v-btn class="press" variant="text" @click="emit('update:modelValue', false)">Cancel</v-btn>
+          <v-btn class="press" color="primary" variant="flat" :disabled="!picked.length" @click="use">
+            {{ picked.length > 1 ? `Use ${picked.length} activities` : 'Use activity' }}
+          </v-btn>
+        </v-card-actions>
+      </template>
     </v-card>
   </v-dialog>
 </template>
@@ -216,6 +260,10 @@ function pick(a: CrmActivityOption) {
   padding: 24px 0;
   color: var(--ink-3);
 }
+.crm__count {
+  font-size: 13px;
+  color: var(--ink-3);
+}
 .crm__empty {
   padding: 12px 0;
   font-size: 13px;
@@ -256,9 +304,19 @@ function pick(a: CrmActivityOption) {
   outline: 2px solid var(--navy);
   outline-offset: 2px;
 }
+.act--on {
+  border-color: var(--navy);
+  background: var(--navy-soft);
+}
 .act--off {
   cursor: not-allowed;
   opacity: 0.6;
+}
+.act__check {
+  color: var(--ink-3);
+}
+.act--on .act__check {
+  color: var(--navy);
 }
 .act__top {
   display: flex;
