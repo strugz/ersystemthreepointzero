@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-28
 
-- **Healthy living page** (not yet committed). A public **Healthy living** page (`/healthy-living`, no sign-in
+- **Healthy living page** (PR #36). A public **Healthy living** page (`/healthy-living`, no sign-in
   needed; on Render `https://ersystemthreepointzero.onrender.com/healthy-living`) with a quote of the day and six
   everyday healthy habits. Signed-in users also reach it under **Wellness** in the navigation pane (in **More** on
   phones), and the sign-in page links to it. The quote changes at local midnight and is the same for everyone that
