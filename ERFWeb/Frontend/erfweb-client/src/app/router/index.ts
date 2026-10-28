@@ -150,6 +150,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: entitlementReaderRoles },
   },
   {
+    path: '/healthy-living',
+    name: 'healthy-living',
+    // Public: no sign-in needed.
+    component: () => import('@/views/HealthyLivingView.vue'),
+  },
+  {
     path: '/forbidden',
     name: 'forbidden',
     component: () => import('@/views/ForbiddenView.vue'),
