@@ -22,8 +22,9 @@ const habits = [
       <h1 id="quote-heading" class="hero__label">Quote of the day</h1>
       <blockquote class="hero__quote">
         <v-icon icon="mdi-format-quote-open" size="28" class="hero__mark" aria-hidden="true" />
-        {{ quote }}
+        {{ quote.text }}
       </blockquote>
+      <p v-if="quote.source" class="hero__source">— {{ quote.source }}</p>
       <p class="hero__sub">A new quote every day. Come back tomorrow for the next one.</p>
     </section>
 
@@ -77,6 +78,12 @@ const habits = [
 .hero__mark {
   vertical-align: top;
   margin-right: 4px;
+  color: var(--brand-accent);
+}
+.hero__source {
+  margin: -4px 0 12px;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--brand-accent);
 }
 .hero__sub {

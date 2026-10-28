@@ -18,6 +18,9 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-28
 
+- **Bible verses in the daily quote** (not yet committed). The quote of the day now alternates: a healthy-living
+  saying one day, a Bible verse (King James Version, public domain) the next, shown with its reference on the page
+  and in the dialog. The verses are `bibleVerses` in `src/features/wellness/quotes.ts`.
 - **Healthy living page moved to `/random-quotes`** (PR #37). On Render:
   `https://ersystemthreepointzero.onrender.com/random-quotes`. The old `/healthy-living` address redirects there.
 - **Daily quote dialog** (PR #37). The first page a user opens after signing in each day shows a
@@ -283,7 +286,9 @@ the commit comes from `RENDER_GIT_COMMIT` on Render, otherwise `git rev-parse --
 `features/wellness/components/HealthyLivingContent.vue`) is public: signed-out visitors get a plain page with a
 **Sign in** button, signed-in users see it inside the app shell. It shows one quote a day from
 `features/wellness/quotes.ts` (picked by the local calendar day, so consecutive days differ) plus general
-healthy-habit tips. To add or change quotes, edit that list; nothing is stored or sent to the API.
+healthy-habit tips. Even local days show a saying from `healthyQuotes`, odd days a Bible verse
+(King James Version) from `bibleVerses` with its reference. To add or change quotes or verses, edit those lists;
+nothing is stored or sent to the API.
 The same quote also appears once a day in a dialog on the first signed-in page
 (`features/wellness/components/DailyQuoteDialog.vue`, mounted by `AuthenticatedLayout`); the day it was last shown
 is kept per user in the browser's `localStorage` (`erfweb.dailyQuote.<userId>`), so a new browser shows it again.

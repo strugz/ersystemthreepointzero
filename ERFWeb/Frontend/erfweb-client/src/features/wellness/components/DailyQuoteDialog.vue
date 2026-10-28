@@ -42,8 +42,9 @@ onMounted(() => {
       <v-card-text>
         <blockquote class="quote-card__quote">
           <v-icon icon="mdi-format-quote-open" size="24" class="quote-card__mark" aria-hidden="true" />
-          {{ quote }}
+          {{ quote.text }}
         </blockquote>
+        <p v-if="quote.source" class="quote-card__source">— {{ quote.source }}</p>
       </v-card-text>
       <v-divider />
       <v-card-actions class="px-4 py-3">
@@ -87,6 +88,12 @@ onMounted(() => {
 .quote-card__mark {
   vertical-align: top;
   margin-right: 4px;
+  color: var(--brass);
+}
+.quote-card__source {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--brass);
 }
 </style>
