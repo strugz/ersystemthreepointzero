@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-28
 
-- **Bible verses in the daily quote** (not yet committed). The quote of the day now alternates: a healthy-living
+- **Bible verses in the daily quote** (PR #38). The quote of the day now alternates: a healthy-living
   saying one day, a Bible verse (King James Version, public domain) the next, shown with its reference on the page
   and in the dialog. The verses are `bibleVerses` in `src/features/wellness/quotes.ts`.
 - **Healthy living page moved to `/random-quotes`** (PR #37). On Render:
