@@ -16,6 +16,14 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-10-28
+
+- **Healthy living page** (PR #36). A public **Healthy living** page (`/healthy-living`, no sign-in
+  needed; on Render `https://ersystemthreepointzero.onrender.com/healthy-living`) with a quote of the day and six
+  everyday healthy habits. Signed-in users also reach it under **Wellness** in the navigation pane (in **More** on
+  phones), and the sign-in page links to it. The quote changes at local midnight and is the same for everyone that
+  day; the quotes live in `src/features/wellness/quotes.ts` (frontend only, no API or database change).
+
 ### 2026-10-27
 
 - **SLA reminder status on the Rules page** (PR #35). Every daily reminder run is now recorded in
@@ -264,6 +272,12 @@ prefix. For a production build served behind that rule, set `VITE_API_BASE_URL` 
 **Version shown to users:** the sign-in page and the bottom of every page show `ERFWeb v<version> · <commit>`. The
 version is `"version"` in `package.json` (bump it for each release, e.g. `npm version minor --no-git-tag-version`);
 the commit comes from `RENDER_GIT_COMMIT` on Render, otherwise `git rev-parse --short HEAD`, otherwise `local`.
+
+**Healthy living page:** `/healthy-living` (`views/HealthyLivingView.vue`, content in
+`features/wellness/components/HealthyLivingContent.vue`) is public: signed-out visitors get a plain page with a
+**Sign in** button, signed-in users see it inside the app shell. It shows one quote a day from
+`features/wellness/quotes.ts` (picked by the local calendar day, so consecutive days differ) plus general
+healthy-habit tips. To add or change quotes, edit that list; nothing is stored or sent to the API.
 
 ## Reporting — R47 "EXPENSE REPORT" (plan Phase 3)
 

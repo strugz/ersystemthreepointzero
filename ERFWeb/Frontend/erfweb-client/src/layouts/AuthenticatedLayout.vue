@@ -108,16 +108,20 @@ const entitlementNav = computed<NavItem[]>(() => {
   return items;
 });
 
+// Open to every signed-in user; kept out of the main nav so the phone bottom bar stays at four items.
+const wellnessNav: NavItem[] = [{ title: 'Healthy living', icon: 'mdi-heart-pulse', to: { name: 'healthy-living' }, exact: true }];
+
 /** Groups shown after the main nav, each behind a separator on the rail and a divider in "More". */
 const navGroups = computed(() =>
   [
     { label: 'Work queues', items: workNav.value },
     { label: 'Signatory structure', items: entitlementNav.value },
     { label: 'Administration', items: adminNav.value },
+    { label: 'Wellness', items: wellnessNav },
   ].filter((g) => g.items.length > 0),
 );
 
-const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications', 'cost-center-budgets']);
+const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications', 'cost-center-budgets', 'healthy-living']);
 
 const roleSummary = computed(() => (session.user?.roles ?? []).map(roleLabel).join(' · '));
 const moreOpen = ref(false);

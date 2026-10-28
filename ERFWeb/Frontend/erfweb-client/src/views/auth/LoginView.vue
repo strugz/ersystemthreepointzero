@@ -105,6 +105,9 @@ async function submit() {
           />
           <v-btn type="submit" class="press mt-2" color="primary" variant="flat" block size="large" :loading="loading">Sign in</v-btn>
         </v-form>
+        <router-link class="login__health" :to="{ name: 'healthy-living' }">
+          <v-icon icon="mdi-heart-pulse" size="16" /> Healthy living: today's quote
+        </router-link>
       </div>
 
       <div class="login__footer">
@@ -276,6 +279,20 @@ async function submit() {
   font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+.login__health {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+.login__health:hover {
+  color: var(--navy);
+  text-decoration: underline;
 }
 .login__sub {
   margin: 4px 0 24px;
