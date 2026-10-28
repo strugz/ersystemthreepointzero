@@ -8,6 +8,7 @@ import { useThemeStore } from '@/app/stores/theme';
 import type { ThemePreference } from '@/app/theme';
 import { roleLabel } from '@/features/auth/labels';
 import { entitlementReaderRoles, hasAnyRole, rateNavRoles } from '@/features/entitlements/access';
+import DailyQuoteDialog from '@/features/wellness/components/DailyQuoteDialog.vue';
 import AppErmsMark from '@/shared/ui/AppErmsMark.vue';
 import AppSnackbar from '@/shared/ui/AppSnackbar.vue';
 import { appVersionLabel } from '@/shared/appVersion';
@@ -109,7 +110,7 @@ const entitlementNav = computed<NavItem[]>(() => {
 });
 
 // Open to every signed-in user; kept out of the main nav so the phone bottom bar stays at four items.
-const wellnessNav: NavItem[] = [{ title: 'Healthy living', icon: 'mdi-heart-pulse', to: { name: 'healthy-living' }, exact: true }];
+const wellnessNav: NavItem[] = [{ title: 'Healthy living', icon: 'mdi-heart-pulse', to: { name: 'random-quotes' }, exact: true }];
 
 /** Groups shown after the main nav, each behind a separator on the rail and a divider in "More". */
 const navGroups = computed(() =>
@@ -121,7 +122,7 @@ const navGroups = computed(() =>
   ].filter((g) => g.items.length > 0),
 );
 
-const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications', 'cost-center-budgets', 'healthy-living']);
+const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications', 'cost-center-budgets', 'random-quotes']);
 
 const roleSummary = computed(() => (session.user?.roles ?? []).map(roleLabel).join(' · '));
 const moreOpen = ref(false);
@@ -405,6 +406,11 @@ async function logout() {
   </v-bottom-navigation>
 
   <AppSnackbar />
+  <!-- First signed-in page of the day; not while a password change is forced or on the page that already shows it. -->
+  <DailyQuoteDialog
+    v-if="session.user && !session.user.mustChangePassword && route.name !== 'random-quotes'"
+    :user-id="session.user.userId"
+  />
 </template>
 
 <style scoped>

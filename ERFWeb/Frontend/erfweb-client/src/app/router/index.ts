@@ -150,11 +150,13 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: entitlementReaderRoles },
   },
   {
-    path: '/healthy-living',
-    name: 'healthy-living',
+    path: '/random-quotes',
+    name: 'random-quotes',
     // Public: no sign-in needed.
     component: () => import('@/views/HealthyLivingView.vue'),
   },
+  // The page's first address (PR #36); kept so links already shared still work.
+  { path: '/healthy-living', redirect: { name: 'random-quotes' } },
   {
     path: '/forbidden',
     name: 'forbidden',

@@ -37,7 +37,7 @@ export const healthyQuotes: readonly string[] = [
 ];
 
 /** Day number since the epoch in the viewer's local calendar, so the quote changes at local midnight. */
-function localDayNumber(date: Date): number {
+export function localDayNumber(date: Date): number {
   return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000);
 }
 
