@@ -93,6 +93,7 @@ Every change that adds, removes or changes behaviour, an endpoint, a setting, a 
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
+- **2026-10-28:** A **Quote of the day** dialog on the first signed-in page each day (once per user per browser, `DailyQuoteDialog`); the Healthy living page moved to `/random-quotes` (old `/healthy-living` redirects); frontend only (not yet committed).
 - **2026-10-28:** public **Healthy living** page (`/healthy-living`, no sign-in; Wellness nav group and a link on the sign-in page): a quote of the day from `features/wellness/quotes.ts` plus healthy-habit tips; frontend only (PR #36).
 - **2026-10-27:** Each SLA reminder run is recorded in `workflow_audit` (`ReminderRun` / `ReminderRunFailed`) and shown on an **SLA reminders** card on the Rules page (`GET /api/admin/reminders/status`) (PR #35).
 - **2026-10-27:** R47 ENDORSED BY and APPROVED BY signatures print above the names, not over them (PR #34).

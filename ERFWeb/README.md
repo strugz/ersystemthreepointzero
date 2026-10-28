@@ -18,6 +18,12 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-28
 
+- **Healthy living page moved to `/random-quotes`** (not yet committed). On Render:
+  `https://ersystemthreepointzero.onrender.com/random-quotes`. The old `/healthy-living` address redirects there.
+- **Daily quote dialog** (not yet committed). The first page a user opens after signing in each day shows a
+  **Quote of the day** dialog (the same quote as the Healthy living page) with **Healthy tips** and **Thanks**. It shows
+  once a day per user in that browser (remembered in browser storage), not while a password change is forced and not
+  on the Healthy living page itself. Frontend only.
 - **Healthy living page** (PR #36). A public **Healthy living** page (`/healthy-living`, no sign-in
   needed; on Render `https://ersystemthreepointzero.onrender.com/healthy-living`) with a quote of the day and six
   everyday healthy habits. Signed-in users also reach it under **Wellness** in the navigation pane (in **More** on
@@ -273,11 +279,14 @@ prefix. For a production build served behind that rule, set `VITE_API_BASE_URL` 
 version is `"version"` in `package.json` (bump it for each release, e.g. `npm version minor --no-git-tag-version`);
 the commit comes from `RENDER_GIT_COMMIT` on Render, otherwise `git rev-parse --short HEAD`, otherwise `local`.
 
-**Healthy living page:** `/healthy-living` (`views/HealthyLivingView.vue`, content in
+**Healthy living page:** `/random-quotes` (`views/HealthyLivingView.vue`; the old `/healthy-living` redirects here; content in
 `features/wellness/components/HealthyLivingContent.vue`) is public: signed-out visitors get a plain page with a
 **Sign in** button, signed-in users see it inside the app shell. It shows one quote a day from
 `features/wellness/quotes.ts` (picked by the local calendar day, so consecutive days differ) plus general
 healthy-habit tips. To add or change quotes, edit that list; nothing is stored or sent to the API.
+The same quote also appears once a day in a dialog on the first signed-in page
+(`features/wellness/components/DailyQuoteDialog.vue`, mounted by `AuthenticatedLayout`); the day it was last shown
+is kept per user in the browser's `localStorage` (`erfweb.dailyQuote.<userId>`), so a new browser shows it again.
 
 ## Reporting — R47 "EXPENSE REPORT" (plan Phase 3)
 

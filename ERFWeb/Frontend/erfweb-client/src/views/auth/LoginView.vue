@@ -105,7 +105,7 @@ async function submit() {
           />
           <v-btn type="submit" class="press mt-2" color="primary" variant="flat" block size="large" :loading="loading">Sign in</v-btn>
         </v-form>
-        <router-link class="login__health" :to="{ name: 'healthy-living' }">
+        <router-link class="login__health" :to="{ name: 'random-quotes' }">
           <v-icon icon="mdi-heart-pulse" size="16" /> Healthy living: today's quote
         </router-link>
       </div>
