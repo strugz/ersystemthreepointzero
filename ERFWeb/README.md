@@ -18,9 +18,9 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-28
 
-- **Healthy living page moved to `/random-quotes`** (not yet committed). On Render:
+- **Healthy living page moved to `/random-quotes`** (PR #37). On Render:
   `https://ersystemthreepointzero.onrender.com/random-quotes`. The old `/healthy-living` address redirects there.
-- **Daily quote dialog** (not yet committed). The first page a user opens after signing in each day shows a
+- **Daily quote dialog** (PR #37). The first page a user opens after signing in each day shows a
   **Quote of the day** dialog (the same quote as the Healthy living page) with **Healthy tips** and **Thanks**. It shows
   once a day per user in that browser (remembered in browser storage), not while a password change is forced and not
   on the Healthy living page itself. Frontend only.
