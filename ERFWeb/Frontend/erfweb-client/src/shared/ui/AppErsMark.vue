@@ -1,11 +1,11 @@
 <script setup lang="ts">
-// The ERMS "Ledger E": three bars of an E with the middle one in gold, like a line on a ledger.
+// The ERS "Ledger E": three bars of an E with the middle one in gold, like a line on a ledger.
 // `inverse` draws a white tile with navy bars for navy surfaces and dark mode.
 withDefaults(defineProps<{ size?: number; inverse?: boolean }>(), { size: 40, inverse: false });
 </script>
 
 <template>
-  <svg :width="size" :height="size" viewBox="0 0 64 64" aria-hidden="true" focusable="false" class="erms-mark">
+  <svg :width="size" :height="size" viewBox="0 0 64 64" aria-hidden="true" focusable="false" class="ers-mark">
     <rect width="64" height="64" rx="15" :fill="inverse ? '#ffffff' : '#16294a'" />
     <g :fill="inverse ? '#16294a' : '#ffffff'">
       <rect x="16" y="15" width="8" height="34" rx="1.5" />
@@ -17,7 +17,7 @@ withDefaults(defineProps<{ size?: number; inverse?: boolean }>(), { size: 40, in
 </template>
 
 <style scoped>
-.erms-mark {
+.ers-mark {
   display: block;
   flex: none;
 }

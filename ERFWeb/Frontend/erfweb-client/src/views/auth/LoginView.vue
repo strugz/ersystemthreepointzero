@@ -6,7 +6,7 @@ import { useThemeStore } from '@/app/stores/theme';
 import { ApiError } from '@/shared/api/client';
 import { describeError } from '@/shared/composables/useSnackbar';
 import { appVersionLabel } from '@/shared/appVersion';
-import AppErmsMark from '@/shared/ui/AppErmsMark.vue';
+import AppErsMark from '@/shared/ui/AppErsMark.vue';
 
 const session = useSessionStore();
 const theme = useThemeStore();
@@ -77,10 +77,10 @@ async function submit() {
 
       <div class="login__panel page-enter">
         <div class="login__lockup">
-          <AppErmsMark :size="52" :inverse="theme.isDark" />
+          <AppErsMark :size="52" :inverse="theme.isDark" />
           <div class="login__wordmark">
-            <span class="login__erms">ERMS</span>
-            <span class="login__tagline">Expense Report Management System</span>
+            <span class="login__ers">ERS</span>
+            <span class="login__tagline">Expense Report System</span>
           </div>
         </div>
         <h1 class="login__title">Sign in</h1>
@@ -257,7 +257,7 @@ async function submit() {
   gap: 5px;
 }
 /* Manrope is loaded at weight 800 only, for the wordmark. */
-.login__erms {
+.login__ers {
   font-family: Manrope, var(--font-ui), sans-serif;
   font-size: 40px;
   font-weight: 800;

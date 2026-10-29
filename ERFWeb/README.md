@@ -18,6 +18,10 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-29
 
+- **ERMS renamed to ERS, Expense Report System** (not yet committed). The sign-in wordmark reads **ERS** /
+  "Expense Report System", the public Healthy living page header reads "ERS · Healthy living", and the logo
+  component is `AppErsMark`. Frontend only: the database name `erms_db` and the Lasius SMS `Application` value
+  (`ERMS`, the name the SMS gateway knows this system by) are unchanged.
 - **Bible verses in modern English** (PR #40). The 18 verses in the quote of the day now use the World
   English Bible, British Edition (modern English, public domain, keeps "the LORD") instead of the King James
   Version. Same verses and references; frontend only.
