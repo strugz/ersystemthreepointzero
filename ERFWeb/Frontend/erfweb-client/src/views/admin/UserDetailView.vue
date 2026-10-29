@@ -168,6 +168,23 @@ async function uploadSignature(file: File) {
   }
 }
 
+const removeSignatureDialog = ref(false);
+const removingSignature = ref(false);
+
+async function removeSignature() {
+  removingSignature.value = true;
+  try {
+    user.value = await adminApi.deleteSignature(userId);
+    removeSignatureDialog.value = false;
+    snack.success('Signature removed.');
+  } catch (err) {
+    await handleMutationError(err, 'Unable to remove the signature.');
+    removeSignatureDialog.value = false;
+  } finally {
+    removingSignature.value = false;
+  }
+}
+
 // ---- roles ------------------------------------------------------------------
 const rolesCard = ref<InstanceType<typeof RoleGrantsCard> | null>(null);
 const actingRole = ref(false);
@@ -295,7 +312,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
             @clear-grant-errors="grantErrors = null"
           />
 
-          <SignatureUpload v-if="!lgAndUp" :has-signature="user.hasSignature" :image-url="signatureUrl" :uploading="uploadingSignature" :disabled="isSelf" @upload="uploadSignature" />
+          <SignatureUpload v-if="!lgAndUp" :has-signature="user.hasSignature" :image-url="signatureUrl" :uploading="uploadingSignature" :removing="removingSignature" :disabled="isSelf" @upload="uploadSignature" @remove="removeSignatureDialog = true" />
         </div>
 
         <aside v-if="lgAndUp" class="detail__side">
@@ -307,7 +324,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
               <div class="field"><span class="lbl">Cooling period</span><span class="val">{{ user.coolingPeriodElapsed ? 'Over' : 'In progress' }}</span></div>
             </div>
           </v-card>
-          <SignatureUpload :has-signature="user.hasSignature" :image-url="signatureUrl" :uploading="uploadingSignature" :disabled="isSelf" @upload="uploadSignature" />
+          <SignatureUpload :has-signature="user.hasSignature" :image-url="signatureUrl" :uploading="uploadingSignature" :removing="removingSignature" :disabled="isSelf" @upload="uploadSignature" @remove="removeSignatureDialog = true" />
         </aside>
       </div>
 
@@ -323,6 +340,16 @@ async function revoke(grant: RoleGrant, note: string | null) {
         :confirm-color="user.isActive ? 'error' : 'success'"
         :loading="togglingActive"
         @confirm="toggleActive"
+      />
+
+      <AppConfirmDialog
+        v-model="removeSignatureDialog"
+        title="Remove signature"
+        :message="`${user.fullName}'s signature will be deleted. Every R47 they prepared or approved, including past ones, will print their name without a signature until a new one is uploaded.`"
+        confirm-text="Remove"
+        confirm-color="error"
+        :loading="removingSignature"
+        @confirm="removeSignature"
       />
 
       <ResetPasswordDialog v-model="passwordOpen" :full-name="user.fullName" :saving="savingPassword" :errors="passwordErrors" @submit="resetPassword" />

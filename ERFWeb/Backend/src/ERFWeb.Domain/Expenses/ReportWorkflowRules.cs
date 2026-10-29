@@ -38,7 +38,6 @@ public static class ReportWorkflowRules
     public static IReadOnlyList<string> FilingBlockers(
         ReportStatus status,
         int activeLineCount,
-        bool employeeHasSignature,
         int approverCount,
         string? purpose,
         ReportType reportType,
@@ -62,11 +61,6 @@ public static class ReportWorkflowRules
         if (activeLineCount == 0)
         {
             reasons.Add("No expense data to file. Add at least one expense line.");
-        }
-
-        if (!employeeHasSignature)
-        {
-            reasons.Add("Please insert your signature first (Account Settings > Signature).");
         }
 
         if (approverCount == 0)

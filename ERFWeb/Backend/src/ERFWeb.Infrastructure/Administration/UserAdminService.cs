@@ -320,6 +320,30 @@ public sealed class UserAdminService(
         return await reader.ReadAsync(userId, ct);
     }
 
+    public async Task<UserDetailDto> DeleteSignatureAsync(long userId, CancellationToken ct = default)
+    {
+        RefuseSelfChange(userId);
+
+        await tx.ExecuteAsync(async token =>
+        {
+            var entity = await LoadAsync(userId, token);
+            if (entity.Signature is not { Length: > 0 })
+            {
+                throw new ConflictException("No signature is on file.");
+            }
+
+            // The R47 reads signatures live, so every report this user prepared or approved prints without one from now on.
+            entity.Signature = null;
+            await db.SaveWithConcurrencyAsync(token);
+
+            await audit.WriteAsync(new WorkflowAuditEntry(
+                AdminAuditEvents.SignatureDeleted, null, user.UserId,
+                JsonSerializer.Serialize(new { userId, entity.Username })), token);
+        }, ct);
+
+        return await reader.ReadAsync(userId, ct);
+    }
+
     public async Task<SignatureImageDto> GetSignatureAsync(long userId, CancellationToken ct = default)
     {
         var bytes = await db.Users.AsNoTracking()

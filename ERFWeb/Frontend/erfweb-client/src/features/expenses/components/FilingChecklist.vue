@@ -1,8 +1,10 @@
 <script setup lang="ts">
 // "Before you file" — every precondition, green when met, amber when still open.
+// Optional items never block filing and show grey instead of amber when unmet.
 export interface ChecklistItem {
   ok: boolean;
   text: string;
+  optional?: boolean;
 }
 
 defineProps<{ items: ChecklistItem[]; approverNames: string[] }>();
@@ -15,6 +17,7 @@ defineProps<{ items: ChecklistItem[]; approverNames: string[] }>();
       <ul class="checklist__list">
         <li v-for="item in items" :key="item.text" class="checklist__row">
           <svg v-if="item.ok" class="checklist__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: rgb(var(--v-theme-success))"><path d="M5 12l5 5L20 7"></path></svg>
+          <svg v-else-if="item.optional" class="checklist__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="color: var(--ink-3)"><path d="M6 12h12"></path></svg>
           <svg v-else class="checklist__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="color: rgb(var(--v-theme-warning))"><circle cx="12" cy="12" r="8"></circle></svg>
           <span>{{ item.text }}</span>
         </li>

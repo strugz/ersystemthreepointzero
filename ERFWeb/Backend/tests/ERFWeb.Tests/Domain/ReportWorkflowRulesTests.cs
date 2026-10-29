@@ -41,7 +41,7 @@ public class ReportWorkflowRulesTests
     public void FilingBlockers_ReadyReport_HasNone()
     {
         var blockers = ReportWorkflowRules.FilingBlockers(
-            ReportStatus.New, activeLineCount: 3, employeeHasSignature: true, approverCount: 2,
+            ReportStatus.New, activeLineCount: 3, approverCount: 2,
             purpose: "reimbursement", ReportType.Reimbursement, cashAdvanceAmount: 0m, revolvingFundAmount: 0m);
 
         Assert.Empty(blockers);
@@ -51,12 +51,11 @@ public class ReportWorkflowRulesTests
     public void FilingBlockers_ListsEveryMissingPrecondition()
     {
         var blockers = ReportWorkflowRules.FilingBlockers(
-            ReportStatus.ForApproval, activeLineCount: 0, employeeHasSignature: false, approverCount: 0,
+            ReportStatus.ForApproval, activeLineCount: 0, approverCount: 0,
             purpose: null, ReportType.CashAdvanceLiquidation, cashAdvanceAmount: 0m, revolvingFundAmount: 0m);
 
-        Assert.Equal(6, blockers.Count);
+        Assert.Equal(5, blockers.Count);
         Assert.Contains(blockers, b => b.Contains("No expense data", StringComparison.Ordinal));
-        Assert.Contains(blockers, b => b.Contains("signature", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(blockers, b => b.Contains("approval route", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(blockers, b => b.Contains("cash advance", StringComparison.OrdinalIgnoreCase));
     }
@@ -64,8 +63,8 @@ public class ReportWorkflowRulesTests
     [Fact]
     public void FilingBlockers_CashAdvanceOnlyRequiredForLiquidation()
     {
-        var reimbursement = ReportWorkflowRules.FilingBlockers(ReportStatus.Returned, 1, true, 1, "trip", ReportType.Reimbursement, 0m, 0m);
-        var liquidation = ReportWorkflowRules.FilingBlockers(ReportStatus.Returned, 1, true, 1, "trip", ReportType.CashAdvanceLiquidation, 0m, 0m);
+        var reimbursement = ReportWorkflowRules.FilingBlockers(ReportStatus.Returned, 1, 1, "trip", ReportType.Reimbursement, 0m, 0m);
+        var liquidation = ReportWorkflowRules.FilingBlockers(ReportStatus.Returned, 1, 1, "trip", ReportType.CashAdvanceLiquidation, 0m, 0m);
 
         Assert.Empty(reimbursement);
         Assert.Single(liquidation);
@@ -74,9 +73,9 @@ public class ReportWorkflowRulesTests
     [Fact]
     public void FilingBlockers_RevolvingFundRequiredOnlyForReplenishment()
     {
-        var missing = ReportWorkflowRules.FilingBlockers(ReportStatus.New, 1, true, 1, "fund", ReportType.RevolvingFund, 0m, 0m);
-        var present = ReportWorkflowRules.FilingBlockers(ReportStatus.New, 1, true, 1, "fund", ReportType.RevolvingFund, 0m, 5000m);
-        var liquidation = ReportWorkflowRules.FilingBlockers(ReportStatus.New, 1, true, 1, "trip", ReportType.CashAdvanceLiquidation, 3000m, 0m);
+        var missing = ReportWorkflowRules.FilingBlockers(ReportStatus.New, 1, 1, "fund", ReportType.RevolvingFund, 0m, 0m);
+        var present = ReportWorkflowRules.FilingBlockers(ReportStatus.New, 1, 1, "fund", ReportType.RevolvingFund, 0m, 5000m);
+        var liquidation = ReportWorkflowRules.FilingBlockers(ReportStatus.New, 1, 1, "trip", ReportType.CashAdvanceLiquidation, 3000m, 0m);
 
         Assert.Single(missing);
         Assert.Contains("revolving fund", missing[0], StringComparison.OrdinalIgnoreCase);

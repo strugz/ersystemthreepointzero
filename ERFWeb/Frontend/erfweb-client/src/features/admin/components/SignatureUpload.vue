@@ -4,18 +4,20 @@ import { onBeforeUnmount, ref, watch } from 'vue';
 /**
  * Signature image on file (PNG/JPEG) that the R47 prints for the preparer and, once they approve,
  * for the approver. Shows the image on file; a picked file is previewed beside it and only uploaded
- * when confirmed. The parent owns the upload call and bumps `imageUrl` after a successful save.
+ * when confirmed. The parent owns the upload and remove calls (and the remove confirmation) and bumps
+ * `imageUrl` after a successful save.
  */
 const props = withDefaults(
-  defineProps<{ hasSignature: boolean; imageUrl?: string | null; uploading?: boolean; disabled?: boolean }>(),
+  defineProps<{ hasSignature: boolean; imageUrl?: string | null; uploading?: boolean; removing?: boolean; disabled?: boolean }>(),
   {
     imageUrl: null,
     uploading: false,
+    removing: false,
     disabled: false,
   },
 );
 
-const emit = defineEmits<{ upload: [file: File] }>();
+const emit = defineEmits<{ upload: [file: File]; remove: [] }>();
 
 const ACCEPTED = new Set(['image/png', 'image/jpeg']);
 const picker = ref<HTMLInputElement | null>(null);
@@ -70,8 +72,8 @@ function save() {
     </div>
     <div class="pa-4 d-flex flex-column ga-3">
       <p class="text-body-2 text-medium-emphasis mb-0">
-        Printed on the R47 as the preparer's signature, and as the approver's signature once they approve. The account cannot file an
-        expense report until one is on file.
+        Printed on the R47 as the preparer's signature, and as the approver's signature once they approve. Optional: without one the
+        account can still file and signs the printed R47 instead.
       </p>
 
       <div class="sig-grid" :class="{ 'sig-grid--two': pending }">
@@ -98,9 +100,22 @@ function save() {
         </v-btn>
         <v-btn class="press" variant="text" size="small" :disabled="uploading" @click="clearPending">Cancel</v-btn>
       </div>
-      <div v-else>
-        <v-btn class="press" variant="outlined" size="small" prepend-icon="mdi-draw-pen" :disabled="disabled" @click="pick">
+      <div v-else class="d-flex flex-wrap ga-2">
+        <v-btn class="press" variant="outlined" size="small" prepend-icon="mdi-draw-pen" :disabled="disabled || removing" @click="pick">
           {{ hasSignature ? 'Replace signature' : 'Upload signature' }}
+        </v-btn>
+        <v-btn
+          v-if="hasSignature"
+          class="press"
+          variant="text"
+          color="error"
+          size="small"
+          prepend-icon="mdi-delete-outline"
+          :loading="removing"
+          :disabled="disabled"
+          @click="emit('remove')"
+        >
+          Remove signature
         </v-btn>
       </div>
       <input ref="picker" type="file" accept="image/png,image/jpeg" class="d-none" aria-label="Signature image" @change="onPicked" />

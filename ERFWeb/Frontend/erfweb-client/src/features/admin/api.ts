@@ -56,6 +56,7 @@ export const adminApi = {
     form.append('file', file, file.name);
     return api.postForm<UserDetail>(`${u(id)}/signature`, form);
   },
+  deleteSignature: (id: number) => api.del<UserDetail>(`${u(id)}/signature`),
   /** Direct URL of the signature on file, for an <img>; the browser sends the session cookie. */
   signatureUrl: (id: number, version = 0) => apiUrl(`${u(id)}/signature?v=${version}`),
   grantRole: (id: number, input: GrantRoleInput) => api.post<UserDetail>(`${u(id)}/roles`, input),
