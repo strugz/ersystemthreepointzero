@@ -18,11 +18,11 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-29
 
-- **Administrator can remove a user's signature** (not yet committed). **Users → (account) → Signature → Remove
+- **Administrator can remove a user's signature** (PR #39). **Users → (account) → Signature → Remove
   signature** deletes the signature on file after a confirmation (`DELETE /api/admin/users/{id}/signature`,
   SystemAdministrator only, never on the administrator's own account, audited as `Admin.SignatureDeleted`). The R47
   reads signatures when it prints, so that person's earlier reports and approvals print without it too.
-- **Employee signature optional for filing** (not yet committed). Filing no longer requires a signature on file:
+- **Employee signature optional for filing** (PR #39). Filing no longer requires a signature on file:
   the claimant still sends the printed R47 to Finance and can sign it there. The **Before you file** checklist shows
   the signature as an optional grey item that does not disable **File report**, and the API no longer refuses
   filing without one. With no signature on file the R47 prints only the name above EMPLOYEE'S SIGNATURE.
