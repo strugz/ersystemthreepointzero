@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-29
 
-- **ERMS renamed to ERS, Expense Report System** (not yet committed). The sign-in wordmark reads **ERS** /
+- **ERMS renamed to ERS, Expense Report System** (PR #41). The sign-in wordmark reads **ERS** /
   "Expense Report System", the public Healthy living page header reads "ERS · Healthy living", and the logo
   component is `AppErsMark`. Frontend only: the database name `erms_db` and the Lasius SMS `Application` value
   (`ERMS`, the name the SMS gateway knows this system by) are unchanged.
