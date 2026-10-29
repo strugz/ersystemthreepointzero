@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-29
 
-- **Bible verses in modern English** (not yet committed). The 18 verses in the quote of the day now use the World
+- **Bible verses in modern English** (PR #40). The 18 verses in the quote of the day now use the World
   English Bible, British Edition (modern English, public domain, keeps "the LORD") instead of the King James
   Version. Same verses and references; frontend only.
 - **Administrator can remove a user's signature** (PR #39). **Users → (account) → Signature → Remove
