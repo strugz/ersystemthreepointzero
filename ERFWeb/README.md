@@ -18,6 +18,9 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-10-29
 
+- **Bible verses in modern English** (PR #40). The 18 verses in the quote of the day now use the World
+  English Bible, British Edition (modern English, public domain, keeps "the LORD") instead of the King James
+  Version. Same verses and references; frontend only.
 - **Administrator can remove a user's signature** (PR #39). **Users → (account) → Signature → Remove
   signature** deletes the signature on file after a confirmation (`DELETE /api/admin/users/{id}/signature`,
   SystemAdministrator only, never on the administrator's own account, audited as `Admin.SignatureDeleted`). The R47
@@ -298,7 +301,7 @@ the commit comes from `RENDER_GIT_COMMIT` on Render, otherwise `git rev-parse --
 **Sign in** button, signed-in users see it inside the app shell. It shows one quote a day from
 `features/wellness/quotes.ts` (picked by the local calendar day, so consecutive days differ) plus general
 healthy-habit tips. Even local days show a saying from `healthyQuotes`, odd days a Bible verse
-(King James Version) from `bibleVerses` with its reference. To add or change quotes or verses, edit those lists;
+(World English Bible, British Edition: modern English, public domain) from `bibleVerses` with its reference. To add or change quotes or verses, edit those lists;
 nothing is stored or sent to the API.
 The same quote also appears once a day in a dialog on the first signed-in page
 (`features/wellness/components/DailyQuoteDialog.vue`, mounted by `AuthenticatedLayout`); the day it was last shown
