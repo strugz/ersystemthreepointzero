@@ -39,7 +39,7 @@ public sealed class ReportFilingService(
 
             var employee = await db.Users.AsNoTracking()
                 .Where(u => u.Id == report.EmployeeUserId)
-                .Select(u => new { u.FullName, u.CreatedAt, u.DepartmentId, HasSignature = u.Signature != null && u.Signature.Length > 0 })
+                .Select(u => new { u.FullName, u.CreatedAt, u.DepartmentId })
                 .FirstAsync(token);
 
             // Spec 9.11: a newly registered employee files only after the cooling period.
@@ -56,7 +56,7 @@ public sealed class ReportFilingService(
                 .Where(c => c.ReportId == reportId).SumAsync(c => (decimal?)c.Amount, token) ?? 0m;
 
             var blockers = ReportWorkflowRules.FilingBlockers(
-                report.Status, lineCount, employee.HasSignature, route.Count, report.Purpose, report.ReportType, cashAmount, report.RevolvingFundAmount,
+                report.Status, lineCount, route.Count, report.Purpose, report.ReportType, cashAmount, report.RevolvingFundAmount,
                 coolingElapsed, routing.Problem);
             if (blockers.Count > 0)
             {

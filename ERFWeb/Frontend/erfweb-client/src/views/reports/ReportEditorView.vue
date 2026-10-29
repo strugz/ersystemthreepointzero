@@ -396,7 +396,12 @@ const checklist = computed<ChecklistItem[]>(() => {
     items.push({ ok: r.revolvingFundAmount > 0, text: r.revolvingFundAmount > 0 ? 'Revolving fund amount recorded' : 'Enter the revolving fund amount' });
   }
   if (readiness.value) {
-    items.push({ ok: readiness.value.hasSignature, text: readiness.value.hasSignature ? 'Signature on file' : 'Signature not on file (Account settings)' });
+    // Optional: the claimant can sign the printed R47 they send to Finance instead.
+    items.push({
+      ok: readiness.value.hasSignature,
+      optional: true,
+      text: readiness.value.hasSignature ? 'Signature on file' : 'No signature on file (optional; sign the printed R47)',
+    });
     const routeOk = readiness.value.approverCount > 0 && !readiness.value.routingProblem;
     items.push({
       ok: routeOk,
@@ -413,7 +418,7 @@ const checklist = computed<ChecklistItem[]>(() => {
   }
   return items;
 });
-const canFileNow = computed(() => !!report.value?.canFile && checklist.value.every((i) => i.ok));
+const canFileNow = computed(() => !!report.value?.canFile && checklist.value.every((i) => i.ok || i.optional));
 
 async function fileReport() {
   acting.value = true;

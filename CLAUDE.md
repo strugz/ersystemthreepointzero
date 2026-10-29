@@ -93,6 +93,9 @@ Every change that adds, removes or changes behaviour, an endpoint, a setting, a 
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
+- **2026-10-29:** The System Administrator can remove a user's signature in the user console (`DELETE /api/admin/users/{id}/signature`, audited `Admin.SignatureDeleted`); earlier R47s print without it too, since signatures are read at print time (PR #39).
+- **2026-10-29:** The employee's signature is optional for filing (the printed R47 goes to Finance and can be signed there): no longer a filing blocker in Domain `ReportWorkflowRules.FilingBlockers`; optional grey item in the **Before you file** checklist (PR #39).
+
 - **2026-10-28:** The quote of the day alternates daily between a healthy-living saying and a Bible verse (KJV, shown with its reference; `bibleVerses` in `features/wellness/quotes.ts`); frontend only (PR #38).
 - **2026-10-28:** A **Quote of the day** dialog on the first signed-in page each day (once per user per browser, `DailyQuoteDialog`); the Healthy living page moved to `/random-quotes` (old `/healthy-living` redirects); frontend only (PR #37).
 - **2026-10-28:** public **Healthy living** page (`/healthy-living`, no sign-in; Wellness nav group and a link on the sign-in page): a quote of the day from `features/wellness/quotes.ts` plus healthy-habit tips; frontend only (PR #36).

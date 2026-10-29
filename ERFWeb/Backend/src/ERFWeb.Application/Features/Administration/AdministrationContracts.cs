@@ -123,6 +123,9 @@ public interface IUserAdminService
     Task ResetPasswordAsync(long userId, ResetPasswordRequest request, CancellationToken ct = default);
     Task<UserDetailDto> SetSignatureAsync(long userId, SetSignatureRequest request, CancellationToken ct = default);
 
+    /// <summary>Removes the signature on file; throws <c>ConflictException</c> when there is none.</summary>
+    Task<UserDetailDto> DeleteSignatureAsync(long userId, CancellationToken ct = default);
+
     /// <summary>The signature image on file; throws <c>NotFoundException</c> when there is none.</summary>
     Task<SignatureImageDto> GetSignatureAsync(long userId, CancellationToken ct = default);
 }
@@ -278,6 +281,7 @@ public static class AdminAuditEvents
     public const string UserDeactivated = "Admin.UserDeactivated";
     public const string PasswordReset = "Admin.PasswordReset";
     public const string SignatureSet = "Admin.SignatureSet";
+    public const string SignatureDeleted = "Admin.SignatureDeleted";
     public const string RoleGranted = "Admin.RoleGranted";
 
     /// <summary>Written only while dual approval applied; kept so the audit trail still names old rows.</summary>

@@ -106,6 +106,15 @@ public sealed class AdminUsersController(IUserAdminService users, IRoleGrantServ
         return Ok(await users.SetSignatureAsync(userId, new SetSignatureRequest(file.FileName, file.ContentType, stream), ct));
     }
 
+    /// <summary>Removes the signature on file. Filing does not need one; the claimant can sign the printed R47.</summary>
+    [HttpDelete("{userId:long}/signature")]
+    [ProducesResponseType<UserDetailDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<UserDetailDto>> DeleteSignature(long userId, CancellationToken ct) =>
+        Ok(await users.DeleteSignatureAsync(userId, ct));
+
     // ---------- Role grants ----------
 
     /// <summary>Grants a role. It applies at once.</summary>

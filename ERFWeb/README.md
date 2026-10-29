@@ -16,6 +16,17 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-10-29
+
+- **Administrator can remove a user's signature** (PR #39). **Users → (account) → Signature → Remove
+  signature** deletes the signature on file after a confirmation (`DELETE /api/admin/users/{id}/signature`,
+  SystemAdministrator only, never on the administrator's own account, audited as `Admin.SignatureDeleted`). The R47
+  reads signatures when it prints, so that person's earlier reports and approvals print without it too.
+- **Employee signature optional for filing** (PR #39). Filing no longer requires a signature on file:
+  the claimant still sends the printed R47 to Finance and can sign it there. The **Before you file** checklist shows
+  the signature as an optional grey item that does not disable **File report**, and the API no longer refuses
+  filing without one. With no signature on file the R47 prints only the name above EMPLOYEE'S SIGNATURE.
+
 ### 2026-10-28
 
 - **Bible verses in the daily quote** (PR #38). The quote of the day now alternates: a healthy-living
@@ -313,7 +324,8 @@ in APPROVED BY (a one-step route fills only APPROVED BY); each signature prints 
 name (never covering it) once that step is approved. REVIEWED BY is not an approver; the first value set wins: the employee's own (**Users → Edit →
 Reviewed by (R47)**, `users.r47_reviewed_by`, script `019`), then the department's (**Master data → Departments →
 Reviewed by**), then the setting `Reports.R47ReviewedBy` (default `FINANCE`) under **Rules → Expense report (R47)**. The employee's
-signature prints over their full name above EMPLOYEE'S SIGNATURE.
+signature, when one is on file, prints over their full name above EMPLOYEE'S SIGNATURE; without one only the name
+prints, for the claimant to sign the paper copy.
 
 > **License:** ERFWeb uses QuestPDF under the **Community** license (free, including commercial use)
 > because MDMPI's annual gross revenue is under the USD 1M threshold. The threshold is assessed on the
@@ -346,7 +358,7 @@ trigger stamps `record_history.changed_by`.
 | `GET /api/reports/{id}/crm-activities?date=YYYY-MM-DD` (report owner) | The owner's CRM activities on the line's date, every status, Completed first and marked when already claimed (see CRM activities on expense lines) |
 
 Rules (Domain, unit-tested): a report is editable only while `New` or `Returned`; filing requires ≥ 1 active
-line, the employee's signature on file, a configured approval route, a purpose, a cash-advance amount for a
+line, a configured approval route, a purpose, a cash-advance amount for a
 Liquidation of Cash Advance, and a revolving-fund amount for a Replenishment of Revolving Fund. The money block
 follows the type exactly as the desktop form did: only a Liquidation stores the CASH ADVANCE RECEIVED block, only a
 Replenishment stores the revolving fund, a Reimbursement stores neither. A line's total is **amount × multiplier**
@@ -430,7 +442,7 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 
 | Endpoint (policy) | Purpose |
 | --- | --- |
-| `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `…/signature` (SystemAdministrator) | Register and maintain accounts; load the signature printed on the R47 |
+| `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `GET/POST/DELETE …/signature` (SystemAdministrator) | Register and maintain accounts; load or remove the signature printed on the R47 |
 | `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/revoke` (SystemAdministrator) | Grant, revoke |
 | `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list. A cost center needs a department and carries `budgets` (`[{ year, amount }]`); saving sends the years to set or clear (`amount: null`) |
 | `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches, account email domains; stored in `app_settings` |
@@ -683,7 +695,9 @@ SPA: **Delegations** (`/delegations`).
 **Approver signatures on the R47:** the R47 prints each routed approver's signature on file once their step is
 approved (ENDORSED BY for Level 1, APPROVED BY for Level 2); a delegated step prints the delegate's name and
 signature, never the absent signatory's. The System Administrator loads signatures in the user console, with a
-preview.
+preview, and can remove one there (**Remove signature**, confirmed first; not on their own account; audited as
+`Admin.SignatureDeleted`). Signatures are read when the R47 is printed, so removing one also removes it from that
+person's earlier reports and approvals.
 
 **Summaries and exports:** the endpoints are listed under Approvals & Finance above (expense summary as CSV/PDF,
 approval inbox and Finance queue CSV, Finance aging). SPA: **Summary** page and export buttons on the Approvals and
