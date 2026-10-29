@@ -47,26 +47,30 @@ export function localDayNumber(date: Date): number {
   return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000);
 }
 
-/** Bible verses on health, rest, strength and peace, King James Version (public domain), quoted word for word. */
+/**
+ * Bible verses on health, rest, strength and peace, in modern English: World English Bible, British Edition
+ * (public domain), which keeps "the LORD". Word for word; Joshua 1:9, Matthew 6:34 and 1 Corinthians 6:19 are
+ * shortened to read on their own.
+ */
 export const bibleVerses: readonly DailyQuote[] = [
-  { text: 'Beloved, I wish above all things that thou mayest prosper and be in health, even as thy soul prospereth.', source: '3 John 1:2' },
-  { text: 'What? know ye not that your body is the temple of the Holy Ghost which is in you, which ye have of God, and ye are not your own?', source: '1 Corinthians 6:19' },
-  { text: 'A merry heart doeth good like a medicine: but a broken spirit drieth the bones.', source: 'Proverbs 17:22' },
-  { text: 'But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.', source: 'Isaiah 40:31' },
-  { text: 'Come unto me, all ye that labour and are heavy laden, and I will give you rest.', source: 'Matthew 11:28' },
-  { text: 'I can do all things through Christ which strengtheneth me.', source: 'Philippians 4:13' },
-  { text: 'This is the day which the LORD hath made; we will rejoice and be glad in it.', source: 'Psalm 118:24' },
-  { text: 'Pleasant words are as an honeycomb, sweet to the soul, and health to the bones.', source: 'Proverbs 16:24' },
-  { text: 'Whether therefore ye eat, or drink, or whatsoever ye do, do all to the glory of God.', source: '1 Corinthians 10:31' },
-  { text: 'Peace I leave with you, my peace I give unto you: not as the world giveth, give I unto you. Let not your heart be troubled, neither let it be afraid.', source: 'John 14:27' },
-  { text: 'Casting all your care upon him; for he careth for you.', source: '1 Peter 5:7' },
-  { text: 'Keep thy heart with all diligence; for out of it are the issues of life.', source: 'Proverbs 4:23' },
-  { text: 'And let us not be weary in well doing: for in due season we shall reap, if we faint not.', source: 'Galatians 6:9' },
-  { text: 'They are new every morning: great is thy faithfulness.', source: 'Lamentations 3:23' },
-  { text: 'Fear thou not; for I am with thee: be not dismayed; for I am thy God: I will strengthen thee; yea, I will help thee; yea, I will uphold thee with the right hand of my righteousness.', source: 'Isaiah 41:10' },
-  { text: 'Be strong and of a good courage; be not afraid, neither be thou dismayed: for the LORD thy God is with thee whithersoever thou goest.', source: 'Joshua 1:9' },
-  { text: 'It shall be health to thy navel, and marrow to thy bones.', source: 'Proverbs 3:8' },
-  { text: 'Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself.', source: 'Matthew 6:34' },
+  { text: 'Beloved, I pray that you may prosper in all things and be healthy, even as your soul prospers.', source: '3 John 1:2' },
+  { text: 'Don\'t you know that your body is a temple of the Holy Spirit who is in you, whom you have from God?', source: '1 Corinthians 6:19' },
+  { text: 'A cheerful heart makes good medicine, but a crushed spirit dries up the bones.', source: 'Proverbs 17:22' },
+  { text: 'But those who wait for the LORD will renew their strength. They will mount up with wings like eagles. They will run, and not be weary. They will walk, and not faint.', source: 'Isaiah 40:31' },
+  { text: 'Come to me, all you who labour and are heavily burdened, and I will give you rest.', source: 'Matthew 11:28' },
+  { text: 'I can do all things through Christ who strengthens me.', source: 'Philippians 4:13' },
+  { text: 'This is the day that the LORD has made. We will rejoice and be glad in it!', source: 'Psalm 118:24' },
+  { text: 'Pleasant words are a honeycomb, sweet to the soul, and health to the bones.', source: 'Proverbs 16:24' },
+  { text: 'Whether therefore you eat or drink, or whatever you do, do all to the glory of God.', source: '1 Corinthians 10:31' },
+  { text: 'Peace I leave with you. My peace I give to you; not as the world gives, I give to you. Don\'t let your heart be troubled, neither let it be fearful.', source: 'John 14:27' },
+  { text: 'Casting all your worries on him, because he cares for you.', source: '1 Peter 5:7' },
+  { text: 'Keep your heart with all diligence, for out of it is the wellspring of life.', source: 'Proverbs 4:23' },
+  { text: 'Let\'s not be weary in doing good, for we will reap in due season if we don\'t give up.', source: 'Galatians 6:9' },
+  { text: 'They are new every morning. Great is your faithfulness.', source: 'Lamentations 3:23' },
+  { text: 'Don\'t you be afraid, for I am with you. Don\'t be dismayed, for I am your God. I will strengthen you. Yes, I will help you. Yes, I will uphold you with the right hand of my righteousness.', source: 'Isaiah 41:10' },
+  { text: 'Be strong and courageous. Don\'t be afraid. Don\'t be dismayed, for the LORD your God is with you wherever you go.', source: 'Joshua 1:9' },
+  { text: 'It will be health to your body, and nourishment to your bones.', source: 'Proverbs 3:8' },
+  { text: 'Therefore don\'t be anxious for tomorrow, for tomorrow will be anxious for itself.', source: 'Matthew 6:34' },
 ];
 
 /**
