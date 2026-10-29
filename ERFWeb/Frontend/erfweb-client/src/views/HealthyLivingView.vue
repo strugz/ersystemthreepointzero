@@ -15,7 +15,7 @@ const session = useSessionStore();
 
   <v-main v-else class="public">
     <header class="public__bar">
-      <span class="public__brand">ERMS · Healthy living</span>
+      <span class="public__brand">ERS · Healthy living</span>
       <v-btn class="press" color="primary" variant="flat" prepend-icon="mdi-login" :to="{ name: 'login' }">Sign in</v-btn>
     </header>
     <div class="public__body">

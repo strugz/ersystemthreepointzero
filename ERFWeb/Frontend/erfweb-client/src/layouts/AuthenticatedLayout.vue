@@ -9,7 +9,7 @@ import type { ThemePreference } from '@/app/theme';
 import { roleLabel } from '@/features/auth/labels';
 import { entitlementReaderRoles, hasAnyRole, rateNavRoles } from '@/features/entitlements/access';
 import DailyQuoteDialog from '@/features/wellness/components/DailyQuoteDialog.vue';
-import AppErmsMark from '@/shared/ui/AppErmsMark.vue';
+import AppErsMark from '@/shared/ui/AppErsMark.vue';
 import AppSnackbar from '@/shared/ui/AppSnackbar.vue';
 import { appVersionLabel } from '@/shared/appVersion';
 
@@ -194,7 +194,7 @@ async function logout() {
     <div class="rail__inner">
       <div class="rail__top">
         <router-link :to="{ name: 'home' }" class="rail__logo press" aria-label="ERFWeb home">
-          <AppErmsMark :size="40" inverse />
+          <AppErsMark :size="40" inverse />
         </router-link>
         <span v-if="expanded" class="rail__brand">ERFWeb</span>
       </div>
@@ -311,7 +311,7 @@ async function logout() {
         :to="backTarget"
         aria-label="Back"
       />
-      <div v-else class="rail__logo rail__logo--sm ml-3" aria-hidden="true"><AppErmsMark :size="32" :inverse="theme.isDark" /></div>
+      <div v-else class="rail__logo rail__logo--sm ml-3" aria-hidden="true"><AppErsMark :size="32" :inverse="theme.isDark" /></div>
       <div class="shell-header__title">
         <slot name="title-mobile">
           <div class="text-body-1 font-weight-medium text-truncate" :class="{ mono: lastCrumb?.mono }">
