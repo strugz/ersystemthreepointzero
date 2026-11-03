@@ -18,11 +18,11 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-03
 
-- **`reset_reports.sql` also clears report audit rows without a `report_id`** (not yet committed). The test-mode
+- **`reset_reports.sql` also clears report audit rows without a `report_id`** (PR #42). The test-mode
   `TestData.Deleted` rows for a report, line, cash advance, receipt or verification and earlier
   `Reports.ResetByScript` rows are deleted with the reports; documented under "Clearing only the expense reports".
   Maintenance script only; no numbered database script.
-- **Test mode and test-only deletes** (branch `feature/erfweb-test-mode-deletes`, no PR yet). A new optional appsettings `App:Mode` (`Test` or
+- **Test mode and test-only deletes** (PR #42). A new optional appsettings `App:Mode` (`Test` or
   `Production`, default `Production`) and a SPA build variable `VITE_APP_MODE` (`test` or `prod`, `.env` keeps
   `prod`). With both set to test, the System Administrator gets a red **Delete** (trash) button on every record a
   create or update makes: master data rows, users, rate profiles, rate lines and assignments, scope assignments,
