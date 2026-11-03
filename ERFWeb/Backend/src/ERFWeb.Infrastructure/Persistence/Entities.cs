@@ -106,6 +106,13 @@ public class User
     public long? DepartmentId { get; set; }
     public long? CostCenterId { get; set; }
     public byte[]? Signature { get; set; }
+
+    /// <summary>When the signature on file was loaded; a new upload clears the approval below.</summary>
+    public DateTimeOffset? SignatureUploadedAt { get; set; }
+
+    /// <summary>Finance's approval of the signature on file; the R47 prints the image only once this is set.</summary>
+    public DateTimeOffset? SignatureApprovedAt { get; set; }
+    public long? SignatureApprovedByUserId { get; set; }
     public bool WorkWithEnabled { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }

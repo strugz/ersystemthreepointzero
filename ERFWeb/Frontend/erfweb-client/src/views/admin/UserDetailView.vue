@@ -153,6 +153,10 @@ async function resetPassword(newPassword: string) {
 const uploadingSignature = ref(false);
 // Bumped after each upload so the preview <img> fetches the new image instead of a cached one.
 const signatureVersion = ref(0);
+const signatureSummary = computed(() => {
+  if (!user.value?.hasSignature) return 'Not on file';
+  return user.value.signatureStatus === 'Pending' ? 'Waiting for Finance' : 'Approved';
+});
 const signatureUrl = computed(() => (user.value?.hasSignature ? adminApi.signatureUrl(userId, signatureVersion.value) : null));
 
 async function uploadSignature(file: File) {
@@ -312,7 +316,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
             @clear-grant-errors="grantErrors = null"
           />
 
-          <SignatureUpload v-if="!lgAndUp" :has-signature="user.hasSignature" :image-url="signatureUrl" :uploading="uploadingSignature" :removing="removingSignature" :disabled="isSelf" @upload="uploadSignature" @remove="removeSignatureDialog = true" />
+          <SignatureUpload v-if="!lgAndUp" :has-signature="user.hasSignature" :status="user.signatureStatus" :approved-at="user.signatureApprovedAt" :approved-by-name="user.signatureApprovedByName" :image-url="signatureUrl" :uploading="uploadingSignature" :removing="removingSignature" :disabled="isSelf" @upload="uploadSignature" @remove="removeSignatureDialog = true" />
         </div>
 
         <aside v-if="lgAndUp" class="detail__side">
@@ -320,11 +324,11 @@ async function revoke(grant: RoleGrant, note: string | null) {
             <div class="card-h"><span class="card-t">Summary</span></div>
             <div class="profile profile--stack">
               <div class="field"><span class="lbl">Active roles</span><span class="val" :class="{ muted: !activeRoles.length }">{{ activeRoles.length ? activeRoles.join(', ') : 'Employee only' }}</span></div>
-              <div class="field"><span class="lbl">Signature</span><span class="val">{{ user.hasSignature ? 'On file' : 'Not on file' }}</span></div>
+              <div class="field"><span class="lbl">Signature</span><span class="val">{{ signatureSummary }}</span></div>
               <div class="field"><span class="lbl">Cooling period</span><span class="val">{{ user.coolingPeriodElapsed ? 'Over' : 'In progress' }}</span></div>
             </div>
           </v-card>
-          <SignatureUpload :has-signature="user.hasSignature" :image-url="signatureUrl" :uploading="uploadingSignature" :removing="removingSignature" :disabled="isSelf" @upload="uploadSignature" @remove="removeSignatureDialog = true" />
+          <SignatureUpload :has-signature="user.hasSignature" :status="user.signatureStatus" :approved-at="user.signatureApprovedAt" :approved-by-name="user.signatureApprovedByName" :image-url="signatureUrl" :uploading="uploadingSignature" :removing="removingSignature" :disabled="isSelf" @upload="uploadSignature" @remove="removeSignatureDialog = true" />
         </aside>
       </div>
 

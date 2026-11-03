@@ -31,6 +31,8 @@ public sealed class UserDetailReader(ErfDbContext db, ISystemSettingsService set
                 u.CostCenterId,
                 u.IsActive,
                 HasSignature = u.Signature != null && u.Signature.Length > 0,
+                u.SignatureApprovedAt,
+                SignatureApprovedByName = db.Users.Where(a => a.Id == u.SignatureApprovedByUserId).Select(a => a.FullName).FirstOrDefault(),
                 u.WorkWithEnabled,
                 u.CreatedAt,
                 u.CrmEmployeeId,
@@ -88,7 +90,10 @@ public sealed class UserDetailReader(ErfDbContext db, ISystemSettingsService set
             grants,
             row.RowVersion,
             row.CrmEmployeeId,
-            row.R47ReviewedBy);
+            row.R47ReviewedBy,
+            SignatureApprovalRules.Status(row.HasSignature, row.SignatureApprovedAt),
+            row.SignatureApprovedAt,
+            row.SignatureApprovedByName);
     }
 
     /// <summary>Roles an account holds that count for stacking: every grant not revoked.</summary>

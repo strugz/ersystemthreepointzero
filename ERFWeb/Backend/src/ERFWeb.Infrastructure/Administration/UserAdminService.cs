@@ -309,7 +309,11 @@ public sealed class UserAdminService(
         await tx.ExecuteAsync(async token =>
         {
             var entity = await LoadAsync(userId, token);
+            // A new image is a new consent: it prints only after Finance approves it.
             entity.Signature = bytes;
+            entity.SignatureUploadedAt = clock.UtcNow;
+            entity.SignatureApprovedAt = null;
+            entity.SignatureApprovedByUserId = null;
             await db.SaveWithConcurrencyAsync(token);
 
             await audit.WriteAsync(new WorkflowAuditEntry(
@@ -334,6 +338,9 @@ public sealed class UserAdminService(
 
             // The R47 reads signatures live, so every report this user prepared or approved prints without one from now on.
             entity.Signature = null;
+            entity.SignatureUploadedAt = null;
+            entity.SignatureApprovedAt = null;
+            entity.SignatureApprovedByUserId = null;
             await db.SaveWithConcurrencyAsync(token);
 
             await audit.WriteAsync(new WorkflowAuditEntry(
@@ -355,9 +362,7 @@ public sealed class UserAdminService(
             throw new NotFoundException("No signature is on file.");
         }
 
-        // Only PNG and JPEG are accepted on upload; the type is not stored, so read it from the header.
-        var isPng = bytes.Length >= 4 && bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47;
-        return new SignatureImageDto(isPng ? "image/png" : "image/jpeg", bytes);
+        return SignatureImages.ToDto(bytes);
     }
 
     private void RefuseSelfChange(long targetUserId)

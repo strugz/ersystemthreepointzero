@@ -3,15 +3,17 @@ using ERFWeb.Domain.Reporting;
 namespace ERFWeb.Application.Features.Reporting;
 
 /// <summary>
-/// The signatory names printed in the R47 footer, with the signature each approver
-/// gave when approving (null until that step is approved).
+/// The signatory names printed in the R47 footer, with when each step was approved (null until it is)
+/// and the signature image to print, which is null unless the R47 signature rule lets it print.
 /// </summary>
 public sealed record R47Signatories(
     string? EndorsedBy,
     string? ReviewedBy,
     string? ApprovedBy,
     byte[]? EndorserSignature = null,
-    byte[]? ApproverSignature = null);
+    byte[]? ApproverSignature = null,
+    DateTimeOffset? EndorsedAt = null,
+    DateTimeOffset? ApprovedAt = null);
 
 /// <summary>One row of the CASH ADVANCE RECEIVED block.</summary>
 public sealed record R47CashAdvanceRow(
@@ -33,7 +35,8 @@ public sealed record ExpenseReportDocumentDto(
     IReadOnlyList<R47CashAdvanceRow> CashAdvances,
     R47Signatories Signatories,
     byte[]? EmployeeSignature,
-    IReadOnlyList<R47Line> Lines)
+    IReadOnlyList<R47Line> Lines,
+    DateTimeOffset? FiledAt = null)
 {
     /// <summary>The TOTAL of the CASH ADVANCE RECEIVED block; the reconciliation reduces from this.</summary>
     public decimal CashAdvanceTotal => CashAdvances.Sum(c => c.Amount);

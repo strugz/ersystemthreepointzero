@@ -28,6 +28,7 @@ const blank = (): SystemSettingsInput => ({
   notificationFromAddress: '',
   emailDomains: [],
   r47ReviewedBy: '',
+  r47SignatureMode: 'ESignature',
 });
 
 const form = reactive<SystemSettingsInput>(blank());
@@ -52,6 +53,8 @@ function load(value: SystemSettings | null) {
       emailDomains: [...(value.emailDomains ?? ['marsmandrysdale.com'])],
       // Likewise for an API older than the REVIEWED BY rule.
       r47ReviewedBy: value.r47ReviewedBy ?? 'FINANCE',
+      // And for an API older than the R47 signature rule.
+      r47SignatureMode: value.r47SignatureMode ?? 'ESignature',
     } satisfies SystemSettingsInput);
   }
   snapshot = JSON.stringify(form);
@@ -232,6 +235,30 @@ defineExpose({ isDirty });
           persistent-hint
           :error-messages="fieldErrors('r47ReviewedBy') ?? (reviewedByError ? [reviewedByError] : undefined)"
         />
+        <v-radio-group
+          v-model="form.r47SignatureMode"
+          label="Signatures on the R47"
+          class="mt-4"
+          hide-details="auto"
+          :error-messages="fieldErrors('r47SignatureMode')"
+        >
+          <v-radio value="ESignature">
+            <template #label>
+              <span>
+                <strong>E-signature</strong>
+                <span class="text-medium-emphasis"> · signatures Finance approved print with an ELECTRONIC SIGNATURE watermark and the date and time</span>
+              </span>
+            </template>
+          </v-radio>
+          <v-radio value="StatusOnly">
+            <template #label>
+              <span>
+                <strong>Status only</strong>
+                <span class="text-medium-emphasis"> · no signature images; each place prints "Electronically approved" (or "filed") with the date and time</span>
+              </span>
+            </template>
+          </v-radio>
+        </v-radio-group>
       </div>
     </v-card>
 

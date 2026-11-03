@@ -82,7 +82,17 @@ export interface UserDetail {
   crmEmployeeId: string | null;
   /** This employee's own R47 REVIEWED BY; null follows the department. Absent from an older API. */
   r47ReviewedBy?: string | null;
+  /** Finance's approval of the signature on file; the R47 prints it only once Approved. Absent from an older API. */
+  signatureStatus?: SignatureStatus;
+  signatureApprovedAt?: string | null;
+  signatureApprovedByName?: string | null;
 }
+
+/** Where a signature image stands: none on file, waiting for Finance, or approved to print on the R47. */
+export type SignatureStatus = 'None' | 'Pending' | 'Approved';
+
+/** The R47 signature rule: approved images with an ELECTRONIC SIGNATURE watermark, or status lines only. */
+export type R47SignatureMode = 'ESignature' | 'StatusOnly';
 
 /** Profile fields shared by create and edit. */
 export interface UserProfileInput {
@@ -269,6 +279,7 @@ export interface SystemSettingsInput {
   emailDomains: string[];
   /** Printed in REVIEWED BY on the R47 when the department has no reviewer of its own. */
   r47ReviewedBy: string;
+  r47SignatureMode: R47SignatureMode;
 }
 
 export interface SystemSettings extends SystemSettingsInput {

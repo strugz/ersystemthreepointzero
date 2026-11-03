@@ -1,5 +1,7 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Domain;
+using ERFWeb.Domain.Administration;
+using ERFWeb.Domain.Reporting;
 
 namespace ERFWeb.Application.Features.Administration;
 
@@ -62,7 +64,10 @@ public sealed record UserDetailDto(
     IReadOnlyList<RoleGrantDto> RoleGrants,
     uint RowVersion,
     string? CrmEmployeeId = null,
-    string? R47ReviewedBy = null);
+    string? R47ReviewedBy = null,
+    SignatureStatus SignatureStatus = SignatureStatus.None,
+    DateTimeOffset? SignatureApprovedAt = null,
+    string? SignatureApprovedByName = null);
 
 public sealed record UserListQuery : PagedRequest
 {
@@ -216,7 +221,8 @@ public sealed record SystemSettingsDto(
     DateTimeOffset? UpdatedAt,
     string? UpdatedByName,
     IReadOnlyList<string> EmailDomains,
-    string R47ReviewedBy);
+    string R47ReviewedBy,
+    R47SignatureMode R47SignatureMode);
 
 public sealed record UpdateSystemSettingsRequest(
     decimal Level2ThresholdAmount,
@@ -231,7 +237,8 @@ public sealed record UpdateSystemSettingsRequest(
     bool SmsNotificationsEnabled,
     string? NotificationFromAddress,
     IReadOnlyList<string>? EmailDomains = null,
-    string? R47ReviewedBy = null);
+    string? R47ReviewedBy = null,
+    R47SignatureMode? R47SignatureMode = null);
 
 public interface ISystemSettingsService
 {
@@ -240,6 +247,9 @@ public interface ISystemSettingsService
 
     /// <summary>Cheap read of the one rule the filing path needs.</summary>
     Task<int> GetCoolingPeriodDaysAsync(CancellationToken ct = default);
+
+    /// <summary>Cheap read of the R47 signature rule the R47 loader needs.</summary>
+    Task<R47SignatureMode> GetR47SignatureModeAsync(CancellationToken ct = default);
 }
 
 // ---------- Audit trail (read-only, spec 9.10) ----------
@@ -282,6 +292,8 @@ public static class AdminAuditEvents
     public const string PasswordReset = "Admin.PasswordReset";
     public const string SignatureSet = "Admin.SignatureSet";
     public const string SignatureDeleted = "Admin.SignatureDeleted";
+    public const string SignatureApproved = "Admin.SignatureApproved";
+    public const string SignatureRejected = "Admin.SignatureRejected";
     public const string RoleGranted = "Admin.RoleGranted";
 
     /// <summary>Written only while dual approval applied; kept so the audit trail still names old rows.</summary>

@@ -75,6 +75,7 @@ public static class DependencyInjection
         // Administration & accounts (Phase 1)
         services.AddScoped<UserDetailReader>();
         services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddScoped<ISignatureApprovalService, SignatureApprovalService>();
         services.AddScoped<IRoleGrantService, RoleGrantService>();
         services.AddScoped<IMasterDataService, MasterDataService>();
         services.AddScoped<IFareModeAdminService, FareModeAdminService>();
