@@ -93,7 +93,7 @@ Every change that adds, removes or changes behaviour, an endpoint, a setting, a 
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
-- **2026-11-03:** Test mode: `App:Mode` `Test` (API) plus `VITE_APP_MODE=test` (SPA) give the System Administrator a Delete button on every record a create or update makes (`DELETE /api/test-data/{kind}/{id}`); a report is hard-deleted with everything under it, its `workflow_audit` rows included; audited `TestData.Deleted`; no database script (not yet committed).
+- **2026-11-03:** Test mode: `App:Mode` `Test` (API) plus `VITE_APP_MODE=test` (SPA) give the System Administrator a Delete button on every record a create or update makes (`DELETE /api/test-data/{kind}/{id}`); a report is hard-deleted with everything under it, its `workflow_audit` rows included; audited `TestData.Deleted`; no database script (branch `feature/erfweb-test-mode-deletes`, no PR yet).
 - **2026-10-29:** ERMS renamed to **ERS, Expense Report System** on the sign-in page and Healthy living page (logo component `AppErsMark`); frontend only. `erms_db` and the Lasius `Application` value `ERMS` are unchanged (PR #41).
 - **2026-10-29:** The quote-of-the-day Bible verses use modern English (World English Bible, British Edition, public domain) instead of the KJV; frontend only (PR #40).
 - **2026-10-29:** The System Administrator can remove a user's signature in the user console (`DELETE /api/admin/users/{id}/signature`, audited `Admin.SignatureDeleted`); earlier R47s print without it too, since signatures are read at print time (PR #39).

@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-03
 
-- **Test mode and test-only deletes** (not yet committed). A new optional appsettings `App:Mode` (`Test` or
+- **Test mode and test-only deletes** (branch `feature/erfweb-test-mode-deletes`, no PR yet). A new optional appsettings `App:Mode` (`Test` or
   `Production`, default `Production`) and a SPA build variable `VITE_APP_MODE` (`test` or `prod`, `.env` keeps
   `prod`). With both set to test, the System Administrator gets a red **Delete** (trash) button on every record a
   create or update makes: master data rows, users, rate profiles, rate lines and assignments, scope assignments,
