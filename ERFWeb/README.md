@@ -18,6 +18,10 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-03
 
+- **`reset_reports.sql` also clears report audit rows without a `report_id`** (not yet committed). The test-mode
+  `TestData.Deleted` rows for a report, line, cash advance, receipt or verification and earlier
+  `Reports.ResetByScript` rows are deleted with the reports; documented under "Clearing only the expense reports".
+  Maintenance script only; no numbered database script.
 - **Test mode and test-only deletes** (branch `feature/erfweb-test-mode-deletes`, no PR yet). A new optional appsettings `App:Mode` (`Test` or
   `Production`, default `Production`) and a SPA build variable `VITE_APP_MODE` (`test` or `prod`, `.env` keeps
   `prod`). With both set to test, the System Administrator gets a red **Delete** (trash) button on every record a
@@ -27,7 +31,8 @@ section of the root `CLAUDE.md`) in the same change.
   hard-deletes the record; a report goes with its lines, attachments, approvals, Finance tracking, verifications,
   SMS/email/reminder rows **and its `workflow_audit` rows** (the one place the API opts in to the script-021 purge).
   Other records go with what they own and answer 409 while something else still uses them. Each delete is audited
-  as `TestData.Deleted`. No database script.
+  as `TestData.Deleted`. No database script. The **Audit log** also gets a Delete on each entry
+  (`audit-entries`), which removes that one `workflow_audit` row; the `TestData.Deleted` row it writes stays.
 
 ### 2026-10-29
 
@@ -245,6 +250,18 @@ take a `pg_dump` first:
 psql -d erms_db -f Database/maintenance/reset_data_keep_admins.sql
 ```
 
+**Clearing only the expense reports.** `Database/maintenance/reset_reports.sql` deletes every report (draft to paid)
+with its lines, meal and fare items, receipts, cash advances, approval steps, finance tracking, verifications and
+SMS/email/reminder deliveries, plus the `workflow_audit` rows about them: those with a `report_id`, the test-mode
+`TestData.Deleted` rows for a report, line, cash advance, receipt or verification, and earlier
+`Reports.ResetByScript` rows. It also clears their `record_history` and the `reference_series` counters, then writes
+one `Reports.ResetByScript` event with the counts. Users, roles, scope, rates, delegations, master data, settings
+and all other audit rows stay. One transaction, safe to re-run, no rollback, so take a `pg_dump` first:
+
+```bash
+psql -d erms_db -f Database/maintenance/reset_reports.sql
+```
+
 ### Database setup — Option B: EF Core migrations (when EF tooling is available)
 
 The DbContext and entities are migration-ready. Generate and apply the initial schema:
@@ -271,7 +288,7 @@ migrationBuilder.Sql(ERFWeb.Infrastructure.Persistence.HistorySql.DropAll);
 **Audit trail is append-only (script 021).** A trigger refuses any change to or deletion of `workflow_audit` rows,
 and `TRUNCATE`. The maintenance scripts that clear audit rows (`reset_data_keep_admins`, `reset_reports`,
 `delete_users_keep_admin`) opt in for their own transaction with `SET LOCAL erfweb.allow_audit_purge = 'on'`. The
-API does so only in the test-only report delete (`TestDataService`, `App:Mode` `Test`; see Test mode). Any other
+API does so only in the test-only report and audit-entry deletes (`TestDataService`, `App:Mode` `Test`; see Test mode). Any other
 script that must delete audit rows needs the same line.
 
 ### Guardrail tests (plan Phase 8.5)
@@ -902,7 +919,7 @@ For cleaning up records made while testing. Two switches, both off by default:
 `Infrastructure/Testing/TestDataService.cs`). Kinds: `reports` (GUID), `expense-lines`, `cash-advances`,
 `attachments`, `verifications`, `users`, `departments`, `cost-centers`, `cost-center-budgets`
 (`{costCenterId}-{year}`), `currencies` (code), `sites`, `fare-modes`, `rate-profiles`, `rate-profile-lines`,
-`rate-assignments`, `scope-assignments`, `delegations`. Each delete runs in one transaction and writes a
+`rate-assignments`, `scope-assignments`, `delegations`, `audit-entries`. Each delete runs in one transaction and writes a
 `TestData.Deleted` audit row (`kind` and `id` only).
 
 - A **report** goes with everything under it, the same tables as `Database/maintenance/reset_reports.sql`,
@@ -917,7 +934,9 @@ For cleaning up records made while testing. Two switches, both off by default:
   fare mode used on a fare leg) is refused (409).
 
 The SPA shows the button on Master data rows, the user page header, rate profiles (list, header, lines,
-assignments), scope assignments, delegations, cost center budgets and the report editor and review headers. Expense
+assignments), scope assignments, delegations, cost center budgets, Audit log entries and the report editor and
+review headers. An audit entry is removed on its own (the same purge opt-in as a report); the `TestData.Deleted`
+row that records it stays. Expense
 lines, cash advances, attachments and verifications have no button of their own: they go with their report (the
 API kinds are there for direct calls).
 

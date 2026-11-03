@@ -14,8 +14,9 @@ namespace ERFWeb.Infrastructure.Testing;
 /// the System Administrator. Each delete runs in one transaction and writes a <c>TestData.Deleted</c> audit row.
 /// <para>
 /// A report is removed with everything under it, the same tables and order as
-/// <c>Database/maintenance/reset_reports.sql</c>. Its <c>workflow_audit</c> rows go too: this is the one place
-/// the API opts in to the script-021 purge (<c>SET LOCAL erfweb.allow_audit_purge</c>, this transaction only).
+/// <c>Database/maintenance/reset_reports.sql</c>. Its <c>workflow_audit</c> rows go too, and the Audit log can
+/// remove one entry: these are the only places the API opts in to the script-021 purge
+/// (<c>SET LOCAL erfweb.allow_audit_purge</c>, this transaction only). The <c>TestData.Deleted</c> row stays.
 /// Any other record goes with the rows it owns; a foreign key still pointing at it (a user's reports,
 /// a department's users) is answered with 409 so the tester deletes those first.
 /// </para>
@@ -60,6 +61,7 @@ public sealed class TestDataService(
                     TestDataKind.RateAssignment => await db.RateProfileAssignments.Where(a => a.Id == number).ExecuteDeleteAsync(token),
                     TestDataKind.ScopeAssignment => await DeleteScopeAssignmentAsync(number, token),
                     TestDataKind.Delegation => await DeleteDelegationAsync(number, token),
+                    TestDataKind.AuditEntry => await DeleteAuditEntryAsync(number, token),
                     _ => throw new ValidationException("kind", "Unknown kind of test data."),
                 };
 
@@ -96,6 +98,12 @@ public sealed class TestDataService(
         await db.ApprovalSteps.Where(s => s.ReportId == reportId).ExecuteDeleteAsync(ct);
         await db.WorkflowAudits.Where(a => a.ReportId == reportId).ExecuteDeleteAsync(ct);
         return await db.ExpenseReports.Where(r => r.Id == reportId).ExecuteDeleteAsync(ct);
+    }
+
+    private async Task<int> DeleteAuditEntryAsync(long auditId, CancellationToken ct)
+    {
+        await db.Database.ExecuteSqlRawAsync("SET LOCAL erfweb.allow_audit_purge = 'on'", ct);
+        return await db.WorkflowAudits.Where(a => a.Id == auditId).ExecuteDeleteAsync(ct);
     }
 
     private async Task<int> DeleteExpenseLineAsync(long lineId, CancellationToken ct)

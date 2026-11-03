@@ -20,11 +20,13 @@ public enum TestDataKind
     RateAssignment,
     ScopeAssignment,
     Delegation,
+    AuditEntry,
 }
 
 /// <summary>
 /// Hard-deletes records made while testing, only when appsettings <c>App:Mode</c> is <c>Test</c>
-/// (403 otherwise). A report goes with everything under it, its workflow audit rows included;
+/// (403 otherwise). A report goes with everything under it, its workflow audit rows included, and a single
+/// audit entry can be removed too;
 /// other records go with the rows they own and are refused (409) while something else still uses them.
 /// </summary>
 public interface ITestDataService

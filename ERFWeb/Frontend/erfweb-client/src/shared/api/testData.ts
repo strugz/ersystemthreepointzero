@@ -18,7 +18,8 @@ export type TestDataKind =
   | 'rate-profile-lines'
   | 'rate-assignments'
   | 'scope-assignments'
-  | 'delegations';
+  | 'delegations'
+  | 'audit-entries';
 
 export const testDataApi = {
   /** Hard-deletes a test record (System Administrator, API in App:Mode Test). A budget's id is `{costCenterId}-{year}`. */

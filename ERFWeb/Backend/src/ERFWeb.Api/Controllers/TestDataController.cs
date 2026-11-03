@@ -36,6 +36,7 @@ public sealed class TestDataController(ITestDataService testData) : ControllerBa
         ["rate-assignments"] = TestDataKind.RateAssignment,
         ["scope-assignments"] = TestDataKind.ScopeAssignment,
         ["delegations"] = TestDataKind.Delegation,
+        ["audit-entries"] = TestDataKind.AuditEntry,
     };
 
     [HttpDelete("{kind}/{id}")]
