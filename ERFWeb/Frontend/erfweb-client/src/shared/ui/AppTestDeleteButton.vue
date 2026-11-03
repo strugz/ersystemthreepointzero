@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { isTestMode } from '@/shared/appMode';
 import { testDataApi, type TestDataKind } from '@/shared/api/testData';
 import { useSnackbar } from '@/shared/composables/useSnackbar';
@@ -20,6 +20,12 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{ deleted: [] }>();
+
+// Kinds the API removes together with rows they own (TestDataService); the rest go on their own.
+const withOwnedRows: TestDataKind[] = ['reports', 'expense-lines', 'users', 'departments', 'cost-centers', 'rate-profiles', 'scope-assignments'];
+const message = computed(
+  () => `This permanently deletes ${props.label}${withOwnedRows.includes(props.kind) ? ' and everything under it' : ''}. It cannot be undone.`,
+);
 
 const snackbar = useSnackbar();
 const confirmOpen = ref(false);
@@ -66,7 +72,7 @@ async function remove() {
     <AppConfirmDialog
       v-model="confirmOpen"
       title="Delete test data?"
-      :message="`This permanently deletes ${props.label} and everything under it. It cannot be undone.`"
+      :message="message"
       confirm-text="Delete"
       confirm-color="error"
       :loading="deleting"
