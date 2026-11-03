@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import { useSessionStore } from '@/app/stores/session';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
@@ -229,6 +230,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
       <v-btn class="press" :color="user.isActive ? 'error' : 'success'" variant="tonal" :prepend-icon="user.isActive ? 'mdi-account-off-outline' : 'mdi-account-check-outline'" @click="activeDialog = true">
         {{ user.isActive ? 'Deactivate' : 'Activate' }}
       </v-btn>
+      <AppTestDeleteButton text kind="users" :id="user.id" :label="`the account ${user.username}`" @deleted="router.push({ name: 'admin-users' })" />
     </template>
     <v-progress-linear v-if="loading" indeterminate color="primary" height="2" />
 
@@ -314,6 +316,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
             @grant="grantRole"
             @revoke="revoke"
             @clear-grant-errors="grantErrors = null"
+            @deleted="load"
           />
 
           <SignatureUpload v-if="!lgAndUp" :has-signature="user.hasSignature" :status="user.signatureStatus" :approved-at="user.signatureApprovedAt" :approved-by-name="user.signatureApprovedByName" :image-url="signatureUrl" :uploading="uploadingSignature" :removing="removingSignature" :disabled="isSelf" @upload="uploadSignature" @remove="removeSignatureDialog = true" />

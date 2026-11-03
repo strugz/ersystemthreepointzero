@@ -4,6 +4,8 @@ import { useDisplay } from 'vuetify';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
+import { useSessionStore } from '@/app/stores/session';
 import { formatDate } from '@/shared/format';
 import { describeError, useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
@@ -13,6 +15,7 @@ import DelegationDialog from '@/features/delegations/components/DelegationDialog
 import type { CreateDelegationInput, Delegation, DelegationOptions, MyDelegations } from '@/features/delegations/types';
 
 const snack = useSnackbar();
+const session = useSessionStore();
 const { xs } = useDisplay();
 
 const mine = ref<MyDelegations | null>(null);
@@ -158,6 +161,13 @@ function byLine(d: Delegation, section: string): string | null {
               <div v-if="byLine(d, s.key)" class="item__meta">{{ byLine(d, s.key) }}</div>
             </div>
             <v-btn v-if="d.canCancel" class="press" size="small" variant="text" color="error" @click="cancelling = d">Cancel</v-btn>
+            <AppTestDeleteButton
+              v-if="session.hasRole('SystemAdministrator')"
+              kind="delegations"
+              :id="d.id"
+              :label="`the delegation from ${d.signatoryName} to ${d.delegateName}`"
+              @deleted="load"
+            />
           </li>
         </ul>
       </v-card>

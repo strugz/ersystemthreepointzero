@@ -10,6 +10,7 @@ using ERFWeb.Infrastructure.Crm;
 using ERFWeb.Infrastructure.Expenses;
 using ERFWeb.Infrastructure.Notifications;
 using ERFWeb.Infrastructure.Reporting;
+using ERFWeb.Infrastructure.Testing;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -119,6 +120,10 @@ builder.Services.Configure<CrmOptions>(config.GetSection(CrmOptions.SectionName)
 // Daily SLA reminders: off unless Reminders:Enabled is true, so only the server sends them.
 builder.Services.Configure<ReminderOptions>(config.GetSection(ReminderOptions.SectionName));
 builder.Services.AddHostedService<ApprovalReminderJob>();
+
+// Test or production install: off (Production) unless App:Mode is Test, which allows the System Administrator's
+// test-only deletes (api/test-data). Keep it Production on any server whose data must stay.
+builder.Services.Configure<AppModeOptions>(config.GetSection(AppModeOptions.SectionName));
 
 // Keep Kestrel/form limits in step with the configured attachment size (plus headroom for the multipart envelope).
 builder.Services.Configure<FormOptions>(o => o.MultipartBodyLengthLimit = (attachmentMaxMb + 1) * 1024L * 1024L);

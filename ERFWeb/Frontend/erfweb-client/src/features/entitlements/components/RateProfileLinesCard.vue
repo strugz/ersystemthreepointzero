@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { useDisplay } from 'vuetify';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { formatDate, formatDateTime, formatMoney, todayIso } from '@/shared/format';
 import { categoryOptions, mealOptions, rateKey, rateKeyLabel, rateTypeLabel } from '../labels';
 import type { RateLine } from '../types';
@@ -24,6 +25,8 @@ const emit = defineEmits<{
   add: [from: RateLine | null];
   /** Correct this version in place. */
   edit: [line: RateLine];
+  /** A version was deleted as test data. */
+  deleted: [];
 }>();
 
 const { xs } = useDisplay();
@@ -177,6 +180,13 @@ function rulesText(l: RateLine): string {
                 >
                   New version
                 </v-btn>
+                <AppTestDeleteButton
+                  v-if="canWrite"
+                  kind="rate-profile-lines"
+                  :id="g.headline.id"
+                  :label="`the ${g.label} version from ${formatDate(g.headline.effectiveFrom)}`"
+                  @deleted="emit('deleted')"
+                />
               </td>
             </tr>
             <template v-if="expanded.has(g.key)">
@@ -197,6 +207,13 @@ function rulesText(l: RateLine): string {
                       :disabled="disabled"
                       :aria-label="`Edit the ${g.label} version from ${formatDate(v.effectiveFrom)}`"
                       @click="emit('edit', v)"
+                    />
+                    <AppTestDeleteButton
+                      v-if="canWrite"
+                      kind="rate-profile-lines"
+                      :id="v.id"
+                      :label="`the ${g.label} version from ${formatDate(v.effectiveFrom)}`"
+                      @deleted="emit('deleted')"
                     />
                     <span class="text-caption text-medium-emphasis history__who">
                       {{ v.changedByName ?? '—' }} · {{ formatDateTime(v.createdAt) }}<template v-if="v.changeReason"> · “{{ v.changeReason }}”</template>

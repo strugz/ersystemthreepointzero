@@ -4,6 +4,7 @@ import { useDisplay } from 'vuetify';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppExportButton from '@/shared/ui/AppExportButton.vue';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { formatMoney } from '@/shared/format';
 import { saveFile } from '@/shared/download';
 import { describeError, useSnackbar } from '@/shared/composables/useSnackbar';
@@ -21,6 +22,7 @@ const snack = useSnackbar();
 const { xs } = useDisplay();
 
 const isFinance = session.hasRole('Finance');
+const isAdmin = session.hasRole('SystemAdministrator');
 const thisYear = new Date().getFullYear();
 // Budgets are set for the current year; earlier years stay saved and can be looked back on here.
 const years = [thisYear, thisYear - 1, thisYear - 2, thisYear - 3, thisYear - 4];
@@ -167,6 +169,13 @@ watch([year, approvedOnly], () => {
                 </td>
                 <td class="r mono">
                   <span v-if="row.budget !== null">{{ formatMoney(row.budget) }}</span>
+                  <AppTestDeleteButton
+                    v-if="isAdmin && row.budget !== null"
+                    kind="cost-center-budgets"
+                    :id="`${row.costCenterId}-${report.year}`"
+                    :label="`the ${report.year} budget of ${row.code}`"
+                    @deleted="load"
+                  />
                   <span v-else class="text-medium-emphasis">Not set</span>
                 </td>
                 <td class="r mono">{{ formatMoney(row.used) }}</td>

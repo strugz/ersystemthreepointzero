@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import { useSessionStore } from '@/app/stores/session';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
@@ -311,6 +312,7 @@ async function resolve(userId: number, date: string) {
       >
         {{ profile.isActive ? 'Deactivate' : 'Activate' }}
       </v-btn>
+      <AppTestDeleteButton text kind="rate-profiles" :id="profile.id" :label="`the rate profile ${profile.name}`" @deleted="router.push({ name: 'rate-profiles' })" />
     </template>
 
     <v-progress-linear v-if="loading" indeterminate color="primary" height="2" />
@@ -336,7 +338,7 @@ async function resolve(userId: number, date: string) {
 
       <div class="detail" :class="{ 'detail--wide': lgAndUp }">
         <div class="detail__main">
-          <RateProfileLinesCard :lines="profile.lines" :can-write="canWrite" :disabled="savingLine" @add="openLine" @edit="openEditLine" />
+          <RateProfileLinesCard :lines="profile.lines" :can-write="canWrite" :disabled="savingLine" @add="openLine" @edit="openEditLine" @deleted="load" />
           <RateAssignmentsCard
             ref="assignmentsCard"
             :assignments="profile.assignments"
@@ -348,6 +350,7 @@ async function resolve(userId: number, date: string) {
             @edit="openEditAssignment"
             @end="endAssignment"
             @clear-end-errors="endErrors = null"
+            @deleted="load"
           />
           <ResolveRatesPanel v-if="!lgAndUp" :people="people" :result="resolved" :loading="resolving" :error="resolveError" :current-profile-id="profile.id" @resolve="resolve" />
         </div>

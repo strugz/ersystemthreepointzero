@@ -8,6 +8,7 @@ import { formatDate, formatDateTime, formatMoney } from '@/shared/format';
 import { describeError, useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { useSessionStore } from '@/app/stores/session';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { expensesApi } from '@/features/expenses/api';
 import { reportTypeLabel, usesCashAdvance } from '@/features/expenses/labels';
 import ReportStatusChip from '@/features/expenses/components/ReportStatusChip.vue';
@@ -229,6 +230,14 @@ async function saveAdjust(amount: number, reason: string) {
     <template #actions>
       <template v-if="report">
         <v-btn class="press" variant="text" prepend-icon="mdi-printer-outline" :to="pdfLink">R47 PDF</v-btn>
+        <AppTestDeleteButton
+          v-if="session.hasRole('SystemAdministrator')"
+          text
+          kind="reports"
+          :id="report.id"
+          :label="`the report ${report.referenceNo ?? '(draft)'}`"
+          @deleted="router.push({ name: 'approvals' })"
+        />
         <template v-if="review">
           <v-btn v-if="review.canReject" class="press" variant="text" color="error" @click="startAction('reject')">Reject</v-btn>
           <v-btn v-if="review.canReturn" class="press" variant="outlined" color="warning" prepend-icon="mdi-undo-variant" @click="startAction('return')">Return</v-btn>

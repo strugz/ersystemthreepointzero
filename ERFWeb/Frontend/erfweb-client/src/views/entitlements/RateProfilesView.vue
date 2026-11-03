@@ -5,6 +5,7 @@ import { useDisplay } from 'vuetify';
 import { useSessionStore } from '@/app/stores/session';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { ratesApi } from '@/features/entitlements/api';
@@ -156,7 +157,10 @@ async function create() {
               <td class="r mono">{{ p.currentLineCount }}</td>
               <td class="r mono">{{ p.activeAssignmentCount }}</td>
               <td><span class="pill" :class="p.isActive ? 'pill--success' : 'pill--neutral'">{{ p.isActive ? 'Active' : 'Inactive' }}</span></td>
-              <td class="r"><v-icon icon="mdi-chevron-right" size="18" class="text-medium-emphasis" /></td>
+              <td class="r text-no-wrap">
+                <AppTestDeleteButton v-if="canWrite" kind="rate-profiles" :id="p.id" :label="`the rate profile ${p.name}`" @deleted="load" />
+                <v-icon icon="mdi-chevron-right" size="18" class="text-medium-emphasis" />
+              </td>
             </tr>
           </tbody>
         </table>

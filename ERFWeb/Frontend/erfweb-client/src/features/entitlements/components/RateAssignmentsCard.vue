@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useDisplay } from 'vuetify';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { addDaysIso, formatDate, formatDateTime, todayIso } from '@/shared/format';
 import { fieldErrors } from '../forms';
 import type { FieldErrors } from '../forms';
@@ -29,6 +30,8 @@ const emit = defineEmits<{
   edit: [assignment: RateAssignment];
   end: [assignment: RateAssignment, effectiveTo: string, changeReason: string | null];
   'clear-end-errors': [];
+  /** An assignment was deleted as test data. */
+  deleted: [];
 }>();
 
 const { xs } = useDisplay();
@@ -133,6 +136,7 @@ const endMessage = computed(() =>
         <div v-if="canWrite" class="mt-1 d-flex ga-1">
           <v-btn class="press" size="small" variant="text" prepend-icon="mdi-pencil-outline" :disabled="disabled || acting" @click="emit('edit', a)">Edit</v-btn>
           <v-btn v-if="!isEnded(a)" class="press" size="small" variant="text" color="error" :disabled="disabled || acting" @click="askEnd(a)">End</v-btn>
+          <AppTestDeleteButton kind="rate-assignments" :id="a.id" :label="`the assignment for ${rateTargetText(a)}`" @deleted="emit('deleted')" />
         </div>
       </li>
     </ul>
@@ -188,6 +192,7 @@ const endMessage = computed(() =>
               >
                 End
               </v-btn>
+              <AppTestDeleteButton kind="rate-assignments" :id="a.id" :label="`the assignment for ${rateTargetText(a)}`" @deleted="emit('deleted')" />
             </td>
           </tr>
         </tbody>

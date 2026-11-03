@@ -14,6 +14,8 @@
 --                                                                               null them); other SMS rows are kept
 --  * workflow_audit rows with a report_id                                       deleted; other audit rows are kept,
 --                                                                               plus one Reports.ResetByScript event
+--  * workflow_audit TestData.Deleted rows for a report, line, cash advance,     deleted (test mode writes them with
+--    receipt or verification, and earlier Reports.ResetByScript rows            no report_id)
 --  * record_history rows of the report tables                                   deleted, including the 'D' rows this
 --                                                                               script's own deletes write
 --  * reference_series (ERF-YYYY counters)                                       emptied, so the next filed report
@@ -24,6 +26,12 @@ BEGIN;
 
 -- Script 021 makes workflow_audit append-only; this maintenance script deletes audit rows on purpose.
 SET LOCAL erfweb.allow_audit_purge = 'on';
+
+-- Report audit rows that carry no report_id. Before the new reset event below, so it stays.
+DELETE FROM workflow_audit
+WHERE event = 'Reports.ResetByScript'
+   OR (event = 'TestData.Deleted'
+       AND detail ->> 'kind' IN ('Report', 'ExpenseLine', 'CashAdvance', 'Attachment', 'Verification'));
 
 INSERT INTO workflow_audit (event, actor_user_id, detail)
 SELECT 'Reports.ResetByScript', NULL,
