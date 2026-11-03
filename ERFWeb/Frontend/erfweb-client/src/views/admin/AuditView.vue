@@ -85,7 +85,9 @@ watch(
       :loading="loading"
       :error="error"
       :show-admin-only-switch="isAdmin"
+      :test-deletable="isAdmin"
       @retry="load"
+      @deleted="load"
     />
   </AuthenticatedLayout>
 </template>

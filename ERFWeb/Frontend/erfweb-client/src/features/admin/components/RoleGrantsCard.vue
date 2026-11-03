@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { useDisplay } from 'vuetify';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { formatDateTime } from '@/shared/format';
 import { grantableRoles, roleLabel } from '@/features/auth/labels';
 import type { UserRole } from '@/features/auth/types';
@@ -31,6 +32,8 @@ const emit = defineEmits<{
   grant: [role: UserRole, note: string | null];
   revoke: [grant: RoleGrant, note: string | null];
   'clear-grant-errors': [];
+  /** A grant was deleted as test data. */
+  deleted: [];
 }>();
 
 const { xs } = useDisplay();
@@ -137,6 +140,14 @@ const actionMessage = computed(() =>
         <div v-if="g.status !== 'Revoked' && !isSelf" class="d-flex ga-2 mt-1">
           <v-btn class="press" size="small" variant="text" color="error" :disabled="disabled || acting" @click="askRevoke(g)">Revoke</v-btn>
         </div>
+        <!-- Test-only; on one's own account the API deletes only a revoked grant. -->
+        <AppTestDeleteButton
+          v-if="!isSelf || g.status === 'Revoked'"
+          kind="role-grants"
+          :id="`${userId}-${g.role}`"
+          :label="`the ${roleLabel(g.role)} grant`"
+          @deleted="emit('deleted')"
+        />
       </li>
     </ul>
 
@@ -181,6 +192,13 @@ const actionMessage = computed(() =>
               >
                 Revoke
               </v-btn>
+              <AppTestDeleteButton
+                v-if="!isSelf || g.status === 'Revoked'"
+                kind="role-grants"
+                :id="`${userId}-${g.role}`"
+                :label="`the ${roleLabel(g.role)} grant`"
+                @deleted="emit('deleted')"
+              />
             </td>
           </tr>
         </tbody>

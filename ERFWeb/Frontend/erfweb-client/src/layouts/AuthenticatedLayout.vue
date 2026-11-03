@@ -12,6 +12,7 @@ import DailyQuoteDialog from '@/features/wellness/components/DailyQuoteDialog.vu
 import AppErsMark from '@/shared/ui/AppErsMark.vue';
 import AppSnackbar from '@/shared/ui/AppSnackbar.vue';
 import { appVersionLabel } from '@/shared/appVersion';
+import { isTestMode } from '@/shared/appMode';
 
 /**
  * Application shell.
@@ -332,6 +333,7 @@ async function logout() {
         </template>
       </nav>
       <v-spacer />
+      <v-chip v-if="isTestMode" size="small" label color="error" variant="flat" class="mr-3">TEST</v-chip>
       <span v-if="session.user" class="text-body-2 text-medium-emphasis mr-3 d-none d-md-inline">
         {{ session.user.fullName }}
       </span>

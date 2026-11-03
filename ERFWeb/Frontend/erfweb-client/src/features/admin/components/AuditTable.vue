@@ -2,6 +2,8 @@
 import { computed, ref, watch } from 'vue';
 import { useDisplay } from 'vuetify';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
+import { isTestMode } from '@/shared/appMode';
 import { formatDateTime } from '@/shared/format';
 import { knownAuditEvents } from '../labels';
 import type { AuditEntry, SortDirection } from '../types';
@@ -29,17 +31,22 @@ const props = withDefaults(
     error?: string | null;
     /** Finance sees the whole log; the "administration only" switch is for administrators. */
     showAdminOnlySwitch?: boolean;
+    /** Shows the test-only Delete on each entry (System Administrator, test builds only). */
+    testDeletable?: boolean;
   }>(),
-  { total: 0, page: 1, totalPages: 1, loading: false, error: null, showAdminOnlySwitch: true },
+  { total: 0, page: 1, totalPages: 1, loading: false, error: null, showAdminOnlySwitch: true, testDeletable: false },
 );
 
 const emit = defineEmits<{
   'update:filters': [filters: AuditFilters];
   'update:page': [page: number];
   retry: [];
+  /** An entry was deleted as test data. */
+  deleted: [];
 }>();
 
 const { xs } = useDisplay();
+const showDelete = computed(() => props.testDeletable && isTestMode);
 
 // Event names seen in the current page extend the known list so the combobox stays useful.
 const eventItems = computed(() => {
@@ -186,6 +193,7 @@ function clearFilters() {
             <th class="d-none d-sm-table-cell">Actor</th>
             <th class="d-none d-md-table-cell">Report</th>
             <th class="d-none d-lg-table-cell">Detail</th>
+            <th v-if="showDelete" class="r"></th>
           </tr>
         </thead>
         <tbody>
@@ -197,10 +205,13 @@ function clearFilters() {
               <td class="d-none d-sm-table-cell">{{ e.actorName ?? (e.actorUserId !== null ? `#${e.actorUserId}` : 'System') }}</td>
               <td class="mono d-none d-md-table-cell text-truncate" style="max-width: 160px">{{ e.reportId || '—' }}</td>
               <td class="text-medium-emphasis d-none d-lg-table-cell text-truncate" style="max-width: 360px">{{ summary(e.detail) }}</td>
+              <td v-if="showDelete" class="r">
+                <AppTestDeleteButton kind="audit-entries" :id="e.id" :label="`the audit entry ${e.event} of ${formatDateTime(e.occurredAt)}`" @deleted="emit('deleted')" />
+              </td>
             </tr>
             <tr v-if="expanded.has(e.id)" class="audit__detail">
               <td></td>
-              <td :colspan="xs ? 2 : 5">
+              <td :colspan="(xs ? 2 : 5) + (showDelete ? 1 : 0)">
                 <div class="audit__meta text-caption text-medium-emphasis">
                   <span>Actor: {{ e.actorName ?? '—' }}<template v-if="e.actorUserId !== null"> (#{{ e.actorUserId }})</template></span>
                   <span v-if="e.reportId">Report: <span class="mono">{{ e.reportId }}</span></span>
