@@ -59,3 +59,20 @@ export interface FinanceAging {
   amount: number;
   items: FinanceQueueItem[];
 }
+
+// Mirrors ERFWeb.Application.Features.Administration.SignatureApprovalContracts (signature review).
+
+/** Where a signature image stands: none on file, waiting for Finance, or approved to print on the R47. */
+export type SignatureReviewStatus = 'None' | 'Pending' | 'Approved';
+
+/** One person's signature image in Finance's review list. */
+export interface SignatureReviewItem {
+  userId: number;
+  fullName: string;
+  departmentName: string | null;
+  status: SignatureReviewStatus;
+  /** The upload Finance reviews; sent back so a replaced image is never approved unseen (409). */
+  uploadedAt: string | null;
+  approvedAt: string | null;
+  approvedByName: string | null;
+}

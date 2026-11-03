@@ -1,21 +1,48 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { formatDateTime } from '@/shared/format';
+import type { SignatureStatus } from '@/features/admin/types';
 
 /**
  * Signature image on file (PNG/JPEG) that the R47 prints for the preparer and, once they approve,
- * for the approver. Shows the image on file; a picked file is previewed beside it and only uploaded
- * when confirmed. The parent owns the upload and remove calls (and the remove confirmation) and bumps
- * `imageUrl` after a successful save.
+ * for the approver, after Finance approves the image. Shows the image on file; a picked file is
+ * previewed beside it and only uploaded when confirmed. The parent owns the upload and remove calls
+ * (and the remove confirmation) and bumps `imageUrl` after a successful save.
  */
 const props = withDefaults(
-  defineProps<{ hasSignature: boolean; imageUrl?: string | null; uploading?: boolean; removing?: boolean; disabled?: boolean }>(),
+  defineProps<{
+    hasSignature: boolean;
+    status?: SignatureStatus;
+    approvedAt?: string | null;
+    approvedByName?: string | null;
+    imageUrl?: string | null;
+    uploading?: boolean;
+    removing?: boolean;
+    disabled?: boolean;
+  }>(),
   {
+    status: undefined,
+    approvedAt: null,
+    approvedByName: null,
     imageUrl: null,
     uploading: false,
     removing: false,
     disabled: false,
   },
 );
+
+// An older API sends no status; treat an image on file as approved, as it printed then.
+const effectiveStatus = computed<SignatureStatus>(() => props.status ?? (props.hasSignature ? 'Approved' : 'None'));
+const pill = computed(() => {
+  switch (effectiveStatus.value) {
+    case 'Approved':
+      return { text: 'Approved', cls: 'pill--success' };
+    case 'Pending':
+      return { text: 'Waiting for Finance', cls: 'pill--warning' };
+    default:
+      return { text: 'Not on file', cls: 'pill--warning' };
+  }
+});
 
 const emit = defineEmits<{ upload: [file: File]; remove: [] }>();
 
@@ -68,13 +95,20 @@ function save() {
   <v-card>
     <div class="card-h">
       <span class="card-t">Signature</span>
-      <span class="pill" :class="hasSignature ? 'pill--success' : 'pill--warning'">{{ hasSignature ? 'On file' : 'Not on file' }}</span>
+      <span class="pill" :class="pill.cls">{{ pill.text }}</span>
     </div>
     <div class="pa-4 d-flex flex-column ga-3">
       <p class="text-body-2 text-medium-emphasis mb-0">
-        Printed on the R47 as the preparer's signature, and as the approver's signature once they approve. Optional: without one the
-        account can still file and signs the printed R47 instead.
+        Printed on the R47 as the preparer's signature, and as the approver's signature once they approve, with an ELECTRONIC SIGNATURE
+        watermark. A new image prints only after Finance approves it. Optional: without one the account can still file and signs the
+        printed R47 instead.
       </p>
+      <p v-if="effectiveStatus === 'Approved' && approvedAt" class="text-body-2 mb-0">
+        Approved{{ approvedByName ? ` by ${approvedByName}` : '' }} on {{ formatDateTime(approvedAt) }}.
+      </p>
+      <v-alert v-else-if="effectiveStatus === 'Pending'" type="info" variant="tonal" density="compact">
+        Waiting for Finance to approve this signature. Until then the R47 prints "Electronically approved" with the date and time instead.
+      </v-alert>
 
       <div class="sig-grid" :class="{ 'sig-grid--two': pending }">
         <figure class="sig">

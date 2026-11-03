@@ -18,6 +18,17 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-03
 
+- **R47 electronic signature rule and Finance signature approval** (PR #43). Script `024`, `SchemaVersion.Required` 24.
+  - **Rules → Expense report (R47) → Signatures on the R47** (`Reports.R47SignatureMode`):
+    - **E-signature** (default) prints approved signature images with an **ELECTRONIC SIGNATURE** watermark and
+      "Electronically signed in ERFWeb <date time> · <ERF ref>".
+    - **Status only** prints no images; each approved place reads "Electronically approved <date time>", and the
+      employee line reads "Electronically filed <date time>".
+  - **Finance approves each signature image** before the R47 prints it. A new upload starts as *Waiting for
+    Finance*; Finance approves or rejects it on the new **Signatures** page (`/signatures`). A rejection removes
+    the image. Nobody reviews their own signature. The decisions are audited as `Admin.SignatureApproved` /
+    `Admin.SignatureRejected`.
+  - Signatures already on file are marked approved by script `024`, so current R47s keep printing them.
 - **`reset_reports.sql` also clears report audit rows without a `report_id`** (PR #42). The test-mode
   `TestData.Deleted` rows for a report, line, cash advance, receipt or verification and earlier
   `Reports.ResetByScript` rows are deleted with the reports; documented under "Clearing only the expense reports".
@@ -235,6 +246,7 @@ psql -d erfweb -f Database/020_expense_line_crm_activity.sql  # expense_lines.cr
 psql -d erfweb -f Database/021_workflow_audit_append_only.sql # Phase 8.5: the database refuses UPDATE/DELETE/TRUNCATE of workflow_audit (9.9)
 psql -d erfweb -f Database/022_cost_center_budgets.sql   # cost_center_budgets + expense_reports.department_id (filing department)
 psql -d erfweb -f Database/023_expense_line_crm_activities.sql # expense_lines.crm_activity_ids: several CRM activities per line (re-run after the deploy)
+psql -d erfweb -f Database/024_signature_approval.sql          # Finance approval of signature images (existing ones marked approved)
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -369,7 +381,16 @@ writes `R47-sample-page1.pdf` to the test output folder for side-by-side compari
 
 Footer signatories: with a two-step route the Level 1 approver prints in ENDORSED BY and the Level 2 approver
 in APPROVED BY (a one-step route fills only APPROVED BY); each signature prints in its own band just above the
-name (never covering it) once that step is approved. REVIEWED BY is not an approver; the first value set wins: the employee's own (**Users → Edit →
+name (never covering it) once that step is approved. What prints follows the R47 signature rule (**Rules →
+Expense report (R47) → Signatures on the R47**, `Reports.R47SignatureMode`, Domain `R47Signatures`):
+
+| Place on the R47 | E-signature (default) | Status only |
+| --- | --- | --- |
+| Approved step, image approved by Finance | Image with the ELECTRONIC SIGNATURE watermark + "Electronically signed in ERFWeb <date time> · <ERF ref>" | "Electronically approved <date time>" |
+| Approved step, no image or not yet approved | "Electronically approved <date time>" | "Electronically approved <date time>" |
+| Employee line, report filed | Approved image with the watermark + "Electronically signed in ERFWeb …", otherwise "Electronically filed <date time>" | "Electronically filed <date time>" |
+
+The stamps sit in the existing signature bands, so the form keeps its height. REVIEWED BY is not an approver; the first value set wins: the employee's own (**Users → Edit →
 Reviewed by (R47)**, `users.r47_reviewed_by`, script `019`), then the department's (**Master data → Departments →
 Reviewed by**), then the setting `Reports.R47ReviewedBy` (default `FINANCE`) under **Rules → Expense report (R47)**. The employee's
 signature, when one is on file, prints over their full name above EMPLOYEE'S SIGNATURE; without one only the name
@@ -493,7 +514,8 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 | `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `GET/POST/DELETE …/signature` (SystemAdministrator) | Register and maintain accounts; load or remove the signature printed on the R47 |
 | `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/revoke` (SystemAdministrator) | Grant, revoke |
 | `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list. A cost center needs a department and carries `budgets` (`[{ year, amount }]`); saving sends the years to set or clear (`amount: null`) |
-| `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches, account email domains; stored in `app_settings` |
+| `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches, account email domains, the R47 REVIEWED BY and signature rule (`r47SignatureMode`: `ESignature` or `StatusOnly`); stored in `app_settings` |
+| `GET /api/signatures?status=Pending\|Approved` · `GET …/{userId}/image` · `POST …/{userId}/approve` · `POST …/{userId}/reject` (Finance) | Finance's review of signature images. Approve and reject send `{ uploadedAt, note? }` (the upload reviewed; a newer one answers 409). Rejecting removes the image. Your own signature answers 403 |
 | `GET /api/admin/crm/employees?search&includeInactive` · `GET …/{employeeId}` (SystemAdministrator) | CRM employee lookup for the user form (see CRM employee link) |
 | `GET /api/admin/audit?event&actorUserId&from&to` (SystemAdministrator, Finance) | Append-only audit trail |
 
@@ -746,6 +768,13 @@ signature, never the absent signatory's. The System Administrator loads signatur
 preview, and can remove one there (**Remove signature**, confirmed first; not on their own account; audited as
 `Admin.SignatureDeleted`). Signatures are read when the R47 is printed, so removing one also removes it from that
 person's earlier reports and approvals.
+
+**Signature approval (script `024`):** an image the System Administrator loads starts as *Waiting for Finance*
+(`users.signature_uploaded_at` set, `signature_approved_at` empty) and prints on the R47 only after Finance approves
+it on **Signatures** (`/signatures`, Finance only). Rejecting removes the image. A replaced image starts over, and
+nobody reviews their own (Domain `SignatureApprovalRules`). The user console shows the status (*Not on file*,
+*Waiting for Finance*, *Approved* by whom and when). Until an image is approved, that person's places on the R47
+print their electronic status instead.
 
 **Summaries and exports:** the endpoints are listed under Approvals & Finance above (expense summary as CSV/PDF,
 approval inbox and Finance queue CSV, Finance aging). SPA: **Summary** page and export buttons on the Approvals and

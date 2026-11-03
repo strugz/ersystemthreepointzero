@@ -77,7 +77,7 @@ const adminNav = computed<NavItem[]>(() => {
 });
 
 // Work queues: approvals for signatories, cost center budgets for signatories and Finance, the receipt
-// queue for Finance, verifications for the Expense Verifier. Gating is display only.
+// queue and signature approvals for Finance, verifications for the Expense Verifier. Gating is display only.
 const workNav = computed<NavItem[]>(() => {
   const items: NavItem[] = [];
   if (session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2')) {
@@ -89,6 +89,7 @@ const workNav = computed<NavItem[]>(() => {
   }
   if (session.hasRole('Finance')) {
     items.push({ title: 'Finance queue', icon: 'mdi-receipt-text-check-outline', to: { name: 'finance-queue' }, exact: false });
+    items.push({ title: 'Signatures', icon: 'mdi-draw-pen', to: { name: 'signature-approvals' }, exact: false });
   }
   if (session.hasRole('ExpenseVerifier')) {
     items.push({ title: 'Verifications', icon: 'mdi-magnify-scan', to: { name: 'verifications' }, exact: false });

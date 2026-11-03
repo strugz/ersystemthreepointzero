@@ -117,6 +117,45 @@ public class R47PdfRendererTests
         File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, "R47-sample-signed.pdf"), pdf);
     }
 
+    [Fact]
+    public void Render_ESignatures_WithWatermarkAndStamps_StaysOnOnePage()
+    {
+        var signature = SignaturePng();
+        var doc = SampleDocument() with
+        {
+            Signatories = new R47Signatories(
+                "Test Manager One", null, "Test Manager Two", signature, signature,
+                EndorsedAt: new DateTimeOffset(2026, 10, 28, 1, 30, 0, TimeSpan.Zero),
+                ApprovedAt: new DateTimeOffset(2026, 10, 29, 6, 5, 0, TimeSpan.Zero)),
+            EmployeeSignature = signature,
+            FiledAt = new DateTimeOffset(2026, 10, 27, 9, 0, 0, TimeSpan.Zero),
+        };
+
+        var pdf = Renderer().Render(doc, DateTimeOffset.UtcNow);
+
+        Assert.Equal(1, CountPages(pdf));
+        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, "R47-sample-esignature.pdf"), pdf);
+    }
+
+    [Fact]
+    public void Render_StatusOnly_PrintsStampsWithoutImages_StaysOnOnePage()
+    {
+        // Status only: the loader passes no images, so every signed place prints its electronic status.
+        var doc = SampleDocument() with
+        {
+            Signatories = new R47Signatories(
+                "Test Manager One", null, "Test Manager Two",
+                EndorsedAt: new DateTimeOffset(2026, 10, 28, 1, 30, 0, TimeSpan.Zero),
+                ApprovedAt: new DateTimeOffset(2026, 10, 29, 6, 5, 0, TimeSpan.Zero)),
+            FiledAt = new DateTimeOffset(2026, 10, 27, 9, 0, 0, TimeSpan.Zero),
+        };
+
+        var pdf = Renderer().Render(doc, DateTimeOffset.UtcNow);
+
+        Assert.Equal(1, CountPages(pdf));
+        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, "R47-sample-status-only.pdf"), pdf);
+    }
+
     /// <summary>A 160x40 RGBA PNG with a wavy blue stroke, standing in for an uploaded signature.</summary>
     private static byte[] SignaturePng()
     {

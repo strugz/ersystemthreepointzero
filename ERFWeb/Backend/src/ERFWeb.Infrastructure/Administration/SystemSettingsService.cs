@@ -3,6 +3,7 @@ using System.Text.Json;
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
 using ERFWeb.Domain.Administration;
+using ERFWeb.Domain.Reporting;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,7 @@ public static class SystemSettingKeys
     public const string NotificationFromAddress = "Notifications.FromAddress";
     public const string EmailDomains = "Accounts.EmailDomains";
     public const string R47ReviewedBy = "Reports.R47ReviewedBy";
+    public const string R47SignatureMode = "Reports.R47SignatureMode";
 
     /// <summary>Longest REVIEWED BY text that still fits the R47 signatory line.</summary>
     public const int R47ReviewedByMaxLength = 60;
@@ -43,6 +45,9 @@ public static class SystemSettingKeys
         [NotificationFromAddress] = "",
         [EmailDomains] = EmailDomainRules.DefaultDomain,
         [R47ReviewedBy] = "FINANCE",
+
+        // Signature images keep printing (now watermarked) until the administrator chooses status only.
+        [R47SignatureMode] = nameof(Domain.Reporting.R47SignatureMode.ESignature),
     };
 }
 
@@ -85,7 +90,8 @@ public sealed class SystemSettingsService(
             latest?.UpdatedAt,
             updatedByName,
             EmailDomainRules.Parse(Raw(values, SystemSettingKeys.EmailDomains)),
-            Text(values, SystemSettingKeys.R47ReviewedBy) ?? SystemSettingKeys.Defaults[SystemSettingKeys.R47ReviewedBy]);
+            Text(values, SystemSettingKeys.R47ReviewedBy) ?? SystemSettingKeys.Defaults[SystemSettingKeys.R47ReviewedBy],
+            R47Signatures.ParseMode(Raw(values, SystemSettingKeys.R47SignatureMode)));
     }
 
     public async Task<SystemSettingsDto> UpdateAsync(UpdateSystemSettingsRequest request, CancellationToken ct = default)
@@ -118,6 +124,12 @@ public sealed class SystemSettingsService(
         if (request.R47ReviewedBy is not null)
         {
             incoming[SystemSettingKeys.R47ReviewedBy] = request.R47ReviewedBy.Trim();
+        }
+
+        // And one that predates the R47 signature rule.
+        if (request.R47SignatureMode is { } signatureMode)
+        {
+            incoming[SystemSettingKeys.R47SignatureMode] = signatureMode.ToString();
         }
 
         await tx.ExecuteAsync(async token =>
@@ -177,6 +189,15 @@ public sealed class SystemSettingsService(
             : AccountRules.DefaultCoolingPeriodDays;
     }
 
+    public async Task<R47SignatureMode> GetR47SignatureModeAsync(CancellationToken ct = default)
+    {
+        var value = await db.AppSettings.AsNoTracking()
+            .Where(s => s.Key == SystemSettingKeys.R47SignatureMode)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync(ct);
+        return R47Signatures.ParseMode(value);
+    }
+
     private static void Validate(UpdateSystemSettingsRequest r)
     {
         var errors = new Dictionary<string, string[]>();
@@ -187,6 +208,11 @@ public sealed class SystemSettingsService(
         if (r.FilingCutoffDays < 0 || r.FilingCutoffDays > 365) errors["filingCutoffDays"] = ["Enter 0 to 365 days (0 disables the cut-off)."];
         if (r.ReceiptRequiredAboveAmount < 0) errors["receiptRequiredAboveAmount"] = ["The amount cannot be negative."];
         if (r.CoolingPeriodDays < 0 || r.CoolingPeriodDays > 90) errors["coolingPeriodDays"] = ["Enter 0 to 90 days (0 disables the cooling period)."];
+        if (r.R47SignatureMode is { } mode && !Enum.IsDefined(mode))
+        {
+            errors["r47SignatureMode"] = ["Choose E-signature or Status only."];
+        }
+
         if (!string.IsNullOrWhiteSpace(r.NotificationFromAddress) && (r.NotificationFromAddress.Length > 200 || !r.NotificationFromAddress.Contains('@')))
         {
             errors["notificationFromAddress"] = ["Enter a valid sender email address."];

@@ -1,7 +1,7 @@
-import { api } from '@/shared/api/client';
+import { api, apiUrl } from '@/shared/api/client';
 import type { PagedResult } from '@/features/expenses/types';
 import type { ExportFormat } from '@/shared/download';
-import type { FinanceAging, FinanceQueueItem, FinanceQueueQuery, ReceiptStatus } from './types';
+import type { FinanceAging, FinanceQueueItem, FinanceQueueQuery, ReceiptStatus, SignatureReviewItem, SignatureReviewStatus } from './types';
 
 const f = (id: string) => `/finance/${encodeURIComponent(id)}`;
 
@@ -30,4 +30,14 @@ export const financeApi = {
   clear: (id: string, remarks: string | null, rowVersion: number) =>
     api.post<FinanceQueueItem>(`${f(id)}/clear`, { remarks, rowVersion }),
   followUp: (id: string, message: string | null) => api.post<FinanceQueueItem>(`${f(id)}/follow-up`, { message }),
+};
+
+// Signature review: the R47 prints a person's signature image only after Finance approves it.
+export const signatureReviewApi = {
+  list: (status: Exclude<SignatureReviewStatus, 'None'>) => api.get<SignatureReviewItem[]>(`/signatures?status=${status}`),
+  /** Direct URL of the image on file, for an <img>; the browser sends the session cookie. */
+  imageUrl: (userId: number, uploadedAt: string | null) => apiUrl(`/signatures/${userId}/image?v=${encodeURIComponent(uploadedAt ?? '')}`),
+  approve: (userId: number, uploadedAt: string) => api.post<SignatureReviewItem>(`/signatures/${userId}/approve`, { uploadedAt }),
+  reject: (userId: number, uploadedAt: string, note: string | null) =>
+    api.post<SignatureReviewItem>(`/signatures/${userId}/reject`, { uploadedAt, note }),
 };

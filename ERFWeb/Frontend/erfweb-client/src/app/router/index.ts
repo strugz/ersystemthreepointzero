@@ -96,6 +96,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: ['Finance'] },
   },
   {
+    path: '/signatures',
+    name: 'signature-approvals',
+    component: () => import('@/views/finance/SignatureApprovalsView.vue'),
+    meta: { requiresAuth: true, roles: ['Finance'] },
+  },
+  {
     path: '/admin/users',
     name: 'admin-users',
     component: () => import('@/views/admin/UsersView.vue'),

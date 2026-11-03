@@ -24,6 +24,8 @@ internal sealed class R47Document(
 {
     private static readonly Color Red = Color.FromHex("#C00000");
     private static readonly Color Blue = Color.FromHex("#1F1FBF");
+    private static readonly Color WatermarkGrey = Color.FromHex("#9A9A9A");
+    private const float StampSize = 5.6f;
     private const float Border = 0.6f;
 
     // Type sizes of the reference printout (pt).
@@ -407,7 +409,8 @@ internal sealed class R47Document(
                     .FontColor(Blue).LineHeight(1.45f);
 
                 // Signature over printed name, like the signatory lines: the signature first so the
-                // name is drawn on top of an opaque (JPEG or non-transparent PNG) background.
+                // name is drawn on top of an opaque (JPEG or non-transparent PNG) background. The
+                // electronic stamp sits at the top of the same box, so the footer keeps its height.
                 col.Item().AlignCenter().Width(160).Height(20).Layers(layers =>
                 {
                     if (dto.EmployeeSignature is { Length: > 0 } bytes)
@@ -415,6 +418,12 @@ internal sealed class R47Document(
                         // FitArea keeps the aspect ratio but pins the image to the left of the box;
                         // align it so a wide or short signature sits centred over the line.
                         layers.Layer().AlignCenter().AlignMiddle().Image(bytes).FitArea();
+                        layers.Layer().AlignCenter().AlignMiddle().Text(R47Signatures.Watermark).FontSize(6).Bold().FontColor(WatermarkGrey);
+                    }
+
+                    if (EmployeeStamp() is { } stamp)
+                    {
+                        layers.Layer().AlignCenter().AlignTop().Text(stamp).FontSize(StampSize).Italic().FontColor(Blue);
                     }
 
                     layers.PrimaryLayer().AlignCenter().AlignBottom().Text(dto.EmployeeFullName);
@@ -426,9 +435,9 @@ internal sealed class R47Document(
             row.RelativeItem().Column(col =>
             {
                 col.Item().PaddingLeft(20).PaddingTop(3).Text("(Signature Over Printed Name)").FontColor(Red);
-                SignedSignatoryLine(col, "ENDORSED BY :", sig.EndorsedBy, sig.EndorserSignature, topBorder: false);
+                SignedSignatoryLine(col, "ENDORSED BY :", sig.EndorsedBy, sig.EndorserSignature, SignatoryStamp(sig.EndorserSignature, sig.EndorsedAt), topBorder: false);
                 SignatoryLine(col, "REVIEWED BY :", sig.ReviewedBy);
-                SignedSignatoryLine(col, "APPROVED BY :", sig.ApprovedBy, sig.ApproverSignature, topBorder: true);
+                SignedSignatoryLine(col, "APPROVED BY :", sig.ApprovedBy, sig.ApproverSignature, SignatoryStamp(sig.ApproverSignature, sig.ApprovedAt), topBorder: true);
             });
         });
     }
@@ -442,10 +451,30 @@ internal sealed class R47Document(
         });
 
     /// <summary>
+    /// The R47 signature rule on paper: a printed image says it was signed in ERFWeb, with the time and
+    /// ERF reference; an approved step without one says "Electronically approved"; null before approval.
+    /// </summary>
+    private string? SignatoryStamp(byte[]? signature, DateTimeOffset? approvedAt) => approvedAt switch
+    {
+        null => null,
+        { } at when signature is { Length: > 0 } => R47Signatures.SignedStamp(at, opt.UtcOffsetHours, dto.ReferenceNo),
+        { } at => R47Signatures.ApprovedStamp(at, opt.UtcOffsetHours),
+    };
+
+    private string? EmployeeStamp() => dto.FiledAt switch
+    {
+        null => null,
+        { } at when dto.EmployeeSignature is { Length: > 0 } => R47Signatures.SignedStamp(at, opt.UtcOffsetHours, dto.ReferenceNo),
+        { } at => R47Signatures.FiledStamp(at, opt.UtcOffsetHours),
+    };
+
+    /// <summary>
     /// A signatory row whose signature sits in its own band above the printed name, so the
     /// signature never covers the name. The band is kept when unsigned so the form keeps its height.
+    /// A printed signature carries the ELECTRONIC SIGNATURE watermark, and the stamp sits beside it
+    /// in the same band.
     /// </summary>
-    private static void SignedSignatoryLine(ColumnDescriptor col, string label, string? name, byte[]? signature, bool topBorder)
+    private static void SignedSignatoryLine(ColumnDescriptor col, string label, string? name, byte[]? signature, string? stamp, bool topBorder)
     {
         var item = col.Item();
         if (topBorder) item = item.BorderTop(Border);
@@ -455,11 +484,23 @@ internal sealed class R47Document(
             r.ConstantItem(70).AlignBottom().Text(label).Bold();
             r.RelativeItem().Column(c =>
             {
-                var band = c.Item().Height(18).PaddingLeft(10).Width(90);
-                if (signature is { Length: > 0 } bytes)
+                c.Item().Height(18).Row(band =>
                 {
-                    band.AlignBottom().Image(bytes).FitArea();
-                }
+                    if (signature is { Length: > 0 } bytes)
+                    {
+                        band.ConstantItem(100).PaddingLeft(10).Layers(layers =>
+                        {
+                            layers.PrimaryLayer().AlignBottom().Image(bytes).FitArea();
+                            layers.Layer().AlignCenter().AlignMiddle().Text(R47Signatures.Watermark).FontSize(6).Bold().FontColor(WatermarkGrey);
+                        });
+                    }
+
+                    if (stamp is not null)
+                    {
+                        band.RelativeItem().PaddingLeft(signature is { Length: > 0 } ? 4 : 10).AlignBottom()
+                            .Text(stamp).FontSize(StampSize).Italic().FontColor(Blue);
+                    }
+                });
 
                 c.Item().Text(name ?? string.Empty);
             });
