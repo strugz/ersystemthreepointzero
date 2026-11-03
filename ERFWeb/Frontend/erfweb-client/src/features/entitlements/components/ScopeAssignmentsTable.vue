@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useDisplay } from 'vuetify';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { formatDate, formatMoney } from '@/shared/format';
 import { scopeLevelLabel, scopeTypeLabel } from '../labels';
 import type { ScopeAssignment } from '../types';
@@ -23,6 +24,8 @@ const emit = defineEmits<{
   create: [];
   retry: [];
   'clear-filters': [];
+  /** An assignment was deleted as test data. */
+  deleted: [];
 }>();
 
 const { xs } = useDisplay();
@@ -141,6 +144,7 @@ function onRow(a: ScopeAssignment) {
             <td><span class="pill" :class="a.isActive ? 'pill--success' : 'pill--neutral'">{{ a.isActive ? 'Active' : 'Inactive' }}</span></td>
             <td v-if="canWrite" class="r">
               <v-btn class="press" icon="mdi-pencil-outline" size="x-small" variant="text" :aria-label="`Edit scope of ${a.holderName}`" @click.stop="onRow(a)" />
+              <AppTestDeleteButton kind="scope-assignments" :id="a.id" :label="`the scope assignment of ${a.holderName}`" @deleted="emit('deleted')" />
             </td>
           </tr>
         </tbody>

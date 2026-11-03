@@ -2,6 +2,8 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { useDisplay } from 'vuetify';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
+import type { TestDataKind } from '@/shared/api/testData';
 
 /**
  * Generic reference-data list with an add/edit dialog, used for departments, cost centers, currencies
@@ -48,14 +50,17 @@ const props = withDefaults(
     saving?: boolean;
     errors?: Record<string, string[]> | null;
     emptyIcon?: string;
+    /** Shows the test-only Delete on each row (test builds only). */
+    testDeleteKind?: TestDataKind;
   }>(),
-  { loading: false, error: null, saving: false, errors: null, emptyIcon: 'mdi-database-outline' },
+  { loading: false, error: null, saving: false, errors: null, emptyIcon: 'mdi-database-outline', testDeleteKind: undefined },
 );
 
 const emit = defineEmits<{
   save: [draft: Draft, existing: T | null];
   retry: [];
   'clear-errors': [];
+  deleted: [];
 }>();
 
 const { xs } = useDisplay();
@@ -194,6 +199,13 @@ function save() {
             <td><span class="pill" :class="item.isActive ? 'pill--success' : 'pill--neutral'">{{ item.isActive ? 'Active' : 'Inactive' }}</span></td>
             <td class="r">
               <v-btn class="press" icon="mdi-pencil-outline" size="x-small" variant="text" :aria-label="`Edit ${singular}`" @click.stop="openEdit(item)" />
+              <AppTestDeleteButton
+                v-if="testDeleteKind"
+                :kind="testDeleteKind"
+                :id="keyOf(item)"
+                :label="`the ${singular} ${cell(item, columns[0])}`"
+                @deleted="emit('deleted')"
+              />
             </td>
           </tr>
         </tbody>

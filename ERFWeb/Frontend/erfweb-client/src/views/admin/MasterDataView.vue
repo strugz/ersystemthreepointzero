@@ -372,6 +372,8 @@ function saveFareMode(draft: Draft, existing: FareMode | null) {
           :errors="departments.errors.value"
           empty-icon="mdi-office-building-outline"
           @save="saveDepartment"
+          test-delete-kind="departments"
+          @deleted="departments.load"
           @retry="departments.load"
           @clear-errors="departments.errors.value = null"
         />
@@ -393,6 +395,8 @@ function saveFareMode(draft: Draft, existing: FareMode | null) {
           :errors="costCenters.errors.value"
           empty-icon="mdi-sitemap-outline"
           @save="saveCostCenter"
+          test-delete-kind="cost-centers"
+          @deleted="costCenters.load"
           @retry="costCenters.load"
           @clear-errors="costCenters.errors.value = null"
         />
@@ -414,6 +418,8 @@ function saveFareMode(draft: Draft, existing: FareMode | null) {
           :errors="currencies.errors.value"
           empty-icon="mdi-currency-usd"
           @save="saveCurrency"
+          test-delete-kind="currencies"
+          @deleted="currencies.load"
           @retry="currencies.load"
           @clear-errors="currencies.errors.value = null"
         />
@@ -435,6 +441,8 @@ function saveFareMode(draft: Draft, existing: FareMode | null) {
           :errors="sites.errors.value"
           empty-icon="mdi-map-marker-outline"
           @save="saveSite"
+          test-delete-kind="sites"
+          @deleted="sites.load"
           @retry="sites.load"
           @clear-errors="sites.errors.value = null"
         />
@@ -456,6 +464,8 @@ function saveFareMode(draft: Draft, existing: FareMode | null) {
           :errors="fareModes.errors.value"
           empty-icon="mdi-taxi"
           @save="saveFareMode"
+          test-delete-kind="fare-modes"
+          @deleted="fareModes.load"
           @retry="fareModes.load"
           @clear-errors="fareModes.errors.value = null"
         />

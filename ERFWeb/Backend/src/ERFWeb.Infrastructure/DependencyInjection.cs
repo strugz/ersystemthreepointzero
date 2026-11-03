@@ -9,6 +9,7 @@ using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Application.Features.Notifications;
 using ERFWeb.Application.Features.Reporting;
+using ERFWeb.Application.Features.Testing;
 using ERFWeb.Application.Features.Verification;
 using ERFWeb.Infrastructure.Administration;
 using ERFWeb.Infrastructure.Approvals;
@@ -22,6 +23,7 @@ using ERFWeb.Infrastructure.Notifications;
 using ERFWeb.Infrastructure.Persistence;
 using ERFWeb.Infrastructure.Reporting;
 using ERFWeb.Infrastructure.Services;
+using ERFWeb.Infrastructure.Testing;
 using ERFWeb.Infrastructure.Verification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -126,6 +128,10 @@ public static class DependencyInjection
         services.AddOptions<ReminderOptions>();
         services.AddScoped<IApprovalReminderService, ApprovalReminderService>();
         services.AddScoped<IReminderStatusService, ReminderStatusService>();
+
+        // Test-only deletes of test data; refused unless App:Mode is Test.
+        services.AddOptions<AppModeOptions>();
+        services.AddScoped<ITestDataService, TestDataService>();
 
         return services;
     }

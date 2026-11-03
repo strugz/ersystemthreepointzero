@@ -231,6 +231,10 @@ async function update(input: UpdateScopeAssignmentInput) {
             @create="openCreate"
             @retry="loadAssignments"
             @clear-filters="clearFilters"
+            @deleted="
+              loadAssignments();
+              loadCoverage();
+            "
           />
         </v-card>
       </v-window-item>

@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using ERFWeb.Api.Security;
 using ERFWeb.Application.Features.Approvals;
 using ERFWeb.Domain;
+using ERFWeb.Infrastructure.Testing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
@@ -58,12 +59,17 @@ public class GuardrailCodeTests
         Assert.All(Actions(audit), m => Assert.True(IsGet(m), $"{m.Name} must be a GET"));
     }
 
+    /// <summary>
+    /// The test-only report delete (<c>TestDataService</c>, App:Mode Test only) is the one exception: it removes
+    /// a deleted test report's audit rows with it.
+    /// </summary>
     [Fact]
     public void G9_09_No_server_code_updates_or_deletes_audit_rows()
     {
         var src = FindSource();
         var offenders = Directory.EnumerateFiles(src, "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(f => Path.GetFileName(f) != "TestDataService.cs")
             .Where(f => Regex.IsMatch(File.ReadAllText(f),
                 @"WorkflowAudits\b[^;]*?\.(Remove|RemoveRange|Update|UpdateRange|ExecuteDelete\w*|ExecuteUpdate\w*)\s*\(|(UPDATE|DELETE\s+FROM|TRUNCATE)\s+workflow_audit",
                 RegexOptions.IgnoreCase | RegexOptions.Singleline))
@@ -71,6 +77,17 @@ public class GuardrailCodeTests
             .ToList();
 
         Assert.Empty(offenders);
+    }
+
+    [Fact]
+    public void Test_data_deletes_need_the_administrator_and_test_mode()
+    {
+        var type = Api.GetTypes().Single(t => t.Name == "TestDataController");
+        Assert.All(Actions(type), m => Assert.Contains(Policies.SystemAdministrator, PoliciesOn(type, m)));
+
+        var service = File.ReadAllText(Path.Combine(FindSource(), "ERFWeb.Infrastructure", "Testing", "TestDataService.cs"));
+        Assert.Contains("if (!mode.Value.IsTest)", service, StringComparison.Ordinal);
+        Assert.False(new AppModeOptions().IsTest, "App:Mode must default to Production.");
     }
 
     private static string[] RolesOf(string policy)

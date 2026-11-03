@@ -16,6 +16,19 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-11-03
+
+- **Test mode and test-only deletes** (not yet committed). A new optional appsettings `App:Mode` (`Test` or
+  `Production`, default `Production`) and a SPA build variable `VITE_APP_MODE` (`test` or `prod`, `.env` keeps
+  `prod`). With both set to test, the System Administrator gets a red **Delete** (trash) button on every record a
+  create or update makes: master data rows, users, rate profiles, rate lines and assignments, scope assignments,
+  delegations, cost center budgets, and whole reports (editor and review page headers). The app bar shows a red
+  **TEST** chip. `DELETE /api/test-data/{kind}/{id}` (SystemAdministrator only, 403 unless `App:Mode` is `Test`)
+  hard-deletes the record; a report goes with its lines, attachments, approvals, Finance tracking, verifications,
+  SMS/email/reminder rows **and its `workflow_audit` rows** (the one place the API opts in to the script-021 purge).
+  Other records go with what they own and answer 409 while something else still uses them. Each delete is audited
+  as `TestData.Deleted`. No database script.
+
 ### 2026-10-29
 
 - **ERMS renamed to ERS, Expense Report System** (PR #41). The sign-in wordmark reads **ERS** /
@@ -173,6 +186,7 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Crm:*` (optional) | CRM employee and activity lookups: `BaseUrl` (e.g. `https://<crm-host>/api2/erf/v1`), `ApiKey`, `ApiKeyHeaderName` (`X-Api-Key`), `TimeoutSeconds`. Without it the Add User CRM search answers 503, accounts save unlinked, and the line editor hides **From CRM** |
 | `Smtp:*` (optional) | Mail server, sender mailbox and login for report email (see Report email) |
 | `Reminders:Enabled` / `RunAt` (optional) | Daily SLA approval reminders; off unless `Enabled` is `true`, run at `RunAt` (`HH:mm`, business time, default `08:00`) on working days (see SLA reminders) |
+| `App:Mode` (optional, default `Production`) | `Test` lets the System Administrator hard-delete test data (see Test mode); anything else is production |
 | `Kestrel:*` (server) | Endpoint the API listens on behind nginx |
 | `RateLimiting:SignInPerMinute` (optional, default 30) | Sign-in and password-change attempts allowed per client address per minute (429 `rate_limited` beyond) |
 | `RateLimiting:ApiPerMinute` (optional, default 1200) | All other API requests per client address per minute; only stops runaway clients |
@@ -256,15 +270,17 @@ migrationBuilder.Sql(ERFWeb.Infrastructure.Persistence.HistorySql.DropAll);
 
 **Audit trail is append-only (script 021).** A trigger refuses any change to or deletion of `workflow_audit` rows,
 and `TRUNCATE`. The maintenance scripts that clear audit rows (`reset_data_keep_admins`, `reset_reports`,
-`delete_users_keep_admin`) opt in for their own transaction with `SET LOCAL erfweb.allow_audit_purge = 'on'`; the
-API never does. Any other script that must delete audit rows needs the same line.
+`delete_users_keep_admin`) opt in for their own transaction with `SET LOCAL erfweb.allow_audit_purge = 'on'`. The
+API does so only in the test-only report delete (`TestDataService`, `App:Mode` `Test`; see Test mode). Any other
+script that must delete audit rows needs the same line.
 
 ### Guardrail tests (plan Phase 8.5)
 
 The RBAC v0.6 guardrails 9.1–9.18 are tested without a database: the Domain rules (`tests/ERFWeb.Tests/Domain`)
 and the code itself (`Architecture/GuardrailCodeTests`, named `G9_NN_…`): only the System Administrator policy may
 change roles, scope and rates; Finance and the administrator read the audit trail; the audit endpoint only reads;
-the Finance service has no reject; and no server code updates or deletes audit rows.
+the Finance service has no reject; and no server code updates or deletes audit rows except the test-only report
+delete, which needs the administrator policy and `App:Mode` `Test`.
 
 ### Schema notes
 
@@ -295,6 +311,11 @@ Put a machine-specific value in `.env.local` (gitignored) rather than editing `.
 When the target is a reverse proxy that already maps to the API's `/api` root (the `sr.mdmpi.com.ph` nginx rule
 forwards `/erf/*` to `/api/*`), set `VITE_API_PROXY_STRIP_PREFIX=true` so the dev proxy drops the SPA's `/api`
 prefix. For a production build served behind that rule, set `VITE_API_BASE_URL` to the public prefix (e.g. `/erf`).
+
+**Test mode:** `VITE_APP_MODE=test` (in `.env.local` or the build's environment; the committed `.env` keeps
+`prod` because Render builds from it) shows the red **TEST** chip in the app bar and the System Administrator's
+test-only **Delete** buttons (`shared/ui/AppTestDeleteButton.vue`, calling `shared/api/testData.ts`). It only
+decides what is shown; the API refuses the deletes unless its `App:Mode` is `Test` (see Test mode).
 
 **Version shown to users:** the sign-in page and the bottom of every page show `ERFWeb v<version> · <commit>`. The
 version is `"version"` in `package.json` (bump it for each release, e.g. `npm version minor --no-git-tag-version`);
@@ -869,6 +890,39 @@ type only). The **SLA reminders** card on the System Administrator's **Rules** p
 `RunAt`), the run time and next run, whether email (`Smtp`) and SMS (`Lasius`) are set up, and the last run's time
 and result. "No run recorded yet" until the first run after this was deployed.
 
+## Test mode (test-only deletes)
+
+For cleaning up records made while testing. Two switches, both off by default:
+
+- **API:** `"App": { "Mode": "Test" }` in the server's `appsettings.json`. Without it, or with `Production`,
+  `DELETE /api/test-data/...` answers 403 and nothing can be deleted.
+- **SPA:** `VITE_APP_MODE=test` at build time. Without it the Delete buttons and the TEST chip are not shown.
+
+`DELETE /api/test-data/{kind}/{id}` is for the System Administrator only (`TestDataController`,
+`Infrastructure/Testing/TestDataService.cs`). Kinds: `reports` (GUID), `expense-lines`, `cash-advances`,
+`attachments`, `verifications`, `users`, `departments`, `cost-centers`, `cost-center-budgets`
+(`{costCenterId}-{year}`), `currencies` (code), `sites`, `fare-modes`, `rate-profiles`, `rate-profile-lines`,
+`rate-assignments`, `scope-assignments`, `delegations`. Each delete runs in one transaction and writes a
+`TestData.Deleted` audit row (`kind` and `id` only).
+
+- A **report** goes with everything under it, the same tables as `Database/maintenance/reset_reports.sql`,
+  including its `workflow_audit` rows (`SET LOCAL erfweb.allow_audit_purge = 'on'` for that transaction only).
+  Its reference number is not reused. `record_history` rows stay.
+- A **user** goes with their roles, rates, routes, scope assignments they hold or are named on, rate assignments,
+  delegations and SMS/email delivery rows. A user who still has reports, or who acted on someone else's report or
+  granted a role, is refused (409): delete those reports first. You cannot delete your own account.
+- A **department** goes with its signatory row, a **cost center** with its budgets, a **rate profile** with its
+  lines and assignments, a **scope assignment** with its named people, a **delegation** after the approval steps
+  signed under it lose the link. A record something else still points to (a department with users or reports, a
+  fare mode used on a fare leg) is refused (409).
+
+The SPA shows the button on Master data rows, the user page header, rate profiles (list, header, lines,
+assignments), scope assignments, delegations, cost center budgets and the report editor and review headers. Expense
+lines, cash advances, attachments and verifications have no button of their own: they go with their report (the
+API kinds are there for direct calls).
+
+**Never set `App:Mode` to `Test` on a server whose data must stay.** On the shared `erms_db` it deletes real rows.
+
 ## Deployment guide
 
 Step-by-step instructions for putting a change live. Read **How it is set up** once; after that, find your kind
@@ -1003,6 +1057,7 @@ Settings that matter for the live site:
 | `Kestrel` | the address the service listens on (`http://192.168.4.206:5080/5081`), which nginx forwards to |
 | `Smtp`, `Lasius`, `Crm` | email, SMS and the CRM employee and activity lookups; without them those features are skipped, not broken |
 | `Reminders` | `Enabled: true` and `RunAt` (e.g. `08:00`) on the server only, for the daily SLA reminders |
+| `App` | `Mode: Production` (or no `App` section); `Test` only while test data is being cleaned up (see Test mode) |
 | `Logging:File:Directory` | where log files go (default `logs`) |
 | `ReverseProxy:KnownProxies` | nginx's IP address as the server sees it (ask IT), e.g. `["192.168.4.x"]`; until it is set, rate limits count all users together |
 | `RateLimiting` | `SignInPerMinute` (30) and `ApiPerMinute` (1200); raise them if many users share one address and see 429 |

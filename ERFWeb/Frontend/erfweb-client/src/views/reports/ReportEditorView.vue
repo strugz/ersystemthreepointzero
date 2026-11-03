@@ -5,6 +5,8 @@ import { useDisplay } from 'vuetify';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
+import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
+import { useSessionStore } from '@/app/stores/session';
 import { formatBytes, formatDate, formatDateTime, formatMoney } from '@/shared/format';
 import { describeError, useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
@@ -42,6 +44,8 @@ import type {
 
 const route = useRoute();
 const router = useRouter();
+const session = useSessionStore();
+const isAdmin = computed(() => session.hasRole('SystemAdministrator'));
 const snack = useSnackbar();
 const { xs, lgAndUp } = useDisplay();
 const reportId = String(route.params.id);
@@ -471,6 +475,14 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
       <template v-if="report">
         <v-btn class="press" variant="text" prepend-icon="mdi-printer-outline" :to="{ name: 'report-pdf', params: { id: report.id } }">R47 PDF</v-btn>
         <v-btn v-if="report.canDelete" class="press" variant="text" color="error" @click="deleteDialog = true">Delete</v-btn>
+        <AppTestDeleteButton
+          v-if="isAdmin"
+          text
+          kind="reports"
+          :id="report.id"
+          :label="`the report ${report.referenceNo ?? '(draft)'}`"
+          @deleted="router.replace({ name: 'reports' })"
+        />
         <v-btn v-if="report.canReopen" class="press" variant="outlined" color="warning" prepend-icon="mdi-lock-open-variant-outline" @click="reopenDialog = true">Reopen</v-btn>
         <v-btn v-if="report.canFile" class="press" color="primary" variant="flat" prepend-icon="mdi-send-outline" :disabled="!canFileNow" @click="fileDialog = true">{{ fileLabel }}</v-btn>
       </template>
