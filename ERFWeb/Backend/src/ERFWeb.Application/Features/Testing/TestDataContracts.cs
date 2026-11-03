@@ -21,6 +21,7 @@ public enum TestDataKind
     ScopeAssignment,
     Delegation,
     AuditEntry,
+    RoleGrant,
 }
 
 /// <summary>
@@ -31,6 +32,9 @@ public enum TestDataKind
 /// </summary>
 public interface ITestDataService
 {
-    /// <param name="id">The record's key: a number, a report GUID, a currency code, or <c>{costCenterId}-{year}</c> for a budget.</param>
+    /// <param name="id">
+    /// The record's key: a number, a report GUID, a currency code, <c>{costCenterId}-{year}</c> for a budget,
+    /// or <c>{userId}-{role}</c> for a role grant.
+    /// </param>
     Task DeleteAsync(TestDataKind kind, string id, CancellationToken ct = default);
 }

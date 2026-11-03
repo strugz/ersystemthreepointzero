@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Testing;
+using ERFWeb.Domain;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -36,7 +37,9 @@ public sealed class TestDataService(
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        var number = kind is TestDataKind.Report or TestDataKind.Currency or TestDataKind.CostCenterBudget ? 0 : ParseLong(id);
+        var number = kind is TestDataKind.Report or TestDataKind.Currency or TestDataKind.CostCenterBudget or TestDataKind.RoleGrant
+            ? 0
+            : ParseLong(id);
 
         try
         {
@@ -62,6 +65,7 @@ public sealed class TestDataService(
                     TestDataKind.ScopeAssignment => await DeleteScopeAssignmentAsync(number, token),
                     TestDataKind.Delegation => await DeleteDelegationAsync(number, token),
                     TestDataKind.AuditEntry => await DeleteAuditEntryAsync(number, token),
+                    TestDataKind.RoleGrant => await DeleteRoleGrantAsync(id, token),
                     _ => throw new ValidationException("kind", "Unknown kind of test data."),
                 };
 
@@ -175,6 +179,30 @@ public sealed class TestDataService(
         }
 
         return db.CostCenterBudgets.Where(b => b.CostCenterId == costCenterId && b.BudgetYear == year).ExecuteDeleteAsync(ct);
+    }
+
+    /// <summary>
+    /// <paramref name="id"/> is <c>{userId}-{role}</c>. On one's own account only a revoked grant goes, so the
+    /// administrator can tidy their history but never drop a role they hold (they cannot change their own roles).
+    /// </summary>
+    private Task<int> DeleteRoleGrantAsync(string id, CancellationToken ct)
+    {
+        var parts = id.Split('-');
+        if (parts.Length != 2
+            || !long.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var userId)
+            || !Enum.TryParse<UserRole>(parts[1], ignoreCase: false, out var role)
+            || !Enum.IsDefined(role))
+        {
+            throw new NotFoundException();
+        }
+
+        var grants = db.UserRoleGrants.Where(g => g.UserId == userId && g.Role == role);
+        if (userId == user.UserId)
+        {
+            grants = grants.Where(g => g.Status == RoleGrantStatus.Revoked);
+        }
+
+        return grants.ExecuteDeleteAsync(ct);
     }
 
     private async Task<int> DeleteRateProfileAsync(long profileId, CancellationToken ct)

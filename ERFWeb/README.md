@@ -33,6 +33,9 @@ section of the root `CLAUDE.md`) in the same change.
   Other records go with what they own and answer 409 while something else still uses them. Each delete is audited
   as `TestData.Deleted`. No database script. The **Audit log** also gets a Delete on each entry
   (`audit-entries`), which removes that one `workflow_audit` row; the `TestData.Deleted` row it writes stays.
+  The user page's Roles card gets a Delete on each grant (`role-grants`, id `{userId}-{role}`): deleting the audit
+  entry of a revoke does not remove the Revoked row, which comes from `user_roles`. On one's own account only a
+  revoked grant can be deleted.
 
 ### 2026-10-29
 
@@ -919,7 +922,8 @@ For cleaning up records made while testing. Two switches, both off by default:
 `Infrastructure/Testing/TestDataService.cs`). Kinds: `reports` (GUID), `expense-lines`, `cash-advances`,
 `attachments`, `verifications`, `users`, `departments`, `cost-centers`, `cost-center-budgets`
 (`{costCenterId}-{year}`), `currencies` (code), `sites`, `fare-modes`, `rate-profiles`, `rate-profile-lines`,
-`rate-assignments`, `scope-assignments`, `delegations`, `audit-entries`. Each delete runs in one transaction and writes a
+`rate-assignments`, `scope-assignments`, `delegations`, `audit-entries`, `role-grants` (`{userId}-{role}`, e.g.
+`17-Finance`; on your own account only a revoked grant). Each delete runs in one transaction and writes a
 `TestData.Deleted` audit row (`kind` and `id` only).
 
 - A **report** goes with everything under it, the same tables as `Database/maintenance/reset_reports.sql`,
@@ -935,7 +939,7 @@ For cleaning up records made while testing. Two switches, both off by default:
 
 The SPA shows the button on Master data rows, the user page header, rate profiles (list, header, lines,
 assignments), scope assignments, delegations, cost center budgets, Audit log entries and the report editor and
-review headers. An audit entry is removed on its own (the same purge opt-in as a report); the `TestData.Deleted`
+review headers, and role grants on the user page. An audit entry is removed on its own (the same purge opt-in as a report); the `TestData.Deleted`
 row that records it stays. Expense
 lines, cash advances, attachments and verifications have no button of their own: they go with their report (the
 API kinds are there for direct calls).

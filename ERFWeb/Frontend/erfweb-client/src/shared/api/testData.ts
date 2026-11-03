@@ -19,10 +19,11 @@ export type TestDataKind =
   | 'rate-assignments'
   | 'scope-assignments'
   | 'delegations'
-  | 'audit-entries';
+  | 'audit-entries'
+  | 'role-grants';
 
 export const testDataApi = {
-  /** Hard-deletes a test record (System Administrator, API in App:Mode Test). A budget's id is `{costCenterId}-{year}`. */
+  /** Hard-deletes a test record (System Administrator, API in App:Mode Test). A budget's id is `{costCenterId}-{year}`, a role grant's `{userId}-{role}`. */
   delete: (kind: TestDataKind, id: string | number) =>
     api.del<void>(`/test-data/${kind}/${encodeURIComponent(String(id))}`),
 };

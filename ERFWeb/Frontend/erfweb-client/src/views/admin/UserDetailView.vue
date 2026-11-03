@@ -312,6 +312,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
             @grant="grantRole"
             @revoke="revoke"
             @clear-grant-errors="grantErrors = null"
+            @deleted="load"
           />
 
           <SignatureUpload v-if="!lgAndUp" :has-signature="user.hasSignature" :image-url="signatureUrl" :uploading="uploadingSignature" :removing="removingSignature" :disabled="isSelf" @upload="uploadSignature" @remove="removeSignatureDialog = true" />
