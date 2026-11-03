@@ -94,7 +94,7 @@ Every change that adds, removes or changes behaviour, an endpoint, a setting, a 
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
-- **2026-11-03:** R47 signature rule on the Rules page (E-signature with an ELECTRONIC SIGNATURE watermark, or Status only) and Finance approval of each signature image on a new **Signatures** page (`/api/signatures`, audited `Admin.SignatureApproved` / `Admin.SignatureRejected`); script `024`, `SchemaVersion.Required` 24 (branch `feature/erfweb-esignature-rules`, not yet committed).
+- **2026-11-03:** R47 signature rule on the Rules page (E-signature with an ELECTRONIC SIGNATURE watermark, or Status only) and Finance approval of each signature image on a new **Signatures** page (`/api/signatures`, audited `Admin.SignatureApproved` / `Admin.SignatureRejected`); script `024`, `SchemaVersion.Required` 24 (PR #43).
 
 - **2026-10-29:** ERMS renamed to **ERS, Expense Report System** on the sign-in page and Healthy living page (logo component `AppErsMark`); frontend only. `erms_db` and the Lasius `Application` value `ERMS` are unchanged (PR #41).
 - **2026-10-29:** The quote-of-the-day Bible verses use modern English (World English Bible, British Edition, public domain) instead of the KJV; frontend only (PR #40).

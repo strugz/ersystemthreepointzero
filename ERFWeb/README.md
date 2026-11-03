@@ -18,8 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-03
 
-- **R47 electronic signature rule and Finance signature approval** (branch `feature/erfweb-esignature-rules`,
-  not yet committed). Script `024`, `SchemaVersion.Required` 24.
+- **R47 electronic signature rule and Finance signature approval** (PR #43). Script `024`, `SchemaVersion.Required` 24.
   - **Rules → Expense report (R47) → Signatures on the R47** (`Reports.R47SignatureMode`):
     - **E-signature** (default) prints approved signature images with an **ELECTRONIC SIGNATURE** watermark and
       "Electronically signed in ERFWeb <date time> · <ERF ref>".
