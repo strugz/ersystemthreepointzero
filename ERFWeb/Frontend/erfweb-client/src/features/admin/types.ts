@@ -108,6 +108,81 @@ export interface R47Format {
   revisionNo: string;
 }
 
+/**
+ * The R47 layout set in the R47 designer (Domain R47Design): sizes in points on a US Letter landscape
+ * page, colours as #RRGGBB, and the fixed texts. The 13 grid columns fill the width between the margins.
+ */
+export interface R47Design {
+  marginLeft: number;
+  marginRight: number;
+  marginTop: number;
+  headerHeight: number;
+  logoWidth: number;
+  documentCodeWidth: number;
+  pageNoWidth: number;
+  companyNameSize: number;
+  titleSize: number;
+  infoLabelSize: number;
+  infoValueSize: number;
+  dateStampHeight: number;
+  employeeLineHeight: number;
+  employeeLabelWidth: number;
+  gridColumns: number[];
+  gridHeadingHeight: number;
+  gridSubHeadingHeight: number;
+  singleRowHeight: number;
+  detailHeight: number;
+  totalsRowHeight: number;
+  grandTotalRowHeight: number;
+  cashAdvanceWidth: number;
+  cashAdvanceRowHeight: number;
+  reconLineHeight: number;
+  footerHeight: number;
+  footerLeftWidth: number;
+  bodySize: number;
+  smallSize: number;
+  gridTextSize: number;
+  amountSize: number;
+  labelColor: string;
+  noteColor: string;
+  promiseText: string;
+  /** How the promise lines sit in their box; Left is the Crystal form. */
+  promiseAlign: 'Left' | 'Center';
+  revolvingFundText: string;
+  balanceNoteText: string;
+}
+
+/** The layout printing now, the standard form, and whether a layout was saved (else the standard form prints). */
+export interface R47DesignState {
+  design: R47Design;
+  standard: R47Design;
+  isSaved: boolean;
+  updatedAt: string | null;
+  updatedByName: string | null;
+}
+
+/**
+ * Preview of an unsaved layout on the built-in sample report or a picked report (drafts included);
+ * a null engine uses the one set on the Rules page.
+ */
+export interface R47DesignPreviewInput {
+  sample: boolean;
+  reportId: string | null;
+  design: R47Design;
+  engine: R47PdfEngine | null;
+}
+
+/** A report the designer can preview on; referenceNo is null until the report is filed. */
+export interface R47PreviewReport {
+  id: string;
+  referenceNo: string | null;
+  employeeName: string;
+  purpose: string | null;
+  /** The report's workflow status (ReportStatus on the server). */
+  status: string;
+  updatedAt: string;
+}
+
 /** Profile fields shared by create and edit. */
 export interface UserProfileInput {
   fullName: string;

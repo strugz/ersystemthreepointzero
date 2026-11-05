@@ -132,6 +132,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: ['SystemAdministrator'] },
   },
   {
+    path: '/admin/r47-designer',
+    name: 'admin-r47-designer',
+    component: () => import('@/views/admin/R47DesignerView.vue'),
+    meta: { requiresAuth: true, roles: ['SystemAdministrator'] },
+  },
+  {
     path: '/admin/audit',
     name: 'admin-audit',
     component: () => import('@/views/admin/AuditView.vue'),

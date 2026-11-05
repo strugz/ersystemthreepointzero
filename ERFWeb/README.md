@@ -18,10 +18,25 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-05
 
-- **R47 can be drawn with PDFsharp; QuestPDF stays** (not yet committed). New `R47PdfSharpDocument` draws the same
+- **R47 designer** (committed on branch `feature/erfweb-r47-format-pdfsharp`, no PR yet). **Rules → Expense report (R47) → Open the R47 designer** (`/admin/r47-designer`,
+  System Administrator): a drawing of the page whose band edges and column dividers are dragged (or moved with the
+  arrow keys), plus exact values for margins, band heights, the 13 grid column widths, header boxes, cash advance
+  and footer widths, type sizes, two colours and the fixed texts (promise, with Left or Center alignment; revolving fund line; BAL DUE note); Undo,
+  Discard, Reset to standard; **Preview PDF** with either engine on a built-in sample report (made-up data, two
+  pages) or on a report picked by employee name, purpose or ER reference, drafts included (only a report the
+  administrator may view; saves nothing). Saved as one `app_settings` row `Reports.R47Design` (JSON), audited
+  `SettingsChanged` with only the changed values; `GET`/`PUT /api/admin/r47-design`, `GET /api/admin/r47-design/reports`,
+  `POST /api/admin/r47-design/preview`.
+  Both engines now draw one layout: the new `R47Composer` places every shape from Domain `R47Design`, and
+  `R47Document` (QuestPDF) and `R47PdfSharpDocument` (PDFsharp) only draw those shapes. Page breaks follow the design
+  (Domain `R47GridMetrics`: wrap capacities from the PARTICULARS and Invoice/OR widths and the grid type size; the
+  detail area height). Rules in Domain `R47DesignRules`. The standard layout prints exactly as before;
+  `R47Report:DetailHeight` now only applies until a layout is saved. No database script. Deploy the backend before
+  the frontend. See [R47 designer](#r47-designer-rules-page).
+- **R47 can be drawn with PDFsharp; QuestPDF stays** (committed on branch `feature/erfweb-r47-format-pdfsharp`, no PR yet). New `R47PdfSharpDocument` draws the same
   form with PDFsharp; `QuestPdf` stays the default and draws the exports. `PDFsharp` is pinned to 6.2.4, the last MIT
   release (6.5.0+ is AGPL or paid). Domain `R47TextMetrics.Wrap` added for the PDFsharp grid text.
-- **R47 format on the Rules page** (not yet committed). **Rules → Expense report (R47) → Format of the R47**: the
+- **R47 format on the Rules page** (committed on branch `feature/erfweb-r47-format-pdfsharp`, no PR yet). **Rules → Expense report (R47) → Format of the R47**: the
   System Administrator chooses the PDF engine (QuestPDF or PDFsharp) and edits the header details (company name and
   short name, form title, document code, effectivity date, revision no.). Saved in `app_settings`
   (`Reports.R47Engine`, `Reports.R47CompanyName`, `Reports.R47CompanyShortName`, `Reports.R47Title`,
@@ -213,7 +228,7 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Authentication:CrossSiteCookies` (optional, default `false`) | `true` when the SPA is on another site than the API (Render): session and antiforgery cookies become `SameSite=None; Secure`. Safari blocks such cookies |
 | `Cors:AllowedOrigins` | SPA origins allowed to call the API with cookies |
 | `Swagger:Enabled` | Swagger UI on/off (`false` in base, `true` in `appsettings.Development.json`) |
-| `R47Report:*` | R47 form constants: company, document code, effectivity date, revision, rows per page, UTC offset, fonts, QuestPDF license tier, `Engine` (`QuestPdf` default or `PdfSharp`). Engine, company, title, document code, effectivity date and revision are only the starting values: once saved on the Rules page (**Format of the R47**), the saved values win |
+| `R47Report:*` | R47 form constants: company, document code, effectivity date, revision, rows per page, UTC offset, fonts, QuestPDF license tier, `Engine` (`QuestPdf` default or `PdfSharp`). Engine, company, title, document code, effectivity date and revision are only the starting values: once saved on the Rules page (**Format of the R47**), the saved values win. `DetailHeight` (rows per page) applies only until a layout is saved in the R47 designer |
 | `Attachments:MaxFileSizeMb` / `MaxFilesPerReport` / `AllowedContentTypes` | Receipt upload limits (also sets the Kestrel/multipart body limit) |
 | `ReferenceNumber:Prefix` / `Digits` / `UtcOffsetHours` | ERF reference number series, e.g. `ERF-2026-000142` (prefix, zero-padding, which local year a filing belongs to) |
 | `Lasius:*` (optional) | Notification SMS gateway URL, API key and header (see Notification SMS) |
@@ -387,12 +402,13 @@ with an approval step assigned to them.
 
 Pipeline: `ExpenseReportDocumentLoader` (LINQ read model) → Domain `R47Bucketing` / `R47Layout`
 (column bucketing — each column carries the line total (amount × multiplier), VAT is its own memo column —
-per-date "Work With" grouping — the header prints `<location> Work w/: <initials>`, each Work With name shortened to its initials (`R47Layout.WorkWithInitials`: "Jay C Abaoag" → `JCA`, names joined by `/`, a one-word entry kept as typed) so full names never print — Crystal-style pagination by height — `R47Report:DetailHeight` is the detail area in points (255, about 19 single-line rows; each wrapped line of a long client heading or particulars adds 8.2 pt; the old `RowsPerPage` key is ignored), grid text is 5.8 pt `R47Report:GridFont` (Tahoma) as on the Crystal printout, a group header is never orphaned and is repeated with its date when a group continues on the next page — and the running cash-advance reconciliation: each page carries `cash advance − prior pages' expenses`, less this page's total, giving that page's BAL DUE) → `R47Document` (QuestPDF, US Letter landscape) or `R47PdfSharpDocument` (PDFsharp), as the R47 format says (see [Format of the R47](#format-of-the-r47-rules-page)) → `R47PdfRenderer`.
+per-date "Work With" grouping — the header prints `<location> Work w/: <initials>`, each Work With name shortened to its initials (`R47Layout.WorkWithInitials`: "Jay C Abaoag" → `JCA`, names joined by `/`, a one-word entry kept as typed) so full names never print — Crystal-style pagination by height — the detail area height comes from the R47 design (standard 255 pt, about 19 single-line rows; each wrapped line of a long client heading or particulars adds 8.2 pt; `R47Report:DetailHeight` until a design is saved; the old `RowsPerPage` key is ignored), grid text is 5.8 pt `R47Report:GridFont` (Tahoma) as on the Crystal printout, wrapped with the design's `R47GridMetrics`, a group header is never orphaned and is repeated with its date when a group continues on the next page — and the running cash-advance reconciliation: each page carries `cash advance − prior pages' expenses`, less this page's total, giving that page's BAL DUE) → `R47Composer` (every box, rule, text and image at its position, from the R47 design) → `R47Document` (QuestPDF, US Letter landscape) or `R47PdfSharpDocument` (PDFsharp) draws those shapes, as the R47 format says (see [Format of the R47](#format-of-the-r47-rules-page)) → `R47PdfRenderer`.
 
 The PDF engine and the header details (company, title, document code, effectivity date, revision) are the R47
-format, set on the Rules page. Technical constants (fonts, detail height, UTC offset, QuestPDF licence tier) live in
+format, set on the Rules page; sizes, widths, type, colours and fixed texts are the R47 design, set in the
+[R47 designer](#r47-designer-rules-page). Technical constants (fonts, UTC offset, QuestPDF licence tier) live in
 the `R47Report` section of `appsettings.json` (`R47ReportOptions`), which also supplies the R47 format until it is
-first saved. The MDMPI logo is an embedded resource. Fidelity is checked against the reference printout: `R47PdfRendererTests`
+first saved and the detail height until a design is saved. The MDMPI logo is an embedded resource. Fidelity is checked against the reference printout: `R47PdfRendererTests`
 writes `R47-sample-page1.pdf` to the test output folder for side-by-side comparison.
 
 Footer signatories: with a two-step route the Level 1 approver prints in ENDORSED BY and the Level 2 approver
@@ -441,8 +457,48 @@ limits keep each value inside its header box. Saving stores all seven rows (`Rep
 in `app_settings`), records the changes in `workflow_audit` as `SettingsChanged`, and the next R47 printed, downloaded
 or emailed uses them, with no restart. A key never saved (or blank, or an unknown engine name) falls back to the
 server's `R47Report` value. The R47 reads the format when it prints, so earlier reports reprint with the current
-format, as they do with signatures. Fonts, page size and rows per page are not on the Rules page; they stay in
-`appsettings.json` because they decide pagination.
+format, as they do with signatures. Font families and the page size are not on the Rules page; they stay in
+`appsettings.json`. Sizes and rows per page are set in the [R47 designer](#r47-designer-rules-page).
+
+### R47 designer (Rules page)
+
+**Rules → Expense report (R47) → Open the R47 designer** (`/admin/r47-designer`, System Administrator) edits the layout
+both PDF engines print. The R47 is a stack of bands, top to bottom: header, DATE stamp, employee block, grid headings,
+detail area, page totals, revolving fund / GRAND TOTAL row, cash advance and reconciliation, footer, ER reference. The
+order of the bands and what each prints are the controlled form and do not change; their sizes do.
+
+- **Drawing.** A scaled drawing of the page (US Letter landscape, 792 × 612 pt). Drag a band edge or a column
+  divider, or Tab to it and use the arrow keys (0.5 pt; Shift 5 pt). A grid divider moves width between its two
+  columns, so the grid always fills the page. Clicking a band opens its values. Undo (also Ctrl+Z), Discard changes,
+  Reset to standard. The drawing is a guide; **Preview PDF** shows the real print.
+- **Values** (Domain `R47Design`, limits in `R47DesignRules`): margins; header height and the logo, Document Code and
+  Page No. box widths (the company name and title get the rest, at least 150 pt); company name, title, box label and
+  box value type sizes; DATE stamp height; employee line height and label width; grid heading and sub-heading heights,
+  one-line row height, detail area height (rows per page); the 13 grid column widths (they must add up to the width
+  between the margins; a margin change is taken from PARTICULARS); page totals and GRAND TOTAL row heights; cash
+  advance box width, row height and reconciliation line height; footer height and promise box width; body, small,
+  grid and amount type sizes; the headings/labels colour and the notes/stamps colour; the promise (up to 6 lines of
+  70 characters) and its alignment (Left, the standard form, or Center over the employee's signature), the revolving fund line and the note after BAL DUE TO (`{ShortName}` prints the company short name).
+- **Checks.** Each size has a range; the form must fit the page (with one cash advance row; more rows push the footer
+  down, as before), the promise and the employee's signature must fit the footer, and the reconciliation and
+  signatories keep their room. The designer shows the problems as you go; the API checks again on save and preview.
+- **Page breaks follow the layout.** The wrap capacity of PARTICULARS and Invoice/OR scales with their widths and the
+  grid type size (`R47GridMetrics`), and the detail area height sets how much fits a page. The grid font stays Tahoma
+  because the widths are Tahoma's.
+- **Preview PDF.** Choose what to print and the engine (the Rules page's, QuestPDF or PDFsharp);
+  `POST /api/admin/r47-design/preview` prints it with the unsaved layout. Nothing is saved, sent or audited.
+  - **Sample report** (`sample: true`, `R47SampleReport`): made-up data with no real employee or report: three weeks
+    of lines, Work With groups, long particulars and invoice numbers that wrap, a cash advance, the filed, endorsed
+    and approved stamps, and enough lines for a second page. Use it to check a layout before any report exists.
+  - **A report** (`reportId`): search by employee name, purpose or ER reference (`GET /api/admin/r47-design/reports`,
+    the 20 most recently updated matches). Drafts are listed too: a report only gets its ER reference when it is
+    filed, so a new report shows "Not filed yet". Only reports the administrator may view are listed and printed
+    (the same rule as the R47 PDF). The API also still accepts `referenceNo` for a filed report.
+- **Save layout** (`PUT /api/admin/r47-design`, after a confirmation): one `app_settings` row `Reports.R47Design` holding
+  the layout as JSON; `workflow_audit` gets `SettingsChanged` with only the values that changed. The next R47 printed,
+  downloaded or emailed uses it, with no restart; earlier reports reprint with it too. Until a layout is saved (or if
+  the stored one cannot be read), the standard form prints with `R47Report:DetailHeight`. A property missing from a
+  stored layout keeps its standard value. To go back to the standard form: **Reset to standard**, then **Save layout**.
 
 ### PDF libraries — which one to use
 
@@ -451,7 +507,7 @@ Domain, Application, the API and the SPA never reference either. QuestPDF is nev
 
 | Job | Library |
 | --- | --- |
-| **R47**: chosen on the Rules page (**Format of the R47 → PDF engine**; until saved, `R47Report:Engine`) | `QuestPdf` (default): `R47Document`. `PdfSharp`: `R47PdfSharpDocument`. Both print the same form from the same Domain layout (`R47Layout`, `R47Signatures`, `R47TextMetrics`) |
+| **R47**: chosen on the Rules page (**Format of the R47 → PDF engine**; until saved, `R47Report:Engine`) | `QuestPdf` (default): `R47Document`. `PdfSharp`: `R47PdfSharpDocument`. Both draw the same shapes laid out once by `R47Composer` from the R47 design and the Domain layout (`R47Design`, `R47Layout`, `R47Signatures`, `R47TextMetrics`) |
 | **Summary and list exports** (`ExportPdfDocument`) and any new printed form or report | **QuestPDF** |
 | **Work on PDF files that already exist**: merge or append (e.g. an R47 plus PDF receipts), split, import or reorder pages, overlay on a page ERFWeb did not make, page count | **PDFsharp** (QuestPDF cannot open existing PDFs) |
 
@@ -466,13 +522,16 @@ Rules:
   PDFsharp 6.5.0 and later are AGPL-3.0 or a paid empira licence and refuse to run until one is chosen in code
   (`PdfSharpLicense`); AGPL would oblige ERFWeb to offer its source code to its users. Do not upgrade without that
   licence decision.
-- Both R47 engines must print the same form. A change to the R47 (a column, a label, a signature rule, a size) goes
-  into both `R47Document` and `R47PdfSharpDocument` in the same change; `R47PdfRendererTests` runs every R47 test on
-  both engines and writes `R47-sample-*.pdf` (QuestPDF) and `R47-sample-*-pdfsharp.pdf` to the test output folder for
-  side-by-side comparison.
-- PDFsharp has no layout engine: `R47PdfSharpDocument` places every box and text at fixed positions taken from the
-  Crystal printout, and wraps grid text with Domain `R47TextMetrics.Wrap` (the same Tahoma widths pagination counts),
-  so a row always holds the lines it was paginated for.
+- Both R47 engines must print the same form. A change to what the R47 prints (a column, a label, a signature rule)
+  goes into `R47Composer`, the one place the form is laid out, and a new size or text the designer should control
+  goes into Domain `R47Design` (with its range in `R47DesignRules` and the SPA's `features/admin/r47Design.ts`). The
+  two documents only draw shapes (boxes, rules, one-line texts, runs of styled text, images) and stay free of layout.
+  `R47PdfRendererTests` runs every R47 test on both engines and writes `R47-sample-*.pdf` (QuestPDF) and
+  `R47-sample-*-pdfsharp.pdf` to the test output folder for side-by-side comparison.
+- Neither engine lays the R47 out: the composer places every box and text, and wraps grid text with Domain
+  `R47TextMetrics.Wrap` and the design's `R47GridMetrics` (the same Tahoma widths pagination counts), so a row always
+  holds the lines it was paginated for. QuestPDF draws each shape in an absolutely positioned layer; its text boxes are
+  widened away from their anchor so a line never wraps, as in PDFsharp.
 - PDFsharp fonts come from the Windows fonts folder through `PdfSharpFonts` (Calibri, Tahoma, Times New Roman,
   Arial, Segoe UI, Verdana). Another `R47Report` font name fails the PDFsharp engine with a clear error; QuestPDF is
   unaffected. The PDFsharp engine therefore needs Windows, as the API server is.

@@ -116,6 +116,30 @@ async function requestBlob(path: string): Promise<Blob> {
   return res.blob();
 }
 
+/** POST JSON and receive a file (a generated PDF). Same cookie + antiforgery handling as JSON requests. */
+async function requestPostBlob(path: string, body: unknown, allowRetry = true): Promise<Blob> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/pdf, application/json',
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': await ensureCsrfToken(),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const isJson = res.headers.get('content-type')?.includes('json') ?? false;
+    const problem = isJson ? ((await res.json()) as ProblemDetails) : null;
+    if (problem?.code === 'antiforgery_validation_failed' && allowRetry) {
+      csrfToken = null;
+      return requestPostBlob(path, body, false);
+    }
+    throw new ApiError(res.status, problem?.code, problem);
+  }
+  return res.blob();
+}
+
 /** A downloaded file and the name the server gave it (Content-Disposition). */
 export interface DownloadedFile {
   blob: Blob;
@@ -154,6 +178,7 @@ export const api = {
   del: <T>(path: string) => request<T>('DELETE', path),
   postForm: <T>(path: string, form: FormData) => requestForm<T>(path, form),
   getBlob: (path: string) => requestBlob(path),
+  postBlob: (path: string, body: unknown) => requestPostBlob(path, body),
   getFile: (path: string, fallbackName = 'export') => requestFile(path, fallbackName),
   ensureCsrfToken,
 };

@@ -330,6 +330,10 @@ defineExpose({ isDirty });
         <div class="text-caption text-medium-emphasis mb-3">
           Both print the same form and page breaks. The change applies to the next R47 printed or emailed; no restart.
         </div>
+        <div class="d-flex align-center flex-wrap ga-2 mb-4">
+          <v-btn class="press" variant="tonal" size="small" prepend-icon="mdi-ruler-square" :to="{ name: 'admin-r47-designer' }">Open the R47 designer</v-btn>
+          <span class="text-caption text-medium-emphasis">Sizes, column widths, type, colours and fixed texts of the form, with a preview on a real report.</span>
+        </div>
         <v-row dense>
           <v-col v-for="f in FORMAT_FIELDS" :key="f.key" cols="12" :sm="f.cols">
             <v-text-field

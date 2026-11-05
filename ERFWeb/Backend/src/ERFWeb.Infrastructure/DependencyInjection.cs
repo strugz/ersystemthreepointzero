@@ -82,6 +82,7 @@ public static class DependencyInjection
         services.AddScoped<IMasterDataService, MasterDataService>();
         services.AddScoped<IFareModeAdminService, FareModeAdminService>();
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+        services.AddScoped<IR47DesignService, R47DesignService>();
         services.AddScoped<IAdminAuditService, AdminAuditService>();
 
         // Scope & rates, Level 2 only (Phase 2)

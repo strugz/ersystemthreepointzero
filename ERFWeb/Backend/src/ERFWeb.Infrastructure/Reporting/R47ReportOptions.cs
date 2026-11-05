@@ -19,7 +19,8 @@ public sealed class R47ReportOptions
 
     /// <summary>
     /// Height of the detail grid per page, in points (a single-line row is 13.3 pt, each wrapped
-    /// line adds 8.2 pt). Replaces the old line-count <c>RowsPerPage</c> setting, which is ignored.
+    /// line adds 8.2 pt), until the R47 designer saves a layout, which sets its own.
+    /// Replaces the old line-count <c>RowsPerPage</c> setting, which is ignored.
     /// </summary>
     public float DetailHeight { get; set; } = R47Layout.DefaultDetailHeight;
 
@@ -44,6 +45,9 @@ public sealed class R47ReportOptions
     /// <summary>The format these settings give when the Rules page has saved none.</summary>
     public R47Format DefaultFormat() =>
         new(Engine, CompanyName, CompanyShortName, Title, DocumentCode, EffectivityDate, RevisionNo);
+
+    /// <summary>The layout the R47 prints with until the R47 designer saves one: the standard form with this detail height.</summary>
+    public R47Design DefaultDesign() => R47Design.Standard with { DetailHeight = DetailHeight };
 
     /// <summary>A copy carrying the Rules page format; fonts, sizes and the time offset stay the server's.</summary>
     public R47ReportOptions WithFormat(R47Format format)

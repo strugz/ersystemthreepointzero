@@ -192,6 +192,86 @@ public class R47PdfRendererTests
         Assert.Equal(1, CountPages(pdf));
     }
 
+    [Theory]
+    [InlineData(R47PdfEngine.QuestPdf)]
+    [InlineData(R47PdfEngine.PdfSharp)]
+    public void Render_DesignerLayout_PrintsOnBothEngines(R47PdfEngine engine)
+    {
+        // A changed layout: wider PARTICULARS, larger type, other colours, taller header, own texts.
+        var columns = R47Design.Standard.GridColumns.ToArray();
+        columns[1] += 30;
+        columns[7] -= 15;
+        columns[8] -= 15;
+        var design = R47Design.Standard with
+        {
+            GridColumns = columns,
+            HeaderHeight = 70,
+            DetailHeight = 260,
+            BodySize = 8,
+            GridTextSize = 6.5f,
+            LabelColor = "#205020",
+            NoteColor = "#000080",
+            PromiseText = "I PROMISE TO RETURN ANY AMOUNT DUE.\nSECOND LINE.",
+            PromiseAlign = R47DesignRules.AlignCenter,
+            RevolvingFundText = "REVOLVING FUND AMOUNT",
+            BalanceNoteText = "",
+        };
+        Assert.Empty(R47DesignRules.Validate(design));
+
+        var pdf = Renderer(engine).Render(SampleDocument() with { Design = design }, DateTimeOffset.UtcNow);
+
+        Assert.Equal(1, CountPages(pdf));
+        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, SampleName("R47-sample-designed", engine)), pdf);
+    }
+
+    [Theory]
+    [InlineData(R47PdfEngine.QuestPdf)]
+    [InlineData(R47PdfEngine.PdfSharp)]
+    public void Render_DesignerLayout_PaginatesByItsDetailHeightAndColumns(R47PdfEngine engine)
+    {
+        var columns = R47Design.Standard.GridColumns.ToArray();
+        columns[1] -= 40;
+        columns[8] += 40;
+        var design = R47Design.Standard with { GridColumns = columns, DetailHeight = 120 };
+        var sort = 0;
+        var lines = Enumerable.Range(1, 30).Select(i => new R47Line(
+            new DateOnly(2026, 10, 1 + i % 5),
+            "SUCAT - NICHOLS (TOLL) - MEDICARD INSTRUMENTS INVENTORY - SLMCGC",
+            "SI-0001234567-89", ExpenseType.Local, ExpenseCategory.Toll, 100m, 0m, 100m,
+            "Alabang Medical Clinic - Almanza", null, null, null, null, ++sort)).ToList();
+        var doc = SampleDocument() with { Lines = lines, Design = design };
+
+        var expected = R47Layout.Paginate(R47Layout.BuildRows(lines, design.GridMetrics()), 0m, design.DetailHeight).Count;
+        var pdf = Renderer(engine).Render(doc, DateTimeOffset.UtcNow);
+
+        Assert.True(expected > R47Layout.Paginate(R47Layout.BuildRows(lines), 0m).Count);
+        Assert.Equal(expected, CountPages(pdf));
+    }
+
+    [Theory]
+    [InlineData(R47PdfEngine.QuestPdf)]
+    [InlineData(R47PdfEngine.PdfSharp)]
+    public void Render_DesignerSampleReport_SpansPagesOnBothEngines(R47PdfEngine engine)
+    {
+        var sample = R47SampleReport.Create(new R47ReportOptions().DefaultFormat() with { Engine = engine });
+
+        var expected = R47Layout.Paginate(R47Layout.BuildRows(sample.Lines), sample.CashAdvanceTotal).Count;
+        var pdf = Renderer(engine).Render(sample, DateTimeOffset.UtcNow);
+
+        Assert.True(expected > 1, "The sample should show a page break.");
+        Assert.Equal(expected, CountPages(pdf));
+        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, SampleName("R47-designer-sample", engine)), pdf);
+    }
+
+    [Fact]
+    public void DefaultDesign_IsTheStandardFormWithTheServerDetailHeight()
+    {
+        var design = new R47ReportOptions { DetailHeight = 200 }.DefaultDesign();
+
+        Assert.Equal(200f, design.DetailHeight);
+        Assert.Equal(R47Design.Standard with { DetailHeight = 200 }, design);
+    }
+
     [Fact]
     public void WithFormat_ReplacesHeaderDetails_KeepsServerFontsAndSizes()
     {
