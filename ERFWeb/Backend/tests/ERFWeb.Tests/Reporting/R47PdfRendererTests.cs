@@ -45,25 +45,33 @@ public class R47PdfRendererTests
             lines);
     }
 
-    private static R47PdfRenderer Renderer() => new(Options.Create(new R47ReportOptions()));
+    private static R47PdfRenderer Renderer(R47PdfEngine engine) => new(Options.Create(new R47ReportOptions { Engine = engine }));
 
-    [Fact]
-    public void Render_ProducesSinglePagePdf_ForSamplePage1Data()
+    /// <summary>The QuestPDF samples keep their original names; the PDFsharp ones get a suffix for side-by-side comparison.</summary>
+    private static string SampleName(string name, R47PdfEngine engine) =>
+        engine == R47PdfEngine.QuestPdf ? $"{name}.pdf" : $"{name}-pdfsharp.pdf";
+
+    [Theory]
+    [InlineData(R47PdfEngine.QuestPdf)]
+    [InlineData(R47PdfEngine.PdfSharp)]
+    public void Render_ProducesSinglePagePdf_ForSamplePage1Data(R47PdfEngine engine)
     {
-        var pdf = Renderer().Render(SampleDocument(), new DateTimeOffset(2026, 9, 4, 5, 45, 12, TimeSpan.Zero));
+        var pdf = Renderer(engine).Render(SampleDocument(), new DateTimeOffset(2026, 9, 4, 5, 45, 12, TimeSpan.Zero));
 
         Assert.True(pdf.Length > 2_000, "PDF unexpectedly small");
         Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
         Assert.Equal(1, CountPages(pdf));
 
         // Written for the visual-diff check against the reference printout.
-        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, "R47-sample-page1.pdf"), pdf);
+        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, SampleName("R47-sample-page1", engine)), pdf);
     }
 
-    [Fact]
-    public void Render_PaginatesByDetailHeight()
+    [Theory]
+    [InlineData(R47PdfEngine.QuestPdf)]
+    [InlineData(R47PdfEngine.PdfSharp)]
+    public void Render_PaginatesByDetailHeight(R47PdfEngine engine)
     {
-        var renderer = new R47PdfRenderer(Options.Create(new R47ReportOptions { DetailHeight = 5 * R47Layout.SingleRowHeight }));
+        var renderer = new R47PdfRenderer(Options.Create(new R47ReportOptions { DetailHeight = 5 * R47Layout.SingleRowHeight, Engine = engine }));
         var pdf = renderer.Render(SampleDocument(), DateTimeOffset.UtcNow);
 
         // 14 single-line rows at 5 rows/page with Crystal's rules (no orphaned header, header repeated
@@ -71,8 +79,10 @@ public class R47PdfRendererTests
         Assert.Equal(4, CountPages(pdf));
     }
 
-    [Fact]
-    public void Render_FullPagesOfWrappedRows_NeverOverflowAPage()
+    [Theory]
+    [InlineData(R47PdfEngine.QuestPdf)]
+    [InlineData(R47PdfEngine.PdfSharp)]
+    public void Render_FullPagesOfWrappedRows_NeverOverflowAPage(R47PdfEngine engine)
     {
         // Long group headers and particulars wrap to 2–3 lines and invoice numbers break mid-token.
         // If the rendered rows were taller than R47Layout estimates, QuestPDF would spill a page.
@@ -87,22 +97,26 @@ public class R47PdfRendererTests
         var doc = SampleDocument() with { Lines = lines };
 
         var expected = R47Layout.Paginate(R47Layout.BuildRows(lines), 0m).Count;
-        var pdf = Renderer().Render(doc, DateTimeOffset.UtcNow);
+        var pdf = Renderer(engine).Render(doc, DateTimeOffset.UtcNow);
 
         Assert.True(expected > 1);
         Assert.Equal(expected, CountPages(pdf));
     }
 
-    [Fact]
-    public void Render_EmptyReport_StillProducesOnePage()
+    [Theory]
+    [InlineData(R47PdfEngine.QuestPdf)]
+    [InlineData(R47PdfEngine.PdfSharp)]
+    public void Render_EmptyReport_StillProducesOnePage(R47PdfEngine engine)
     {
         var doc = SampleDocument() with { Lines = [] };
-        var pdf = Renderer().Render(doc, DateTimeOffset.UtcNow);
+        var pdf = Renderer(engine).Render(doc, DateTimeOffset.UtcNow);
         Assert.Equal(1, CountPages(pdf));
     }
 
-    [Fact]
-    public void Render_Signatures_StaysOnOnePage()
+    [Theory]
+    [InlineData(R47PdfEngine.QuestPdf)]
+    [InlineData(R47PdfEngine.PdfSharp)]
+    public void Render_Signatures_StaysOnOnePage(R47PdfEngine engine)
     {
         var signature = SignaturePng();
         var doc = SampleDocument() with
@@ -111,14 +125,16 @@ public class R47PdfRendererTests
             EmployeeSignature = signature,
         };
 
-        var pdf = Renderer().Render(doc, DateTimeOffset.UtcNow);
+        var pdf = Renderer(engine).Render(doc, DateTimeOffset.UtcNow);
 
         Assert.Equal(1, CountPages(pdf));
-        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, "R47-sample-signed.pdf"), pdf);
+        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, SampleName("R47-sample-signed", engine)), pdf);
     }
 
-    [Fact]
-    public void Render_ESignatures_WithWatermarkAndStamps_StaysOnOnePage()
+    [Theory]
+    [InlineData(R47PdfEngine.QuestPdf)]
+    [InlineData(R47PdfEngine.PdfSharp)]
+    public void Render_ESignatures_WithWatermarkAndStamps_StaysOnOnePage(R47PdfEngine engine)
     {
         var signature = SignaturePng();
         var doc = SampleDocument() with
@@ -131,14 +147,16 @@ public class R47PdfRendererTests
             FiledAt = new DateTimeOffset(2026, 10, 27, 9, 0, 0, TimeSpan.Zero),
         };
 
-        var pdf = Renderer().Render(doc, DateTimeOffset.UtcNow);
+        var pdf = Renderer(engine).Render(doc, DateTimeOffset.UtcNow);
 
         Assert.Equal(1, CountPages(pdf));
-        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, "R47-sample-esignature.pdf"), pdf);
+        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, SampleName("R47-sample-esignature", engine)), pdf);
     }
 
-    [Fact]
-    public void Render_StatusOnly_PrintsStampsWithoutImages_StaysOnOnePage()
+    [Theory]
+    [InlineData(R47PdfEngine.QuestPdf)]
+    [InlineData(R47PdfEngine.PdfSharp)]
+    public void Render_StatusOnly_PrintsStampsWithoutImages_StaysOnOnePage(R47PdfEngine engine)
     {
         // Status only: the loader passes no images, so every signed place prints its electronic status.
         var doc = SampleDocument() with
@@ -150,10 +168,41 @@ public class R47PdfRendererTests
             FiledAt = new DateTimeOffset(2026, 10, 27, 9, 0, 0, TimeSpan.Zero),
         };
 
-        var pdf = Renderer().Render(doc, DateTimeOffset.UtcNow);
+        var pdf = Renderer(engine).Render(doc, DateTimeOffset.UtcNow);
 
         Assert.Equal(1, CountPages(pdf));
-        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, "R47-sample-status-only.pdf"), pdf);
+        File.WriteAllBytes(Path.Combine(AppContext.BaseDirectory, SampleName("R47-sample-status-only", engine)), pdf);
+    }
+
+    [Theory]
+    [InlineData(R47PdfEngine.QuestPdf)]
+    [InlineData(R47PdfEngine.PdfSharp)]
+    public void Render_RulesPageFormat_ChoosesTheEngine(R47PdfEngine saved)
+    {
+        // The server says the other engine; the format saved on the Rules page wins.
+        var server = saved == R47PdfEngine.QuestPdf ? R47PdfEngine.PdfSharp : R47PdfEngine.QuestPdf;
+        var format = new R47ReportOptions().DefaultFormat() with { Engine = saved, DocumentCode = "R48" };
+        var doc = SampleDocument() with { Format = format };
+
+        var pdf = Renderer(server).Render(doc, DateTimeOffset.UtcNow);
+
+        // PDFsharp names itself in plain text in the PDF; QuestPDF does not use that name.
+        var madeByPdfSharp = Encoding.Latin1.GetString(pdf).Contains("PDFsharp", StringComparison.Ordinal);
+        Assert.Equal(saved == R47PdfEngine.PdfSharp, madeByPdfSharp);
+        Assert.Equal(1, CountPages(pdf));
+    }
+
+    [Fact]
+    public void WithFormat_ReplacesHeaderDetails_KeepsServerFontsAndSizes()
+    {
+        var server = new R47ReportOptions { GridFont = "Arial", DetailHeight = 300, UtcOffsetHours = 7 };
+        var format = server.DefaultFormat() with { Engine = R47PdfEngine.PdfSharp, CompanyName = "New Co.", RevisionNo = "3" };
+
+        var options = server.WithFormat(format);
+
+        Assert.Equal((R47PdfEngine.PdfSharp, "New Co.", "3"), (options.Engine, options.CompanyName, options.RevisionNo));
+        Assert.Equal(("Arial", 300f, 7), (options.GridFont, options.DetailHeight, options.UtcOffsetHours));
+        Assert.Equal(R47PdfEngine.QuestPdf, server.Engine);
     }
 
     /// <summary>A 160x40 RGBA PNG with a wavy blue stroke, standing in for an uploaded signature.</summary>

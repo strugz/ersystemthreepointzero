@@ -83,6 +83,26 @@ public class R47LayoutTests
     public void LineCount_InvoiceNumbers_FollowTheInvoiceColumnWidth(string invoice, int expected) =>
         Assert.Equal(expected, R47TextMetrics.LineCount(invoice, R47TextMetrics.InvoiceCapacity));
 
+    // The PDFsharp R47 draws the lines Wrap returns into rows paginated by LineCount, so they must agree.
+    [Theory]
+    [InlineData("MDMPI", R47TextMetrics.ParticularsCapacity)]
+    [InlineData("US VETERANS EMBASSY OUT PATIENT CLINIC", R47TextMetrics.ParticularsCapacity)]
+    [InlineData("Alabang Medical Clinic - Almanza - DXH 520 - (SN: BF020105) - BF020105", R47TextMetrics.ParticularsCapacity)]
+    [InlineData("SUCAT - NICHOLS (TOLL) - MEDICARD INSTRUMENTS INVENTORY - SLMCGC - AU480 - 2022054754 WORK WITH JSO", R47TextMetrics.ParticularsCapacity)]
+    [InlineData("5001000291926", R47TextMetrics.InvoiceCapacity)]
+    [InlineData("SI-0001234567-89", R47TextMetrics.InvoiceCapacity)]
+    public void Wrap_GivesTheLinesLineCountCounts(string text, int capacity)
+    {
+        var lines = R47TextMetrics.Wrap(text, capacity);
+
+        Assert.Equal(R47TextMetrics.LineCount(text, capacity), lines.Count);
+        Assert.All(lines, l => Assert.True(R47TextMetrics.Width(l) <= capacity, $"'{l}' is wider than the column"));
+        Assert.Equal(text.Replace(" ", string.Empty, StringComparison.Ordinal), string.Concat(lines).Replace(" ", string.Empty, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Wrap_BlankText_GivesNoLines() => Assert.Empty(R47TextMetrics.Wrap("  ", R47TextMetrics.ParticularsCapacity));
+
     [Theory]
     [InlineData(1, 13.3f)]
     [InlineData(2, 18.4f)]

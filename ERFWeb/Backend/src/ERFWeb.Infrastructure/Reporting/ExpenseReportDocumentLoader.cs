@@ -158,7 +158,8 @@ public sealed class ExpenseReportDocumentLoader(ErfDbContext db, ISystemSettings
                 approver?.ApprovedAt),
             Printable(mode, header.Signature, header.SignatureApproved),
             lines,
-            header.FiledAt);
+            header.FiledAt,
+            await settings.GetR47FormatAsync(ct));
     }
 
     private static byte[]? Printable(R47SignatureMode mode, byte[]? image, bool approved) =>

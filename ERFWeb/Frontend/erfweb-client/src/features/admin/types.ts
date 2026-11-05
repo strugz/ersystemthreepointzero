@@ -94,6 +94,20 @@ export type SignatureStatus = 'None' | 'Pending' | 'Approved';
 /** The R47 signature rule: approved images with an ELECTRONIC SIGNATURE watermark, or status lines only. */
 export type R47SignatureMode = 'ESignature' | 'StatusOnly';
 
+/** The PDF library that draws the R47. */
+export type R47PdfEngine = 'QuestPdf' | 'PdfSharp';
+
+/** The R47 format set on the Rules page (Domain R47Format). */
+export interface R47Format {
+  engine: R47PdfEngine;
+  companyName: string;
+  companyShortName: string;
+  title: string;
+  documentCode: string;
+  effectivityDate: string;
+  revisionNo: string;
+}
+
 /** Profile fields shared by create and edit. */
 export interface UserProfileInput {
   fullName: string;
@@ -280,6 +294,8 @@ export interface SystemSettingsInput {
   /** Printed in REVIEWED BY on the R47 when the department has no reviewer of its own. */
   r47ReviewedBy: string;
   r47SignatureMode: R47SignatureMode;
+  /** The R47 format: PDF library and header details. Values never saved show the server's R47Report settings. */
+  r47Format: R47Format;
 }
 
 export interface SystemSettings extends SystemSettingsInput {

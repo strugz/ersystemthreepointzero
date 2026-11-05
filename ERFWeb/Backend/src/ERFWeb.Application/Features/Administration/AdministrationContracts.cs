@@ -222,7 +222,8 @@ public sealed record SystemSettingsDto(
     string? UpdatedByName,
     IReadOnlyList<string> EmailDomains,
     string R47ReviewedBy,
-    R47SignatureMode R47SignatureMode);
+    R47SignatureMode R47SignatureMode,
+    R47Format R47Format);
 
 public sealed record UpdateSystemSettingsRequest(
     decimal Level2ThresholdAmount,
@@ -238,7 +239,8 @@ public sealed record UpdateSystemSettingsRequest(
     string? NotificationFromAddress,
     IReadOnlyList<string>? EmailDomains = null,
     string? R47ReviewedBy = null,
-    R47SignatureMode? R47SignatureMode = null);
+    R47SignatureMode? R47SignatureMode = null,
+    R47Format? R47Format = null);
 
 public interface ISystemSettingsService
 {
@@ -250,6 +252,9 @@ public interface ISystemSettingsService
 
     /// <summary>Cheap read of the R47 signature rule the R47 loader needs.</summary>
     Task<R47SignatureMode> GetR47SignatureModeAsync(CancellationToken ct = default);
+
+    /// <summary>The R47 format (PDF engine and header details): saved values, else the server's R47Report settings.</summary>
+    Task<R47Format> GetR47FormatAsync(CancellationToken ct = default);
 }
 
 // ---------- Audit trail (read-only, spec 9.10) ----------

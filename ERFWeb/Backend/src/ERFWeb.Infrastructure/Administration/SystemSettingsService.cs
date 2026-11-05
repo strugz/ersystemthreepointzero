@@ -5,7 +5,9 @@ using ERFWeb.Application.Features.Administration;
 using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Reporting;
 using ERFWeb.Infrastructure.Persistence;
+using ERFWeb.Infrastructure.Reporting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace ERFWeb.Infrastructure.Administration;
 
@@ -26,6 +28,19 @@ public static class SystemSettingKeys
     public const string EmailDomains = "Accounts.EmailDomains";
     public const string R47ReviewedBy = "Reports.R47ReviewedBy";
     public const string R47SignatureMode = "Reports.R47SignatureMode";
+
+    // The R47 format (Rules page). No built-in defaults: a key never saved falls back to the server's
+    // R47Report settings in appsettings.json, so they are not in Defaults.
+    public const string R47Engine = "Reports.R47Engine";
+    public const string R47CompanyName = "Reports.R47CompanyName";
+    public const string R47CompanyShortName = "Reports.R47CompanyShortName";
+    public const string R47Title = "Reports.R47Title";
+    public const string R47DocumentCode = "Reports.R47DocumentCode";
+    public const string R47EffectivityDate = "Reports.R47EffectivityDate";
+    public const string R47RevisionNo = "Reports.R47RevisionNo";
+
+    public static readonly IReadOnlyList<string> R47FormatKeys =
+        [R47Engine, R47CompanyName, R47CompanyShortName, R47Title, R47DocumentCode, R47EffectivityDate, R47RevisionNo];
 
     /// <summary>Longest REVIEWED BY text that still fits the R47 signatory line.</summary>
     public const int R47ReviewedByMaxLength = 60;
@@ -61,7 +76,8 @@ public sealed class SystemSettingsService(
     ICurrentUser user,
     IClock clock,
     ITransactionRunner tx,
-    IWorkflowAuditWriter audit) : ISystemSettingsService
+    IWorkflowAuditWriter audit,
+    IOptions<R47ReportOptions> r47Options) : ISystemSettingsService
 {
     public async Task<SystemSettingsDto> GetAsync(CancellationToken ct = default)
     {
@@ -91,7 +107,8 @@ public sealed class SystemSettingsService(
             updatedByName,
             EmailDomainRules.Parse(Raw(values, SystemSettingKeys.EmailDomains)),
             Text(values, SystemSettingKeys.R47ReviewedBy) ?? SystemSettingKeys.Defaults[SystemSettingKeys.R47ReviewedBy],
-            R47Signatures.ParseMode(Raw(values, SystemSettingKeys.R47SignatureMode)));
+            R47Signatures.ParseMode(Raw(values, SystemSettingKeys.R47SignatureMode)),
+            FormatFrom(values));
     }
 
     public async Task<SystemSettingsDto> UpdateAsync(UpdateSystemSettingsRequest request, CancellationToken ct = default)
@@ -132,6 +149,20 @@ public sealed class SystemSettingsService(
             incoming[SystemSettingKeys.R47SignatureMode] = signatureMode.ToString();
         }
 
+        // And one that predates the R47 format. Saving stores every value, so the R47 then follows the
+        // Rules page rather than appsettings.json.
+        if (request.R47Format is { } format)
+        {
+            var f = R47FormatRules.Normalize(format);
+            incoming[SystemSettingKeys.R47Engine] = f.Engine.ToString();
+            incoming[SystemSettingKeys.R47CompanyName] = f.CompanyName;
+            incoming[SystemSettingKeys.R47CompanyShortName] = f.CompanyShortName;
+            incoming[SystemSettingKeys.R47Title] = f.Title;
+            incoming[SystemSettingKeys.R47DocumentCode] = f.DocumentCode;
+            incoming[SystemSettingKeys.R47EffectivityDate] = f.EffectivityDate;
+            incoming[SystemSettingKeys.R47RevisionNo] = f.RevisionNo;
+        }
+
         await tx.ExecuteAsync(async token =>
         {
             var existing = await db.AppSettings.ToDictionaryAsync(r => r.Key, token);
@@ -154,7 +185,7 @@ public sealed class SystemSettingsService(
                 }
                 else
                 {
-                    var previous = SystemSettingKeys.Defaults.TryGetValue(key, out var d) ? d : null;
+                    var previous = Fallback(key);
                     if (previous == value)
                     {
                         // Unchanged from the default: still persist it so the row exists, but do not report a change.
@@ -198,6 +229,53 @@ public sealed class SystemSettingsService(
         return R47Signatures.ParseMode(value);
     }
 
+    public async Task<R47Format> GetR47FormatAsync(CancellationToken ct = default)
+    {
+        var values = await db.AppSettings.AsNoTracking()
+            .Where(s => SystemSettingKeys.R47FormatKeys.Contains(s.Key))
+            .ToDictionaryAsync(s => s.Key, s => s.Value, StringComparer.Ordinal, ct);
+        return FormatFrom(values);
+    }
+
+    /// <summary>The saved R47 format; each value never saved (or blank, or an unknown engine) is the server's.</summary>
+    private R47Format FormatFrom(IReadOnlyDictionary<string, string> values)
+    {
+        var server = r47Options.Value.DefaultFormat();
+        string Saved(string key, string fallback) =>
+            values.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v) ? v : fallback;
+
+        return new R47Format(
+            R47FormatRules.ParseEngine(values.GetValueOrDefault(SystemSettingKeys.R47Engine)) ?? server.Engine,
+            Saved(SystemSettingKeys.R47CompanyName, server.CompanyName),
+            Saved(SystemSettingKeys.R47CompanyShortName, server.CompanyShortName),
+            Saved(SystemSettingKeys.R47Title, server.Title),
+            Saved(SystemSettingKeys.R47DocumentCode, server.DocumentCode),
+            Saved(SystemSettingKeys.R47EffectivityDate, server.EffectivityDate),
+            Saved(SystemSettingKeys.R47RevisionNo, server.RevisionNo));
+    }
+
+    /// <summary>What a key reads as before its row exists: the built-in default, or for the R47 format the server's value.</summary>
+    private string? Fallback(string key)
+    {
+        if (SystemSettingKeys.Defaults.TryGetValue(key, out var d))
+        {
+            return d;
+        }
+
+        var server = r47Options.Value.DefaultFormat();
+        return key switch
+        {
+            SystemSettingKeys.R47Engine => server.Engine.ToString(),
+            SystemSettingKeys.R47CompanyName => server.CompanyName,
+            SystemSettingKeys.R47CompanyShortName => server.CompanyShortName,
+            SystemSettingKeys.R47Title => server.Title,
+            SystemSettingKeys.R47DocumentCode => server.DocumentCode,
+            SystemSettingKeys.R47EffectivityDate => server.EffectivityDate,
+            SystemSettingKeys.R47RevisionNo => server.RevisionNo,
+            _ => null,
+        };
+    }
+
     private static void Validate(UpdateSystemSettingsRequest r)
     {
         var errors = new Dictionary<string, string[]>();
@@ -211,6 +289,14 @@ public sealed class SystemSettingsService(
         if (r.R47SignatureMode is { } mode && !Enum.IsDefined(mode))
         {
             errors["r47SignatureMode"] = ["Choose E-signature or Status only."];
+        }
+
+        if (r.R47Format is { } format)
+        {
+            foreach (var (field, message) in R47FormatRules.Validate(format))
+            {
+                errors[field] = [message];
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(r.NotificationFromAddress) && (r.NotificationFromAddress.Length > 200 || !r.NotificationFromAddress.Contains('@')))

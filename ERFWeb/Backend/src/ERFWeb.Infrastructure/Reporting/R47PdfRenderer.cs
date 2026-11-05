@@ -7,7 +7,9 @@ namespace ERFWeb.Infrastructure.Reporting;
 
 /// <summary>
 /// Renders the R47 document: builds grid rows and fixed-size pages from the Domain layout
-/// rules, then hands them to <see cref="R47Document"/> for QuestPDF generation.
+/// rules, then hands them to the engine of the R47 format (Rules page, else <c>R47Report:Engine</c>):
+/// <see cref="R47Document"/> (QuestPDF, default) or <see cref="R47PdfSharpDocument"/> (PDFsharp).
+/// The format's header details replace the server's; fonts, sizes and the time offset stay the server's.
 /// </summary>
 public sealed class R47PdfRenderer : IExpenseReportPdfRenderer
 {
@@ -23,9 +25,13 @@ public sealed class R47PdfRenderer : IExpenseReportPdfRenderer
     {
         ArgumentNullException.ThrowIfNull(document);
 
+        var options = document.Format is { } format ? _options.WithFormat(format) : _options;
         var rows = R47Layout.BuildRows(document.Lines);
-        var pages = R47Layout.Paginate(rows, document.CashAdvanceTotal, _options.DetailHeight);
-        var pdf = new R47Document(document, pages, printedAt, _options, R47Assets.Logo);
-        return pdf.GeneratePdf();
+        var pages = R47Layout.Paginate(rows, document.CashAdvanceTotal, options.DetailHeight);
+        return options.Engine switch
+        {
+            R47PdfEngine.PdfSharp => new R47PdfSharpDocument(document, pages, printedAt, options, R47Assets.Logo).GeneratePdf(),
+            _ => new R47Document(document, pages, printedAt, options, R47Assets.Logo).GeneratePdf(),
+        };
     }
 }

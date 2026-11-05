@@ -34,4 +34,29 @@ public sealed class R47ReportOptions
 
     /// <summary>QuestPDF license tier: Community, Professional, or Enterprise.</summary>
     public string QuestPdfLicense { get; set; } = "Community";
+
+    /// <summary>
+    /// Which library draws the R47 until the Rules page sets one: <see cref="R47PdfEngine.QuestPdf"/>
+    /// (<see cref="R47Document"/>, default) or <see cref="R47PdfEngine.PdfSharp"/> (<see cref="R47PdfSharpDocument"/>).
+    /// </summary>
+    public R47PdfEngine Engine { get; set; } = R47PdfEngine.QuestPdf;
+
+    /// <summary>The format these settings give when the Rules page has saved none.</summary>
+    public R47Format DefaultFormat() =>
+        new(Engine, CompanyName, CompanyShortName, Title, DocumentCode, EffectivityDate, RevisionNo);
+
+    /// <summary>A copy carrying the Rules page format; fonts, sizes and the time offset stay the server's.</summary>
+    public R47ReportOptions WithFormat(R47Format format)
+    {
+        ArgumentNullException.ThrowIfNull(format);
+        var copy = (R47ReportOptions)MemberwiseClone();
+        copy.Engine = format.Engine;
+        copy.CompanyName = format.CompanyName;
+        copy.CompanyShortName = format.CompanyShortName;
+        copy.Title = format.Title;
+        copy.DocumentCode = format.DocumentCode;
+        copy.EffectivityDate = format.EffectivityDate;
+        copy.RevisionNo = format.RevisionNo;
+        return copy;
+    }
 }

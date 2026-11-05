@@ -510,7 +510,7 @@ internal sealed class R47Document(
     // ---- Formatting ----
 
     /// <summary>"#,##0.00" with negatives in parentheses; zero → "-" when dashZero, else "0.00".</summary>
-    private static string Money(decimal value, bool dashZero = false)
+    internal static string Money(decimal value, bool dashZero = false)
     {
         if (value == 0)
         {
