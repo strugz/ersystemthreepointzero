@@ -1,6 +1,6 @@
 # ERFWeb
 
-Web-based Expense Report (ERF) system. Standalone project â€” **not** part of the desktop
+Web-based Expense Report (ERF) system. Standalone project — **not** part of the desktop
 solution `ER System.sln` or the installer, and separate from the existing `Web/` portal.
 
 - **Backend:** ASP.NET Core (net10.0), EF Core on **PostgreSQL** (Npgsql). Data access is
@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-05
 
-- **R47 designer** (PR #44). **Rules â†’ Expense report (R47) â†’ Open the R47 designer** (`/admin/r47-designer`,
+- **R47 designer** (PR #44). **Rules → Expense report (R47) → Open the R47 designer** (`/admin/r47-designer`,
   System Administrator): a drawing of the page whose band edges and column dividers are dragged (or moved with the
   arrow keys), plus exact values for margins, band heights, the 13 grid column widths, header boxes, cash advance
   and footer widths, type sizes, two colours and the fixed texts (promise, with Left or Center alignment; revolving fund line; BAL DUE note); Undo,
@@ -36,7 +36,7 @@ section of the root `CLAUDE.md`) in the same change.
 - **R47 can be drawn with PDFsharp; QuestPDF stays** (PR #44). New `R47PdfSharpDocument` draws the same
   form with PDFsharp; `QuestPdf` stays the default and draws the exports. `PDFsharp` is pinned to 6.2.4, the last MIT
   release (6.5.0+ is AGPL or paid). Domain `R47TextMetrics.Wrap` added for the PDFsharp grid text.
-- **R47 format on the Rules page** (PR #44). **Rules â†’ Expense report (R47) â†’ Format of the R47**: the
+- **R47 format on the Rules page** (PR #44). **Rules → Expense report (R47) → Format of the R47**: the
   System Administrator chooses the PDF engine (QuestPDF or PDFsharp) and edits the header details (company name and
   short name, form title, document code, effectivity date, revision no.). Saved in `app_settings`
   (`Reports.R47Engine`, `Reports.R47CompanyName`, `Reports.R47CompanyShortName`, `Reports.R47Title`,
@@ -49,9 +49,9 @@ section of the root `CLAUDE.md`) in the same change.
 ### 2026-11-03
 
 - **R47 electronic signature rule and Finance signature approval** (PR #43). Script `024`, `SchemaVersion.Required` 24.
-  - **Rules â†’ Expense report (R47) â†’ Signatures on the R47** (`Reports.R47SignatureMode`):
+  - **Rules → Expense report (R47) → Signatures on the R47** (`Reports.R47SignatureMode`):
     - **E-signature** (default) prints approved signature images with an **ELECTRONIC SIGNATURE** watermark and
-      "Electronically signed in ERFWeb <date time> Â· <ERF ref>".
+      "Electronically signed in ERFWeb <date time> · <ERF ref>".
     - **Status only** prints no images; each approved place reads "Electronically approved <date time>", and the
       employee line reads "Electronically filed <date time>".
   - **Finance approves each signature image** before the R47 prints it. A new upload starts as *Waiting for
@@ -81,13 +81,13 @@ section of the root `CLAUDE.md`) in the same change.
 ### 2026-10-29
 
 - **ERMS renamed to ERS, Expense Report System** (PR #41). The sign-in wordmark reads **ERS** /
-  "Expense Report System", the public Healthy living page header reads "ERS Â· Healthy living", and the logo
+  "Expense Report System", the public Healthy living page header reads "ERS · Healthy living", and the logo
   component is `AppErsMark`. Frontend only: the database name `erms_db` and the Lasius SMS `Application` value
   (`ERMS`, the name the SMS gateway knows this system by) are unchanged.
 - **Bible verses in modern English** (PR #40). The 18 verses in the quote of the day now use the World
   English Bible, British Edition (modern English, public domain, keeps "the LORD") instead of the King James
   Version. Same verses and references; frontend only.
-- **Administrator can remove a user's signature** (PR #39). **Users â†’ (account) â†’ Signature â†’ Remove
+- **Administrator can remove a user's signature** (PR #39). **Users → (account) → Signature → Remove
   signature** deletes the signature on file after a confirmation (`DELETE /api/admin/users/{id}/signature`,
   SystemAdministrator only, never on the administrator's own account, audited as `Admin.SignatureDeleted`). The R47
   reads signatures when it prints, so that person's earlier reports and approvals print without it too.
@@ -149,7 +149,7 @@ section of the root `CLAUDE.md`) in the same change.
   goes to all of them. See **Verification & queries**. No database script.
 - **Cost center budgets** (PR #31). A cost center is one department's spending code with one overall
   budget per calendar year, for monitoring only. The System Administrator sets the department (now required, one
-  active cost center per department) and the current year's budget on **Master data â†’ Cost centers**; each new year
+  active cost center per department) and the current year's budget on **Master data → Cost centers**; each new year
   gets its own budget there, and earlier years stay saved (read-only in the cost center list, and on the Budgets page).
   The new **Budgets** page (`/summaries/budgets`) shows budget, used, remaining and % used per cost center, with the
   spending per employee and category; Finance sees every cost center, a signatory those of the departments their
@@ -157,7 +157,7 @@ section of the root `CLAUDE.md`) in the same change.
   fills it in for reports already filed). The per-user Cost center field is no longer shown on the user form.
   `SchemaVersion.Required` is now 22. Sample data: `Database/maintenance/sample_cost_center_ims.sql`.
 - **R47 Work With prints as initials** (PR #30). Each group header reads `<location> Work w/: <initials>`:
-  every Work With name becomes the first letter of each word ("Jay C Abaoag" â†’ `JCA`), several names are joined
+  every Work With name becomes the first letter of each word ("Jay C Abaoag" → `JCA`), several names are joined
   by `/`, and a one-word entry is kept as typed (`JSO`). Full names no longer print on the R47. Domain
   `R47Layout.WorkWithInitials`, tests in `R47LayoutTests`.
 - **Sort expense lines into the R47 order** (PR #29). The editor's **Sort** menu (date or total) saves the order
@@ -167,7 +167,7 @@ section of the root `CLAUDE.md`) in the same change.
   previous/next arrows inside the report period; picking an activity sets the line's date. The claimant's R47
   preview shows **File report** / **Re-file report** when the report can be filed, opening the editor's filing
   checklist (`/reports/:id?file=1`).
-- **Phase 8.4â€“8.6** (PR #27). Daily SLA approval reminders ([SLA reminders](#sla-reminders-plan-phase-84)),
+- **Phase 8.4–8.6** (PR #27). Daily SLA approval reminders ([SLA reminders](#sla-reminders-plan-phase-84)),
   guardrail tests without a database and the append-only `workflow_audit` (script `021`,
   [Guardrail tests](#guardrail-tests-plan-phase-85)), and the nightly backup and health monitor
   ([Backups and monitoring](#backups-and-monitoring-plan-phase-86)).
@@ -202,7 +202,7 @@ dotnet test ERFWeb.sln
 dotnet run --project src/ERFWeb.Api      # http://localhost:5080, Swagger at /swagger
 ```
 
-### Configuration â€” `appsettings.json` is the single source of truth
+### Configuration — `appsettings.json` is the single source of truth
 
 **`appsettings.json` is gitignored and never committed** (it holds the database password). On a fresh
 clone, create it from the committed template, then fill in the real values:
@@ -216,7 +216,7 @@ Never run `git clean -x` (the `-x` flag deletes ignored files) and never `git ad
 
 The API reads **only** `src/ERFWeb.Api/appsettings.json` plus the environment overlay
 `appsettings.{Environment}.json` (e.g. `appsettings.Development.json`). Environment variables,
-user secrets, and hard-coded fallbacks are **not** used â€” there is nothing configured anywhere
+user secrets, and hard-coded fallbacks are **not** used — there is nothing configured anywhere
 else. A missing required key stops startup with a clear error naming the key.
 
 | Key | Purpose |
@@ -244,9 +244,9 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Logging:*`, `AllowedHosts` | Standard ASP.NET Core; `Logging:LogLevel` filters the console and the log files alike |
 
 Which environment overlay applies is chosen by `ASPNETCORE_ENVIRONMENT` (set in
-`Properties/launchSettings.json` for local runs) â€” that selects the file; it never supplies values itself.
+`Properties/launchSettings.json` for local runs) — that selects the file; it never supplies values itself.
 
-### Database setup â€” Option A: run the SQL scripts (current approach)
+### Database setup — Option A: run the SQL scripts (current approach)
 
 The canonical schema lives in `Database/` and matches the EF Core model exactly. Run in order
 against an empty database (PostgreSQL 13+):
@@ -254,7 +254,7 @@ against an empty database (PostgreSQL 13+):
 ```bash
 createdb erfweb
 psql -d erfweb -f Database/001_initial_schema.sql    # tables, indexes, history trigger
-psql -d erfweb -f Database/002_seed_admin.sql        # dept + admin login (admin / ChangeMe!123 â€” change it)
+psql -d erfweb -f Database/002_seed_admin.sql        # dept + admin login (admin / ChangeMe!123 — change it)
 psql -d erfweb -f Database/003_reference_series.sql  # yearly ERF reference number counters
 psql -d erfweb -f Database/004_seed_test_users.sql  # optional: employee1 / manager1 / manager2 / finance1 (password Test!1234) for a filing walkthrough
 psql -d erfweb -f Database/005_cash_advance_lines.sql # cash advances become rows (replaces the one-row cash_advances table)
@@ -307,7 +307,7 @@ and all other audit rows stay. One transaction, safe to re-run, no rollback, so 
 psql -d erms_db -f Database/maintenance/reset_reports.sql
 ```
 
-### Database setup â€” Option B: EF Core migrations (when EF tooling is available)
+### Database setup — Option B: EF Core migrations (when EF tooling is available)
 
 The DbContext and entities are migration-ready. Generate and apply the initial schema:
 
@@ -338,8 +338,8 @@ script that must delete audit rows needs the same line.
 
 ### Guardrail tests (plan Phase 8.5)
 
-The RBAC v0.6 guardrails 9.1â€“9.18 are tested without a database: the Domain rules (`tests/ERFWeb.Tests/Domain`)
-and the code itself (`Architecture/GuardrailCodeTests`, named `G9_NN_â€¦`): only the System Administrator policy may
+The RBAC v0.6 guardrails 9.1–9.18 are tested without a database: the Domain rules (`tests/ERFWeb.Tests/Domain`)
+and the code itself (`Architecture/GuardrailCodeTests`, named `G9_NN_…`): only the System Administrator policy may
 change roles, scope and rates; Finance and the administrator read the audit trail; the audit endpoint only reads;
 the Finance service has no reject; and no server code updates or deletes audit rows except the test-only report
 delete, which needs the administrator policy and `App:Mode` `Test`.
@@ -379,7 +379,7 @@ prefix. For a production build served behind that rule, set `VITE_API_BASE_URL` 
 test-only **Delete** buttons (`shared/ui/AppTestDeleteButton.vue`, calling `shared/api/testData.ts`). It only
 decides what is shown; the API refuses the deletes unless its `App:Mode` is `Test` (see Test mode).
 
-**Version shown to users:** the sign-in page and the bottom of every page show `ERFWeb v<version> Â· <commit>`. The
+**Version shown to users:** the sign-in page and the bottom of every page show `ERFWeb v<version> · <commit>`. The
 version is `"version"` in `package.json` (bump it for each release, e.g. `npm version minor --no-git-tag-version`);
 the commit comes from `RENDER_GIT_COMMIT` on Render, otherwise `git rev-parse --short HEAD`, otherwise `local`.
 
@@ -394,15 +394,15 @@ The same quote also appears once a day in a dialog on the first signed-in page
 (`features/wellness/components/DailyQuoteDialog.vue`, mounted by `AuthenticatedLayout`); the day it was last shown
 is kept per user in the browser's `localStorage` (`erfweb.dailyQuote.<userId>`), so a new browser shows it again.
 
-## Reporting â€” R47 "EXPENSE REPORT" (plan Phase 3)
+## Reporting — R47 "EXPENSE REPORT" (plan Phase 3)
 
 `GET /api/reports/{reportId}/pdf` streams the R47 controlled form as PDF (inline; add `?download=true`
 for an attachment). Access: Finance/Admin see all; an employee sees their own; an approver sees reports
 with an approval step assigned to them.
 
-Pipeline: `ExpenseReportDocumentLoader` (LINQ read model) â†’ Domain `R47Bucketing` / `R47Layout`
-(column bucketing â€” each column carries the line total (amount Ã— multiplier), VAT is its own memo column â€”
-per-date "Work With" grouping â€” the header prints `<location> Work w/: <initials>`, each Work With name shortened to its initials (`R47Layout.WorkWithInitials`: "Jay C Abaoag" â†’ `JCA`, names joined by `/`, a one-word entry kept as typed) so full names never print â€” Crystal-style pagination by height â€” the detail area height comes from the R47 design (standard 255 pt, about 19 single-line rows; each wrapped line of a long client heading or particulars adds 8.2 pt; `R47Report:DetailHeight` until a design is saved; the old `RowsPerPage` key is ignored), grid text is 5.8 pt `R47Report:GridFont` (Tahoma) as on the Crystal printout, wrapped with the design's `R47GridMetrics`, a group header is never orphaned and is repeated with its date when a group continues on the next page â€” and the running cash-advance reconciliation: each page carries `cash advance âˆ’ prior pages' expenses`, less this page's total, giving that page's BAL DUE) â†’ `R47Composer` (every box, rule, text and image at its position, from the R47 design) â†’ `R47Document` (QuestPDF, US Letter landscape) or `R47PdfSharpDocument` (PDFsharp) draws those shapes, as the R47 format says (see [Format of the R47](#format-of-the-r47-rules-page)) â†’ `R47PdfRenderer`.
+Pipeline: `ExpenseReportDocumentLoader` (LINQ read model) → Domain `R47Bucketing` / `R47Layout`
+(column bucketing — each column carries the line total (amount × multiplier), VAT is its own memo column —
+per-date "Work With" grouping — the header prints `<location> Work w/: <initials>`, each Work With name shortened to its initials (`R47Layout.WorkWithInitials`: "Jay C Abaoag" → `JCA`, names joined by `/`, a one-word entry kept as typed) so full names never print — Crystal-style pagination by height — the detail area height comes from the R47 design (standard 255 pt, about 19 single-line rows; each wrapped line of a long client heading or particulars adds 8.2 pt; `R47Report:DetailHeight` until a design is saved; the old `RowsPerPage` key is ignored), grid text is 5.8 pt `R47Report:GridFont` (Tahoma) as on the Crystal printout, wrapped with the design's `R47GridMetrics`, a group header is never orphaned and is repeated with its date when a group continues on the next page — and the running cash-advance reconciliation: each page carries `cash advance − prior pages' expenses`, less this page's total, giving that page's BAL DUE) → `R47Composer` (every box, rule, text and image at its position, from the R47 design) → `R47Document` (QuestPDF, US Letter landscape) or `R47PdfSharpDocument` (PDFsharp) draws those shapes, as the R47 format says (see [Format of the R47](#format-of-the-r47-rules-page)) → `R47PdfRenderer`.
 
 The PDF engine and the header details (company, title, document code, effectivity date, revision) are the R47
 format, set on the Rules page; sizes, widths, type, colours and fixed texts are the R47 design, set in the
@@ -413,24 +413,24 @@ writes `R47-sample-page1.pdf` to the test output folder for side-by-side compari
 
 Footer signatories: with a two-step route the Level 1 approver prints in ENDORSED BY and the Level 2 approver
 in APPROVED BY (a one-step route fills only APPROVED BY); each signature prints in its own band just above the
-name (never covering it) once that step is approved. What prints follows the R47 signature rule (**Rules â†’
-Expense report (R47) â†’ Signatures on the R47**, `Reports.R47SignatureMode`, Domain `R47Signatures`):
+name (never covering it) once that step is approved. What prints follows the R47 signature rule (**Rules →
+Expense report (R47) → Signatures on the R47**, `Reports.R47SignatureMode`, Domain `R47Signatures`):
 
 | Place on the R47 | E-signature (default) | Status only |
 | --- | --- | --- |
-| Approved step, image approved by Finance | Image with the ELECTRONIC SIGNATURE watermark + "Electronically signed in ERFWeb <date time> Â· <ERF ref>" | "Electronically approved <date time>" |
+| Approved step, image approved by Finance | Image with the ELECTRONIC SIGNATURE watermark + "Electronically signed in ERFWeb <date time> · <ERF ref>" | "Electronically approved <date time>" |
 | Approved step, no image or not yet approved | "Electronically approved <date time>" | "Electronically approved <date time>" |
-| Employee line, report filed | Approved image with the watermark + "Electronically signed in ERFWeb â€¦", otherwise "Electronically filed <date time>" | "Electronically filed <date time>" |
+| Employee line, report filed | Approved image with the watermark + "Electronically signed in ERFWeb …", otherwise "Electronically filed <date time>" | "Electronically filed <date time>" |
 
-The stamps sit in the existing signature bands, so the form keeps its height. REVIEWED BY is not an approver; the first value set wins: the employee's own (**Users â†’ Edit â†’
-Reviewed by (R47)**, `users.r47_reviewed_by`, script `019`), then the department's (**Master data â†’ Departments â†’
-Reviewed by**), then the setting `Reports.R47ReviewedBy` (default `FINANCE`) under **Rules â†’ Expense report (R47)**. The employee's
+The stamps sit in the existing signature bands, so the form keeps its height. REVIEWED BY is not an approver; the first value set wins: the employee's own (**Users → Edit →
+Reviewed by (R47)**, `users.r47_reviewed_by`, script `019`), then the department's (**Master data → Departments →
+Reviewed by**), then the setting `Reports.R47ReviewedBy` (default `FINANCE`) under **Rules → Expense report (R47)**. The employee's
 signature, when one is on file, prints over their full name above EMPLOYEE'S SIGNATURE; without one only the name
 prints, for the claimant to sign the paper copy.
 
 > **License:** ERFWeb uses QuestPDF under the **Community** license (free, including commercial use)
 > because MDMPI's annual gross revenue is under the USD 1M threshold. The threshold is assessed on the
-> whole organisation including affiliates/parent group â€” re-verify at questpdf.com/license if that
+> whole organisation including affiliates/parent group — re-verify at questpdf.com/license if that
 > changes, and set `R47Report:QuestPdfLicense` to `Professional`/`Enterprise` if a paid tier is ever needed.
 
 SPA: `/reports/:id/pdf` (view / print / download / open in new tab); the dashboard has a report-ID launcher.
@@ -439,21 +439,21 @@ When the claimant previews a report they can file (draft or returned), the page 
 
 ### Format of the R47 (Rules page)
 
-**Rules â†’ Expense report (R47) â†’ Format of the R47** (System Administrator, `PUT /api/admin/settings` with
+**Rules → Expense report (R47) → Format of the R47** (System Administrator, `PUT /api/admin/settings` with
 `r47Format`) sets:
 
 | Field | Printed | Limit |
 | --- | --- | --- |
-| PDF engine | QuestPDF (`R47Document`) or PDFsharp (`R47PdfSharpDocument`); both print the same form | â€” |
+| PDF engine | QuestPDF (`R47Document`) or PDFsharp (`R47PdfSharpDocument`); both print the same form | — |
 | Company name | Header, next to the logo | 50 characters |
-| Company short name | PDF author and the BAL DUE TO line (e.g. "If due to MDMPI â€¦") | 20 |
+| Company short name | PDF author and the BAL DUE TO line (e.g. "If due to MDMPI …") | 20 |
 | Form title | Header, under the company name | 30 |
 | Document code | "Document Code:" box | 12 |
 | Effectivity date | "Effectivity Date" box, as typed | 18 |
 | Revision no. | "Revision No." box | 10 |
 
 Rules: every value is required and must fit its limit (Domain `R47FormatRules`, also checked in the form); the
-limits keep each value inside its header box. Saving stores all seven rows (`Reports.R47Engine` â€¦ `Reports.R47RevisionNo`
+limits keep each value inside its header box. Saving stores all seven rows (`Reports.R47Engine` … `Reports.R47RevisionNo`
 in `app_settings`), records the changes in `workflow_audit` as `SettingsChanged`, and the next R47 printed, downloaded
 or emailed uses them, with no restart. A key never saved (or blank, or an unknown engine name) falls back to the
 server's `R47Report` value. The R47 reads the format when it prints, so earlier reports reprint with the current
@@ -462,12 +462,12 @@ format, as they do with signatures. Font families and the page size are not on t
 
 ### R47 designer (Rules page)
 
-**Rules â†’ Expense report (R47) â†’ Open the R47 designer** (`/admin/r47-designer`, System Administrator) edits the layout
+**Rules → Expense report (R47) → Open the R47 designer** (`/admin/r47-designer`, System Administrator) edits the layout
 both PDF engines print. The R47 is a stack of bands, top to bottom: header, DATE stamp, employee block, grid headings,
 detail area, page totals, revolving fund / GRAND TOTAL row, cash advance and reconciliation, footer, ER reference. The
 order of the bands and what each prints are the controlled form and do not change; their sizes do.
 
-- **Drawing.** A scaled drawing of the page (US Letter landscape, 792 Ã— 612 pt). Drag a band edge or a column
+- **Drawing.** A scaled drawing of the page (US Letter landscape, 792 × 612 pt). Drag a band edge or a column
   divider, or Tab to it and use the arrow keys (0.5 pt; Shift 5 pt). A grid divider moves width between its two
   columns, so the grid always fills the page. Clicking a band opens its values. Undo (also Ctrl+Z), Discard changes,
   Reset to standard. The drawing is a guide; **Preview PDF** shows the real print.
@@ -500,18 +500,18 @@ order of the bands and what each prints are the controlled form and do not chang
   the stored one cannot be read), the standard form prints with `R47Report:DetailHeight`. A property missing from a
   stored layout keeps its standard value. To go back to the standard form: **Reset to standard**, then **Save layout**.
 
-### PDF libraries â€” which one to use
+### PDF libraries — which one to use
 
 ERFWeb has two PDF libraries, both referenced only by `ERFWeb.Infrastructure` (code under `Infrastructure/Reporting`);
 Domain, Application, the API and the SPA never reference either. QuestPDF is never removed.
 
 | Job | Library |
 | --- | --- |
-| **R47**: chosen on the Rules page (**Format of the R47 â†’ PDF engine**; until saved, `R47Report:Engine`) | `QuestPdf` (default): `R47Document`. `PdfSharp`: `R47PdfSharpDocument`. Both draw the same shapes laid out once by `R47Composer` from the R47 design and the Domain layout (`R47Design`, `R47Layout`, `R47Signatures`, `R47TextMetrics`) |
+| **R47**: chosen on the Rules page (**Format of the R47 → PDF engine**; until saved, `R47Report:Engine`) | `QuestPdf` (default): `R47Document`. `PdfSharp`: `R47PdfSharpDocument`. Both draw the same shapes laid out once by `R47Composer` from the R47 design and the Domain layout (`R47Design`, `R47Layout`, `R47Signatures`, `R47TextMetrics`) |
 | **Summary and list exports** (`ExportPdfDocument`) and any new printed form or report | **QuestPDF** |
 | **Work on PDF files that already exist**: merge or append (e.g. an R47 plus PDF receipts), split, import or reorder pages, overlay on a page ERFWeb did not make, page count | **PDFsharp** (QuestPDF cannot open existing PDFs) |
 
-Switching the R47 engine: **Rules â†’ Expense report (R47) â†’ Format of the R47 â†’ PDF engine**, then **Save rules**; the
+Switching the R47 engine: **Rules → Expense report (R47) → Format of the R47 → PDF engine**, then **Save rules**; the
 next R47 uses it, with no restart. Nothing else changes: same URL, same layout and pagination, same signature rule.
 `R47Report:Engine` in `appsettings.json` only applies until the format is first saved on the Rules page; an unknown
 value there stops the API's R47 from rendering, so use exactly `QuestPdf` or `PdfSharp`.
@@ -543,35 +543,35 @@ Rules:
 
 Employees create, edit, and file their own ERFs; everything is EF Core + LINQ inside the serializable
 `ITransactionRunner` (commit on success, rollback on any failure). Each transaction first publishes the
-acting user to PostgreSQL (`set_config('app.current_user_id', â€¦, true)`) so the `fn_record_history`
+acting user to PostgreSQL (`set_config('app.current_user_id', …, true)`) so the `fn_record_history`
 trigger stamps `record_history.changed_by`.
 
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /api/reports` | My reports, paged (`page`, `pageSize`, `sort`, `direction`, `status`, `search`) |
-| `POST /api/reports` Â· `GET/PUT/DELETE /api/reports/{id}` | Create / read / update header + cash advance / delete (never-filed only) |
-| `POST /api/reports/{id}/lines` Â· `PUT/DELETE â€¦/lines/{lineId}` | Expense lines with meal / fare-leg items. Every fare leg saved names its fare mode (`fareModeId`, plus `fareModeDetail` for modes such as Others); legs saved before script 016 have none until the line is saved again |
-| `PUT /api/reports/{id}/lines/order` | Body `{ lineIds }`: every active line once, in the order the R47 prints them (saved as `sort_order`). A list that no longer matches the report's lines â†’ 409. The editor's **Sort** menu (date or total) calls it |
+| `POST /api/reports` · `GET/PUT/DELETE /api/reports/{id}` | Create / read / update header + cash advance / delete (never-filed only) |
+| `POST /api/reports/{id}/lines` · `PUT/DELETE …/lines/{lineId}` | Expense lines with meal / fare-leg items. Every fare leg saved names its fare mode (`fareModeId`, plus `fareModeDetail` for modes such as Others); legs saved before script 016 have none until the line is saved again |
+| `PUT /api/reports/{id}/lines/order` | Body `{ lineIds }`: every active line once, in the order the R47 prints them (saved as `sort_order`). A list that no longer matches the report's lines → 409. The editor's **Sort** menu (date or total) calls it |
 | `GET /api/lookups/fare-modes` | Active fare modes for the fare-leg picker, in sort order |
-| `POST /api/reports/{id}/cash-advances` Â· `PUT/DELETE â€¦/cash-advances/{lineId}` | Rows of the CASH ADVANCE RECEIVED block (Liquidation of Cash Advance only); the R47 reconciles against their total |
-| `GET/POST /api/reports/{id}/attachments` Â· `GET â€¦/{aid}/content` Â· `DELETE â€¦/{aid}` | Receipt scans (`multipart/form-data`, field `file`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller) |
-| `POST /api/reports/{id}/file` | File / re-file â†’ `ForApproval`; snapshots the approval route into `approval_steps` |
+| `POST /api/reports/{id}/cash-advances` · `PUT/DELETE …/cash-advances/{lineId}` | Rows of the CASH ADVANCE RECEIVED block (Liquidation of Cash Advance only); the R47 reconciles against their total |
+| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller) |
+| `POST /api/reports/{id}/file` | File / re-file → `ForApproval`; snapshots the approval route into `approval_steps` |
 | `POST /api/reports/{id}/reopen` | Pull a `ForApproval`/`Approved` report back to `New` (supersedes the cycle) |
-| `GET /api/lookups/work-with` Â· `my-rates` Â· `my-filing-readiness` | Editor lookups (`crmActivitiesAvailable` turns on **From CRM**) |
+| `GET /api/lookups/work-with` · `my-rates` · `my-filing-readiness` | Editor lookups (`crmActivitiesAvailable` turns on **From CRM**) |
 | `GET /api/reports/{id}/crm-activities?date=YYYY-MM-DD` (report owner) | The owner's CRM activities on the line's date, every status, Completed first and marked when already claimed (see CRM activities on expense lines) |
 
-Rules (Domain, unit-tested): a report is editable only while `New` or `Returned`; filing requires â‰¥ 1 active
+Rules (Domain, unit-tested): a report is editable only while `New` or `Returned`; filing requires ≥ 1 active
 line, a configured approval route, a purpose, a cash-advance amount for a
 Liquidation of Cash Advance, and a revolving-fund amount for a Replenishment of Revolving Fund. The money block
 follows the type exactly as the desktop form did: only a Liquidation stores the CASH ADVANCE RECEIVED block, only a
-Replenishment stores the revolving fund, a Reimbursement stores neither. A line's total is **amount Ã— multiplier**
-(per-diem: `(days âˆ’ minus) Ã— daily`) rounded the desktop way: a receipt-backed line with multiplier 1 keeps centavos,
+Replenishment stores the revolving fund, a Reimbursement stores neither. A line's total is **amount × multiplier**
+(per-diem: `(days − minus) × daily`) rounded the desktop way: a receipt-backed line with multiplier 1 keeps centavos,
 every other line rounds to whole pesos (midpoint to even, like VB `Math.Round`). VAT is a separately entered memo
 figure allowed only with an Invoice/OR number. **BAL DUE TO** on the R47 is never stored: it follows the sign of
-`cash advance âˆ’ expenses` (`BalanceDueRules`) â€” positive is due to MDMPI, otherwise due to the employee â€” because the
+`cash advance − expenses` (`BalanceDueRules`) — positive is due to MDMPI, otherwise due to the employee — because the
 legacy `sp_rptER` never read the old `BalanceTo` column and the desktop always wrote `'EMPLOYEE'`. Re-filing after a return
 opens a new `cycle`; reopening supersedes pending steps and withdraws Finance tracking. Every mutation
-carries the row's `rowVersion` (`xmin`); a stale value â†’ **409** and the SPA reloads.
+carries the row's `rowVersion` (`xmin`); a stale value → **409** and the SPA reloads.
 
 **ERF reference number.** Issued by the system on **first filing** as a yearly series
 `ERF-2026-000142` (`ReferenceNumberFormat` + `ReferenceNumberGenerator`): one counter row per
@@ -625,7 +625,7 @@ the endpoint set its own. HSTS is left to nginx (it serves other applications on
 
 Roles are additive rows in `user_roles` (script `006`): `Employee` (implicit, everyone), `SignatoryLevel1`,
 `SignatoryLevel2`, `Finance`, `ExpenseVerifier`, and `SystemAdministrator`. The old
-`users.role` column is migrated by `006` (`Manager` â†’ `SignatoryLevel1`, `Admin` â†’ `SystemAdministrator`) and dropped.
+`users.role` column is migrated by `006` (`Manager` → `SignatoryLevel1`, `Admin` → `SystemAdministrator`) and dropped.
 
 Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 
@@ -645,17 +645,17 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 
 | Endpoint (policy) | Purpose |
 | --- | --- |
-| `GET/POST /api/admin/users`, `GET/PUT â€¦/{id}`, `POST â€¦/{id}/active`, `â€¦/password`, `GET/POST/DELETE â€¦/signature` (SystemAdministrator) | Register and maintain accounts; load or remove the signature printed on the R47 |
-| `POST /api/admin/users/{id}/roles` Â· `POST â€¦/roles/{role}/revoke` (SystemAdministrator) | Grant, revoke |
-| `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` Â· `GET â€¦/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list. A cost center needs a department and carries `budgets` (`[{ year, amount }]`); saving sends the years to set or clear (`amount: null`) |
+| `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `GET/POST/DELETE …/signature` (SystemAdministrator) | Register and maintain accounts; load or remove the signature printed on the R47 |
+| `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/revoke` (SystemAdministrator) | Grant, revoke |
+| `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list. A cost center needs a department and carries `budgets` (`[{ year, amount }]`); saving sends the years to set or clear (`amount: null`) |
 | `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches, account email domains, the R47 REVIEWED BY and signature rule (`r47SignatureMode`: `ESignature` or `StatusOnly`); stored in `app_settings` |
-| `GET /api/signatures?status=Pending\|Approved` Â· `GET â€¦/{userId}/image` Â· `POST â€¦/{userId}/approve` Â· `POST â€¦/{userId}/reject` (Finance) | Finance's review of signature images. Approve and reject send `{ uploadedAt, note? }` (the upload reviewed; a newer one answers 409). Rejecting removes the image. Your own signature answers 403 |
-| `GET /api/admin/crm/employees?search&includeInactive` Â· `GET â€¦/{employeeId}` (SystemAdministrator) | CRM employee lookup for the user form (see CRM employee link) |
+| `GET /api/signatures?status=Pending\|Approved` · `GET …/{userId}/image` · `POST …/{userId}/approve` · `POST …/{userId}/reject` (Finance) | Finance's review of signature images. Approve and reject send `{ uploadedAt, note? }` (the upload reviewed; a newer one answers 409). Rejecting removes the image. Your own signature answers 403 |
+| `GET /api/admin/crm/employees?search&includeInactive` · `GET …/{employeeId}` (SystemAdministrator) | CRM employee lookup for the user form (see CRM employee link) |
 | `GET /api/admin/audit?event&actorUserId&from&to` (SystemAdministrator, Finance) | Append-only audit trail |
 
 First-time setup (plan flow 1): sign in as `admin`, create accounts and master data, set the rules, grant the
 signatory roles, then give each signatory a scope (Scope page) so reports route to them.
-A department's own R47 REVIEWED BY is edited on **Master data â†’ Departments** (stored in
+A department's own R47 REVIEWED BY is edited on **Master data → Departments** (stored in
 `department_signatories.reviewer_initials`; blank uses the Rules default). The endorser and approver initials
 in that table are only a fallback before filing and are still maintained by SQL.
 
@@ -685,7 +685,7 @@ claim on expense lines) take this ID. The data contract with the CRM team is
 ### CRM activities on expense lines
 
 An employee whose account is linked to the CRM can pre-fill an expense line from a completed CRM activity: a
-Sales itinerary visit (`ITI-â€¦`) or a PS/TSG service report (`SR-â€¦`), including reports where another engineer
+Sales itinerary visit (`ITI-…`) or a PS/TSG service report (`SR-…`), including reports where another engineer
 listed them as work-with. The CRM supplies what, where, when and with whom; the employee still picks the
 category and enters the amount, Invoice/OR, VAT and receipts. Their side is the CRM team's "CRM Employee and
 Activity API for ERFWeb".
@@ -699,8 +699,8 @@ Activity API for ERFWeb".
   (ticks are for one day; stepping to another day clears them). The ticked activities fill Date (`activityDate`),
   Location (`customer.name`), Work With (the other people, by their ERFWeb name where linked), Service no.,
   Instrument and Serial no., each joined with " / " in the order ticked (e.g.
-  `SR-FLD26286018 / SR-FLD26286048`), and on a Transportation line the first fare leg (`travel.origin` â†’
-  `travel.destination`). Particulars keeps the category default (Meals, Transportation, Toll, Parkingâ€¦) and every
+  `SR-FLD26286018 / SR-FLD26286048`), and on a Transportation line the first fare leg (`travel.origin` →
+  `travel.destination`). Particulars keeps the category default (Meals, Transportation, Toll, Parking…) and every
   field stays editable. The line keeps the links in the order ticked (`expense_lines.crm_activity_ids`, scripts
   `020` and `023`; at most 10); removing every chip makes it an ordinary typed line. Typing lines by hand always works.
 - **Rules (`CrmActivityClaimCheck`).** For each activity a line gains, the server asks the CRM
@@ -718,7 +718,7 @@ Activity API for ERFWeb".
 ### Account email domains
 
 The Email field on the user form is a name plus a domain dropdown. The domains are the setting
-`Accounts.EmailDomains` (default `marsmandrysdale.com`), edited under **Settings â†’ Account email domains**: type a
+`Accounts.EmailDomains` (default `marsmandrysdale.com`), edited under **Settings → Account email domains**: type a
 domain and press Enter; the first one is the default for new accounts. `EmailDomainRules` trims, lower-cases,
 drops a leading `@` and duplicates, and refuses an invalid domain, an empty list or more than 20. Typing a full
 address (with `@`) in the name box keeps it as typed, for addresses outside the list; the server accepts any valid
@@ -768,10 +768,10 @@ every change is in the audit trail Finance reviews.
 
 | Endpoint (policy) | Purpose |
 | --- | --- |
-| `GET /api/scope/assignments` Â· `GET â€¦/{id}` Â· `GET /api/scope/coverage?date` (signatories, Finance, System Administrator) | Read scope and who covers whom |
-| `POST /api/scope/assignments` Â· `PUT â€¦/{id}` (System Administrator) | Create; edit any field (signatory, level, type, department, members, limit, dates, active) |
-| `GET /api/rates/profiles` Â· `GET â€¦/{id}` Â· `GET /api/rates/assignments` Â· `GET /api/rates/resolve?userId&date` | Read profiles, versions, assignments, what applies to a person on a date |
-| `POST/PUT /api/rates/profiles` Â· `POST â€¦/{id}/lines` Â· `PUT â€¦/{id}/lines/{lineId}` Â· `POST /api/rates/assignments` Â· `POST â€¦/{id}/end` (System Administrator) | Maintain profiles, add or correct rate versions, assign and end |
+| `GET /api/scope/assignments` · `GET …/{id}` · `GET /api/scope/coverage?date` (signatories, Finance, System Administrator) | Read scope and who covers whom |
+| `POST /api/scope/assignments` · `PUT …/{id}` (System Administrator) | Create; edit any field (signatory, level, type, department, members, limit, dates, active) |
+| `GET /api/rates/profiles` · `GET …/{id}` · `GET /api/rates/assignments` · `GET /api/rates/resolve?userId&date` | Read profiles, versions, assignments, what applies to a person on a date |
+| `POST/PUT /api/rates/profiles` · `POST …/{id}/lines` · `PUT …/{id}/lines/{lineId}` · `POST /api/rates/assignments` · `POST …/{id}/end` (System Administrator) | Maintain profiles, add or correct rate versions, assign and end |
 | `GET /api/lookups/departments` (any signed-in user) | Department picker |
 
 Change notifications to affected employees (9.14) go through `IEntitlementChangeNotifier`, which still only logs:
@@ -800,23 +800,23 @@ Nobody acts on their own report (9.1). Each action sends the report's `rowVersio
 line's), so a stale screen gets 409 and reloads. The employee can reopen a filed report only until an approver
 acts; after that they ask the approver to return it.
 
-**Finance receipt queue** (Domain `FinanceRules`): `Pending` â†’ `ReceiptsIncomplete` (remarks name what is
-missing) â†’ `ReceiptsReceived` (one-time, never reverted) â†’ `ClearedForPayment` (final). Follow-ups are allowed
+**Finance receipt queue** (Domain `FinanceRules`): `Pending` → `ReceiptsIncomplete` (remarks name what is
+missing) → `ReceiptsReceived` (one-time, never reverted) → `ClearedForPayment` (final). Follow-ups are allowed
 while receipts are outstanding and are counted. Finance never processes its own report (403), and out-of-order
 steps are 409.
 
 | Endpoint (policy) | Purpose |
 | --- | --- |
 | `GET /api/approvals?view=Pending\|Acted&search&page` (Level 1, Level 2) | Approver inbox: my turn, waiting for an earlier step, or already acted |
-| `POST /api/approvals/{id}/approve` Â· `/return` Â· `/reject` Â· `/override` (Level 1, Level 2; service decides) | Body `{ note, rowVersion }` |
+| `POST /api/approvals/{id}/approve` · `/return` · `/reject` · `/override` (Level 1, Level 2; service decides) | Body `{ note, rowVersion }` |
 | `PUT /api/approvals/{id}/lines/{lineId}` (current Level 1) | Body `{ amount, reason, rowVersion }` |
 | `GET /api/finance/queue?status&openOnly&search&page` (Finance) | Approved reports awaiting receipts or clearance |
-| `POST /api/finance/{id}/receipts` Â· `/clear` Â· `/follow-up` (Finance) | Record receipts `{ status, remarks, rowVersion }`, clear `{ remarks, rowVersion }`, follow up `{ message }` |
+| `POST /api/finance/{id}/receipts` · `/clear` · `/follow-up` (Finance) | Record receipts `{ status, remarks, rowVersion }`, clear `{ remarks, rowVersion }`, follow up `{ message }` |
 | `GET /api/approvals/export?view&search` (Level 1, Level 2) | The whole inbox view as CSV |
 | `GET /api/finance/queue/export?status&openOnly&search` (Finance) | The queue for the same filters as CSV |
-| `GET /api/finance/aging` Â· `GET /api/finance/aging/export?format=Csv\|Pdf` (Finance) | Open reports by days since final approval (0-7, 8-15, 16-30, 31-60, over 60) |
-| `GET /api/summaries/expenses?from&to&scope=Mine\|Approvals\|All&departmentId&approvedOnly` Â· `/expenses/export?â€¦&format=Csv\|Pdf` (any user; scope checked) | Expense summary by expense date: Mine for everyone, Approvals for signatories, All for Finance. CSV is one row per line; PDF has employee totals by category, then the lines. Exports are capped at 10,000 rows and audited as `ExportGenerated` |
-| `GET /api/summaries/budgets?year&approvedOnly` Â· `/budgets/export?year&approvedOnly` (Finance, Level 1, Level 2; 403 otherwise) | Cost center budgets for a calendar year: budget, used, remaining, % used, and spending per employee and category. Finance sees every active cost center, a signatory those of the departments a Department or Exclusion scope assignment of theirs covers today. CSV is one row per cost center, audited as `ExportGenerated` |
+| `GET /api/finance/aging` · `GET /api/finance/aging/export?format=Csv\|Pdf` (Finance) | Open reports by days since final approval (0-7, 8-15, 16-30, 31-60, over 60) |
+| `GET /api/summaries/expenses?from&to&scope=Mine\|Approvals\|All&departmentId&approvedOnly` · `/expenses/export?…&format=Csv\|Pdf` (any user; scope checked) | Expense summary by expense date: Mine for everyone, Approvals for signatories, All for Finance. CSV is one row per line; PDF has employee totals by category, then the lines. Exports are capped at 10,000 rows and audited as `ExportGenerated` |
+| `GET /api/summaries/budgets?year&approvedOnly` · `/budgets/export?year&approvedOnly` (Finance, Level 1, Level 2; 403 otherwise) | Cost center budgets for a calendar year: budget, used, remaining, % used, and spending per employee and category. Finance sees every active cost center, a signatory those of the departments a Department or Exclusion scope assignment of theirs covers today. CSV is one row per cost center, audited as `ExportGenerated` |
 
 `GET /api/reports/{id}` now also returns `review` (what the viewer may do as an approver, from the same rules)
 and `finance` (receipt status). SPA screens: **Approvals** (`/approvals`) and the review page (`/review/{id}`)
@@ -855,7 +855,7 @@ the finding, and Level 2's decision, but not Finance's reason, the verifier's no
 | Step | Who hears | Message |
 | --- | --- | --- |
 | Finance raises | Claimant; every active Expense Verifier except one who approved the report | Which line is to be verified; clearance is paused |
-| Pick up | Nobody | â€” |
+| Pick up | Nobody | — |
 | Finding | Finance requester; also the claimant when it closes the request | Completed (verified / with a note), or not verified and going to Level 2 |
 | Finance queries | The Level 2 Signatory queried | Finance's query note |
 | Level 2 decides | Claimant, Finance requester, verifier | Let through, or returned / rejected with Level 2's reason |
@@ -870,9 +870,9 @@ fail it.
 | --- | --- |
 | `POST /api/verifications` (Finance) | Raise `{ reportId, lineId, reason }` |
 | `GET /api/verifications?view=Open\|Mine\|Done` (Expense Verifier) | The pool, my requests in progress, my findings |
-| `POST /api/verifications/{id}/pick-up` Â· `/finding` (Expense Verifier) | `{ rowVersion }` Â· `{ finding, note, rowVersion }` |
+| `POST /api/verifications/{id}/pick-up` · `/finding` (Expense Verifier) | `{ rowVersion }` · `{ finding, note, rowVersion }` |
 | `POST /api/verifications/{id}/query` (Finance) | Refer a Not verified finding to Level 2 `{ note, rowVersion }` |
-| `GET /api/verifications/queries?view=Pending\|Decided` Â· `POST /api/verifications/{id}/decision` (signatories; service checks it is addressed to you) | Level 2's queries; decide `{ disposition: Resume\|Return\|Reject, note, rowVersion }` |
+| `GET /api/verifications/queries?view=Pending\|Decided` · `POST /api/verifications/{id}/decision` (signatories; service checks it is addressed to you) | Level 2's queries; decide `{ disposition: Resume\|Return\|Reject, note, rowVersion }` |
 
 Every action returns the report detail, which now carries `verification` (the requests with what the viewer may
 do) and `finance.underVerification`; Finance queue rows carry `openVerifications` and `needsQuery`. SPA:
@@ -892,7 +892,7 @@ entitlement never are. A delegate never fills a second step on a report they alr
 | --- | --- |
 | `GET /api/delegations` | Delegations I gave, received, or assigned for a Level 1 |
 | `GET /api/delegations/options` | Who can stand in, and the Level 1s I may assign for |
-| `POST /api/delegations` Â· `POST /api/delegations/{id}/cancel` | Create or cancel one |
+| `POST /api/delegations` · `POST /api/delegations/{id}/cancel` | Create or cancel one |
 
 SPA: **Delegations** (`/delegations`).
 
@@ -921,7 +921,7 @@ every active expense line dated in the year on a report that is For Approval or 
 switch), counted against the department in `expense_reports.department_id`. Filing (and re-filing) sets that column
 to the employee's department, so moving an employee later never moves their past spending; the cost center is looked
 up from it, so a budget set after filing still counts the report. Script `022` fills it in for reports filed before
-it. The administrator sets the current year's budget in the cost center dialog on **Master data â†’ Cost centers**
+it. The administrator sets the current year's budget in the cost center dialog on **Master data → Cost centers**
 (a new budget each year); earlier years' budgets are never changed there and show read-only in the list's **Earlier
 budgets** column. SPA: **Budgets** (`/summaries/budgets`,
 under Work queues) for signatories and Finance, with a year picker (this year and the four before) and a row per
@@ -954,13 +954,13 @@ name and the API key in a request header. The Finance queue's **Follow up** send
 counts the follow-up.
 
 **Filing SMS:** when an employee files (or re-files after a return) a report, `SmsApprovalNotifier` sends one SMS
-to the employee and the report's Level 1 and Level 2 signatories ("ERF-2026-000001 was filed by â€¦ and is waiting
+to the employee and the report's Level 1 and Level 2 signatories ("ERF-2026-000001 was filed by … and is waiting
 for approval in ERFWeb."). It runs after the filing commits and never fails a filing; the key
 `filed:{reportId}:{cycle}` texts once per approval cycle.
 
 **Approval SMS:** each approval step, the final approval and a return send the same three people one SMS, sent as
-the approver: "â€¦ was approved by X and is now waiting for Y's approval", "â€¦ was fully approved by X. Please submit
-the original receipts to Finance.", or "â€¦ was returned by X: "note". Please update and re-file it in ERFWeb." (a long
+the approver: "… was approved by X and is now waiting for Y's approval", "… was fully approved by X. Please submit
+the original receipts to Finance.", or "… was returned by X: "note". Please update and re-file it in ERFWeb." (a long
 note is shortened to fit). The key `{event}:{reportId}:{cycle}:{step}` texts once per decision. Reject, override,
 line adjustments and Finance steps send no SMS (a rejection is emailed; see Report email). Verification steps text
 their own recipients; see **Verification & queries**.
@@ -968,14 +968,14 @@ their own recipients; see **Verification & queries**.
 Configure the gitignored `appsettings.json` (template in `appsettings.Example.json`):
 
 ```json
-"Lasius": { "Url": "https://â€¦", "ApiKey": "â€¦", "ApiKeyHeaderName": "X-API-Key", "Application": "ERMS", "TimeoutSeconds": 30 }
+"Lasius": { "Url": "https://…", "ApiKey": "…", "ApiKeyHeaderName": "X-API-Key", "Application": "ERMS", "TimeoutSeconds": 30 }
 ```
 
 Without `Url` and `ApiKey` the API still starts and the endpoint answers 503 `sms_not_configured`.
 
 | Outcome | HTTP | `code` |
 | --- | --- | --- |
-| Sent (or a retry of one already sent: `replayed: true`) | 200 `{ status, recipientCount, replayed }` | â€” |
+| Sent (or a retry of one already sent: `replayed: true`) | 200 `{ status, recipientCount, replayed }` | — |
 | Invalid request | 400 | `validation_failed` (with `errors`) |
 | User not found or inactive / report not found | 404 | `sms_user_not_found` / `sms_report_not_found` |
 | No one to text has a mobile number | 422 | `sms_no_text_group` |
@@ -1010,7 +1010,7 @@ Configure the gitignored `appsettings.json` (template in `appsettings.Example.js
 `None`, `StartTls` or `SslOnConnect`, and `Username` may be empty for a relay that needs no login:
 
 ```json
-"Smtp": { "Host": "â€¦", "Port": 587, "Security": "StartTls", "Username": "â€¦", "Password": "â€¦", "FromAddress": "erfweb@â€¦", "FromName": "ERFWeb", "TimeoutSeconds": 30 }
+"Smtp": { "Host": "…", "Port": 587, "Security": "StartTls", "Username": "…", "Password": "…", "FromAddress": "erfweb@…", "FromName": "ERFWeb", "TimeoutSeconds": 30 }
 ```
 
 Without `Host` and `FromAddress` the API still starts, the endpoint answers 503 `email_not_configured`, and
@@ -1021,9 +1021,9 @@ workflow emails are skipped (logged).
 
 | Outcome | HTTP | `code` |
 | --- | --- | --- |
-| Sent (or a retry of one already sent: `replayed: true`) | 200 `{ status, recipientCount, replayed }` | â€” |
+| Sent (or a retry of one already sent: `replayed: true`) | 200 `{ status, recipientCount, replayed }` | — |
 | Invalid key | 400 | `validation_failed` (with `errors`) |
-| Not allowed to view the report | 403 | â€” |
+| Not allowed to view the report | 403 | — |
 | Report not found | 404 | `email_report_not_found` |
 | Draft not filed yet / no one has an email address | 422 | `email_report_not_filed` / `email_no_recipients` |
 | Email not configured | 503 | `email_not_configured` |
@@ -1063,7 +1063,7 @@ A reminder the gateway refused (`Failed`) is retried on the next run while it is
 no answer (`Unconfirmed`) is not. Nobody with an address or number on file: `Skipped` with `failure_code`
 `NoContact`. A channel whose `Smtp` or `Lasius` section is missing is left alone until it is configured. A service
 started after `RunAt` on a working day runs at once. `workflow_audit` records `ReminderSent`, `ReminderFailed` or
-`ReminderUnconfirmed` with counts only; the log has one line per run (`SLA reminder run: â€¦`). No new script: the
+`ReminderUnconfirmed` with counts only; the log has one line per run (`SLA reminder run: …`). No new script: the
 table is in `001`.
 
 **Did today's run go through?** Every run, even one with nothing due, is recorded in `workflow_audit` as
@@ -1120,7 +1120,7 @@ of change in **Which steps do I follow?** and do only those steps.
 | --- | --- | --- |
 | **Frontend** (Vue SPA) | Render static site **https://ersystemthreepointzero.onrender.com** | Render builds it from the `master` branch of GitHub |
 | **Backend** (ERFWeb API) | Windows server, folder `C:\inetpub\wwwroot\erf_web-app`, Windows Service **ERFWeb.Api** | `Publish-ErfWeb.cmd` on your PC, then `Deploy-ErfWeb.cmd` on the server |
-| **Public API address** | nginx at **https://sr.mdmpi.com.ph/erf** â†’ the service at `http://192.168.4.206:5080/5081` | nginx forwards `/erf/*` to the API's `/api/*`, so the health check is `/erf/health` |
+| **Public API address** | nginx at **https://sr.mdmpi.com.ph/erf** → the service at `http://192.168.4.206:5080/5081` | nginx forwards `/erf/*` to the API's `/api/*`, so the health check is `/erf/health` |
 | **Database** | PostgreSQL `erms_db` | SQL scripts in `ERFWeb/Database/`, run by hand |
 | **Server settings** | `C:\inetpub\wwwroot\erf_web-app\appsettings.json` on the server only | Edited by hand on the server; never in git, never in a release |
 
@@ -1131,10 +1131,10 @@ the **backend live first**, so the new screens never call an API that does not e
 
 | What you changed | Steps |
 | --- | --- |
-| Backend code (`ERFWeb/Backend/...`) | [A](#a-before-you-start) â†’ [C](#c-build-the-backend-release-on-your-pc) â†’ [D](#d-deploy-the-backend-on-the-server) â†’ [F](#f-check-that-it-works) |
-| Frontend code (`ERFWeb/Frontend/...`) | [A](#a-before-you-start) â†’ [E](#e-deploy-the-frontend-render) â†’ [F](#f-check-that-it-works) |
-| Backend and frontend | [A](#a-before-you-start) â†’ [C](#c-build-the-backend-release-on-your-pc) â†’ [D](#d-deploy-the-backend-on-the-server) â†’ [E](#e-deploy-the-frontend-render) â†’ [F](#f-check-that-it-works) |
-| A new database script (`ERFWeb/Database/NNN_*.sql`) | [A](#a-before-you-start) â†’ [B](#b-update-the-database-only-when-there-is-a-new-script) â†’ then the backend steps |
+| Backend code (`ERFWeb/Backend/...`) | [A](#a-before-you-start) → [C](#c-build-the-backend-release-on-your-pc) → [D](#d-deploy-the-backend-on-the-server) → [F](#f-check-that-it-works) |
+| Frontend code (`ERFWeb/Frontend/...`) | [A](#a-before-you-start) → [E](#e-deploy-the-frontend-render) → [F](#f-check-that-it-works) |
+| Backend and frontend | [A](#a-before-you-start) → [C](#c-build-the-backend-release-on-your-pc) → [D](#d-deploy-the-backend-on-the-server) → [E](#e-deploy-the-frontend-render) → [F](#f-check-that-it-works) |
+| A new database script (`ERFWeb/Database/NNN_*.sql`) | [A](#a-before-you-start) → [B](#b-update-the-database-only-when-there-is-a-new-script) → then the backend steps |
 | Server settings only (`appsettings.json` on the server) | [Change a server setting](#change-a-server-setting) |
 | Nightly backup and health monitor (once per server, or to change its settings) | [Backups and monitoring](#backups-and-monitoring-plan-phase-86) |
 
@@ -1153,7 +1153,7 @@ the **backend live first**, so the new screens never call an API that does not e
 
 ### B. Update the database (only when there is a new script)
 
-1. **Back up first** (pgAdmin â†’ right-click `erms_db` â†’ Backup, or `pg_dump`).
+1. **Back up first** (pgAdmin → right-click `erms_db` → Backup, or `pg_dump`).
 2. Run each new script in `ERFWeb/Database/` **in number order**, once, against `erms_db` (pgAdmin Query Tool, or
    `psql -d erms_db -f Database/NNN_name.sql`). Scripts are safe to re-run.
 3. Each script ends with a commented **Rollback** block; keep it at hand.
@@ -1199,8 +1199,8 @@ after `BEGIN;` (see the maintenance scripts).
    3. extracts the new version over the app folder, keeping the server's `appsettings.json`;
    4. starts the service and waits for `/api/health` to report the new version with database `ok`.
 4. The last line tells you the result:
-   * **Green "Deployed: version â€¦"**: done. Go to step F.
-   * **Yellow "Rolled back to version â€¦"**: the new version did not start, so the previous one was put back and
+   * **Green "Deployed: version …"**: done. Go to step F.
+   * **Yellow "Rolled back to version …"**: the new version did not start, so the previous one was put back and
      ERFWeb keeps working. Look at the newest file in `C:\inetpub\wwwroot\erf_web-app\logs\` to see why (see
      [Find an error](#find-an-error)).
    * **Red**: even the previous version is not healthy. See [Troubleshooting](#troubleshooting) now.
@@ -1210,13 +1210,13 @@ Never copy single DLLs by hand: a missed file stops the API (`Could not load fil
 ### E. Deploy the frontend (Render)
 
 1. Merge your branch into `master` on GitHub.
-2. Render builds and publishes the site automatically. If it does not, open the Render dashboard â†’ the
-   `ersystemthreepointzero` static site â†’ **Manual Deploy â†’ Deploy latest commit**.
-3. Only when you changed a Render **environment variable**, use **Manual Deploy â†’ Clear build cache & deploy**:
+2. Render builds and publishes the site automatically. If it does not, open the Render dashboard → the
+   `ersystemthreepointzero` static site → **Manual Deploy → Deploy latest commit**.
+3. Only when you changed a Render **environment variable**, use **Manual Deploy → Clear build cache & deploy**:
    Vite bakes `VITE_*` values in at build time.
 
 Render settings for reference: root directory `ERFWeb/Frontend/erfweb-client`, build command
-`npm ci && npm run build`, publish directory `dist`, rewrite `/*` â†’ `/index.html`, environment variable
+`npm ci && npm run build`, publish directory `dist`, rewrite `/*` → `/index.html`, environment variable
 `VITE_API_BASE_URL=https://sr.mdmpi.com.ph/erf`.
 
 ### F. Check that it works
@@ -1224,7 +1224,7 @@ Render settings for reference: root directory `ERFWeb/Frontend/erfweb-client`, b
 1. **https://sr.mdmpi.com.ph/erf/health** shows
    `{"status":"ok","service":"ERFWeb.Api","version":"<new version>","database":"ok"}`.
 2. **https://ersystemthreepointzero.onrender.com**: the footer at the bottom of the sign-in page shows the new
-   version (`ERFWeb v0.1.0 Â· <commit>`). Press **Ctrl+Shift+R** if it still shows the old one.
+   version (`ERFWeb v0.1.0 · <commit>`). Press **Ctrl+Shift+R** if it still shows the old one.
 3. **Sign in** (Chrome or Edge) and try the feature you changed.
 
 ### Change a server setting
@@ -1255,14 +1255,14 @@ Settings that matter for the live site:
   Then put nginx's address in `ReverseProxy:KnownProxies`.
 * HSTS belongs on nginx for `sr.mdmpi.com.ph` (`add_header Strict-Transport-Security "max-age=31536000" always;`),
   once every application on that host is HTTPS-only.
-* Optional, Render static site â†’ **Headers**: `/*` with `X-Content-Type-Options: nosniff`,
+* Optional, Render static site → **Headers**: `/*` with `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: strict-origin-when-cross-origin` and `X-Frame-Options: DENY`.
 
 ### Go back to the previous version
 
 * **Backend:** a failed deploy rolls back by itself. To go back later, double-click `Deploy-ErfWeb.cmd` in the
   **previous release folder**. (Copies of the last 3 versions are also in `C:\inetpub\wwwroot\erf_web-app-backups\`.)
-* **Frontend:** Render dashboard â†’ the static site â†’ **Events** â†’ pick the previous deploy â†’ **Rollback**.
+* **Frontend:** Render dashboard → the static site → **Events** → pick the previous deploy → **Rollback**.
 * **Database:** run the commented Rollback block at the end of the script, only after the backend that needs the
   script has been rolled back.
 
@@ -1288,7 +1288,7 @@ email alerts to `-AlertTo` (default jca.mdmpi@marsmandrysdale.com).
 * Check that `D:` exists, or pass `-BackupDir`.
 
 **After installing:** run `Start-ScheduledTask -TaskName 'ERFWeb Database Backup'` in an administrator PowerShell,
-then read `D:\ERFWeb-Backups\backup-log.txt`: the last line should be `Backup OK: â€¦` and the share should hold the
+then read `D:\ERFWeb-Backups\backup-log.txt`: the last line should be `Backup OK: …` and the share should hold the
 same file. Running the installer again replaces both tasks; `-Uninstall` removes them and keeps the backups.
 
 **Limits:** the monitor runs on the API server, so it cannot report that whole server being off (IT's own
@@ -1344,7 +1344,7 @@ Every error the website shows has a **correlation id** (in the error response an
 Every log line written for that request carries the same id.
 
 * Log files: `C:\inetpub\wwwroot\erf_web-app\logs\erfweb-yyyyMMdd.log` (one per day, 30 kept).
-* Warnings and errors also appear in **Event Viewer â†’ Windows Logs â†’ Application**, source `ERFWeb.Api`.
+* Warnings and errors also appear in **Event Viewer → Windows Logs → Application**, source `ERFWeb.Api`.
 * Search the logs for an id:
   ```powershell
   Select-String -Path C:\inetpub\wwwroot\erf_web-app\logs\*.log -Pattern '<correlation id>' -Context 0,20
@@ -1363,14 +1363,14 @@ Every log line written for that request carries the same id.
 | `/erf/health` shows `"database":"unreachable"` (503) | The API cannot reach PostgreSQL | Check the PostgreSQL service and the connection string in `appsettings.json` |
 | `/erf/health` shows the old version | The deploy rolled back, or the release was not deployed | Read the deploy window's last line and the newest log file |
 | Sign-in fails with 400 `antiforgery_validation_failed` | Cross-site cookies are off, or the frontend address is not allowed | `CrossSiteCookies: true` and the Render address in `Cors:AllowedOrigins`, then `Restart-Service ERFWeb.Api` |
-| Browser console: CORS error | The frontend's address is missing from `Cors:AllowedOrigins` | Add it exactly (`https://â€¦`, no trailing `/`), then restart |
+| Browser console: CORS error | The frontend's address is missing from `Cors:AllowedOrigins` | Add it exactly (`https://…`, no trailing `/`), then restart |
 | Sign-in impossible on iPhone, iPad or Mac Safari | Safari blocks cross-site cookies on `onrender.com` | Move the frontend to a `mdmpi.com.ph` address on Render (e.g. `erf.mdmpi.com.ph`), then `CrossSiteCookies: false` |
 | `AntiforgeryOptions.Cookie.SecurePolicy = Always, but the current request is not an SSL request` | The API is older than the cross-site cookie fix | Deploy a current release |
 | A new feature answers 404 | The frontend went live before the backend that has the endpoint | Deploy the backend (step D) |
 | An image or link loads the website page instead | The frontend builds that address without `VITE_API_BASE_URL` | Use `apiUrl(...)` from `shared/api/client.ts` for every API address |
 | Email not sent | `Smtp` settings wrong, or the server cannot reach the mail server | `email_deliveries.status` and `smtp_status_code` in the database, and the log file |
-| Backup failure email, or "Database backup is MISSING" | `pg_dump` not installed or older than the database server, share not writable, or the task did not run | `D:\ERFWeb-Backups\backup-log.txt`, then Task Scheduler â†’ **ERFWeb Database Backup** â†’ History |
-| No SLA reminders | `Reminders:Enabled` is not `true`, SLA days are 0, or nothing is overdue yet | The log line `SLA reminders are off` or `SLA reminder run: â€¦`, and `reminder_deliveries` |
+| Backup failure email, or "Database backup is MISSING" | `pg_dump` not installed or older than the database server, share not writable, or the task did not run | `D:\ERFWeb-Backups\backup-log.txt`, then Task Scheduler → **ERFWeb Database Backup** → History |
+| No SLA reminders | `Reminders:Enabled` is not `true`, SLA days are 0, or nothing is overdue yet | The log line `SLA reminders are off` or `SLA reminder run: …`, and `reminder_deliveries` |
 
 ### Local development against the live API
 
