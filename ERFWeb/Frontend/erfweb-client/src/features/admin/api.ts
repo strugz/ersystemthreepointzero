@@ -16,6 +16,10 @@ import type {
   FareModeInput,
   GrantRoleInput,
   PagedResult,
+  R47Design,
+  R47DesignPreviewInput,
+  R47DesignState,
+  R47PreviewReport,
   ReminderStatus,
   RoleActionInput,
   SetActiveInput,
@@ -96,6 +100,14 @@ export const adminApi = {
   settings: () => api.get<SystemSettings>('/admin/settings'),
   updateSettings: (input: SystemSettingsInput) => api.put<SystemSettings>('/admin/settings', input),
   reminderStatus: () => api.get<ReminderStatus>('/admin/reminders/status'),
+
+  // ---- R47 designer --------------------------------------------------------
+  r47Design: () => api.get<R47DesignState>('/admin/r47-design'),
+  saveR47Design: (design: R47Design) => api.put<R47DesignState>('/admin/r47-design', design),
+  /** The R47 PDF of the sample or a picked report drawn with the unsaved layout; saves nothing. */
+  previewR47Design: (input: R47DesignPreviewInput) => api.postBlob('/admin/r47-design/preview', input),
+  /** Reports to preview on (drafts included), by employee name, purpose or ER reference. */
+  r47PreviewReports: (search: string) => api.get<R47PreviewReport[]>(`/admin/r47-design/reports${qs({ search })}`),
 
   // ---- audit ---------------------------------------------------------------
   audit: (query: AuditQuery) => api.get<PagedResult<AuditEntry>>(`/admin/audit${qs({ ...query })}`),

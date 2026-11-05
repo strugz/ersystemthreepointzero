@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import type { SystemSettings, SystemSettingsInput } from '../types';
+import type { R47Format, SystemSettings, SystemSettingsInput } from '../types';
 
-/** Workflow rules (approval thresholds, SLAs, filing cut-off, R47 reviewer, notifications). The parent owns the save. */
+/** Workflow rules (approval thresholds, SLAs, filing cut-off, R47 reviewer and format, notifications). The parent owns the save. */
 const props = withDefaults(
   defineProps<{
     initial: SystemSettings | null;
@@ -29,7 +29,31 @@ const blank = (): SystemSettingsInput => ({
   emailDomains: [],
   r47ReviewedBy: '',
   r47SignatureMode: 'ESignature',
+  r47Format: blankFormat(),
 });
+
+// The form as printed today; also what an API older than the R47 format is shown.
+function blankFormat(): R47Format {
+  return {
+    engine: 'QuestPdf',
+    companyName: 'Marsman Drysdale Medical Products, Inc.',
+    companyShortName: 'MDMPI',
+    title: 'EXPENSE REPORT',
+    documentCode: 'R47',
+    effectivityDate: 'May 15, 2023',
+    revisionNo: '0',
+  };
+}
+
+// Same limits as the server (Domain R47FormatRules): each value must fit its box on the R47 header.
+const FORMAT_FIELDS = [
+  { key: 'companyName', label: 'Company name', max: 50, cols: 8 },
+  { key: 'companyShortName', label: 'Company short name', max: 20, cols: 4, hint: 'Author of the PDF and the BAL DUE TO line' },
+  { key: 'title', label: 'Form title', max: 30, cols: 6 },
+  { key: 'documentCode', label: 'Document code', max: 12, cols: 6 },
+  { key: 'effectivityDate', label: 'Effectivity date', max: 18, cols: 6, hint: 'Printed as typed, e.g. May 15, 2023' },
+  { key: 'revisionNo', label: 'Revision no.', max: 10, cols: 6 },
+] as const;
 
 const form = reactive<SystemSettingsInput>(blank());
 let snapshot = JSON.stringify(form);
@@ -55,6 +79,8 @@ function load(value: SystemSettings | null) {
       r47ReviewedBy: value.r47ReviewedBy ?? 'FINANCE',
       // And for an API older than the R47 signature rule.
       r47SignatureMode: value.r47SignatureMode ?? 'ESignature',
+      // And for an API older than the R47 format.
+      r47Format: { ...(value.r47Format ?? blankFormat()) },
     } satisfies SystemSettingsInput);
   }
   snapshot = JSON.stringify(form);
@@ -101,8 +127,21 @@ const reviewedByError = computed(() => {
   if (!v) return 'Enter who reviews the report, e.g. FINANCE.';
   return v.length > REVIEWED_BY_MAX ? `Use at most ${REVIEWED_BY_MAX} characters.` : null;
 });
+function formatError(key: (typeof FORMAT_FIELDS)[number]['key'], max: number): string | null {
+  const v = form.r47Format[key].trim();
+  if (!v) return 'Required.';
+  return v.length > max ? `Use at most ${max} characters.` : null;
+}
+const formatInvalid = computed(() => FORMAT_FIELDS.some((f) => formatError(f.key, f.max) !== null));
 const canSubmit = computed(
-  () => isDirty.value && !props.saving && !localInvalid.value && !fromInvalid.value && !domainsError.value && !reviewedByError.value,
+  () =>
+    isDirty.value &&
+    !props.saving &&
+    !localInvalid.value &&
+    !fromInvalid.value &&
+    !domainsError.value &&
+    !reviewedByError.value &&
+    !formatInvalid.value,
 );
 
 function submit() {
@@ -114,6 +153,10 @@ function submit() {
   out.notificationFromAddress = (form.notificationFromAddress ?? '').trim() || null;
   out.emailDomains = [...new Set(form.emailDomains.map(cleanDomain).filter(Boolean))];
   out.r47ReviewedBy = form.r47ReviewedBy.trim();
+  out.r47Format = { ...form.r47Format };
+  for (const f of FORMAT_FIELDS) {
+    out.r47Format[f.key] = form.r47Format[f.key].trim();
+  }
   emit('submit', out);
 }
 
@@ -259,6 +302,53 @@ defineExpose({ isDirty });
             </template>
           </v-radio>
         </v-radio-group>
+
+        <div class="text-subtitle-2 mt-6 mb-1">Format of the R47</div>
+        <v-radio-group
+          v-model="form.r47Format.engine"
+          label="PDF engine"
+          hide-details="auto"
+          :error-messages="fieldErrors('r47Format.engine')"
+        >
+          <v-radio value="QuestPdf">
+            <template #label>
+              <span>
+                <strong>QuestPDF</strong>
+                <span class="text-medium-emphasis"> · the original R47 renderer</span>
+              </span>
+            </template>
+          </v-radio>
+          <v-radio value="PdfSharp">
+            <template #label>
+              <span>
+                <strong>PDFsharp</strong>
+                <span class="text-medium-emphasis"> · the same form drawn with PDFsharp</span>
+              </span>
+            </template>
+          </v-radio>
+        </v-radio-group>
+        <div class="text-caption text-medium-emphasis mb-3">
+          Both print the same form and page breaks. The change applies to the next R47 printed or emailed; no restart.
+        </div>
+        <div class="d-flex align-center flex-wrap ga-2 mb-4">
+          <v-btn class="press" variant="tonal" size="small" prepend-icon="mdi-ruler-square" :to="{ name: 'admin-r47-designer' }">Open the R47 designer</v-btn>
+          <span class="text-caption text-medium-emphasis">Sizes, column widths, type, colours and fixed texts of the form, with a preview on a real report.</span>
+        </div>
+        <v-row dense>
+          <v-col v-for="f in FORMAT_FIELDS" :key="f.key" cols="12" :sm="f.cols">
+            <v-text-field
+              v-model="form.r47Format[f.key]"
+              :label="f.label"
+              :counter="f.max"
+              :hint="'hint' in f ? f.hint : undefined"
+              :persistent-hint="'hint' in f"
+              :error-messages="fieldErrors(`r47Format.${f.key}`) ?? (formatError(f.key, f.max) ? [formatError(f.key, f.max)!] : undefined)"
+            />
+          </v-col>
+        </v-row>
+        <div class="text-caption text-medium-emphasis">
+          Printed in the R47 header on every page. Fonts, page size and rows per page stay in the server settings.
+        </div>
       </div>
     </v-card>
 

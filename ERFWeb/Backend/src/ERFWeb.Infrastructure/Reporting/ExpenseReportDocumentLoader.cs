@@ -158,7 +158,13 @@ public sealed class ExpenseReportDocumentLoader(ErfDbContext db, ISystemSettings
                 approver?.ApprovedAt),
             Printable(mode, header.Signature, header.SignatureApproved),
             lines,
-            header.FiledAt);
+            header.FiledAt,
+            await settings.GetR47FormatAsync(ct),
+            // The R47 designer's layout; none saved (or unreadable) prints the standard form.
+            R47DesignJson.TryParse(await db.AppSettings.AsNoTracking()
+                .Where(s => s.Key == R47DesignJson.SettingKey)
+                .Select(s => s.Value)
+                .FirstOrDefaultAsync(ct)));
     }
 
     private static byte[]? Printable(R47SignatureMode mode, byte[]? image, bool approved) =>

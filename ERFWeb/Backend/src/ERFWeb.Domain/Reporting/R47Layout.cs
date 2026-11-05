@@ -17,10 +17,8 @@ public static class R47Layout
     /// <summary>Line pitch of wrapped grid text; a wrapped row grows by this per extra line.</summary>
     public const float WrappedLineHeight = 8.2f;
 
-    private const float RowPadding = 2f;
-
     /// <summary>Printed height of a row whose tallest text wraps to <paramref name="lines"/> lines.</summary>
-    public static float RowHeight(int lines) => Math.Max(SingleRowHeight, lines * WrappedLineHeight + RowPadding);
+    public static float RowHeight(int lines) => R47GridMetrics.Standard.RowHeight(lines);
 
     private static readonly char[] WorkWithSeparators = [',', '/', ';', '&'];
 
@@ -53,11 +51,13 @@ public static class R47Layout
     /// <summary>
     /// Builds grid rows: a group header whenever the (date, location, work-with) key changes,
     /// with the date printed only on the first group of each date; then one detail row per line.
-    /// Each row carries its estimated printed line count so pagination can fill pages by height.
+    /// Each row carries its estimated printed line count and height so pagination can fill pages by height;
+    /// <paramref name="metrics"/> are the R47 design's (column widths and grid type size), standard when null.
     /// </summary>
-    public static IReadOnlyList<R47Row> BuildRows(IEnumerable<R47Line> lines)
+    public static IReadOnlyList<R47Row> BuildRows(IEnumerable<R47Line> lines, R47GridMetrics? metrics = null)
     {
         ArgumentNullException.ThrowIfNull(lines);
+        metrics ??= R47GridMetrics.Standard;
 
         var rows = new List<R47Row>();
         DateOnly? lastDate = null;
@@ -75,16 +75,16 @@ public static class R47Layout
             if (key != lastKey)
             {
                 var showDate = line.TransactionDate != lastDate;
-                var headerLines = R47TextMetrics.LineCount(headerText, R47TextMetrics.ParticularsCapacity);
-                rows.Add(new R47GroupHeaderRow(line.TransactionDate, showDate, headerText, headerLines));
+                var headerLines = R47TextMetrics.LineCount(headerText, metrics.ParticularsCapacity);
+                rows.Add(new R47GroupHeaderRow(line.TransactionDate, showDate, headerText, headerLines) { Height = metrics.RowHeight(headerLines) });
                 lastKey = key;
                 lastDate = line.TransactionDate;
             }
 
             var detailLines = Math.Max(
-                R47TextMetrics.LineCount(line.Particulars, R47TextMetrics.ParticularsCapacity),
-                R47TextMetrics.LineCount(line.InvoiceOrNo, R47TextMetrics.InvoiceCapacity));
-            rows.Add(new R47DetailRow(line.Particulars, line.InvoiceOrNo, R47Bucketing.Bucket(line), detailLines));
+                R47TextMetrics.LineCount(line.Particulars, metrics.ParticularsCapacity),
+                R47TextMetrics.LineCount(line.InvoiceOrNo, metrics.InvoiceCapacity));
+            rows.Add(new R47DetailRow(line.Particulars, line.InvoiceOrNo, R47Bucketing.Bucket(line), detailLines) { Height = metrics.RowHeight(detailLines) });
         }
 
         return rows;

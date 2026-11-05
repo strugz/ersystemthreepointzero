@@ -1,4 +1,5 @@
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Reporting;
@@ -222,7 +223,8 @@ public sealed record SystemSettingsDto(
     string? UpdatedByName,
     IReadOnlyList<string> EmailDomains,
     string R47ReviewedBy,
-    R47SignatureMode R47SignatureMode);
+    R47SignatureMode R47SignatureMode,
+    R47Format R47Format);
 
 public sealed record UpdateSystemSettingsRequest(
     decimal Level2ThresholdAmount,
@@ -238,7 +240,8 @@ public sealed record UpdateSystemSettingsRequest(
     string? NotificationFromAddress,
     IReadOnlyList<string>? EmailDomains = null,
     string? R47ReviewedBy = null,
-    R47SignatureMode? R47SignatureMode = null);
+    R47SignatureMode? R47SignatureMode = null,
+    R47Format? R47Format = null);
 
 public interface ISystemSettingsService
 {
@@ -250,6 +253,60 @@ public interface ISystemSettingsService
 
     /// <summary>Cheap read of the R47 signature rule the R47 loader needs.</summary>
     Task<R47SignatureMode> GetR47SignatureModeAsync(CancellationToken ct = default);
+
+    /// <summary>The R47 format (PDF engine and header details): saved values, else the server's R47Report settings.</summary>
+    Task<R47Format> GetR47FormatAsync(CancellationToken ct = default);
+}
+
+// ---------- R47 designer ----------
+
+/// <summary>
+/// The R47 layout the designer edits: the one printing now (<see cref="Design"/>), the standard form that
+/// "Reset to standard" brings back, and whether a layout was saved (false: the standard form prints).
+/// </summary>
+public sealed record R47DesignDto(
+    R47Design Design,
+    R47Design Standard,
+    bool IsSaved,
+    DateTimeOffset? UpdatedAt,
+    string? UpdatedByName);
+
+/// <summary>
+/// Preview of an unsaved layout, optionally with the other PDF engine, on: the built-in sample report
+/// (<see cref="Sample"/>), a report picked in the designer (<see cref="ReportId"/>, drafts included), or a
+/// filed report by its ER reference (<see cref="ReferenceNo"/>), in that order of precedence.
+/// </summary>
+public sealed record R47DesignPreviewRequest(
+    string? ReferenceNo,
+    R47Design? Design,
+    R47PdfEngine? Engine = null,
+    Guid? ReportId = null,
+    bool Sample = false);
+
+/// <summary>A report the designer can preview on; <see cref="ReferenceNo"/> is null until the report is filed.</summary>
+public sealed record R47PreviewReportDto(
+    Guid Id,
+    string? ReferenceNo,
+    string EmployeeName,
+    string? Purpose,
+    ReportStatus Status,
+    DateTimeOffset UpdatedAt);
+
+public interface IR47DesignService
+{
+    Task<R47DesignDto> GetAsync(CancellationToken ct = default);
+
+    /// <summary>Validates and saves the layout; the next R47 printed uses it. Audited as <see cref="AdminAuditEvents.SettingsChanged"/>.</summary>
+    Task<R47DesignDto> SaveAsync(R47Design design, CancellationToken ct = default);
+
+    /// <summary>
+    /// The R47 document to preview (the sample, or a report the caller may view), carrying the unsaved layout
+    /// (and engine). Nothing is saved.
+    /// </summary>
+    Task<ExpenseReportDocumentDto> PreviewDocumentAsync(R47DesignPreviewRequest request, CancellationToken ct = default);
+
+    /// <summary>Up to 20 reports matching an employee name, purpose or ER reference, newest first, drafts included; only reports the caller may view.</summary>
+    Task<IReadOnlyList<R47PreviewReportDto>> SearchReportsAsync(string? search, CancellationToken ct = default);
 }
 
 // ---------- Audit trail (read-only, spec 9.10) ----------

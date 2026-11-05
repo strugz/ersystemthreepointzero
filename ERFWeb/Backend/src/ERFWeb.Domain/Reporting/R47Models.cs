@@ -45,8 +45,11 @@ public readonly record struct R47Buckets(
 /// <summary>A printable row; <see cref="Lines"/> is how many lines its tallest text wraps to.</summary>
 public abstract record R47Row(int Lines)
 {
-    /// <summary>Printed height in points (<see cref="R47Layout.RowHeight"/>).</summary>
-    public float Height => R47Layout.RowHeight(Lines);
+    /// <summary>
+    /// Printed height in points: <see cref="R47Layout.RowHeight"/> on the standard form, or the height the
+    /// R47 design's grid metrics give (<see cref="R47Layout.BuildRows"/>).
+    /// </summary>
+    public float Height { get; init; } = R47Layout.RowHeight(Lines);
 }
 
 /// <summary>Group header: shows the date (first group of that date, or first group on a page) and the location + Work With text, verbatim.</summary>

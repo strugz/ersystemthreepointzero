@@ -154,4 +154,76 @@ public static class R47TextMetrics
 
         return lines;
     }
+
+    /// <summary>
+    /// Splits <paramref name="text"/> into the printed lines <see cref="LineCount"/> counts: greedy word
+    /// wrap on spaces, and a word wider than the column breaks mid-word at the last character that fits.
+    /// Used by renderers that place each line themselves (the PDFsharp R47). Blank text gives no lines.
+    /// </summary>
+    public static IReadOnlyList<string> Wrap(string? text, int capacity)
+    {
+        if (capacity <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(capacity));
+        }
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return [];
+        }
+
+        var lines = new List<string>();
+        var current = new System.Text.StringBuilder();
+        var currentWidth = 0;
+        var space = Width(" ");
+
+        void Flush()
+        {
+            if (current.Length > 0)
+            {
+                lines.Add(current.ToString());
+                current.Clear();
+                currentWidth = 0;
+            }
+        }
+
+        foreach (var word in text.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var w = Width(word);
+            if (w > capacity)
+            {
+                Flush();
+                foreach (var ch in word)
+                {
+                    var cw = Widths.TryGetValue(ch, out var known) ? known : DefaultWidth;
+                    if (currentWidth + cw > capacity)
+                    {
+                        Flush();
+                    }
+
+                    current.Append(ch);
+                    currentWidth += cw;
+                }
+
+                continue;
+            }
+
+            if (current.Length > 0 && currentWidth + space + w > capacity)
+            {
+                Flush();
+            }
+
+            if (current.Length > 0)
+            {
+                current.Append(' ');
+                currentWidth += space;
+            }
+
+            current.Append(word);
+            currentWidth += w;
+        }
+
+        Flush();
+        return lines;
+    }
 }

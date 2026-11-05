@@ -94,6 +94,95 @@ export type SignatureStatus = 'None' | 'Pending' | 'Approved';
 /** The R47 signature rule: approved images with an ELECTRONIC SIGNATURE watermark, or status lines only. */
 export type R47SignatureMode = 'ESignature' | 'StatusOnly';
 
+/** The PDF library that draws the R47. */
+export type R47PdfEngine = 'QuestPdf' | 'PdfSharp';
+
+/** The R47 format set on the Rules page (Domain R47Format). */
+export interface R47Format {
+  engine: R47PdfEngine;
+  companyName: string;
+  companyShortName: string;
+  title: string;
+  documentCode: string;
+  effectivityDate: string;
+  revisionNo: string;
+}
+
+/**
+ * The R47 layout set in the R47 designer (Domain R47Design): sizes in points on a US Letter landscape
+ * page, colours as #RRGGBB, and the fixed texts. The 13 grid columns fill the width between the margins.
+ */
+export interface R47Design {
+  marginLeft: number;
+  marginRight: number;
+  marginTop: number;
+  headerHeight: number;
+  logoWidth: number;
+  documentCodeWidth: number;
+  pageNoWidth: number;
+  companyNameSize: number;
+  titleSize: number;
+  infoLabelSize: number;
+  infoValueSize: number;
+  dateStampHeight: number;
+  employeeLineHeight: number;
+  employeeLabelWidth: number;
+  gridColumns: number[];
+  gridHeadingHeight: number;
+  gridSubHeadingHeight: number;
+  singleRowHeight: number;
+  detailHeight: number;
+  totalsRowHeight: number;
+  grandTotalRowHeight: number;
+  cashAdvanceWidth: number;
+  cashAdvanceRowHeight: number;
+  reconLineHeight: number;
+  footerHeight: number;
+  footerLeftWidth: number;
+  bodySize: number;
+  smallSize: number;
+  gridTextSize: number;
+  amountSize: number;
+  labelColor: string;
+  noteColor: string;
+  promiseText: string;
+  /** How the promise lines sit in their box; Left is the Crystal form. */
+  promiseAlign: 'Left' | 'Center';
+  revolvingFundText: string;
+  balanceNoteText: string;
+}
+
+/** The layout printing now, the standard form, and whether a layout was saved (else the standard form prints). */
+export interface R47DesignState {
+  design: R47Design;
+  standard: R47Design;
+  isSaved: boolean;
+  updatedAt: string | null;
+  updatedByName: string | null;
+}
+
+/**
+ * Preview of an unsaved layout on the built-in sample report or a picked report (drafts included);
+ * a null engine uses the one set on the Rules page.
+ */
+export interface R47DesignPreviewInput {
+  sample: boolean;
+  reportId: string | null;
+  design: R47Design;
+  engine: R47PdfEngine | null;
+}
+
+/** A report the designer can preview on; referenceNo is null until the report is filed. */
+export interface R47PreviewReport {
+  id: string;
+  referenceNo: string | null;
+  employeeName: string;
+  purpose: string | null;
+  /** The report's workflow status (ReportStatus on the server). */
+  status: string;
+  updatedAt: string;
+}
+
 /** Profile fields shared by create and edit. */
 export interface UserProfileInput {
   fullName: string;
@@ -280,6 +369,8 @@ export interface SystemSettingsInput {
   /** Printed in REVIEWED BY on the R47 when the department has no reviewer of its own. */
   r47ReviewedBy: string;
   r47SignatureMode: R47SignatureMode;
+  /** The R47 format: PDF library and header details. Values never saved show the server's R47Report settings. */
+  r47Format: R47Format;
 }
 
 export interface SystemSettings extends SystemSettingsInput {

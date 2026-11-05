@@ -24,7 +24,9 @@ public sealed record R47CashAdvanceRow(
 
 /// <summary>
 /// Everything needed to render the R47 "EXPENSE REPORT" for one ERF. Produced by the
-/// LINQ loader; consumed by the PDF renderer. Contains no EF entities.
+/// LINQ loader; consumed by the PDF renderer. Contains no EF entities. <see cref="Format"/> is the
+/// Rules page R47 format (engine and header details); null prints with the server's R47Report settings.
+/// <see cref="Design"/> is the R47 designer's layout; null prints the standard form.
 /// </summary>
 public sealed record ExpenseReportDocumentDto(
     Guid ReportId,
@@ -36,7 +38,9 @@ public sealed record ExpenseReportDocumentDto(
     R47Signatories Signatories,
     byte[]? EmployeeSignature,
     IReadOnlyList<R47Line> Lines,
-    DateTimeOffset? FiledAt = null)
+    DateTimeOffset? FiledAt = null,
+    R47Format? Format = null,
+    R47Design? Design = null)
 {
     /// <summary>The TOTAL of the CASH ADVANCE RECEIVED block; the reconciliation reduces from this.</summary>
     public decimal CashAdvanceTotal => CashAdvances.Sum(c => c.Amount);
