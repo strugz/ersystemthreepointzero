@@ -114,7 +114,7 @@ The `ER System/` project is in a transitional state and contains both legacy fil
 ### Supporting and historical areas
 
 - `README.md` is the desktop improvement roadmap and target architecture reference. Its proposed folders describe direction, not proof that migration is complete. Use `Web/README.md` for the web portal's setup, database preparation, local development, build, and deployment guidance.
-- `ERF_UPDATE_PLAN.md` and the root SQL/schema reference text files provide planning or database-discovery context. Verify them against current code and database scripts before treating them as authoritative runtime behavior.
+- `ER3.0.sql` at the root provides database-discovery context. Verify it against current code and database scripts before treating it as authoritative runtime behavior.
 - `Presentation/` at the repository root is a supporting or historical area outside the active WinForms project. Prefer the presentation structure included in an active `.vbproj` unless a task explicitly establishes another purpose.
 - `Instructions/` contains user or setup screenshots and is supporting documentation, not application source.
 - `tools/` is reserved for repository maintenance or developer tooling. It currently contains the report-only web clean-architecture audit, its optional Windows scheduled-task registration script, and the scanned-receipt integrity verifier. Do not put runtime application behavior there.

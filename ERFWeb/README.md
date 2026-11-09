@@ -18,6 +18,11 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-05
 
+- **Documents refreshed** (not yet committed). `Document/` now holds the Implementation Plan (updated to what is
+  built), the CRM API spec, and Word/PDF copies of the five role guides (Employee Filing, Signatory, Finance, Expense
+  Verifier, Administrator), exported from their Claude Docs after updating them to the current screens. The finished
+  fare-modes revision note was removed; its two open items (fare legs on the R47, a line-level fare-mode export) moved
+  to the plan's open items. No code or database change.
 - **R47 designer** (PR #44). **Rules → Expense report (R47) → Open the R47 designer** (`/admin/r47-designer`,
   System Administrator): a drawing of the page whose band edges and column dividers are dragged (or moved with the
   arrow keys), plus exact values for margins, band heights, the 13 grid column widths, header boxes, cash advance
