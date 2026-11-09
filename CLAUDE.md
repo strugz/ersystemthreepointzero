@@ -60,11 +60,12 @@ When an approach is revised mid-task (a first attempt did not match the requirem
 
 ### End-of-turn change summary
 
-Whenever a turn changes files, end the final message with a **Changed files** section:
+Whenever a turn changes files, always end the final message with a **Changed files** section and a **Step guide**, even for small or docs-only changes:
 
 - Group by area (Backend, Frontend, Database, Docs, Tests) and list every changed file as a clickable link, with one line on what changed in it. Say plainly when an area was not touched (e.g. "Backend: no changes").
 - Follow it with **What happens next**: what the user will see or what behaves differently, what is still needed before it takes effect (database script to apply, backend deploy before frontend, config), and what was verified versus not verified (build, tests, browser).
 - State whether anything is committed, pushed or deployed.
+- Finish with a **Step guide**: numbered steps the user follows to apply, see and check the change (e.g. apply script `NNN` to `erms_db`, publish and deploy the backend, wait for the Render build, open the page, click X, expect Y). Name exact screens, buttons, commands and files. When there is nothing for the user to do, say so in one line.
 
 ### Keep README.md and CLAUDE.md in step with every change
 
