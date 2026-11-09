@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-05
 
-- **Documents refreshed** (not yet committed). `Document/` now holds the Implementation Plan (updated to what is
+- **Documents refreshed** (PR #45). `Document/` now holds the Implementation Plan (updated to what is
   built), the CRM API spec, and Word/PDF copies of the five role guides (Employee Filing, Signatory, Finance, Expense
   Verifier, Administrator), exported from their Claude Docs after updating them to the current screens. The finished
   fare-modes revision note was removed; its two open items (fare legs on the R47, a line-level fare-mode export) moved
