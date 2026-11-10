@@ -18,6 +18,9 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-10
 
+- **Versions bumped, minor** (not yet committed). API `0.1.1` → `0.2.0`, SPA `0.3.1` → `0.4.0`, for the sign-in
+  lockout settings below. From now on every PR to `master` bumps the app(s) it changes, as major, minor or patch;
+  see **Versions** under Frontend.
 - **Sign-in lockout on the Rules page** (PR #47). **Rules → Sign-in security** sets how many failed
   sign-ins in a row lock a username (3 to 20, default 5) and for how many minutes (1 to 1440, default 15); failures
   older than the lock time no longer count. Stored as `Security.LoginMaxFailedAttempts` and
@@ -394,8 +397,22 @@ test-only **Delete** buttons (`shared/ui/AppTestDeleteButton.vue`, calling `shar
 decides what is shown; the API refuses the deletes unless its `App:Mode` is `Test` (see Test mode).
 
 **Version shown to users:** the sign-in page and the bottom of every page show `ERFWeb v<version> · <commit>`. The
-version is `"version"` in `package.json` (bump it for each release, e.g. `npm version minor --no-git-tag-version`);
-the commit comes from `RENDER_GIT_COMMIT` on Render, otherwise `git rev-parse --short HEAD`, otherwise `local`.
+version is `"version"` in `package.json`; the commit comes from `RENDER_GIT_COMMIT` on Render, otherwise
+`git rev-parse --short HEAD`, otherwise `local`.
+
+**Versions:** the SPA version is `"version"` in `package.json` (and `package-lock.json`); the API version is
+`<Version>` in `Backend/Directory.Build.props`, shown by `/erf/health` as `<version>+<commit>` and in the release
+folder name. Every PR to `master` bumps the app(s) it changes, in the same PR (`npm version major|minor|patch
+--no-git-tag-version` for the SPA; edit `<Version>` for the API):
+
+| Level | When | Example |
+| --- | --- | --- |
+| **Major** `x.0.0` | Breaks compatibility: an endpoint or field removed or changed so the other side's deployed version stops working, a database script the previous release cannot run against, a feature removed or a workflow rule users must re-learn | Removing an endpoint the SPA calls |
+| **Minor** `0.x.0` | New and backward compatible: a screen, feature, setting, endpoint, optional field or additive database script | The sign-in lockout settings (API 0.2.0, SPA 0.4.0) |
+| **Patch** `0.0.x` | No new behaviour: a bug fix, wording, style, performance or refactor | Fixing a label or a rounding bug |
+
+A backend-only change bumps only the API, a frontend-only change only the SPA. Docs-, test- or tooling-only changes
+bump nothing. Name the level in the PR description and the change-log line.
 
 **Healthy living page:** `/random-quotes` (`views/HealthyLivingView.vue`; the old `/healthy-living` redirects here; content in
 `features/wellness/components/HealthyLivingContent.vue`) is public: signed-out visitors get a plain page with a
