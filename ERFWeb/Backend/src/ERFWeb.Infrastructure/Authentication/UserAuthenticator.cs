@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Authentication;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Administration;
@@ -12,11 +13,11 @@ namespace ERFWeb.Infrastructure.Authentication;
 
 /// <summary>
 /// Validates credentials against the users table using PBKDF2 verification and a fixed-time comparison,
-/// with the sign-in lockout of <see cref="LoginLockoutRules"/> kept in <c>login_security</c> (one row per
+/// with the sign-in lockout of <see cref="LoginLockoutRules"/> (attempts and minutes from the Rules page) kept in <c>login_security</c> (one row per
 /// username tried, known or not). Roles come from the Active grants in <c>user_roles</c> plus the implicit
 /// Employee base role; a Pending Activation or Revoked grant confers nothing (RBAC v0.6, spec 9.8).
 /// </summary>
-public sealed class UserAuthenticator(ErfDbContext db, IClock clock, IWorkflowAuditWriter audit) : IUserAuthenticator
+public sealed class UserAuthenticator(ErfDbContext db, IClock clock, IWorkflowAuditWriter audit, ISystemSettingsService settings) : IUserAuthenticator
 {
     public async Task<LoginResult> LoginAsync(string username, string password, CancellationToken ct = default)
     {
@@ -103,7 +104,9 @@ public sealed class UserAuthenticator(ErfDbContext db, IClock clock, IWorkflowAu
     /// <summary>Counts a failed attempt; returns the lock end when this attempt locks the username.</summary>
     private async Task<DateTimeOffset?> RecordFailureAsync(string username, LoginSecurity? security, DateTimeOffset now, CancellationToken ct)
     {
-        var (failedAttempts, lockoutUntil) = LoginLockoutRules.AfterFailure(security?.FailedAttempts ?? 0, security?.LastAttemptAt, now);
+        // Read only on a failure: a change on the Rules page applies to the next lock, not one already set.
+        var policy = await settings.GetLoginLockoutPolicyAsync(ct);
+        var (failedAttempts, lockoutUntil) = LoginLockoutRules.AfterFailure(security?.FailedAttempts ?? 0, security?.LastAttemptAt, now, policy);
         if (security is null)
         {
             security = new LoginSecurity { Username = username };

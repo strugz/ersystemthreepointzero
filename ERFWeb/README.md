@@ -16,6 +16,15 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-11-10
+
+- **Sign-in lockout on the Rules page** (PR #47). **Rules → Sign-in security** sets how many failed
+  sign-ins in a row lock a username (3 to 20, default 5) and for how many minutes (1 to 1440, default 15); failures
+  older than the lock time no longer count. Stored as `Security.LoginMaxFailedAttempts` and
+  `Security.LoginLockoutMinutes` in `app_settings` (`GET/PUT /api/admin/settings`), audited `SettingsChanged`, read
+  by `UserAuthenticator` on each failed sign-in through Domain `LoginLockoutPolicy`; a lock already set keeps its end
+  time. No database script; deploy backend before frontend.
+
 ### 2026-11-05
 
 - **Documents refreshed** (PR #45). `Document/` now holds the Implementation Plan (updated to what is
@@ -603,7 +612,9 @@ users, or seed one with a `Pbkdf2PasswordHasher.Hash` value. The session's Role 
 grants in `user_roles` plus the implicit `Employee`.
 
 **Sign-in lockout (Phase 8.3):** five failed sign-ins in a row lock that username for 15 minutes (`login_security`;
-failures older than 15 minutes no longer count). Unknown usernames are counted the same way, so a lockout never reveals
+failures older than the lock time no longer count). The System Administrator changes both on **Rules → Sign-in
+security** (3 to 20 attempts, 1 to 1440 minutes; `Security.LoginMaxFailedAttempts` and `Security.LoginLockoutMinutes`
+in `app_settings`, Domain `LoginLockoutPolicy` / `LoginLockoutRules`); a change applies to the next lock. Unknown usernames are counted the same way, so a lockout never reveals
 whether an account exists. While locked, `POST /api/auth/login` answers **423** `account_locked` with how many minutes
 are left, without checking the password. A successful sign-in clears the count; an administrator's password reset
 unlocks the account. Each lockout writes `Auth.LockedOut` (username tried, never the password) to `workflow_audit`.
@@ -653,7 +664,7 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 | `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `GET/POST/DELETE …/signature` (SystemAdministrator) | Register and maintain accounts; load or remove the signature printed on the R47 |
 | `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/revoke` (SystemAdministrator) | Grant, revoke |
 | `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list. A cost center needs a department and carries `budgets` (`[{ year, amount }]`); saving sends the years to set or clear (`amount: null`) |
-| `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches, account email domains, the R47 REVIEWED BY and signature rule (`r47SignatureMode`: `ESignature` or `StatusOnly`); stored in `app_settings` |
+| `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches, account email domains, the R47 REVIEWED BY and signature rule (`r47SignatureMode`: `ESignature` or `StatusOnly`), the sign-in lockout (`loginMaxFailedAttempts`, `loginLockoutMinutes`); stored in `app_settings` |
 | `GET /api/signatures?status=Pending\|Approved` · `GET …/{userId}/image` · `POST …/{userId}/approve` · `POST …/{userId}/reject` (Finance) | Finance's review of signature images. Approve and reject send `{ uploadedAt, note? }` (the upload reviewed; a newer one answers 409). Rejecting removes the image. Your own signature answers 403 |
 | `GET /api/admin/crm/employees?search&includeInactive` · `GET …/{employeeId}` (SystemAdministrator) | CRM employee lookup for the user form (see CRM employee link) |
 | `GET /api/admin/audit?event&actorUserId&from&to` (SystemAdministrator, Finance) | Append-only audit trail |

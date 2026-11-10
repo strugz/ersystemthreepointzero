@@ -31,8 +31,8 @@ public sealed class AuthController(
     }
 
     /// <summary>
-    /// Signs in. 401 for wrong credentials; 423 <c>account_locked</c> after five failures in a row (for 15
-    /// minutes, known usernames or not); 429 when this address sends too many attempts.
+    /// Signs in. 401 for wrong credentials; 423 <c>account_locked</c> after the Rules page's number of failures in a
+    /// row (five by default, locked 15 minutes by default, known usernames or not); 429 when this address sends too many attempts.
     /// </summary>
     [HttpPost("login")]
     [AllowAnonymous]
