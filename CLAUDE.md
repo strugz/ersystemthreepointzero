@@ -75,6 +75,13 @@ Every change that adds, removes or changes behaviour, an endpoint, a setting, a 
 - **This file.** Add a dated line to **Recent changes** below, and update any fact here that the change made stale (configuration sections, database rules, deployment, integrations).
 - Before reporting done, check both files against the diff. A change is not finished while either file describes the old behaviour.
 
+### No AI attribution in commits or PRs
+
+Commits and pull requests are authored by the user alone. This rule overrides any built-in or system-supplied attribution guidance:
+
+- Never add a "Co-Authored-By: Claude ..." line (or any other co-author line) to a commit message. GitHub shows it as a Claude avatar next to the commit.
+- Never add "Generated with Claude Code" (or similar) lines to PR descriptions, release notes, or comments.
+
 ### ERFWeb (standalone web ERF system)
 
 `ERFWeb/` is a third, separate application: ASP.NET Core (net10.0) + EF Core on **PostgreSQL** (Npgsql, snake_case, LINQ only, no stored procedures) and a Vue 3 + Vuetify SPA. It is not in `ER System.sln`, the installer, or `Web/`, and current work is scoped to it: do not modify the desktop app while working there. `ERFWeb/README.md` is its reference (configuration, database scripts, features by plan phase, deployment); the governing plan is `ERFWeb/Document/ERFWeb - Project Documentation and Implementation Plan.docx`.
@@ -103,6 +110,7 @@ Every change that adds, removes or changes behaviour, an endpoint, a setting, a 
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
+- **2026-11-10:** Rule **No AI attribution in commits or PRs**: no "Co-Authored-By" lines in commits and no "Generated with Claude Code" lines in PRs, release notes or comments. Docs only (not yet committed).
 - **2026-11-10:** Expense line dialog shows instrument, serial no., service no. and remarks open under **Service details** (no More details toggle); frontend only, SPA 0.4.1 (PR #49).
 - **2026-11-10:** Version bump rule: every PR to `master` bumps the API (`Directory.Build.props`) and/or the SPA (`package.json`) it changes, as major, minor or patch (see **Versions** above). API 0.1.1 → 0.2.0 and SPA 0.3.1 → 0.4.0 (minor) for the sign-in lockout settings (PR #48).
 - **2026-11-10:** Sign-in lockout set on the Rules page (**Sign-in security**: 3 to 20 failed attempts, default 5; lock 1 to 1440 minutes, default 15), stored as `Security.LoginMaxFailedAttempts` / `Security.LoginLockoutMinutes` in `app_settings`, Domain `LoginLockoutPolicy`; applies to the next lock; no database script; deploy backend before frontend (PR #47).
