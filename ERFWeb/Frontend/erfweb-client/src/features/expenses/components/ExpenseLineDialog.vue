@@ -89,7 +89,6 @@ const blank = (): SaveExpenseLineInput => ({
 
 const form = reactive<SaveExpenseLineInput>(blank());
 const selectedMeals = ref<string[]>([]);
-const showDetails = ref(false);
 /** Set by a save attempt, so a leg without a mode is only flagged once the employee tries to save. */
 const triedSave = ref(false);
 const dateInput = ref<HTMLElement | null>(null);
@@ -128,7 +127,6 @@ function reset() {
   Object.assign(form, blank());
   Object.assign(auto, { particulars: '', amount: 0 });
   selectedMeals.value = [];
-  showDetails.value = false;
   triedSave.value = false;
   pickedActivities.value = [];
   applyCategoryDefaults();
@@ -171,7 +169,6 @@ watch(
       } satisfies SaveExpenseLineInput);
     }
     selectedMeals.value = form.meals.map((m) => m.mealType);
-    showDetails.value = !!(form.remarks || form.instrument || form.serialNumber || form.serviceNumber);
     triedSave.value = false;
     pickedActivities.value = [];
     Object.assign(auto, { particulars: '', amount: 0 });
@@ -311,7 +308,6 @@ function applyActivities(activities: CrmActivityOption[]) {
   form.serviceNumber = joinValues(activities.map((a) => a.serviceNumber), ' / ') ?? form.serviceNumber;
   form.instrument = joinValues(activities.map((a) => a.instrumentName), ' / ') ?? form.instrument;
   form.serialNumber = joinValues(activities.map((a) => a.serialNumber), ' / ') ?? form.serialNumber;
-  if (form.serviceNumber || form.instrument || form.serialNumber) showDetails.value = true;
   fillLegFromActivity();
 }
 
@@ -678,23 +674,14 @@ function close() {
             </div>
           </section>
 
-          <!-- More -->
           <section class="eline__section">
-            <button type="button" class="more press" :aria-expanded="showDetails" @click="showDetails = !showDetails">
-              <v-icon :icon="showDetails ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="18" />
-              More details
-              <span class="more__hint">remarks, instrument, serial and service no.</span>
-            </button>
-            <v-expand-transition>
-              <div v-if="showDetails" class="more__body">
-                <v-textarea v-model="form.remarks" label="Remarks" rows="1" auto-grow hide-details="auto" />
-                <div class="eline__row eline__row--three">
-                  <v-text-field v-model="form.instrument" label="Instrument" density="compact" hide-details />
-                  <v-text-field v-model="form.serialNumber" label="Serial no." density="compact" hide-details />
-                  <v-text-field v-model="form.serviceNumber" label="Service no." density="compact" hide-details />
-                </div>
-              </div>
-            </v-expand-transition>
+            <div class="eyebrow">Service details</div>
+            <div class="eline__row eline__row--three">
+              <v-text-field v-model="form.instrument" label="Instrument" hide-details />
+              <v-text-field v-model="form.serialNumber" label="Serial no." hide-details />
+              <v-text-field v-model="form.serviceNumber" label="Service no." hide-details />
+            </div>
+            <v-textarea v-model="form.remarks" label="Remarks" rows="1" auto-grow hide-details="auto" />
           </section>
         </v-form>
       </v-card-text>
@@ -962,33 +949,6 @@ function close() {
 }
 .leg__arrow {
   color: var(--ink-3);
-}
-
-/* More details */
-.more {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  padding: 4px 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink);
-  cursor: pointer;
-}
-.more__hint {
-  font-weight: 400;
-  font-size: 12.5px;
-  color: var(--ink-3);
-}
-.more__body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-top: 4px;
 }
 
 /* Footer with the running total */
