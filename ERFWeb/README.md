@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-10
 
-- **Versions bumped, minor** (not yet committed). API `0.1.1` → `0.2.0`, SPA `0.3.1` → `0.4.0`, for the sign-in
+- **Versions bumped, minor** (PR #48). API `0.1.1` → `0.2.0`, SPA `0.3.1` → `0.4.0`, for the sign-in
   lockout settings below. From now on every PR to `master` bumps the app(s) it changes, as major, minor or patch;
   see **Versions** under Frontend.
 - **Sign-in lockout on the Rules page** (PR #47). **Rules → Sign-in security** sets how many failed
