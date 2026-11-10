@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERFWeb Feature Overview</title>
+
+<!-- Fonts: Fraunces (display), IBM Plex Sans (body), IBM Plex Mono (figures, labels, stamps) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* ===========================================
+   THEME: "Ledger"
+   An expense ledger page: ruled paper, a red margin rule,
+   navy ink, brass accents and rubber approval stamps.
+   Change these variables to restyle the whole deck.
+   =========================================== */
+:root {
+    --stage-bg: #141b2b;      /* letterbox colour around the stage */
+    --slide-bg: #f4f1e8;
+    --paper: #f4f1e8;         /* ledger page */
+    --sheet: #fbfaf5;         /* receipts and forms laid on the page */
+    --rule: #d9d3c2;          /* ruled lines */
+    --margin: rgba(155, 44, 44, .45); /* red margin rule */
+    --ink: #1f3864;           /* navy ink: headings, key figures */
+    --text: #1c2230;
+    --muted: #5d6577;
+    --brass: #a8741f;
+    --red: #9b2c2c;           /* stamps */
+    --green: #2f6b45;
+
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'IBM Plex Sans', Arial, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+
+    --left: 260px;            /* content starts right of the margin rule */
+    --right: 160px;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES (viewport-base.css)
+   Slides are authored at 1920x1080 and scaled as a whole.
+   =========================================== */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls,
+    .progress,
+    .edit-hotzone,
+    .edit-toggle {
+        display: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* ===========================================
+   LEDGER PAGE
+   Every content slide is a ruled ledger page (lines every 60px)
+   with a red margin rule at x=200.
+   =========================================== */
+.slide {
+    color: var(--text);
+    font-family: var(--font-body);
+    background:
+        linear-gradient(90deg, transparent 199px, var(--margin) 199px, var(--margin) 201px, transparent 201px),
+        repeating-linear-gradient(180deg, transparent 0 59px, var(--rule) 59px 60px),
+        var(--paper);
+}
+
+/* Content frame: right of the margin, inside the page */
+.frame {
+    position: absolute;
+    left: var(--left);
+    right: var(--right);
+    top: 110px;
+    bottom: 110px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+/* Page footer: deck name left, folio right (ledger page number) */
+.folio {
+    position: absolute;
+    left: var(--left);
+    right: var(--right);
+    bottom: 48px;
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 20px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+/* ===========================================
+   TYPOGRAPHY
+   =========================================== */
+.kicker {
+    font-family: var(--font-mono);
+    font-size: 24px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--brass);
+}
+
+h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 200px;
+    line-height: .92;
+    letter-spacing: -.02em;
+    color: var(--ink);
+}
+
+h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 84px;
+    line-height: 1.02;
+    letter-spacing: -.015em;
+    color: var(--ink);
+    max-width: 1400px;
+}
+
+h3 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 32px;
+    line-height: 1.25;
+    color: var(--ink);
+}
+
+.lede {
+    font-size: 36px;
+    line-height: 1.45;
+    color: var(--text);
+    max-width: 1300px;
+}
+
+.body { font-size: 27px; line-height: 1.45; color: var(--muted); }
+.mono { font-family: var(--font-mono); }
+.ink { color: var(--ink); }
+
+/* ===========================================
+   COMPONENTS
+   =========================================== */
+
+/* Tally rows: like lines in a ledger, figure or code on the right */
+.tally { font-family: var(--font-mono); font-size: 28px; color: var(--text); }
+.tally > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 60px;
+    gap: 40px;
+    border-bottom: 1px solid transparent;
+}
+.tally > div > span:first-child { font-family: var(--font-body); font-size: 29px; }
+.tally > div > span:last-child { color: var(--muted); text-align: right; }
+.tally .total { border-top: 4px double var(--ink); font-weight: 600; color: var(--ink); }
+.tally .total > span { color: var(--ink) !important; }
+
+/* Receipt: a slip of paper with a torn (zigzag) bottom edge */
+.receipt {
+    position: relative;
+    background: var(--sheet);
+    padding: 34px 36px 46px;
+    box-shadow: 0 10px 28px rgba(28, 34, 48, .12), 0 1px 0 rgba(28, 34, 48, .06);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.receipt::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -14px;
+    height: 14px;
+    background:
+        linear-gradient(135deg, var(--sheet) 50%, transparent 50%) 0 0 / 28px 14px repeat-x,
+        linear-gradient(225deg, var(--sheet) 50%, transparent 50%) 0 0 / 28px 14px repeat-x;
+}
+.receipt .code {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    letter-spacing: .1em;
+    color: var(--brass);
+}
+.receipt p { font-size: 26px; line-height: 1.45; color: var(--muted); }
+
+/* Rubber stamp: rotated, bordered, multiplied into the paper */
+.stamp {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 18px 28px;
+    border: 5px solid var(--red);
+    border-radius: 12px;
+    color: var(--red);
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 34px;
+    letter-spacing: .08em;
+    transform: rotate(-6deg);
+    mix-blend-mode: multiply;
+    white-space: nowrap;
+}
+.stamp small { font-size: 20px; font-weight: 500; letter-spacing: .08em; }
+.stamp.navy { color: var(--ink); border-color: var(--ink); }
+.stamp.brass { color: var(--brass); border-color: var(--brass); }
+.stamp.green { color: var(--green); border-color: var(--green); }
+
+/* Ledger table */
+table.ledger {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 29px;
+}
+.ledger th {
+    text-align: left;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--brass);
+    padding: 0 24px 14px 0;
+    border-bottom: 2px solid var(--ink);
+}
+.ledger td {
+    padding: 16px 24px 16px 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+    line-height: 1.35;
+}
+.ledger td:first-child { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.ledger td.note { color: var(--muted); }
+
+/* Journal: numbered entries down the page */
+.journal { display: flex; flex-direction: column; }
+.journal > div {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    align-items: baseline;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule);
+}
+.journal .no { font-family: var(--font-mono); font-size: 26px; color: var(--brass); }
+.journal p { font-size: 31px; line-height: 1.4; }
+.journal p b { color: var(--ink); font-weight: 600; }
+
+/* Two-column split */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 96px; align-items: center; flex: 1; }
+.split.wide-left { grid-template-columns: 1.15fr .85fr; }
+
+/* Callout strip: a highlighted ledger line */
+.callout {
+    font-size: 30px;
+    line-height: 1.4;
+    color: var(--ink);
+    background: rgba(168, 116, 31, .12);
+    border-left: 6px solid var(--brass);
+    padding: 18px 28px;
+}
+
+.spacer { flex: 1; }
+
+/* ===========================================
+   SECTION DIVIDERS: a navy ledger cover
+   =========================================== */
+.slide.divider {
+    color: var(--paper);
+    background:
+        linear-gradient(90deg, transparent 199px, rgba(168, 116, 31, .5) 199px, rgba(168, 116, 31, .5) 201px, transparent 201px),
+        repeating-linear-gradient(180deg, transparent 0 59px, rgba(244, 241, 232, .07) 59px 60px),
+        #1a2d50;
+}
+.divider .num {
+    position: absolute;
+    left: var(--left);
+    top: 150px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 360px;
+    line-height: 1;
+    color: var(--brass);
+}
+.divider > h2 {
+    position: absolute;
+    left: var(--left);
+    top: 560px;
+    font-size: 150px;
+    color: var(--paper);
+}
+.divider > .lede {
+    position: absolute;
+    left: var(--left);
+    top: 760px;
+    color: #c9cfdb;
+    max-width: 1200px;
+}
+.divider .folio { color: #9aa5b8; }
+.divider .stamp { mix-blend-mode: normal; }   /* multiply would sink the stamp into the navy */
+
+/* Tighter receipts for a two-row grid under a two-line heading */
+.compact .receipt { padding: 24px 32px 32px; gap: 8px; }
+
+/* ===========================================
+   SLIDE-SPECIFIC: R47 mock form
+   =========================================== */
+.r47 {
+    background: #ffffff;
+    color: #111;
+    font-family: var(--font-mono);
+    font-size: 18px;
+    padding: 26px;
+    box-shadow: 0 14px 34px rgba(28, 34, 48, .16);
+    transform: rotate(1.2deg);
+    position: relative;
+}
+.r47 .hd { display: grid; grid-template-columns: 1fr auto; border: 2px solid #333; margin-bottom: 14px; }
+.r47 .hd div { padding: 10px 12px; }
+.r47 .hd div + div { border-left: 2px solid #333; text-align: right; }
+.r47 table { width: 100%; border-collapse: collapse; }
+.r47 th, .r47 td { border: 1px solid #555; padding: 7px 9px; text-align: left; }
+.r47 th { background: #eef1f6; font-weight: 600; }
+.r47 td.r, .r47 th.r { text-align: right; }
+.r47 .sig { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; text-align: center; font-size: 15px; }
+.r47 .sig div { border-top: 2px solid #333; padding-top: 6px; }
+.r47 .wm { color: var(--red); font-size: 12px; letter-spacing: .1em; display: block; margin-top: 4px; }
+.r47 .sample { position: absolute; right: 26px; bottom: -36px; font-size: 16px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+
+/* Aging buckets bar */
+.aging { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; }
+.aging div {
+    padding: 22px 18px;
+    font-family: var(--font-mono);
+    font-size: 28px;
+    text-align: center;
+    color: var(--paper);
+}
+.aging div:nth-child(1) { background: #3f5a86; }
+.aging div:nth-child(2) { background: #2f4a77; }
+.aging div:nth-child(3) { background: #8a6420; }
+.aging div:nth-child(4) { background: #9b4a2c; }
+.aging div:nth-child(5) { background: var(--red); }
+.aging-labels { display: grid; grid-template-columns: repeat(5, 1fr); font-family: var(--font-mono); font-size: 20px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-top: 10px; }
+.aging-labels span { text-align: center; }
+
+/* ===========================================
+   ANIMATIONS
+   Elements with .reveal rise in when their slide becomes visible,
+   staggered by --d (set inline per element). Stamps press down.
+   =========================================== */
+.reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity .7s var(--ease), transform .7s var(--ease);
+    transition-delay: calc(var(--d, 0) * 90ms);
+}
+.slide.visible .reveal { opacity: 1; transform: none; }
+
+@keyframes press {
+    0%   { opacity: 0; transform: rotate(var(--rot, -6deg)) scale(1.5); }
+    60%  { opacity: 1; transform: rotate(var(--rot, -6deg)) scale(.95); }
+    100% { opacity: 1; transform: rotate(var(--rot, -6deg)) scale(1); }
+}
+.slide .stamp.press { opacity: 0; }
+.slide.visible .stamp.press { animation: press .6s var(--ease) both; animation-delay: calc(var(--d, 4) * 90ms); }
+
+/* ===========================================
+   DECK CHROME (outside the stage): page count and progress
+   =========================================== */
+.deck-controls {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: .1em;
+    color: #9aa5b8;
+    background: rgba(20, 27, 43, .7);
+    padding: 6px 14px;
+    border-radius: 6px;
+    opacity: .0;
+    transition: opacity .3s;
+}
+body:hover .deck-controls { opacity: 1; }
+.progress { position: fixed; left: 0; top: 0; height: 3px; background: var(--brass); z-index: 1000; transition: width .4s var(--ease); }
+
+/* ===========================================
+   INLINE EDITING (press E, or hover the top-left corner)
+   =========================================== */
+.edit-hotzone { position: fixed; top: 0; left: 0; width: 80px; height: 80px; z-index: 10000; cursor: pointer; }
+.edit-toggle {
+    position: fixed; top: 16px; left: 16px; z-index: 10001;
+    font: 600 13px var(--font-mono); letter-spacing: .08em;
+    background: var(--ink); color: var(--paper); border: 0; border-radius: 6px; padding: 8px 12px; cursor: pointer;
+    opacity: 0; pointer-events: none; transition: opacity .3s ease;
+}
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+.edit-toggle.active { background: var(--red); }
+body.editing [contenteditable="true"] { outline: 2px dashed rgba(168, 116, 31, .6); outline-offset: 4px; }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="edit-hotzone" aria-hidden="true"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">EDIT</button>
+
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+<!-- =========================================== 01 TITLE =========================================== -->
+<section class="slide" aria-label="Title">
+    <p class="kicker reveal" style="position:absolute;left:260px;top:120px;color:var(--muted)">Feature overview · November 2026</p>
+    <h1 class="reveal" style="position:absolute;left:260px;top:220px;--d:1">ERFWeb</h1>
+    <p class="lede reveal" style="position:absolute;left:260px;top:600px;width:1000px;font-size:40px;--d:2">The Expense Report System: from the first receipt to cleared for payment.</p>
+    <div class="tally reveal" style="position:absolute;left:260px;top:780px;width:880px;--d:3">
+        <div><span>Filed by the employee</span><span>01</span></div>
+        <div><span>Approved at two levels</span><span>02</span></div>
+        <div class="total"><span>Cleared by Finance</span><span>03</span></div>
+    </div>
+    <div class="stamp press" style="position:absolute;right:170px;top:170px;font-size:52px;padding:36px 44px;border-width:6px;--rot:-8deg;--d:5">APPROVED<small>ERF-2026-000142</small></div>
+    <p class="reveal" style="position:absolute;right:170px;bottom:110px;text-align:right;font-size:26px;line-height:1.7;color:var(--muted);--d:4">Developed by <b class="ink" style="font-weight:500">Jay Bryan C. Abaoag</b><br>Quality assurance <b class="ink" style="font-weight:500">Carl</b></p>
+    <!-- Notes: ERFWeb is the web Expense Report System. This deck walks through every feature: filing, approval, Finance, and the controls built in. -->
+</section>
+
+<!-- =========================================== 02 WHAT IT BRINGS =========================================== -->
+<section class="slide" aria-label="What ERFWeb brings">
+    <div class="frame">
+        <p class="kicker reveal">The short version</p>
+        <h2 class="reveal" style="--d:1">One system for every expense report, from filing to payment.</h2>
+        <div class="tally reveal" style="--d:2;margin-top:20px">
+            <div><span>The R47 is generated from the report, never typed by hand</span><span>R47</span></div>
+            <div><span>Every approver is found automatically and told by SMS and email</span><span>SMS · EMAIL</span></div>
+            <div><span>Late approvals are chased with daily reminders</span><span>3 DAYS</span></div>
+            <div><span>Finance tracks receipts in one queue, with a status for every report</span><span>QUEUE</span></div>
+            <div class="total"><span>Every step is recorded in an audit trail nobody can edit</span><span>AUDIT</span></div>
+        </div>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>02</span></div>
+    <!-- Notes: The five things that change most for staff. Each one has its own section later in the deck. -->
+</section>
+
+<!-- =========================================== 03 SIX ROLES =========================================== -->
+<section class="slide" aria-label="Six roles">
+    <div class="frame">
+        <p class="kicker reveal">Who uses it</p>
+        <h2 class="reveal" style="--d:1">Six roles share one workflow.</h2>
+        <div class="reveal" style="--d:2;display:grid;grid-template-columns:repeat(3,1fr);gap:40px 36px;margin-top:10px">
+            <div class="receipt"><span class="code">ROLE 01</span><h3>Employee</h3><p>Files reports, attaches receipts, re-files when returned.</p></div>
+            <div class="receipt"><span class="code">ROLE 02</span><h3>Signatory Level 1</h3><p>Endorses the reports of the people they cover.</p></div>
+            <div class="receipt"><span class="code">ROLE 03</span><h3>Signatory Level 2</h3><p>Gives final approval and decides Finance queries.</p></div>
+            <div class="receipt"><span class="code">ROLE 04</span><h3>Finance</h3><p>Checks receipts, clears for payment, approves signatures.</p></div>
+            <div class="receipt"><span class="code">ROLE 05</span><h3>Expense Verifier</h3><p>Checks one line that Finance has questioned.</p></div>
+            <div class="receipt"><span class="code">ROLE 06</span><h3>Administrator</h3><p>Sets up accounts, rates and rules; never sees reports.</p></div>
+        </div>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>03</span></div>
+    <!-- Notes: Everyone is an Employee; the administrator adds the other roles. Some cannot be combined: Finance cannot also be a signatory or a verifier, and the administrator holds no transacting role. -->
+</section>
+
+<!-- =========================================== 04 HOW A REPORT MOVES =========================================== -->
+<section class="slide" aria-label="How a report moves">
+    <div class="frame">
+        <p class="kicker reveal">The journey</p>
+        <h2 class="reveal" style="--d:1">A report collects five stamps on its way to payment.</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:40px">
+            <div class="stamp navy press" style="--rot:-4deg;--d:3">FILED<small>EMPLOYEE</small></div>
+            <div class="stamp navy press" style="--rot:3deg;--d:5">ENDORSED<small>LEVEL 1</small></div>
+            <div class="stamp press" style="--rot:-5deg;--d:7">APPROVED<small>LEVEL 2</small></div>
+            <div class="stamp brass press" style="--rot:4deg;--d:9">RECEIVED<small>FINANCE</small></div>
+            <div class="stamp green press" style="--rot:-3deg;--d:11">CLEARED<small>FOR PAYMENT</small></div>
+        </div>
+        <div class="spacer"></div>
+        <div class="reveal" style="--d:12;display:grid;grid-template-columns:repeat(3,1fr);gap:48px">
+            <div><h3>Returned</h3><p class="body">Back to the employee with a reason. Approval starts again when re-filed.</p></div>
+            <div><h3>Rejected</h3><p class="body">Final, with a reason. The report can never be filed again.</p></div>
+            <div><h3>Questioned</h3><p class="body">After approval, Finance can send a single line for checking.</p></div>
+        </div>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>04</span></div>
+    <!-- Notes: The main path has five stops. At any approval step the report can be returned or rejected. The employee can pull a filed report back only until an approver acts. -->
+</section>
+
+<!-- =========================================== 05 DIVIDER: FILING =========================================== -->
+<section class="slide divider" aria-label="Section 1: Filing">
+    <p class="num reveal">01</p>
+    <h2 class="reveal" style="--d:1">Filing</h2>
+    <p class="lede reveal" style="--d:2">What the employee does, and what ERFWeb does for them.</p>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>05</span></div>
+</section>
+
+<!-- =========================================== 06 REPORT TYPES =========================================== -->
+<section class="slide" aria-label="Report types">
+    <div class="frame">
+        <p class="kicker reveal">Filing · Report types</p>
+        <h2 class="reveal" style="--d:1">Three report types, each with its own money block.</h2>
+        <table class="ledger reveal" style="--d:2;margin-top:10px">
+            <tr><th style="width:34%">Report type</th><th style="width:36%">What it carries</th><th>What the R47 shows</th></tr>
+            <tr><td>Reimbursement</td><td class="note">Expense lines only</td><td>Total due to the employee</td></tr>
+            <tr><td>Liquidation of Cash Advance</td><td class="note">Cash advance received rows</td><td>Advance less expenses: balance due, page by page</td></tr>
+            <tr><td>Replenishment of Revolving Fund</td><td class="note">The revolving fund amount</td><td>Fund amount and the expenses drawn on it</td></tr>
+        </table>
+        <div class="spacer"></div>
+        <p class="callout reveal" style="--d:3">The form adjusts to the type the employee picks, so nobody fills in a block that does not apply.</p>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>06</span></div>
+    <!-- Notes: These are the same three types as the current R47. Only a Liquidation stores the cash advance block, only a Replenishment the revolving fund. -->
+</section>
+
+<!-- =========================================== 07 LINES MADE EASY =========================================== -->
+<section class="slide" aria-label="Expense lines">
+    <div class="frame">
+        <p class="kicker reveal">Filing · Expense lines</p>
+        <h2 class="reveal" style="--d:1">Lines fill themselves where they can.</h2>
+        <div class="split wide-left">
+            <div class="journal reveal" style="--d:2">
+                <div><span class="no">01</span><p><b>Meals by tap.</b> Breakfast, lunch, dinner; the rate for the date applies itself.</p></div>
+                <div><span class="no">02</span><p><b>Fares leg by leg.</b> Taxi, Grab, jeepney and more, added up per trip.</p></div>
+                <div><span class="no">03</span><p><b>Receipts attached.</b> Photo or PDF; phone photos shrink before upload.</p></div>
+                <div><span class="no">04</span><p><b>Sorted for the R47.</b> Lines go in the order the form prints them.</p></div>
+            </div>
+            <div class="receipt reveal" style="--d:4;transform:rotate(-1.5deg)">
+                <span class="code">BEFORE YOU FILE</span>
+                <div class="tally" style="font-size:24px">
+                    <div><span style="font-size:26px">Purpose filled in</span><span style="color:var(--green)">✓</span></div>
+                    <div><span style="font-size:26px">At least one line</span><span style="color:var(--green)">✓</span></div>
+                    <div><span style="font-size:26px">Approver found</span><span style="color:var(--green)">✓</span></div>
+                    <div><span style="font-size:26px">Amounts add up</span><span style="color:var(--green)">✓</span></div>
+                    <div><span style="font-size:26px">Signature uploaded</span><span>optional</span></div>
+                </div>
+                <p style="margin-top:8px">The ERF number is issued the moment the report is filed.</p>
+            </div>
+        </div>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>07</span></div>
+    <!-- Notes: Rates are dated, so the right meal and travel rate for the expense date applies automatically. The checklist shows what is missing before filing. A draft can be deleted; a filed report can be pulled back until an approver acts. -->
+</section>
+
+<!-- =========================================== 08 CRM PRE-FILL =========================================== -->
+<section class="slide" aria-label="CRM pre-fill">
+    <div class="frame">
+        <p class="kicker reveal">Filing · CRM</p>
+        <h2 class="reveal" style="--d:1">Tick a CRM visit and the line is written for you.</h2>
+        <div class="split">
+            <div class="journal reveal" style="--d:2">
+                <div><span class="no">01</span><p><b>Details filled.</b> Date, customer, work-with, service details and fare route.</p></div>
+                <div><span class="no">02</span><p><b>Several visits, one line.</b> Service numbers joined with “ / ”.</p></div>
+                <div><span class="no">03</span><p><b>No double claims.</b> One CRM activity belongs to one report only.</p></div>
+                <div><span class="no">04</span><p><b>Employee stays in charge.</b> They still enter the amount, OR number and receipts.</p></div>
+            </div>
+            <div class="receipt reveal" style="--d:4;transform:rotate(1.5deg)">
+                <span class="code">EXPENSE LINE · FROM CRM</span>
+                <h3>SR-FLD26286018 / SR-FLD26286048</h3>
+                <p>Customer site visit · two instruments serviced on one trip</p>
+                <div class="tally" style="font-size:24px;margin-top:6px">
+                    <div><span style="font-size:26px">Date, customer, route</span><span>filled</span></div>
+                    <div><span style="font-size:26px">Amount, OR number</span><span>by employee</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>08</span></div>
+    <!-- Notes: Works for accounts linked to a CRM employee ID. The server checks with the CRM that each ticked activity is completed and belongs to the employee. Typing a line by hand always works. The service numbers shown are an example. -->
+</section>
+
+<!-- =========================================== 09 THE R47 =========================================== -->
+<section class="slide" aria-label="The R47">
+    <div class="frame">
+        <p class="kicker reveal">Filing · The R47</p>
+        <h2 class="reveal" style="--d:1">The R47 is generated, never retyped.</h2>
+        <div class="split">
+            <div class="journal reveal" style="--d:2">
+                <div><span class="no">01</span><p><b>Same form as today.</b> Columns, page breaks and header details.</p></div>
+                <div><span class="no">02</span><p><b>Signed as it moves.</b> Approved signatures print with a watermark.</p></div>
+                <div><span class="no">03</span><p><b>Always current.</b> Built from the report every time it is opened.</p></div>
+                <div><span class="no">04</span><p><b>Share or act.</b> View, print, download, email, or approve from it.</p></div>
+            </div>
+            <div class="r47 reveal" style="--d:4">
+                <div class="hd"><div><b>EXPENSE REPORT</b><br>Liquidation of Cash Advance</div><div>R47<br>ERF-2026-000142</div></div>
+                <table>
+                    <tr><th>Date</th><th>Particulars</th><th class="r">Amount</th></tr>
+                    <tr><td>Oct 20</td><td>Bus fare, site visit</td><td class="r">760.00</td></tr>
+                    <tr><td>Oct 21</td><td>Hotel, 2 nights</td><td class="r">3,800.00</td></tr>
+                    <tr><td>Oct 22</td><td>Van rental</td><td class="r">2,500.00</td></tr>
+                    <tr><td colspan="2" class="r"><b>TOTAL</b></td><td class="r"><b>7,060.00</b></td></tr>
+                    <tr><td colspan="2" class="r">Less cash advance</td><td class="r">5,000.00</td></tr>
+                    <tr><td colspan="2" class="r"><b>BAL DUE</b></td><td class="r"><b>2,060.00</b></td></tr>
+                </table>
+                <div class="sig">
+                    <div>EMPLOYEE<span class="wm">ELECTRONICALLY FILED</span></div>
+                    <div>ENDORSED BY<span class="wm">ELECTRONIC SIGNATURE</span></div>
+                    <div>APPROVED BY<span class="wm">ELECTRONIC SIGNATURE</span></div>
+                </div>
+                <span class="sample">Sample figures</span>
+            </div>
+        </div>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>09</span></div>
+    <!-- Notes: Endorsed By is Level 1, Approved By is Level 2, Reviewed By defaults to FINANCE. A signature image prints only after Finance approves it, always with the watermark. Work With names print as initials. The administrator can adjust the layout in the R47 designer. -->
+</section>
+
+<!-- =========================================== 10 DIVIDER: APPROVAL =========================================== -->
+<section class="slide divider" aria-label="Section 2: Approval">
+    <p class="num reveal">02</p>
+    <h2 class="reveal" style="--d:1">Approval</h2>
+    <p class="lede reveal" style="--d:2">How the right people see the report, decide, and get reminded.</p>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>10</span></div>
+</section>
+
+<!-- =========================================== 11 APPROVER ACTIONS =========================================== -->
+<section class="slide" aria-label="Approver actions">
+    <div class="frame">
+        <p class="kicker reveal">Approval · The inbox</p>
+        <h2 class="reveal" style="--d:1">Approvers decide from one inbox.</h2>
+        <table class="ledger reveal" style="--d:2">
+            <tr><th style="width:26%">Action</th><th style="width:22%">Who</th><th>What happens</th></tr>
+            <tr><td>Approve</td><td class="note">Level 1, Level 2</td><td>Moves to the next step; the last approval sends it to Finance</td></tr>
+            <tr><td>Return</td><td class="note">Level 1, Level 2</td><td>Back to the employee with a reason; approval restarts on re-filing</td></tr>
+            <tr><td>Reject</td><td class="note">Level 1, Level 2</td><td>Final, with a reason</td></tr>
+            <tr><td>Override</td><td class="note">Level 2</td><td>Approves past a Level 1 who has not acted, with a reason</td></tr>
+            <tr><td>Lower a line</td><td class="note">Level 1</td><td>Reduces an amount before approving; the filed amount stays visible</td></tr>
+        </table>
+        <p class="callout reveal" style="--d:3">The inbox shows <b>my turn</b>, <b>waiting for an earlier step</b> and <b>done</b>. Nobody approves their own report.</p>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>11</span></div>
+    <!-- Notes: Steps happen in order; acting out of turn or twice is refused. If two people act at once, the second is told the report changed. Amounts lock after the first approval. -->
+</section>
+
+<!-- =========================================== 12 ROUTING AND DELEGATION =========================================== -->
+<section class="slide" aria-label="Routing and delegation">
+    <div class="frame">
+        <p class="kicker reveal">Approval · Routing</p>
+        <h2 class="reveal" style="--d:1">Nobody picks an approver by hand.</h2>
+        <div class="reveal" style="--d:2;display:grid;grid-template-columns:repeat(3,1fr);gap:36px;margin-top:20px">
+            <div class="receipt"><span class="code">SCOPE</span><h3>Coverage decides</h3><p>Each signatory covers a department or named people. ERFWeb finds every employee’s Level 1 and Level 2.</p></div>
+            <div class="receipt"><span class="code">FILING</span><h3>Fixed when filed</h3><p>The route is saved at filing, so later scope changes never re-route a report in progress.</p></div>
+            <div class="receipt"><span class="code">DELEGATION</span><h3>Stand-in, up to 90 days</h3><p>An absent signatory names a stand-in. The R47 shows “on behalf of”.</p></div>
+        </div>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>12</span></div>
+    <!-- Notes: The administrator sets scope. A by-name assignment beats a department one, and nobody can have two signatories at one level. Only approving can be delegated. A Level 2 can assign a stand-in for an absent Level 1. -->
+</section>
+
+<!-- =========================================== 13 NOTIFICATIONS AND REMINDERS =========================================== -->
+<section class="slide" aria-label="Notifications and reminders">
+    <div class="frame">
+        <p class="kicker reveal">Approval · Notifications</p>
+        <h2 class="reveal" style="--d:1">Everyone hears at every step, and late approvals are chased.</h2>
+        <div class="split wide-left">
+            <div class="journal reveal" style="--d:2">
+                <div><span class="no">SMS</span><p><b>Text messages</b> on filing, each approval and a return, to the employee and both approvers.</p></div>
+                <div><span class="no">MAIL</span><p><b>Email with the R47 attached</b> for the same events, plus a rejection.</p></div>
+                <div><span class="no">L2</span><p><b>Escalation.</b> A late Level 1 is reported to the Level 2.</p></div>
+            </div>
+            <div class="reveal" style="--d:4;text-align:center">
+                <p style="font-family:var(--font-display);font-weight:700;font-size:260px;line-height:1;color:var(--ink)">3</p>
+                <p class="kicker" style="color:var(--muted)">Working days before<br>the first reminder</p>
+                <p class="body" style="margin-top:20px">Then every 2 working days.</p>
+            </div>
+        </div>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>13</span></div>
+    <!-- Notes: Messages are sent after the step is saved and never hold up the workflow; each is sent only once. The SLA days are a setting. Reminders are switched on at go-live. -->
+</section>
+
+<!-- =========================================== 14 DIVIDER: FINANCE =========================================== -->
+<section class="slide divider" aria-label="Section 3: Finance">
+    <p class="num reveal">03</p>
+    <h2 class="reveal" style="--d:1">Finance</h2>
+    <p class="lede reveal" style="--d:2">From approved report to cleared for payment, with an independent check when needed.</p>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>14</span></div>
+</section>
+
+<!-- =========================================== 15 FINANCE QUEUE =========================================== -->
+<section class="slide" aria-label="Finance queue">
+    <div class="frame">
+        <p class="kicker reveal">Finance · The queue</p>
+        <h2 class="reveal" style="--d:1">Every approved report waits in one queue.</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:30px">
+            <div class="stamp navy press" style="--rot:-3deg;--d:3">PENDING</div>
+            <div class="stamp brass press" style="--rot:3deg;--d:5">RECEIPTS INCOMPLETE</div>
+            <div class="stamp brass press" style="--rot:-4deg;--d:7">RECEIPTS RECEIVED</div>
+            <div class="stamp green press" style="--rot:3deg;--d:9">CLEARED</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="reveal" style="--d:10;display:grid;grid-template-columns:repeat(3,1fr);gap:48px">
+            <div><h3>Record receipts</h3><p class="body">Mark incomplete with a remark on what is missing, or received. Received is never undone.</p></div>
+            <div><h3>Follow up</h3><p class="body">One click texts the employee and approvers. Follow-ups are counted.</p></div>
+            <div><h3>Clear</h3><p class="body">Clearing for payment is final. The queue exports to CSV.</p></div>
+        </div>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>15</span></div>
+    <!-- Notes: Finance never processes its own report and never rejects on merit; a question on merit goes to the Level 2 approver. Finance also approves each signature image before it can print on an R47. -->
+</section>
+
+<!-- =========================================== 16 QUESTIONED LINE =========================================== -->
+<section class="slide" aria-label="Questioned line">
+    <div class="frame">
+        <p class="kicker reveal">Finance · Verification</p>
+        <h2 class="reveal" style="--d:1">A doubtful line gets an independent check.</h2>
+        <div class="journal reveal" style="--d:2">
+            <div><span class="no">01</span><p><b>Finance flags</b> one line on an approved report and gives the reason.</p></div>
+            <div><span class="no">02</span><p><b>An Expense Verifier</b> not involved in that report picks it up.</p></div>
+            <div><span class="no">03</span><p><b>The finding:</b> Verified, Verified with a note, or Not verified.</p></div>
+            <div><span class="no">04</span><p><b>If not verified,</b> Finance refers it to the Level 2 approver.</p></div>
+            <div><span class="no">05</span><p><b>Level 2 decides:</b> let it through, return the report, or reject it.</p></div>
+        </div>
+        <p class="callout reveal" style="--d:3">Clearing waits until every open check is closed. Receipts can still be recorded meanwhile.</p>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>16</span></div>
+    <!-- Notes: The verifier only records a finding, once, and never changes amounts. The employee sees which line is checked and the outcome, but not Finance's reason or the verifier's notes. -->
+</section>
+
+<!-- =========================================== 17 MONITORING SPEND =========================================== -->
+<section class="slide" aria-label="Aging, summaries and budgets">
+    <div class="frame">
+        <p class="kicker reveal">Finance · Monitoring</p>
+        <h2 class="reveal" style="--d:1">See what is waiting, and what was spent.</h2>
+        <div class="reveal" style="--d:2;margin-top:10px">
+            <div class="aging"><div>0–7</div><div>8–15</div><div>16–30</div><div>31–60</div><div>60+</div></div>
+            <div class="aging-labels"><span>days</span><span>days</span><span>days</span><span>days</span><span>days</span></div>
+            <p class="body" style="margin-top:14px">Aging: open reports by days since final approval.</p>
+        </div>
+        <div class="spacer"></div>
+        <div class="reveal" style="--d:3;display:grid;grid-template-columns:repeat(3,1fr);gap:48px">
+            <div><h3>Expense summary</h3><p class="body">Any date range, by employee and category. Finance sees everyone.</p></div>
+            <div><h3>Cost center budgets</h3><p class="body">Each department’s yearly budget: used, remaining, % used. Monitoring only.</p></div>
+            <div><h3>Exports</h3><p class="body">CSV, and PDF for aging and the summary. Every export is recorded.</p></div>
+        </div>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>17</span></div>
+    <!-- Notes: Going over budget never blocks filing or approval, and budgets never print on the R47. Spending counts against the department at filing time, so moving staff later does not move their past spending. -->
+</section>
+
+<!-- =========================================== 18 DIVIDER: CONTROL =========================================== -->
+<section class="slide divider" aria-label="Section 4: Administration and control">
+    <p class="num reveal">04</p>
+    <h2 class="reveal" style="--d:1">Control</h2>
+    <p class="lede reveal" style="--d:2">How the company is set up, and the rules the server will not bend.</p>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>18</span></div>
+</section>
+
+<!-- =========================================== 19 ADMINISTRATION =========================================== -->
+<section class="slide" aria-label="Administration">
+    <div class="frame">
+        <p class="kicker reveal">Control · Administration</p>
+        <h2 class="reveal" style="--d:1">Administrators shape the rules, never the reports.</h2>
+        <div class="reveal compact" style="--d:2;display:grid;grid-template-columns:repeat(3,1fr);gap:34px 36px">
+            <div class="receipt"><span class="code">ACCOUNTS</span><h3>Accounts and roles</h3><p>Create accounts, grant roles, link CRM IDs.</p></div>
+            <div class="receipt"><span class="code">RATES</span><h3>Dated rates</h3><p>Meal and travel rates per person, grade, department or company.</p></div>
+            <div class="receipt"><span class="code">MASTER DATA</span><h3>Departments and sites</h3><p>Cost centers, currencies, fare modes. Retired, never deleted.</p></div>
+            <div class="receipt"><span class="code">RULES</span><h3>Workflow rules</h3><p>Level 2 threshold, SLA days, filing cut-off, receipt threshold.</p></div>
+            <div class="receipt"><span class="code">R47</span><h3>R47 designer</h3><p>Layout, header and texts, previewed on a real report before saving.</p></div>
+            <div class="receipt"><span class="code">SIGNATURES</span><h3>Signature rule</h3><p>E-signature with watermark, or status text only.</p></div>
+        </div>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>19</span></div>
+    <!-- Notes: A rate change takes effect from its start date, so filed reports keep their amounts; a backdated change needs a reason. Settings changes apply without a new release. -->
+</section>
+
+<!-- =========================================== 20 CONTROLS =========================================== -->
+<section class="slide" aria-label="Built-in controls">
+    <div class="frame">
+        <p class="kicker reveal">Control · Safeguards</p>
+        <h2 class="reveal" style="--d:1">The server enforces every control.</h2>
+        <table class="ledger reveal" style="--d:2">
+            <tr><th style="width:32%">Control</th><th>What it stops</th></tr>
+            <tr><td>No self-approval</td><td>Approving, verifying or clearing your own report</td></tr>
+            <tr><td>Separated roles</td><td>Finance signing reports; the administrator reading them</td></tr>
+            <tr><td>Append-only audit trail</td><td>Edited or deleted history; the database refuses changes</td></tr>
+            <tr><td>Sign-in lockout</td><td>Password guessing: locked after 5 failed tries</td></tr>
+            <tr><td>Nightly backup</td><td>Data loss: kept for 14 days</td></tr>
+            <tr><td>Health check</td><td>Silent outages: checked every 5 minutes, with an email alert</td></tr>
+        </table>
+    </div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>20</span></div>
+    <!-- Notes: These rules live on the server, not just on screen, and are covered by automated tests that run with every build. Finance and the administrator can read the audit trail. -->
+</section>
+
+<!-- =========================================== 21 CLOSING =========================================== -->
+<section class="slide divider" aria-label="Where we are">
+    <div class="frame">
+        <p class="kicker reveal">Where we are</p>
+        <h2 class="reveal" style="--d:1;color:var(--paper);font-size:110px">Built and tested. Go-live is planned for mid-December.</h2>
+        <div class="tally reveal" style="--d:2;color:var(--paper);margin-top:30px;width:1200px">
+            <div><span>User acceptance testing</span><span style="color:#c9cfdb">LED BY CARL</span></div>
+            <div><span>Sign-off</span><span style="color:#c9cfdb">BY AGNES</span></div>
+            <div class="total" style="border-top-color:var(--brass)"><span style="color:var(--paper)!important">Go-live</span><span style="color:var(--brass)!important">WEEK OF 14 DEC</span></div>
+        </div>
+    </div>
+    <div class="stamp brass press" style="position:absolute;right:170px;bottom:150px;font-size:44px;--rot:-7deg;--d:5">THANK YOU</div>
+    <div class="folio"><span>ERFWeb · Feature overview</span><span>21</span></div>
+    <!-- Notes: Every feature in this deck is built and covered by tests. Role guides for each user group are ready in Word and PDF. -->
+</section>
+
+</main>
+</div>
+
+<div class="deck-controls" id="deckControls" aria-live="polite">01 / 21</div>
+
+<script>
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   Fixed-stage scaling, keyboard, wheel and touch navigation,
+   page count and progress bar outside the stage.
+   =========================================== */
+class SlidePresentation {
+    constructor() {
+        this.slides = Array.from(document.querySelectorAll('.slide'));
+        this.stage = document.getElementById('deckStage');
+        this.counter = document.getElementById('deckControls');
+        this.progress = document.getElementById('progress');
+        this.current = 0;
+        this.wheelLock = false;
+        this.setupStageScale();
+        this.setupKeyboardNav();
+        this.setupWheelNav();
+        this.setupTouchNav();
+        const start = parseInt(location.hash.slice(1), 10);
+        this.show(Number.isFinite(start) ? start - 1 : 0);
+    }
+
+    // Scale the 1920x1080 stage to the window, letterboxing as needed
+    setupStageScale() {
+        const fit = () => {
+            const f = Math.min(innerWidth / 1920, innerHeight / 1080);
+            const x = (innerWidth - 1920 * f) / 2;
+            const y = (innerHeight - 1080 * f) / 2;
+            this.stage.style.transform = `translate(${x}px, ${y}px) scale(${f})`;
+        };
+        fit();
+        addEventListener('resize', fit);
+    }
+
+    setupKeyboardNav() {
+        document.addEventListener('keydown', (e) => {
+            if (e.target.isContentEditable) return;
+            const next = ['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'];
+            const prev = ['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'];
+            if (next.includes(e.key)) { e.preventDefault(); this.show(this.current + 1); }
+            else if (prev.includes(e.key)) { e.preventDefault(); this.show(this.current - 1); }
+            else if (e.key === 'Home') this.show(0);
+            else if (e.key === 'End') this.show(this.slides.length - 1);
+        });
+    }
+
+    // One slide per wheel gesture
+    setupWheelNav() {
+        addEventListener('wheel', (e) => {
+            if (this.wheelLock || Math.abs(e.deltaY) < 20) return;
+            this.wheelLock = true;
+            this.show(this.current + (e.deltaY > 0 ? 1 : -1));
+            setTimeout(() => { this.wheelLock = false; }, 700);
+        }, { passive: true });
+    }
+
+    setupTouchNav() {
+        let x0 = null;
+        addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+        addEventListener('touchend', (e) => {
+            if (x0 === null) return;
+            const dx = e.changedTouches[0].clientX - x0;
+            if (Math.abs(dx) > 50) this.show(this.current + (dx < 0 ? 1 : -1));
+            x0 = null;
+        });
+    }
+
+    show(index) {
+        this.current = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((s, i) => {
+            s.classList.toggle('active', i === this.current);
+            s.classList.toggle('visible', i === this.current);
+        });
+        const n = String(this.current + 1).padStart(2, '0');
+        this.counter.textContent = `${n} / ${String(this.slides.length).padStart(2, '0')}`;
+        this.progress.style.width = `${((this.current + 1) / this.slides.length) * 100}%`;
+        history.replaceState(null, '', `#${this.current + 1}`);
+    }
+}
+
+/* ===========================================
+   INLINE EDITOR
+   E toggles edit mode; edits auto-save to this browser;
+   Ctrl+S downloads the edited deck as a new HTML file.
+   =========================================== */
+class InlineEditor {
+    constructor() {
+        this.isActive = false;
+        this.key = 'erfweb-feature-overview-edits';
+        this.targets = document.querySelectorAll('.slide h1, .slide h2, .slide h3, .slide p, .slide td, .slide th, .tally span');
+        this.restore();
+    }
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('editing', this.isActive);
+        this.targets.forEach((el) => el.setAttribute('contenteditable', this.isActive ? 'true' : 'false'));
+        document.getElementById('editToggle').classList.toggle('active', this.isActive);
+        document.getElementById('editToggle').textContent = this.isActive ? 'DONE' : 'EDIT';
+        if (!this.isActive) this.save();
+    }
+    save() {
+        try { localStorage.setItem(this.key, JSON.stringify(Array.from(this.targets, (el) => el.innerHTML))); } catch (e) { /* storage unavailable: edits stay in the page only */ }
+    }
+    restore() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(this.key) || 'null');
+            if (saved && saved.length === this.targets.length) this.targets.forEach((el, i) => { el.innerHTML = saved[i]; });
+        } catch (e) { /* storage unavailable: show the original text */ }
+    }
+    download() {
+        this.save();
+        const clone = document.documentElement.cloneNode(true);
+        clone.querySelectorAll('[contenteditable]').forEach((el) => el.removeAttribute('contenteditable'));
+        clone.querySelector('body').classList.remove('editing');
+        const blob = new Blob(['<!DOCTYPE html>\n' + clone.outerHTML], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'erfweb-feature-overview-edited.html';
+        a.click();
+    }
+}
+
+const deck = new SlidePresentation();
+const editor = new InlineEditor();
+
+/* Edit toggle: hover the top-left corner (400ms grace), click, or press E */
+const hotzone = document.querySelector('.edit-hotzone');
+const editToggle = document.getElementById('editToggle');
+let hideTimeout = null;
+const hideLater = () => { hideTimeout = setTimeout(() => { if (!editor.isActive) editToggle.classList.remove('show'); }, 400); };
+hotzone.addEventListener('mouseenter', () => { clearTimeout(hideTimeout); editToggle.classList.add('show'); });
+hotzone.addEventListener('mouseleave', hideLater);
+editToggle.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+editToggle.addEventListener('mouseleave', hideLater);
+hotzone.addEventListener('click', () => editor.toggleEditMode());
+editToggle.addEventListener('click', () => editor.toggleEditMode());
+document.addEventListener('keydown', (e) => {
+    if ((e.key === 'e' || e.key === 'E') && !e.target.isContentEditable) editor.toggleEditMode();
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); editor.download(); }
+});
+</script>
+</body>
+</html>
