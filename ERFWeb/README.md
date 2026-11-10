@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-10
 
-- **Service details always shown in the expense line dialog** (not yet committed). Instrument, serial no., service
+- **Service details always shown in the expense line dialog** (PR #49). Instrument, serial no., service
   no. and remarks are no longer behind a **More details** toggle; they sit open under **Service details**. Frontend
   only; SPA `0.4.0` → `0.4.1` (patch).
 - **Versions bumped, minor** (PR #48). API `0.1.1` → `0.2.0`, SPA `0.3.1` → `0.4.0`, for the sign-in
@@ -30,7 +30,7 @@ section of the root `CLAUDE.md`) in the same change.
   `Security.LoginLockoutMinutes` in `app_settings` (`GET/PUT /api/admin/settings`), audited `SettingsChanged`, read
   by `UserAuthenticator` on each failed sign-in through Domain `LoginLockoutPolicy`; a lock already set keeps its end
   time. No database script; deploy backend before frontend.
-- **Feature overview deck** (not yet committed). `Document/ERFWeb Feature Overview.html` is a 21-slide overview of
+- **Feature overview deck** (PR #49). `Document/ERFWeb Feature Overview.html` is a 21-slide overview of
   every ERFWeb feature (filing, approval, Finance, administration and controls), made with the
   [frontend-slides](https://github.com/zarazhangrui/frontend-slides) approach: one self-contained HTML file, no build
   step. Open it in a browser and use the arrow keys; press E to edit text in place. `Document/ERFWeb Feature
