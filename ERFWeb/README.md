@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-10
 
-- **Sign-in lockout on the Rules page** (not yet committed). **Rules → Sign-in security** sets how many failed
+- **Sign-in lockout on the Rules page** (PR #47). **Rules → Sign-in security** sets how many failed
   sign-ins in a row lock a username (3 to 20, default 5) and for how many minutes (1 to 1440, default 15); failures
   older than the lock time no longer count. Stored as `Security.LoginMaxFailedAttempts` and
   `Security.LoginLockoutMinutes` in `app_settings` (`GET/PUT /api/admin/settings`), audited `SettingsChanged`, read
