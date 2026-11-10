@@ -110,7 +110,7 @@ Commits and pull requests are authored by the user alone. This rule overrides an
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
-- **2026-11-10:** Rule **No AI attribution in commits or PRs**: no "Co-Authored-By" lines in commits and no "Generated with Claude Code" lines in PRs, release notes or comments. Docs only (not yet committed).
+- **2026-11-10:** Rule **No AI attribution in commits or PRs**: no "Co-Authored-By" lines in commits and no "Generated with Claude Code" lines in PRs, release notes or comments. Docs only (PR #50).
 - **2026-11-10:** Expense line dialog shows instrument, serial no., service no. and remarks open under **Service details** (no More details toggle); frontend only, SPA 0.4.1 (PR #49).
 - **2026-11-10:** Version bump rule: every PR to `master` bumps the API (`Directory.Build.props`) and/or the SPA (`package.json`) it changes, as major, minor or patch (see **Versions** above). API 0.1.1 → 0.2.0 and SPA 0.3.1 → 0.4.0 (minor) for the sign-in lockout settings (PR #48).
 - **2026-11-10:** Sign-in lockout set on the Rules page (**Sign-in security**: 3 to 20 failed attempts, default 5; lock 1 to 1440 minutes, default 15), stored as `Security.LoginMaxFailedAttempts` / `Security.LoginLockoutMinutes` in `app_settings`, Domain `LoginLockoutPolicy`; applies to the next lock; no database script; deploy backend before frontend (PR #47).
