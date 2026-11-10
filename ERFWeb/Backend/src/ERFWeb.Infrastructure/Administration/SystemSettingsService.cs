@@ -3,6 +3,7 @@ using System.Text.Json;
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
 using ERFWeb.Domain.Administration;
+using ERFWeb.Domain.Authentication;
 using ERFWeb.Domain.Reporting;
 using ERFWeb.Infrastructure.Persistence;
 using ERFWeb.Infrastructure.Reporting;
@@ -28,6 +29,8 @@ public static class SystemSettingKeys
     public const string EmailDomains = "Accounts.EmailDomains";
     public const string R47ReviewedBy = "Reports.R47ReviewedBy";
     public const string R47SignatureMode = "Reports.R47SignatureMode";
+    public const string LoginMaxFailedAttempts = "Security.LoginMaxFailedAttempts";
+    public const string LoginLockoutMinutes = "Security.LoginLockoutMinutes";
 
     // The R47 format (Rules page). No built-in defaults: a key never saved falls back to the server's
     // R47Report settings in appsettings.json, so they are not in Defaults.
@@ -63,6 +66,8 @@ public static class SystemSettingKeys
 
         // Signature images keep printing (now watermarked) until the administrator chooses status only.
         [R47SignatureMode] = nameof(Domain.Reporting.R47SignatureMode.ESignature),
+        [LoginMaxFailedAttempts] = LoginLockoutPolicy.Default.MaxFailedAttempts.ToString(CultureInfo.InvariantCulture),
+        [LoginLockoutMinutes] = LoginLockoutPolicy.Default.LockoutMinutes.ToString(CultureInfo.InvariantCulture),
     };
 }
 
@@ -108,7 +113,9 @@ public sealed class SystemSettingsService(
             EmailDomainRules.Parse(Raw(values, SystemSettingKeys.EmailDomains)),
             Text(values, SystemSettingKeys.R47ReviewedBy) ?? SystemSettingKeys.Defaults[SystemSettingKeys.R47ReviewedBy],
             R47Signatures.ParseMode(Raw(values, SystemSettingKeys.R47SignatureMode)),
-            FormatFrom(values));
+            FormatFrom(values),
+            Int(values, SystemSettingKeys.LoginMaxFailedAttempts),
+            Int(values, SystemSettingKeys.LoginLockoutMinutes));
     }
 
     public async Task<SystemSettingsDto> UpdateAsync(UpdateSystemSettingsRequest request, CancellationToken ct = default)
@@ -161,6 +168,17 @@ public sealed class SystemSettingsService(
             incoming[SystemSettingKeys.R47DocumentCode] = f.DocumentCode;
             incoming[SystemSettingKeys.R47EffectivityDate] = f.EffectivityDate;
             incoming[SystemSettingKeys.R47RevisionNo] = f.RevisionNo;
+        }
+
+        // And one that predates the sign-in lockout rule.
+        if (request.LoginMaxFailedAttempts is { } attempts)
+        {
+            incoming[SystemSettingKeys.LoginMaxFailedAttempts] = attempts.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (request.LoginLockoutMinutes is { } minutes)
+        {
+            incoming[SystemSettingKeys.LoginLockoutMinutes] = minutes.ToString(CultureInfo.InvariantCulture);
         }
 
         await tx.ExecuteAsync(async token =>
@@ -237,6 +255,18 @@ public sealed class SystemSettingsService(
         return FormatFrom(values);
     }
 
+    public async Task<LoginLockoutPolicy> GetLoginLockoutPolicyAsync(CancellationToken ct = default)
+    {
+        var values = await db.AppSettings.AsNoTracking()
+            .Where(s => s.Key == SystemSettingKeys.LoginMaxFailedAttempts || s.Key == SystemSettingKeys.LoginLockoutMinutes)
+            .ToDictionaryAsync(s => s.Key, s => s.Value, StringComparer.Ordinal, ct);
+
+        int? Saved(string key) =>
+            values.TryGetValue(key, out var v) && int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i) ? i : null;
+
+        return LoginLockoutRules.Parse(Saved(SystemSettingKeys.LoginMaxFailedAttempts), Saved(SystemSettingKeys.LoginLockoutMinutes));
+    }
+
     /// <summary>The saved R47 format; each value never saved (or blank, or an unknown engine) is the server's.</summary>
     private R47Format FormatFrom(IReadOnlyDictionary<string, string> values)
     {
@@ -289,6 +319,16 @@ public sealed class SystemSettingsService(
         if (r.R47SignatureMode is { } mode && !Enum.IsDefined(mode))
         {
             errors["r47SignatureMode"] = ["Choose E-signature or Status only."];
+        }
+
+        if (r.LoginMaxFailedAttempts is not null || r.LoginLockoutMinutes is not null)
+        {
+            var defaults = LoginLockoutPolicy.Default;
+            foreach (var (field, message) in LoginLockoutRules.Validate(
+                r.LoginMaxFailedAttempts ?? defaults.MaxFailedAttempts, r.LoginLockoutMinutes ?? defaults.LockoutMinutes))
+            {
+                errors[field] = [message];
+            }
         }
 
         if (r.R47Format is { } format)

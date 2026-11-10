@@ -2,7 +2,7 @@
 import { computed, reactive, watch } from 'vue';
 import type { R47Format, SystemSettings, SystemSettingsInput } from '../types';
 
-/** Workflow rules (approval thresholds, SLAs, filing cut-off, R47 reviewer and format, notifications). The parent owns the save. */
+/** Workflow rules (approval thresholds, SLAs, filing cut-off, R47 reviewer and format, notifications, sign-in lockout). The parent owns the save. */
 const props = withDefaults(
   defineProps<{
     initial: SystemSettings | null;
@@ -30,7 +30,15 @@ const blank = (): SystemSettingsInput => ({
   r47ReviewedBy: '',
   r47SignatureMode: 'ESignature',
   r47Format: blankFormat(),
+  loginMaxFailedAttempts: LOCKOUT.attempts.default,
+  loginLockoutMinutes: LOCKOUT.minutes.default,
 });
+
+// Same limits and defaults as the server (Domain LoginLockoutRules).
+const LOCKOUT = {
+  attempts: { min: 3, max: 20, default: 5 },
+  minutes: { min: 1, max: 1440, default: 15 },
+} as const;
 
 // The form as printed today; also what an API older than the R47 format is shown.
 function blankFormat(): R47Format {
@@ -81,6 +89,9 @@ function load(value: SystemSettings | null) {
       r47SignatureMode: value.r47SignatureMode ?? 'ESignature',
       // And for an API older than the R47 format.
       r47Format: { ...(value.r47Format ?? blankFormat()) },
+      // And for an API older than the sign-in lockout rule.
+      loginMaxFailedAttempts: value.loginMaxFailedAttempts ?? LOCKOUT.attempts.default,
+      loginLockoutMinutes: value.loginLockoutMinutes ?? LOCKOUT.minutes.default,
     } satisfies SystemSettingsInput);
   }
   snapshot = JSON.stringify(form);
@@ -105,6 +116,8 @@ const numericFields = [
   'filingCutoffDays',
   'receiptRequiredAboveAmount',
   'coolingPeriodDays',
+  'loginMaxFailedAttempts',
+  'loginLockoutMinutes',
 ] as const;
 const localInvalid = computed(() => numericFields.some((k) => !Number.isFinite(Number(form[k])) || !nonNegative(form[k])));
 const fromInvalid = computed(() => {
@@ -132,6 +145,12 @@ function formatError(key: (typeof FORMAT_FIELDS)[number]['key'], max: number): s
   if (!v) return 'Required.';
   return v.length > max ? `Use at most ${max} characters.` : null;
 }
+function rangeError(value: unknown, range: { min: number; max: number }, unit: string): string | null {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= range.min && n <= range.max ? null : `Enter ${range.min} to ${range.max} ${unit}.`;
+}
+const attemptsError = computed(() => rangeError(form.loginMaxFailedAttempts, LOCKOUT.attempts, 'attempts'));
+const minutesError = computed(() => rangeError(form.loginLockoutMinutes, LOCKOUT.minutes, 'minutes'));
 const formatInvalid = computed(() => FORMAT_FIELDS.some((f) => formatError(f.key, f.max) !== null));
 const canSubmit = computed(
   () =>
@@ -141,7 +160,9 @@ const canSubmit = computed(
     !fromInvalid.value &&
     !domainsError.value &&
     !reviewedByError.value &&
-    !formatInvalid.value,
+    !formatInvalid.value &&
+    !attemptsError.value &&
+    !minutesError.value,
 );
 
 function submit() {
@@ -371,6 +392,45 @@ defineExpose({ isDirty });
             />
           </v-col>
         </v-row>
+      </div>
+    </v-card>
+
+    <v-card class="mb-4">
+      <div class="card-h"><span class="card-t">Sign-in security</span></div>
+      <div class="pa-4">
+        <v-row dense>
+          <v-col cols="12" sm="6">
+            <v-text-field
+              v-model.number="form.loginMaxFailedAttempts"
+              type="number"
+              :min="LOCKOUT.attempts.min"
+              :max="LOCKOUT.attempts.max"
+              step="1"
+              label="Failed attempts before lock"
+              suffix="attempts"
+              hint="Failed sign-ins in a row that lock the username"
+              persistent-hint
+              :error-messages="fieldErrors('loginMaxFailedAttempts') ?? (attemptsError ? [attemptsError] : undefined)"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-text-field
+              v-model.number="form.loginLockoutMinutes"
+              type="number"
+              :min="LOCKOUT.minutes.min"
+              :max="LOCKOUT.minutes.max"
+              step="1"
+              label="Lock for"
+              suffix="minutes"
+              hint="Failures older than this no longer count either"
+              persistent-hint
+              :error-messages="fieldErrors('loginLockoutMinutes') ?? (minutesError ? [minutesError] : undefined)"
+            />
+          </v-col>
+        </v-row>
+        <div class="text-caption text-medium-emphasis mt-2">
+          Applies to the next lock; a username already locked keeps its end time. Resetting a user's password unlocks them at once.
+        </div>
       </div>
     </v-card>
 

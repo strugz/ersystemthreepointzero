@@ -371,6 +371,10 @@ export interface SystemSettingsInput {
   r47SignatureMode: R47SignatureMode;
   /** The R47 format: PDF library and header details. Values never saved show the server's R47Report settings. */
   r47Format: R47Format;
+  /** Failed sign-ins in a row that lock a username (3 to 20). */
+  loginMaxFailedAttempts: number;
+  /** Minutes a locked username stays locked (1 to 1440). */
+  loginLockoutMinutes: number;
 }
 
 export interface SystemSettings extends SystemSettingsInput {

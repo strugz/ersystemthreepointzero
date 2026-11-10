@@ -2,6 +2,7 @@ using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Administration;
+using ERFWeb.Domain.Authentication;
 using ERFWeb.Domain.Reporting;
 
 namespace ERFWeb.Application.Features.Administration;
@@ -224,7 +225,9 @@ public sealed record SystemSettingsDto(
     IReadOnlyList<string> EmailDomains,
     string R47ReviewedBy,
     R47SignatureMode R47SignatureMode,
-    R47Format R47Format);
+    R47Format R47Format,
+    int LoginMaxFailedAttempts,
+    int LoginLockoutMinutes);
 
 public sealed record UpdateSystemSettingsRequest(
     decimal Level2ThresholdAmount,
@@ -241,7 +244,9 @@ public sealed record UpdateSystemSettingsRequest(
     IReadOnlyList<string>? EmailDomains = null,
     string? R47ReviewedBy = null,
     R47SignatureMode? R47SignatureMode = null,
-    R47Format? R47Format = null);
+    R47Format? R47Format = null,
+    int? LoginMaxFailedAttempts = null,
+    int? LoginLockoutMinutes = null);
 
 public interface ISystemSettingsService
 {
@@ -256,6 +261,9 @@ public interface ISystemSettingsService
 
     /// <summary>The R47 format (PDF engine and header details): saved values, else the server's R47Report settings.</summary>
     Task<R47Format> GetR47FormatAsync(CancellationToken ct = default);
+
+    /// <summary>The sign-in lockout (attempts and minutes): saved values, else five and fifteen.</summary>
+    Task<LoginLockoutPolicy> GetLoginLockoutPolicyAsync(CancellationToken ct = default);
 }
 
 // ---------- R47 designer ----------
