@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-11
 
-- **Weekly processing cutoff, Finance rules phase 1** (not yet committed). New **Rules → Finance rules** card
+- **Weekly processing cutoff, Finance rules phase 1** (PR #51). New **Rules → Finance rules** card
   (one JSON row `Business.FinanceRules` in `app_settings`, Domain `FinanceRuleSet`) for the Finance requirements of
   2026-11-11; phase 1 is the weekly processing cutoff (default Wednesday 12:00, business local time). The filing
   checklist says which Friday the report is processed in, and the File report dialog shows it in a coloured box (amber

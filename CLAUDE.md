@@ -111,7 +111,7 @@ Commits and pull requests are authored by the user alone. This rule overrides an
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
-- **2026-11-11:** Finance rules phase 1, weekly processing cutoff: **Rules → Finance rules** (`Business.FinanceRules`); the filing checklist and File dialog say which Friday the report is processed in; Flag for Finance marks late reports **Late** in the Finance queue (script `025`, `SchemaVersion.Required` 25). API 0.3.0, SPA 0.5.0 (minor); apply `025`, deploy backend before frontend (not yet committed).
+- **2026-11-11:** Finance rules phase 1, weekly processing cutoff: **Rules → Finance rules** (`Business.FinanceRules`); the filing checklist and File dialog say which Friday the report is processed in; Flag for Finance marks late reports **Late** in the Finance queue (script `025`, `SchemaVersion.Required` 25). API 0.3.0, SPA 0.5.0 (minor); apply `025`, deploy backend before frontend (PR #51).
 
 - **2026-11-10:** Rule **No AI attribution in commits or PRs**: no "Co-Authored-By" lines in commits and no "Generated with Claude Code" lines in PRs, release notes or comments. Docs only (PR #50).
 - **2026-11-10:** Expense line dialog shows instrument, serial no., service no. and remarks open under **Service details** (no More details toggle); frontend only, SPA 0.4.1 (PR #49).
