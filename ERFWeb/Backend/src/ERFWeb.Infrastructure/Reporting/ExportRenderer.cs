@@ -182,7 +182,7 @@ public sealed class ExportRenderer
         }
 
         header.AddRange(["Receipts status", "Remarks", "Received by", "Received", "Cleared by", "Cleared", "Follow-ups", "Last follow-up",
-            "Attachments", "Open verifications"]);
+            "Attachments", "Open verifications", "Filed late"]);
         return new CsvBuilder().Row([.. header]);
     }
 
@@ -196,7 +196,7 @@ public sealed class ExportRenderer
         }
 
         cells.AddRange([FinanceStatusLabel(i.Status), i.Remarks, i.ReceivedByName, Stamp(i.ReceivedAt), i.ClearedByName, Stamp(i.ClearedAt),
-            i.FollowUpCount, Stamp(i.LastFollowUpAt), i.AttachmentCount, i.OpenVerifications]);
+            i.FollowUpCount, Stamp(i.LastFollowUpAt), i.AttachmentCount, i.OpenVerifications, i.FiledLate]);
         csv.Row([.. cells]);
     }
 

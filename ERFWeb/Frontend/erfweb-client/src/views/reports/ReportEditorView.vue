@@ -386,6 +386,16 @@ const reopenDialog = ref(false);
 const deleteDialog = ref(false);
 const acting = ref(false);
 
+// Finance rule: the Friday a report filed now is processed in. A notice only; it never blocks filing.
+const processingNotice = computed(() => {
+  const r = readiness.value;
+  if (!r?.processingDate) return null;
+  const friday = formatDate(r.processingDate);
+  return r.pastFilingCutoff
+    ? `Filed after the ${r.filingCutoffText} cutoff: processed on Friday ${friday}, not this Friday`
+    : `Processed on Friday ${friday} if filed before ${r.filingCutoffText}`;
+});
+
 const checklist = computed<ChecklistItem[]>(() => {
   const r = report.value;
   if (!r) return [];
@@ -419,6 +429,9 @@ const checklist = computed<ChecklistItem[]>(() => {
         ? 'Cooling period over'
         : `Account cooling period ends ${formatDateTime(readiness.value.coolingPeriodEndsAt)}`,
     });
+    if (processingNotice.value) {
+      items.push({ ok: !readiness.value.pastFilingCutoff, optional: true, text: processingNotice.value });
+    }
   }
   return items;
 });
@@ -687,7 +700,22 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :confirm-text="report.status === 'Returned' ? 'Re-file' : 'File report'"
         :loading="acting"
         @confirm="fileReport"
-      />
+      >
+        <v-alert
+          v-if="readiness?.processingDate"
+          :type="readiness.pastFilingCutoff ? 'warning' : 'info'"
+          variant="tonal"
+          border="start"
+          prominent
+          :title="readiness.pastFilingCutoff ? 'Not processed this Friday' : `Processed on Friday ${formatDate(readiness.processingDate)}`"
+        >
+          <template v-if="readiness.pastFilingCutoff">
+            Filed after the {{ readiness.filingCutoffText }} cutoff, this report is processed on
+            <strong>Friday {{ formatDate(readiness.processingDate) }}</strong>.
+          </template>
+          <template v-else>File before {{ readiness.filingCutoffText }} to make this Friday's processing.</template>
+        </v-alert>
+      </AppConfirmDialog>
 
       <AppConfirmDialog
         v-model="reopenDialog"

@@ -3,6 +3,7 @@ using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Authentication;
+using ERFWeb.Domain.Expenses;
 using ERFWeb.Domain.Reporting;
 
 namespace ERFWeb.Application.Features.Administration;
@@ -227,7 +228,8 @@ public sealed record SystemSettingsDto(
     R47SignatureMode R47SignatureMode,
     R47Format R47Format,
     int LoginMaxFailedAttempts,
-    int LoginLockoutMinutes);
+    int LoginLockoutMinutes,
+    FinanceRuleSet FinanceRules);
 
 public sealed record UpdateSystemSettingsRequest(
     decimal Level2ThresholdAmount,
@@ -246,7 +248,8 @@ public sealed record UpdateSystemSettingsRequest(
     R47SignatureMode? R47SignatureMode = null,
     R47Format? R47Format = null,
     int? LoginMaxFailedAttempts = null,
-    int? LoginLockoutMinutes = null);
+    int? LoginLockoutMinutes = null,
+    FinanceRuleSet? FinanceRules = null);
 
 public interface ISystemSettingsService
 {
@@ -264,6 +267,9 @@ public interface ISystemSettingsService
 
     /// <summary>The sign-in lockout (attempts and minutes): saved values, else five and fifteen.</summary>
     Task<LoginLockoutPolicy> GetLoginLockoutPolicyAsync(CancellationToken ct = default);
+
+    /// <summary>The Finance rules (weekly processing cutoff and later rules): saved values, else the defaults.</summary>
+    Task<FinanceRuleSet> GetFinanceRulesAsync(CancellationToken ct = default);
 }
 
 // ---------- R47 designer ----------

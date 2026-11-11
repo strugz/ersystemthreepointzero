@@ -352,6 +352,20 @@ export interface ExpenseCategoryInfo {
 
 // ---- settings -----------------------------------------------------------------
 
+export type CutoffWeekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
+export type LateFilingHandling = 'NoticeOnly' | 'FlagForFinance';
+
+/** Finance rules (Rules page, one JSON row on the server). Each rule answers an open Finance question. */
+export interface FinanceRules {
+  /** Show the weekly processing cutoff notice when filing. */
+  cutoffEnabled: boolean;
+  /** Last weekday on which a report still makes this Friday's processing. */
+  cutoffWeekday: CutoffWeekday;
+  /** Local time on that weekday, "HH:mm". */
+  cutoffTime: string;
+  lateHandling: LateFilingHandling;
+}
+
 export interface SystemSettingsInput {
   level2ThresholdAmount: number;
   level2AlwaysRequired: boolean;
@@ -375,6 +389,7 @@ export interface SystemSettingsInput {
   loginMaxFailedAttempts: number;
   /** Minutes a locked username stays locked (1 to 1440). */
   loginLockoutMinutes: number;
+  financeRules: FinanceRules;
 }
 
 export interface SystemSettings extends SystemSettingsInput {

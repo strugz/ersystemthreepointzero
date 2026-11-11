@@ -95,6 +95,9 @@ public sealed class ReportFilingService(
             // The department's cost center counts this report's spending; snapshotted so a later move does not shift it.
             report.DepartmentId = employee.DepartmentId;
             report.FiledAt = now;
+
+            // Finance requirement 1: with "Flag for Finance", a report filed after the weekly cutoff is marked late.
+            report.FiledLate = FilingCutoffRules.FlagAsLate(now, calendar.UtcOffset, await settings.GetFinanceRulesAsync(token));
             report.ApprovedAt = null;
             report.CancelNote = null;
             report.UpdatedAt = now;

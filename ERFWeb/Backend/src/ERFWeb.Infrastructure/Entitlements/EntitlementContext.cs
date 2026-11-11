@@ -24,7 +24,10 @@ public sealed record EntitlementSubject(long UserId, string FullName, string? Jo
 public sealed class EntitlementContext(ErfDbContext db, ICurrentUser user, IClock clock, IOptions<ReferenceNumberOptions> calendar)
 {
     /// <summary>The business date, in the same local offset that dates ERF reference numbers.</summary>
-    public DateOnly Today => DateOnly.FromDateTime(clock.UtcNow.ToOffset(TimeSpan.FromHours(calendar.Value.UtcOffsetHours)).DateTime);
+    public DateOnly Today => DateOnly.FromDateTime(clock.UtcNow.ToOffset(UtcOffset).DateTime);
+
+    /// <summary>The business time zone's offset from UTC.</summary>
+    public TimeSpan UtcOffset => TimeSpan.FromHours(calendar.Value.UtcOffsetHours);
 
     public async Task<EntitlementActor> ActorAsync(CancellationToken ct)
     {

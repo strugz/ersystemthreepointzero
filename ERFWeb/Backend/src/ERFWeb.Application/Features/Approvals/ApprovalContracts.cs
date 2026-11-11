@@ -92,7 +92,8 @@ public sealed record FinanceQueueItemDto(
     bool IsOwnReport,
     uint RowVersion,
     int OpenVerifications = 0,
-    bool NeedsQuery = false);
+    bool NeedsQuery = false,
+    bool FiledLate = false);
 
 public sealed record FinanceQueueQuery : PagedRequest
 {

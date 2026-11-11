@@ -4,6 +4,7 @@ using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
 using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Authentication;
+using ERFWeb.Domain.Expenses;
 using ERFWeb.Domain.Reporting;
 using ERFWeb.Infrastructure.Persistence;
 using ERFWeb.Infrastructure.Reporting;
@@ -31,6 +32,9 @@ public static class SystemSettingKeys
     public const string R47SignatureMode = "Reports.R47SignatureMode";
     public const string LoginMaxFailedAttempts = "Security.LoginMaxFailedAttempts";
     public const string LoginLockoutMinutes = "Security.LoginLockoutMinutes";
+
+    /// <summary>The Finance rules, one JSON row (<see cref="FinanceRuleSet"/>).</summary>
+    public const string FinanceRules = "Business.FinanceRules";
 
     // The R47 format (Rules page). No built-in defaults: a key never saved falls back to the server's
     // R47Report settings in appsettings.json, so they are not in Defaults.
@@ -68,6 +72,7 @@ public static class SystemSettingKeys
         [R47SignatureMode] = nameof(Domain.Reporting.R47SignatureMode.ESignature),
         [LoginMaxFailedAttempts] = LoginLockoutPolicy.Default.MaxFailedAttempts.ToString(CultureInfo.InvariantCulture),
         [LoginLockoutMinutes] = LoginLockoutPolicy.Default.LockoutMinutes.ToString(CultureInfo.InvariantCulture),
+        [FinanceRules] = FinanceRulesJson.Serialize(FinanceRuleSet.Default),
     };
 }
 
@@ -115,7 +120,8 @@ public sealed class SystemSettingsService(
             R47Signatures.ParseMode(Raw(values, SystemSettingKeys.R47SignatureMode)),
             FormatFrom(values),
             Int(values, SystemSettingKeys.LoginMaxFailedAttempts),
-            Int(values, SystemSettingKeys.LoginLockoutMinutes));
+            Int(values, SystemSettingKeys.LoginLockoutMinutes),
+            FinanceRulesJson.Parse(Raw(values, SystemSettingKeys.FinanceRules)));
     }
 
     public async Task<SystemSettingsDto> UpdateAsync(UpdateSystemSettingsRequest request, CancellationToken ct = default)
@@ -179,6 +185,12 @@ public sealed class SystemSettingsService(
         if (request.LoginLockoutMinutes is { } minutes)
         {
             incoming[SystemSettingKeys.LoginLockoutMinutes] = minutes.ToString(CultureInfo.InvariantCulture);
+        }
+
+        // And one that predates the Finance rules.
+        if (request.FinanceRules is { } financeRules)
+        {
+            incoming[SystemSettingKeys.FinanceRules] = FinanceRulesJson.Serialize(financeRules with { CutoffTime = financeRules.CutoffTime.Trim() });
         }
 
         await tx.ExecuteAsync(async token =>
@@ -267,6 +279,15 @@ public sealed class SystemSettingsService(
         return LoginLockoutRules.Parse(Saved(SystemSettingKeys.LoginMaxFailedAttempts), Saved(SystemSettingKeys.LoginLockoutMinutes));
     }
 
+    public async Task<FinanceRuleSet> GetFinanceRulesAsync(CancellationToken ct = default)
+    {
+        var value = await db.AppSettings.AsNoTracking()
+            .Where(s => s.Key == SystemSettingKeys.FinanceRules)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync(ct);
+        return FinanceRulesJson.Parse(value);
+    }
+
     /// <summary>The saved R47 format; each value never saved (or blank, or an unknown engine) is the server's.</summary>
     private R47Format FormatFrom(IReadOnlyDictionary<string, string> values)
     {
@@ -326,6 +347,14 @@ public sealed class SystemSettingsService(
             var defaults = LoginLockoutPolicy.Default;
             foreach (var (field, message) in LoginLockoutRules.Validate(
                 r.LoginMaxFailedAttempts ?? defaults.MaxFailedAttempts, r.LoginLockoutMinutes ?? defaults.LockoutMinutes))
+            {
+                errors[field] = [message];
+            }
+        }
+
+        if (r.FinanceRules is { } financeRules)
+        {
+            foreach (var (field, message) in FinanceRuleSetRules.Validate(financeRules))
             {
                 errors[field] = [message];
             }

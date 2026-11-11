@@ -14,7 +14,9 @@ public sealed record EmployeeRatesDto(
 /// <summary>
 /// Whether the signed-in employee can file (signature on record, approvers configured, cooling period over).
 /// <see cref="CrmActivitiesAvailable"/>: the account is linked to the CRM and the server can call it, so the
-/// line editor offers CRM activities.
+/// line editor offers CRM activities. <see cref="ProcessingDate"/>: the Friday a report filed now is processed in
+/// (null when the weekly cutoff is off); <see cref="PastFilingCutoff"/>: it missed this week's cutoff
+/// (<see cref="FilingCutoffText"/>, e.g. "Wednesday 12:00 PM"). A notice only; it never blocks filing.
 /// </summary>
 public sealed record MyFilingReadinessDto(
     bool HasSignature,
@@ -23,7 +25,10 @@ public sealed record MyFilingReadinessDto(
     bool CoolingPeriodElapsed,
     DateTimeOffset? CoolingPeriodEndsAt,
     string? RoutingProblem,
-    bool CrmActivitiesAvailable = false);
+    bool CrmActivitiesAvailable = false,
+    DateOnly? ProcessingDate = null,
+    bool PastFilingCutoff = false,
+    string? FilingCutoffText = null);
 
 /// <summary>An active department, for pickers.</summary>
 public sealed record DepartmentOptionDto(long Id, string? Code, string Name);

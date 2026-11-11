@@ -28,6 +28,8 @@ export interface FinanceQueueItem {
   openVerifications: number;
   /** A Not verified finding waits for Finance to query Level 2. */
   needsQuery: boolean;
+  /** Filed after the weekly processing cutoff while the Finance rule flags late reports. */
+  filedLate?: boolean;
 }
 
 export interface FinanceQueueQuery {
