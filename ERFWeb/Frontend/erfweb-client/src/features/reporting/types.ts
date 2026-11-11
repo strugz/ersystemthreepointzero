@@ -92,3 +92,51 @@ export interface ReportEmailDelivery {
   createdAt: string;
   completedAt: string | null;
 }
+
+/** Daily meal claims (Finance only): Meals lines by expense date; filed and approved reports. */
+export interface DailyMealClaimQuery {
+  from: string;
+  to: string;
+  departmentId?: number | null;
+  approvedOnly: boolean;
+}
+
+/** One employee's meals on one day, across their reports. "Other": a meal line with no or an unknown meal type. */
+export interface MealClaimRow {
+  date: string;
+  employeeUserId: number;
+  employeeName: string;
+  departmentName: string | null;
+  referenceNos: string[];
+  breakfast: boolean;
+  lunch: boolean;
+  dinner: boolean;
+  otMeal: boolean;
+  other: boolean;
+  lineCount: number;
+  amount: number;
+}
+
+/** One day: how many employees claimed each meal, and who. */
+export interface MealClaimDay {
+  date: string;
+  employeeCount: number;
+  breakfast: number;
+  lunch: number;
+  dinner: number;
+  otMeal: number;
+  other: number;
+  amount: number;
+  employees: MealClaimRow[];
+}
+
+export interface DailyMealClaimReport {
+  from: string;
+  to: string;
+  departmentName: string | null;
+  approvedOnly: boolean;
+  days: MealClaimDay[];
+  /** Employee-days with a meal claim. */
+  employeeDays: number;
+  total: number;
+}

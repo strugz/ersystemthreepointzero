@@ -120,6 +120,22 @@ public sealed class ExportRenderer
         return new ExportFile(csv.ToBytes(), CsvType, $"ApprovalInbox_{view}_{LocalDay(generatedAt)}.csv");
     }
 
+    // ---------- Daily meal claims ----------
+
+    /// <summary>CSV: one row per employee per day, Yes/No per meal.</summary>
+    public ExportFile DailyMealClaimsReport(DailyMealClaimReport report)
+    {
+        ArgumentNullException.ThrowIfNull(report);
+        var q = report.Query;
+        var csv = new CsvBuilder().Row("Date", "Employee", "Department", "ERF reference", "Breakfast", "Lunch", "Dinner", "OT meal", "Other meal", "Lines", "Amount");
+        foreach (var r in report.Claims.Days.SelectMany(d => d.Employees))
+        {
+            csv.Row(r.Date, r.EmployeeName, r.DepartmentName, string.Join(", ", r.ReferenceNos), r.Breakfast, r.Lunch, r.Dinner, r.OtMeal, r.Other, r.LineCount, r.Amount);
+        }
+
+        return new ExportFile(csv.ToBytes(), CsvType, $"DailyMealClaims_{q.From:yyyy-MM-dd}_{q.To:yyyy-MM-dd}.csv");
+    }
+
     // ---------- Finance ----------
 
     public ExportFile FinanceQueueReport(IReadOnlyList<FinanceQueueItemDto> items, DateTimeOffset generatedAt)

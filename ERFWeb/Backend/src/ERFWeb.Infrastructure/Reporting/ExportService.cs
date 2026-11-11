@@ -14,6 +14,7 @@ namespace ERFWeb.Infrastructure.Reporting;
 public sealed class ExportService(
     IExpenseSummaryService summaries,
     ICostCenterBudgetService budgets,
+    IDailyMealClaimService meals,
     IApprovalService approvals,
     IFinanceService finance,
     ExportRenderer renderer,
@@ -36,6 +37,16 @@ public sealed class ExportService(
         var report = await budgets.BuildAsync(query, ct);
         var file = renderer.CostCenterBudgetReport(report);
         await AuditAsync("CostCenterBudgets", ExportFormat.Csv, report.CostCenters.Count, new { query.Year, query.ApprovedOnly }, ct);
+        return file;
+    }
+
+    public async Task<ExportFile> DailyMealClaimsAsync(DailyMealClaimQuery query, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var report = await meals.BuildAsync(query, ct);
+        var file = renderer.DailyMealClaimsReport(report);
+        await AuditAsync("DailyMealClaims", ExportFormat.Csv, report.Claims.EmployeeDays,
+            new { from = query.From, to = query.To, query.DepartmentId, query.ApprovedOnly }, ct);
         return file;
     }
 
