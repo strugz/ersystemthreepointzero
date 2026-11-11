@@ -18,10 +18,10 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-11
 
-- **Work With picks several people** (not yet committed). The expense line dialog's **Work with** is a multi-select
+- **Work With picks several people** (PR #52). The expense line dialog's **Work with** is a multi-select
   with chips: pick or type one or more people. Saved as one comma-separated text, as before, so the R47 prints all
   their initials and existing lines open with one chip per name. Frontend only, in SPA `0.6.0`.
-- **Daily meal claims report, Finance rules phase 2** (not yet committed). Finance's new **Meal claims** page
+- **Daily meal claims report, Finance rules phase 2** (PR #52). Finance's new **Meal claims** page
   (`/summaries/meals`, Finance nav) lists, for each day, the employees who claimed meals and which ones (Breakfast,
   Lunch, Dinner, OT meal, Other), with per-day counts, filtered by date range and department, approved only or filed
   and approved; **Export** gives a CSV with one row per employee per day. `GET /api/summaries/meals` and
