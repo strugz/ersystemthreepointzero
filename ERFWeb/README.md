@@ -18,6 +18,15 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-11
 
+- **Work With picks several people** (not yet committed). The expense line dialog's **Work with** is a multi-select
+  with chips: pick or type one or more people. Saved as one comma-separated text, as before, so the R47 prints all
+  their initials and existing lines open with one chip per name. Frontend only, in SPA `0.6.0`.
+- **Daily meal claims report, Finance rules phase 2** (not yet committed). Finance's new **Meal claims** page
+  (`/summaries/meals`, Finance nav) lists, for each day, the employees who claimed meals and which ones (Breakfast,
+  Lunch, Dinner, OT meal, Other), with per-day counts, filtered by date range and department, approved only or filed
+  and approved; **Export** gives a CSV with one row per employee per day. `GET /api/summaries/meals` and
+  `/meals/export` (Finance policy), Domain `DailyMealClaimsBuilder`, audited `ExportGenerated`. No database script.
+  API `0.3.0` → `0.4.0`, SPA `0.5.0` → `0.6.0` (minor).
 - **Weekly processing cutoff, Finance rules phase 1** (PR #51). New **Rules → Finance rules** card
   (one JSON row `Business.FinanceRules` in `app_settings`, Domain `FinanceRuleSet`) for the Finance requirements of
   2026-11-11; phase 1 is the weekly processing cutoff (default Wednesday 12:00, business local time). The filing
@@ -882,6 +891,7 @@ shows **Late** (see Weekly processing cutoff).
 | `GET /api/finance/queue/export?status&openOnly&search` (Finance) | The queue for the same filters as CSV |
 | `GET /api/finance/aging` · `GET /api/finance/aging/export?format=Csv\|Pdf` (Finance) | Open reports by days since final approval (0-7, 8-15, 16-30, 31-60, over 60) |
 | `GET /api/summaries/expenses?from&to&scope=Mine\|Approvals\|All&departmentId&approvedOnly` · `/expenses/export?…&format=Csv\|Pdf` (any user; scope checked) | Expense summary by expense date: Mine for everyone, Approvals for signatories, All for Finance. CSV is one row per line; PDF has employee totals by category, then the lines. Exports are capped at 10,000 rows and audited as `ExportGenerated` |
+| `GET /api/summaries/meals?from&to&departmentId&approvedOnly` · `/meals/export?…` (Finance) | Daily meal claims: per day, the employees with an active Meals line on a filed or approved report and which meals (meal items; "OT Meal" and "OTMeal" both count as OT meal; a line with no or an unknown meal type is Other). Department is the one saved on the report at filing, else the employee's current one. CSV is one row per employee per day, Yes/No per meal, capped at 10,000 lines and audited as `ExportGenerated` |
 | `GET /api/summaries/budgets?year&approvedOnly` · `/budgets/export?year&approvedOnly` (Finance, Level 1, Level 2; 403 otherwise) | Cost center budgets for a calendar year: budget, used, remaining, % used, and spending per employee and category. Finance sees every active cost center, a signatory those of the departments a Department or Exclusion scope assignment of theirs covers today. CSV is one row per cost center, audited as `ExportGenerated` |
 
 `GET /api/reports/{id}` now also returns `review` (what the viewer may do as an approver, from the same rules)

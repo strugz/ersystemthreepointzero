@@ -46,6 +46,27 @@ public class ExportRendererTests
     }
 
     [Fact]
+    public void DailyMealClaimsCsv_OneRowPerEmployeeDay_WithYesNoPerMeal()
+    {
+        var day = new DateOnly(2026, 10, 5);
+        var claims = DailyMealClaimsBuilder.Build(
+        [
+            new MealClaimLine(1, "Ann Cruz", "Sales", "ERF-2026-000001", day, ["Lunch", "OT Meal"], 230m),
+            new MealClaimLine(1, "Ann Cruz", "Sales", "ERF-2026-000004", day, ["Dinner"], 150m),
+        ]);
+        var report = new DailyMealClaimReport(
+            new DailyMealClaimQuery(new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 31)), null, Now, "Finance User", claims);
+
+        var file = Renderer().DailyMealClaimsReport(report);
+
+        Assert.Equal("DailyMealClaims_2026-10-01_2026-10-31.csv", file.FileName);
+        var rows = Text(file).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(2, rows.Length);
+        Assert.Equal("Date,Employee,Department,ERF reference,Breakfast,Lunch,Dinner,OT meal,Other meal,Lines,Amount", rows[0]);
+        Assert.Equal("2026-10-05,Ann Cruz,Sales,\"ERF-2026-000001, ERF-2026-000004\",No,Yes,Yes,Yes,No,2,380.00", rows[1]);
+    }
+
+    [Fact]
     public void SummaryCsv_QuotesSeparators_AndNeutralizesFormulas()
     {
         var file = Renderer().ExpenseSummaryReport(Summary(Line("=HYPERLINK(\"x\")", 1m), Line("Lunch, client \"A\"", 2m)), ExportFormat.Csv);

@@ -1,3 +1,4 @@
+using ERFWeb.Api.Security;
 using ERFWeb.Application.Features.Reporting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,11 +9,16 @@ namespace ERFWeb.Api.Controllers;
 /// The expense summary on screen and as CSV or PDF. Any signed-in user may ask; the service limits
 /// the scope (Mine for everyone, Approvals for signatories, All for Finance) and returns 403 otherwise.
 /// Cost center budgets: Finance and signatories only (the service decides which cost centers).
+/// Daily meal claims: Finance only.
 /// </summary>
 [ApiController]
 [Route("api/summaries")]
 [Authorize]
-public sealed class SummariesController(IExpenseSummaryService summaries, ICostCenterBudgetService budgets, IExportService exports) : ControllerBase
+public sealed class SummariesController(
+    IExpenseSummaryService summaries,
+    ICostCenterBudgetService budgets,
+    IDailyMealClaimService meals,
+    IExportService exports) : ControllerBase
 {
     [HttpGet("expenses")]
     [Produces("application/json")]
@@ -52,6 +58,36 @@ public sealed class SummariesController(IExpenseSummaryService summaries, ICostC
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<CostCenterBudgetReportDto>> Budgets([FromQuery] int year, [FromQuery] bool approvedOnly = false, CancellationToken ct = default) =>
         Ok(await budgets.BuildAsync(new CostCenterBudgetQuery(year, approvedOnly), ct));
+
+    [HttpGet("meals")]
+    [Authorize(Policy = Policies.Finance)]
+    [Produces("application/json")]
+    [ProducesResponseType<DailyMealClaimReportDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<DailyMealClaimReportDto>> Meals(
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromQuery] long? departmentId = null,
+        [FromQuery] bool approvedOnly = false,
+        CancellationToken ct = default) =>
+        Ok(DailyMealClaimReportDto.Create(await meals.BuildAsync(new DailyMealClaimQuery(from, to, departmentId, approvedOnly), ct)));
+
+    [HttpGet("meals/export")]
+    [Authorize(Policy = Policies.Finance)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ExportMeals(
+        [FromQuery] DateOnly from,
+        [FromQuery] DateOnly to,
+        [FromQuery] long? departmentId = null,
+        [FromQuery] bool approvedOnly = false,
+        CancellationToken ct = default)
+    {
+        var file = await exports.DailyMealClaimsAsync(new DailyMealClaimQuery(from, to, departmentId, approvedOnly), ct);
+        return File(file.Content, file.ContentType, file.FileName);
+    }
 
     [HttpGet("budgets/export")]
     [ProducesResponseType(StatusCodes.Status200OK)]

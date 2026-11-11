@@ -60,6 +60,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: ['SignatoryLevel1', 'SignatoryLevel2', 'Finance'] },
   },
   {
+    path: '/summaries/meals',
+    name: 'daily-meal-claims',
+    component: () => import('@/views/reports/DailyMealClaimsView.vue'),
+    meta: { requiresAuth: true, roles: ['Finance'] },
+  },
+  {
     path: '/approvals',
     name: 'approvals',
     component: () => import('@/views/approvals/ApprovalInboxView.vue'),

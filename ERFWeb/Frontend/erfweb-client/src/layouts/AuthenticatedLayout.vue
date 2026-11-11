@@ -89,6 +89,7 @@ const workNav = computed<NavItem[]>(() => {
   }
   if (session.hasRole('Finance')) {
     items.push({ title: 'Finance queue', icon: 'mdi-receipt-text-check-outline', to: { name: 'finance-queue' }, exact: false });
+    items.push({ title: 'Meal claims', icon: 'mdi-silverware-fork-knife', to: { name: 'daily-meal-claims' }, exact: false });
     items.push({ title: 'Signatures', icon: 'mdi-draw-pen', to: { name: 'signature-approvals' }, exact: false });
   }
   if (session.hasRole('ExpenseVerifier')) {
@@ -124,7 +125,7 @@ const navGroups = computed(() =>
   ].filter((g) => g.items.length > 0),
 );
 
-const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications', 'cost-center-budgets', 'random-quotes']);
+const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications', 'cost-center-budgets', 'daily-meal-claims', 'random-quotes']);
 
 const roleSummary = computed(() => (session.user?.roles ?? []).map(roleLabel).join(' · '));
 const moreOpen = ref(false);

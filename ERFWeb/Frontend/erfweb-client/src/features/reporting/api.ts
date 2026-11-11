@@ -1,9 +1,23 @@
 import { api, apiUrl } from '@/shared/api/client';
 import type { ExportFormat } from '@/shared/download';
-import type { CostCenterBudgetReport, ExpenseSummary, ExpenseSummaryQuery, ReportEmailDelivery, ReportEmailSent } from './types';
+import type {
+  CostCenterBudgetReport,
+  DailyMealClaimQuery,
+  DailyMealClaimReport,
+  ExpenseSummary,
+  ExpenseSummaryQuery,
+  ReportEmailDelivery,
+  ReportEmailSent,
+} from './types';
 
 function summaryParams(query: ExpenseSummaryQuery) {
   const params = new URLSearchParams({ from: query.from, to: query.to, scope: query.scope, approvedOnly: String(query.approvedOnly) });
+  if (query.departmentId) params.set('departmentId', String(query.departmentId));
+  return params;
+}
+
+function mealParams(query: DailyMealClaimQuery) {
+  const params = new URLSearchParams({ from: query.from, to: query.to, approvedOnly: String(query.approvedOnly) });
   if (query.departmentId) params.set('departmentId', String(query.departmentId));
   return params;
 }
@@ -38,4 +52,10 @@ export const reportingApi = {
   /** CSV: one row per cost center with its budget, spending, and spending per category. */
   exportCostCenterBudgets: (year: number, approvedOnly: boolean) =>
     api.getFile(`/summaries/budgets/export?year=${year}&approvedOnly=${approvedOnly}`, `CostCenterBudgets_${year}.csv`),
+
+  /** Finance only: for each day, the employees who claimed meals and which ones. */
+  dailyMealClaims: (query: DailyMealClaimQuery) => api.get<DailyMealClaimReport>(`/summaries/meals?${mealParams(query).toString()}`),
+  /** CSV: one row per employee per day, Yes/No per meal. */
+  exportDailyMealClaims: (query: DailyMealClaimQuery) =>
+    api.getFile(`/summaries/meals/export?${mealParams(query).toString()}`, `DailyMealClaims_${query.from}_${query.to}.csv`),
 };

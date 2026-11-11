@@ -378,6 +378,13 @@ function useLegsTotal() {
 }
 
 const workWithItems = computed(() => props.workWithOptions.map((o) => o.fullName));
+// Work With is stored as one comma-separated text (the R47 splits it into initials); the picker edits it as a list.
+const workWithList = computed<string[]>({
+  get: () => (form.workWith ?? '').split(',').map((n) => n.trim()).filter(Boolean),
+  set: (names) => {
+    form.workWith = [...new Set(names.map((n) => n.trim()).filter(Boolean))].join(', ');
+  },
+});
 
 const categoryIcon: Record<ExpenseCategory, string> = {
   Meals: 'mdi-silverware-fork-knife',
@@ -541,14 +548,15 @@ function close() {
             />
             <div class="eline__row">
               <v-text-field v-model="form.location" label="Location" placeholder="e.g. MDMPI, CALMC" hide-details="auto" />
-              <!-- An empty string counts as a value to v-combobox and lifts the label, so pass null instead. -->
               <v-combobox
-                :model-value="form.workWith || null"
+                v-model="workWithList"
                 :items="workWithItems"
-                @update:model-value="(v: string | null) => (form.workWith = v ?? '')"
                 label="Work with"
-                hint="Printed after the location as typed; groups lines on the R47."
+                hint="Pick or type one or more people. Printed as initials after the location; groups lines on the R47."
                 hide-details="auto"
+                multiple
+                chips
+                closable-chips
                 clearable
               />
             </div>
