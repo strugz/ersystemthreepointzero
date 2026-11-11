@@ -264,6 +264,12 @@ export interface FilingReadiness {
   routingProblem: string | null;
   /** The account is linked to the CRM and the server can reach it: the line editor offers CRM activities. */
   crmActivitiesAvailable: boolean;
+  /** The Friday (yyyy-MM-dd) a report filed now is processed in; null when the weekly cutoff is off. */
+  processingDate?: string | null;
+  /** Filing now misses this week's cutoff; the report goes into the next Friday. A notice only. */
+  pastFilingCutoff?: boolean;
+  /** The cutoff, e.g. "Wednesday 12:00 PM". */
+  filingCutoffText?: string | null;
 }
 
 /** One CRM activity (Sales visit ITI- or service report SR-) the employee can pick to pre-fill a line. */

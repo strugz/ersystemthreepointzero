@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import type { R47Format, SystemSettings, SystemSettingsInput } from '../types';
+import type { FinanceRules, R47Format, SystemSettings, SystemSettingsInput } from '../types';
 
-/** Workflow rules (approval thresholds, SLAs, filing cut-off, R47 reviewer and format, notifications, sign-in lockout). The parent owns the save. */
+/** Workflow rules (approval thresholds, SLAs, filing cut-off, Finance rules, R47 reviewer and format, notifications, sign-in lockout). The parent owns the save. */
 const props = withDefaults(
   defineProps<{
     initial: SystemSettings | null;
@@ -32,7 +32,15 @@ const blank = (): SystemSettingsInput => ({
   r47Format: blankFormat(),
   loginMaxFailedAttempts: LOCKOUT.attempts.default,
   loginLockoutMinutes: LOCKOUT.minutes.default,
+  financeRules: blankFinanceRules(),
 });
+
+// Same defaults as the server (Domain FinanceRuleSet.Default); also what an API older than the Finance rules is shown.
+function blankFinanceRules(): FinanceRules {
+  return { cutoffEnabled: true, cutoffWeekday: 'Wednesday', cutoffTime: '12:00', lateHandling: 'NoticeOnly' };
+}
+
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
 
 // Same limits and defaults as the server (Domain LoginLockoutRules).
 const LOCKOUT = {
@@ -92,6 +100,8 @@ function load(value: SystemSettings | null) {
       // And for an API older than the sign-in lockout rule.
       loginMaxFailedAttempts: value.loginMaxFailedAttempts ?? LOCKOUT.attempts.default,
       loginLockoutMinutes: value.loginLockoutMinutes ?? LOCKOUT.minutes.default,
+      // And for an API older than the Finance rules.
+      financeRules: { ...blankFinanceRules(), ...value.financeRules },
     } satisfies SystemSettingsInput);
   }
   snapshot = JSON.stringify(form);
@@ -152,6 +162,8 @@ function rangeError(value: unknown, range: { min: number; max: number }, unit: s
 const attemptsError = computed(() => rangeError(form.loginMaxFailedAttempts, LOCKOUT.attempts, 'attempts'));
 const minutesError = computed(() => rangeError(form.loginLockoutMinutes, LOCKOUT.minutes, 'minutes'));
 const formatInvalid = computed(() => FORMAT_FIELDS.some((f) => formatError(f.key, f.max) !== null));
+// Same shape the server accepts (FinanceRuleSetRules): 24-hour HH:mm.
+const cutoffTimeError = computed(() => (/^([01]\d|2[0-3]):[0-5]\d$/.test(form.financeRules.cutoffTime.trim()) ? null : 'Enter a time, e.g. 12:00.'));
 const canSubmit = computed(
   () =>
     isDirty.value &&
@@ -162,7 +174,8 @@ const canSubmit = computed(
     !reviewedByError.value &&
     !formatInvalid.value &&
     !attemptsError.value &&
-    !minutesError.value,
+    !minutesError.value &&
+    !cutoffTimeError.value,
 );
 
 function submit() {
@@ -175,6 +188,7 @@ function submit() {
   out.emailDomains = [...new Set(form.emailDomains.map(cleanDomain).filter(Boolean))];
   out.r47ReviewedBy = form.r47ReviewedBy.trim();
   out.r47Format = { ...form.r47Format };
+  out.financeRules = { ...form.financeRules, cutoffTime: form.financeRules.cutoffTime.trim() };
   for (const f of FORMAT_FIELDS) {
     out.r47Format[f.key] = form.r47Format[f.key].trim();
   }
@@ -285,6 +299,67 @@ defineExpose({ isDirty });
             />
           </v-col>
         </v-row>
+      </div>
+    </v-card>
+
+    <v-card class="mb-4">
+      <div class="card-h"><span class="card-t">Finance rules</span></div>
+      <div class="pa-4">
+        <div class="text-subtitle-2 mb-1">Weekly processing cutoff</div>
+        <div class="text-caption text-medium-emphasis mb-2">
+          Finance processes reports every Friday. A report filed after the cutoff and before Friday ends goes into the next Friday. The filer sees
+          which Friday before filing; filing is never blocked.
+        </div>
+        <v-switch v-model="form.financeRules.cutoffEnabled" color="primary" label="Show the cutoff notice when filing" hide-details />
+        <v-row dense class="mt-2">
+          <v-col cols="12" sm="6">
+            <v-select
+              v-model="form.financeRules.cutoffWeekday"
+              :items="WEEKDAYS"
+              label="Cutoff day"
+              :disabled="!form.financeRules.cutoffEnabled"
+              hint="Finance question 1: the cutoff day"
+              persistent-hint
+              :error-messages="fieldErrors('financeRules.cutoffWeekday')"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-text-field
+              v-model="form.financeRules.cutoffTime"
+              type="time"
+              label="Cutoff time"
+              :disabled="!form.financeRules.cutoffEnabled"
+              hint="Finance question 1: the exact time, business local time"
+              persistent-hint
+              :error-messages="fieldErrors('financeRules.cutoffTime') ?? (cutoffTimeError ? [cutoffTimeError] : undefined)"
+            />
+          </v-col>
+        </v-row>
+        <v-radio-group
+          v-model="form.financeRules.lateHandling"
+          label="Reports filed after the cutoff (Finance question 2)"
+          class="mt-4"
+          hide-details="auto"
+          :disabled="!form.financeRules.cutoffEnabled"
+          :error-messages="fieldErrors('financeRules.lateHandling')"
+        >
+          <v-radio value="NoticeOnly">
+            <template #label>
+              <span>
+                <strong>Notice only</strong>
+                <span class="text-medium-emphasis"> · the filer is told the report goes into next Friday's processing</span>
+              </span>
+            </template>
+          </v-radio>
+          <v-radio value="FlagForFinance">
+            <template #label>
+              <span>
+                <strong>Flag for Finance</strong>
+                <span class="text-medium-emphasis"> · the notice, and the report shows Late in the Finance queue and its export</span>
+              </span>
+            </template>
+          </v-radio>
+        </v-radio-group>
       </div>
     </v-card>
 

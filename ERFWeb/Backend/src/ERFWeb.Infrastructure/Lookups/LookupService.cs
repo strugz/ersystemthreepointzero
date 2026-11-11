@@ -3,6 +3,7 @@ using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Crm;
 using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Domain.Administration;
+using ERFWeb.Domain.Expenses;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -79,6 +80,8 @@ public sealed class LookupService(
         var approvers = routing.Approvers.Select(a => a.FullName).ToList();
 
         var crmAvailable = crm.IsConfigured && !string.IsNullOrWhiteSpace(account?.CrmEmployeeId);
-        return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt, routing.Problem, crmAvailable);
+        var cutoff = FilingCutoffRules.Evaluate(clock.UtcNow, calendar.UtcOffset, await settings.GetFinanceRulesAsync(ct));
+        return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt, routing.Problem, crmAvailable,
+            cutoff?.ProcessingDate, cutoff?.IsLate ?? false, cutoff?.CutoffText);
     }
 }

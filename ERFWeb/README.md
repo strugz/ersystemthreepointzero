@@ -16,6 +16,16 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-11-11
+
+- **Weekly processing cutoff, Finance rules phase 1** (PR #51). New **Rules → Finance rules** card
+  (one JSON row `Business.FinanceRules` in `app_settings`, Domain `FinanceRuleSet`) for the Finance requirements of
+  2026-11-11; phase 1 is the weekly processing cutoff (default Wednesday 12:00, business local time). The filing
+  checklist says which Friday the report is processed in, and the File report dialog shows it in a coloured box (amber
+  **Not processed this Friday** when filed after the cutoff, which sends it into the next Friday). Never blocks filing. With **Flag for Finance**, a late report shows **Late** in the Finance
+  queue and its CSV (`expense_reports.filed_late`, script `025`, `SchemaVersion.Required` 25). Apply `025`, then
+  deploy the backend, then the frontend. API `0.2.0` → `0.3.0`, SPA `0.4.1` → `0.5.0` (minor).
+
 ### 2026-11-10
 
 - **Service details always shown in the expense line dialog** (PR #49). Instrument, serial no., service
@@ -303,6 +313,7 @@ psql -d erfweb -f Database/021_workflow_audit_append_only.sql # Phase 8.5: the d
 psql -d erfweb -f Database/022_cost_center_budgets.sql   # cost_center_budgets + expense_reports.department_id (filing department)
 psql -d erfweb -f Database/023_expense_line_crm_activities.sql # expense_lines.crm_activity_ids: several CRM activities per line (re-run after the deploy)
 psql -d erfweb -f Database/024_signature_approval.sql          # Finance approval of signature images (existing ones marked approved)
+psql -d erfweb -f Database/025_filing_cutoff.sql               # expense_reports.filed_late: filed after the weekly processing cutoff
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -613,6 +624,18 @@ legacy `sp_rptER` never read the old `BalanceTo` column and the desktop always w
 opens a new `cycle`; reopening supersedes pending steps and withdraws Finance tracking. Every mutation
 carries the row's `rowVersion` (`xmin`); a stale value → **409** and the SPA reloads.
 
+**Weekly processing cutoff (Finance rules).** Finance processes reports every Friday. **Rules → Finance rules**
+sets the cutoff day (Monday to Friday) and time, default Wednesday 12:00 in the business time zone
+(`ReferenceNumber:UtcOffsetHours`). A report filed after the cutoff and before Friday ends goes into the next Friday
+(Domain `FilingCutoffRules`). `my-filing-readiness` returns `processingDate`, `pastFilingCutoff` and
+`filingCutoffText`; the editor shows the Friday as a grey checklist item, and the File report dialog shows it in a
+box: amber **Not processed this Friday** when late, blue with the Friday otherwise. It is a
+notice only: filing is never blocked and the report is never moved. **Reports filed after the cutoff**: *Notice only*
+(default) or *Flag for Finance*, which sets `expense_reports.filed_late` at filing (recomputed on each re-file) and
+shows **Late** in the Finance queue and the **Filed late** column of its CSV. The rules are stored as one JSON row,
+`Business.FinanceRules` (Domain `FinanceRuleSet`, validated by `FinanceRuleSetRules`; a property missing from the
+stored JSON keeps its default), audited `SettingsChanged`, read at filing time, so a change applies at once.
+
 **ERF reference number.** Issued by the system on **first filing** as a yearly series
 `ERF-2026-000142` (`ReferenceNumberFormat` + `ReferenceNumberGenerator`): one counter row per
 `PREFIX-YYYY` in `reference_series`, incremented inside the filing transaction. Two filings racing for the
@@ -845,7 +868,8 @@ acts; after that they ask the approver to return it.
 **Finance receipt queue** (Domain `FinanceRules`): `Pending` → `ReceiptsIncomplete` (remarks name what is
 missing) → `ReceiptsReceived` (one-time, never reverted) → `ClearedForPayment` (final). Follow-ups are allowed
 while receipts are outstanding and are counted. Finance never processes its own report (403), and out-of-order
-steps are 409.
+steps are 409. A report filed after the weekly processing cutoff while the Finance rule is **Flag for Finance**
+shows **Late** (see Weekly processing cutoff).
 
 | Endpoint (policy) | Purpose |
 | --- | --- |

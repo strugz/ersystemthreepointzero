@@ -173,6 +173,10 @@ public class ExpenseReport
     public decimal RevolvingFundAmount { get; set; }
     public int CurrentCycle { get; set; } = 1;
     public DateTimeOffset? FiledAt { get; set; }
+
+    /// <summary>Last filed after the weekly processing cutoff while the Finance rule flags late reports.</summary>
+    public bool FiledLate { get; set; }
+
     public DateTimeOffset? ApprovedAt { get; set; }
     public string? CancelNote { get; set; }
     public bool SentStatus { get; set; }

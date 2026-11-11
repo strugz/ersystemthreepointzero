@@ -313,6 +313,7 @@ async function sendFollowUp(message: string, idempotencyKey: string) {
               <span class="pill" :class="financeStatusTone[item.status]">{{ financeStatusLabel[item.status] }}</span>
               <span v-if="item.needsQuery" class="pill pill--error">Not verified: query Level 2</span>
               <span v-else-if="item.openVerifications" class="pill pill--warning">Under verification</span>
+              <span v-if="item.filedLate" class="pill pill--warning" title="Filed after the weekly processing cutoff">Late</span>
               <span v-if="item.isOwnReport" class="pill pill--neutral">Your report</span>
             </div>
             <div class="item__who">

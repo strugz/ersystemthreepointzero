@@ -274,7 +274,8 @@ public sealed class FinanceService(
             IsOwnReport: x.Report.EmployeeUserId == user.UserId,
             versions.GetValueOrDefault(x.Report.Id),
             open.GetValueOrDefault(x.Report.Id).Open,
-            open.GetValueOrDefault(x.Report.Id).NeedsQuery)).ToList();
+            open.GetValueOrDefault(x.Report.Id).NeedsQuery,
+            x.Report.FiledLate)).ToList();
     }
 
     private async Task<(FinanceTracking Tracking, ExpenseReport Report)> LoadForActionAsync(Guid reportId, CancellationToken ct)
