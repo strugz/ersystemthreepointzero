@@ -123,6 +123,23 @@ public enum ExpenseCategory
     Parking,
     Others,
     Representation,
+
+    /// <summary>Finance rule: needs an approved Activity Request Form attachment. Prints under OTHERS.</summary>
+    Sponsorship,
+
+    /// <summary>Finance rule: needs an ISO-registered attendance sheet attachment. Prints under OTHERS.</summary>
+    Demo,
+}
+
+/// <summary>What an uploaded file is. A file uploaded without a type is a receipt.</summary>
+public enum AttachmentDocumentType
+{
+    Receipt,
+    ActivityRequestForm,
+    IsoAttendanceSheet,
+
+    /// <summary>The official receipt for the food served; a Representation line needs it.</summary>
+    FoodReceipt,
 }
 
 /// <summary>How a scope assignment selects the employees a signatory signs for (RBAC v0.6 section 4).</summary>

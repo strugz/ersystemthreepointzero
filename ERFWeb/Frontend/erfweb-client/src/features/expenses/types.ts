@@ -6,7 +6,10 @@ export type ReportStatus = 'New' | 'ForApproval' | 'Returned' | 'Approved' | 'Re
 export type ApprovalStatus = 'Pending' | 'Approved' | 'Returned' | 'Superseded' | 'Rejected' | 'Overridden';
 export type FinanceStatus = 'Pending' | 'ReceiptsIncomplete' | 'ReceiptsReceived' | 'ClearedForPayment';
 export type ExpenseType = 'Local' | 'Foreign';
-export type ExpenseCategory = 'Meals' | 'Transportation' | 'Toll' | 'Parking' | 'Others' | 'Representation';
+export type ExpenseCategory = 'Meals' | 'Transportation' | 'Toll' | 'Parking' | 'Others' | 'Representation' | 'Sponsorship' | 'Demo';
+
+/** What an uploaded file is; Sponsorship and Demo lines need their document attached before filing. */
+export type AttachmentDocumentType = 'Receipt' | 'ActivityRequestForm' | 'IsoAttendanceSheet' | 'FoodReceipt';
 
 export interface PagedResult<T> {
   items: T[];
@@ -153,6 +156,8 @@ export interface Attachment {
   sizeBytes: number;
   uploadedBy: string;
   uploadedAt: string;
+  /** Absent from an API older than document types: a receipt. */
+  documentType?: AttachmentDocumentType;
 }
 
 export interface ExpenseReportDetail {
@@ -270,6 +275,17 @@ export interface FilingReadiness {
   pastFilingCutoff?: boolean;
   /** The cutoff, e.g. "Wednesday 12:00 PM". */
   filingCutoffText?: string | null;
+  /** Categories switched off on the Rules page; hidden in the line dialog. */
+  unavailableCategories?: ExpenseCategory[] | null;
+  /** Categories whose lines need a document attached before filing. */
+  requiredDocuments?: RequiredDocument[] | null;
+}
+
+export interface RequiredDocument {
+  category: ExpenseCategory;
+  documentType: AttachmentDocumentType;
+  /** e.g. "approved Activity Request Form". */
+  label: string;
 }
 
 /** One CRM activity (Sales visit ITI- or service report SR-) the employee can pick to pre-fill a line. */

@@ -1,4 +1,5 @@
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Expenses;
@@ -18,7 +19,8 @@ public sealed class ExpenseLineService(
     ITransactionRunner tx,
     ReportEditGate gate,
     ExpenseReportDetailLoader loader,
-    CrmActivityClaimCheck crmClaims) : IExpenseLineService
+    CrmActivityClaimCheck crmClaims,
+    ISystemSettingsService settings) : IExpenseLineService
 {
     public async Task<ExpenseLineDto> AddAsync(Guid reportId, SaveExpenseLineRequest request, CancellationToken ct = default)
     {
@@ -160,6 +162,26 @@ public sealed class ExpenseLineService(
             r.Meals.Any(m => string.IsNullOrWhiteSpace(m.MealType)))
         {
             errors["meals"] = ["Each meal item needs a meal type (Breakfast, Lunch, Dinner, OT)."];
+        }
+
+        // Finance rules: a category switched off on the Rules page cannot be claimed, and Sponsorship and Demo need
+        // their document attached to the report first.
+        var financeRules = await settings.GetFinanceRulesAsync(ct);
+        if (!CategoryDocumentRules.IsEnabled(financeRules, r.Category))
+        {
+            errors["category"] = [$"{r.Category} claims are switched off."];
+        }
+        else if (CategoryDocumentRules.Required(financeRules).Any(d => d.Category == r.Category))
+        {
+            var attached = await db.ReceiptAttachments.AsNoTracking()
+                .Where(a => a.ReportId == report.Id)
+                .Select(a => a.DocumentType ?? AttachmentDocumentType.Receipt)
+                .Distinct()
+                .ToListAsync(ct);
+            if (CategoryDocumentRules.LineProblem(r.Category, attached, financeRules) is { } documentProblem)
+            {
+                errors["category"] = [documentProblem];
+            }
         }
 
         IReadOnlyDictionary<long, FareModeRule> modes = new Dictionary<long, FareModeRule>();

@@ -31,6 +31,21 @@ public sealed record FinanceRuleSet
     public string CutoffTime { get; init; } = "12:00";
 
     public LateFilingHandling LateHandling { get; init; } = LateFilingHandling.NoticeOnly;
+
+    /// <summary>Employees may claim Sponsorship.</summary>
+    public bool SponsorshipEnabled { get; init; } = true;
+
+    /// <summary>A report with a Sponsorship line cannot be filed without an Activity Request Form attachment.</summary>
+    public bool SponsorshipRequiresDocument { get; init; } = true;
+
+    /// <summary>Employees may claim Demo.</summary>
+    public bool DemoEnabled { get; init; } = true;
+
+    /// <summary>A report with a Demo line cannot be filed without an ISO-registered attendance sheet attachment.</summary>
+    public bool DemoRequiresDocument { get; init; } = true;
+
+    /// <summary>A Representation line needs the food or meal receipt attached (Representation cannot be switched off).</summary>
+    public bool RepresentationRequiresDocument { get; init; } = true;
 }
 
 /// <summary>Validation of the Finance rules the administrator saves; field names match the Rules page.</summary>

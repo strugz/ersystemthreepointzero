@@ -352,6 +352,18 @@ export interface ExpenseCategoryInfo {
 
 // ---- settings -----------------------------------------------------------------
 
+/** The Rules page tabs. */
+export type RulesSection = 'approvals' | 'filing' | 'r47' | 'access';
+
+/** Which Rules tab holds a settings field (server field names, camelCase), so a save error opens its tab. */
+export function rulesSectionOf(field: string): RulesSection {
+  const f = field.charAt(0).toLowerCase() + field.slice(1);
+  if (/^(level2|slaDays|escalation)/.test(f)) return 'approvals';
+  if (/^(filingCutoff|receiptRequired|coolingPeriod|financeRules)/.test(f)) return 'filing';
+  if (f.startsWith('r47')) return 'r47';
+  return 'access';
+}
+
 export type CutoffWeekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
 export type LateFilingHandling = 'NoticeOnly' | 'FlagForFinance';
 
@@ -364,6 +376,14 @@ export interface FinanceRules {
   /** Local time on that weekday, "HH:mm". */
   cutoffTime: string;
   lateHandling: LateFilingHandling;
+  /** Employees may claim Sponsorship; filing needs an Activity Request Form when required. */
+  sponsorshipEnabled: boolean;
+  sponsorshipRequiresDocument: boolean;
+  /** Employees may claim Demo; filing needs an ISO attendance sheet when required. */
+  demoEnabled: boolean;
+  demoRequiresDocument: boolean;
+  /** A Representation line needs the food or meal receipt attached first. */
+  representationRequiresDocument: boolean;
 }
 
 export interface SystemSettingsInput {

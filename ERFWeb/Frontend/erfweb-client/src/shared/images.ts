@@ -104,3 +104,12 @@ export async function compressImage(file: File, options: CompressOptions = {}): 
     compressed: true,
   };
 }
+
+/**
+ * True on phones and tablets (any touch screen), where the Take photo button opens the in-app camera
+ * (`AppCameraCapture`). Mouse-only PCs keep the file chooser only.
+ */
+export function hasCamera(): boolean {
+  if (typeof window === 'undefined') return false;
+  return navigator.maxTouchPoints > 0 || window.matchMedia?.('(any-pointer: coarse)').matches === true;
+}

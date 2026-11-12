@@ -364,6 +364,9 @@ public class ReceiptAttachment
     public byte[] Content { get; set; } = [];
     public long UploadedByUserId { get; set; }
     public DateTimeOffset UploadedAt { get; set; }
+
+    /// <summary>What the file is (Finance rules: Sponsorship and Demo need a document); null is a receipt.</summary>
+    public AttachmentDocumentType? DocumentType { get; set; }
 }
 
 public class ReminderDelivery

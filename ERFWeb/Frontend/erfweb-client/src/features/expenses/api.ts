@@ -1,6 +1,7 @@
 import { api, apiUrl } from '@/shared/api/client';
 import type {
   Attachment,
+  AttachmentDocumentType,
   CashAdvanceLine,
   CrmActivityPickList,
   EmployeeRates,
@@ -53,9 +54,10 @@ export const expensesApi = {
   removeCashAdvance: (id: string, lineId: number) => api.del<void>(`${r(id)}/cash-advances/${lineId}`),
 
   attachments: (id: string) => api.get<Attachment[]>(`${r(id)}/attachments`),
-  upload: (id: string, file: File) => {
+  upload: (id: string, file: File, documentType: AttachmentDocumentType = 'Receipt') => {
     const form = new FormData();
     form.append('file', file, file.name);
+    form.append('documentType', documentType);
     return api.postForm<Attachment>(`${r(id)}/attachments`, form);
   },
   attachmentUrl: (id: string, attachmentId: number, download = false) =>

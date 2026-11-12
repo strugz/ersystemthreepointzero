@@ -93,7 +93,8 @@ public sealed record AttachmentDto(
     string ContentType,
     long SizeBytes,
     string UploadedBy,
-    DateTimeOffset UploadedAt);
+    DateTimeOffset UploadedAt,
+    AttachmentDocumentType DocumentType = AttachmentDocumentType.Receipt);
 
 /// <summary>The full editor model for one report. <see cref="CanEdit"/> is computed server-side.</summary>
 public sealed record ExpenseReportDetailDto(
@@ -205,7 +206,11 @@ public sealed record SaveExpenseLineRequest(
 /// <summary>Every active line of the report, in the order the R47 should print them.</summary>
 public sealed record ReorderExpenseLinesRequest(IReadOnlyList<long> LineIds);
 
-public sealed record UploadAttachmentRequest(string FileName, string ContentType, byte[] Content);
+public sealed record UploadAttachmentRequest(
+    string FileName,
+    string ContentType,
+    byte[] Content,
+    AttachmentDocumentType DocumentType = AttachmentDocumentType.Receipt);
 
 // ---------------------------------------------------------------------------------
 // Use-case interfaces (implemented in Infrastructure with EF Core + LINQ)

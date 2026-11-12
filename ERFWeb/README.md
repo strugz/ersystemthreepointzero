@@ -16,6 +16,31 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-11-12
+
+- **Sponsorship, Demo and Representation documents, Finance rules phase 4** (not yet committed). Two new expense categories, both printed under
+  OTHERS on the R47. A Sponsorship line can be added only once an approved **Activity Request Form** is attached to
+  the report, and a Demo line only once an **ISO attendance sheet** is (the line dialog says so and can upload it on
+  the spot); a Representation line likewise needs the **food or meal receipt** (Finance confirmed the three documents
+  on 2026-11-11); filing checks again in case one was deleted. The Receipts panel asks what each upload is (`receipt_attachments.document_type`, script `026`, `SchemaVersion.Required` 26; older files count as
+  receipts). **Rules → Filing and Finance → Finance rules → Sponsorship and Demo** switches each category and each
+  document rule; a category switched off is hidden from employees and blocks filing a report that still has one
+  (Domain `CategoryDocumentRules`). Apply `026`, then deploy the backend, then the frontend. API `0.4.0` → `0.5.0`,
+  SPA `0.6.0` → `0.7.0` (minor).
+- **Rules page in tabs** (not yet committed). The Rules page (`/admin/settings`) shows one tab at a time instead of
+  one long page: **Approvals** (routing, service levels, SLA reminders), **Filing and Finance** (filing rules and
+  Finance rules), **R47** and **Notifications and sign-in** (notifications, sign-in security, email domains). The tab
+  is in the URL (`?tab=filing`). It is still one form: edits on several tabs are saved together, the **Save rules**
+  bar stays at the bottom of the screen with an "Unsaved changes" note, and a refused field opens its tab. Frontend
+  only, in SPA `0.7.0`.
+- **Take photo on phones and tablets** (not yet committed). On a touch device the Receipts panel shows **Take photo**
+  and **Choose file**, and the line dialog's document note **Photo** and **File**. **Take photo** opens a full-screen
+  in-app camera (`src/shared/ui/AppCameraCapture.vue`, `getUserMedia`, back camera first): a frame guide, shutter,
+  switch camera, then a review with **Rotate** (quarter turns) and **Scan look** (grey, paper whitened and ink
+  darkened by a contrast stretch, done in the browser, no library), and **Retake** or **Use photo**; the photo uploads through the usual path (shrunk first, same type
+  picker). If the browser refuses the camera it offers the phone's camera app instead. Needs HTTPS (Render is).
+  Mouse-only PCs keep the drop box (`hasCamera` in `src/shared/images.ts`). Frontend only, in SPA `0.7.0`.
+
 ### 2026-11-11
 
 - **Work With picks several people** (PR #52). The expense line dialog's **Work with** is a multi-select
@@ -323,6 +348,7 @@ psql -d erfweb -f Database/022_cost_center_budgets.sql   # cost_center_budgets +
 psql -d erfweb -f Database/023_expense_line_crm_activities.sql # expense_lines.crm_activity_ids: several CRM activities per line (re-run after the deploy)
 psql -d erfweb -f Database/024_signature_approval.sql          # Finance approval of signature images (existing ones marked approved)
 psql -d erfweb -f Database/025_filing_cutoff.sql               # expense_reports.filed_late: filed after the weekly processing cutoff
+psql -d erfweb -f Database/026_attachment_document_type.sql    # receipt_attachments.document_type: Activity Request Form, ISO attendance sheet
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -614,7 +640,7 @@ trigger stamps `record_history.changed_by`.
 | `PUT /api/reports/{id}/lines/order` | Body `{ lineIds }`: every active line once, in the order the R47 prints them (saved as `sort_order`). A list that no longer matches the report's lines → 409. The editor's **Sort** menu (date or total) calls it |
 | `GET /api/lookups/fare-modes` | Active fare modes for the fare-leg picker, in sort order |
 | `POST /api/reports/{id}/cash-advances` · `PUT/DELETE …/cash-advances/{lineId}` | Rows of the CASH ADVANCE RECEIVED block (Liquidation of Cash Advance only); the R47 reconciles against their total |
-| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller) |
+| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`, optional `documentType`: `Receipt`, `ActivityRequestForm`, `IsoAttendanceSheet`, `FoodReceipt`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller). On phones and tablets **Take photo** opens the in-app camera (`AppCameraCapture`) |
 | `POST /api/reports/{id}/file` | File / re-file → `ForApproval`; snapshots the approval route into `approval_steps` |
 | `POST /api/reports/{id}/reopen` | Pull a `ForApproval`/`Approved` report back to `New` (supersedes the cycle) |
 | `GET /api/lookups/work-with` · `my-rates` · `my-filing-readiness` | Editor lookups (`crmActivitiesAvailable` turns on **From CRM**) |
@@ -644,6 +670,21 @@ notice only: filing is never blocked and the report is never moved. **Reports fi
 shows **Late** in the Finance queue and the **Filed late** column of its CSV. The rules are stored as one JSON row,
 `Business.FinanceRules` (Domain `FinanceRuleSet`, validated by `FinanceRuleSetRules`; a property missing from the
 stored JSON keeps its default), audited `SettingsChanged`, read at filing time, so a change applies at once.
+
+**Sponsorship, Demo and Representation (Finance rules).** Categories that need a document attached to the report
+before a line can be added (confirmed with Finance on 2026-11-11): an approved Activity Request Form for Sponsorship
+(new category), an ISO-registered attendance sheet for Demo (new category), the food or meal receipt for
+Representation. When uploading under **Receipts** the employee picks what the file is (**This file is a**: Receipt,
+Activity Request Form, ISO attendance sheet or Food receipt;
+`documentType` in the upload form, stored in `receipt_attachments.document_type`, NULL for older files = Receipt).
+The document comes first: choosing Sponsorship or Demo in the line dialog shows an amber note with **Upload** until
+the report has that document, **Save** stays off, and the server refuses the line (400 on `category`). Filing checks
+again (checklist item and blocker) in case the document was deleted afterwards (Domain `CategoryDocumentRules`). **Rules → Finance rules → Sponsorship and Demo** switches each category (`sponsorshipEnabled`,
+`demoEnabled`) and each document rule (`sponsorshipRequiresDocument`, `demoRequiresDocument`,
+`representationRequiresDocument`), all on by default (Representation itself cannot be switched off); a
+category switched off is hidden in the line dialog (`my-filing-readiness` returns `unavailableCategories` and
+`requiredDocuments`), refused when a line is saved, and blocks filing a report that still has one. Both categories
+print under OTHERS (Foreign: Other Exp.).
 
 **ERF reference number.** Issued by the system on **first filing** as a yearly series
 `ERF-2026-000142` (`ReferenceNumberFormat` + `ReferenceNumberGenerator`): one counter row per

@@ -11,7 +11,7 @@ import { formatBytes, formatDate, formatDateTime, formatMoney } from '@/shared/f
 import { describeError, useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { expensesApi } from '@/features/expenses/api';
-import { reportTypeLabel, usesCashAdvance, usesRevolvingFund } from '@/features/expenses/labels';
+import { categoryLabel, reportTypeLabel, usesCashAdvance, usesRevolvingFund } from '@/features/expenses/labels';
 import { lineSortOptions, sortedLineIds, type LineSort } from '@/features/expenses/lineOrder';
 import ReportStatusChip from '@/features/expenses/components/ReportStatusChip.vue';
 import ReportDetailsCard from '@/features/expenses/components/ReportDetailsCard.vue';
@@ -29,6 +29,7 @@ import FinanceSummaryCard from '@/features/expenses/components/FinanceSummaryCar
 import VerificationCard from '@/features/verification/components/VerificationCard.vue';
 import type {
   Attachment,
+  AttachmentDocumentType,
   CashAdvanceLine,
   CrmActivityPickList,
   EmployeeRates,
@@ -348,12 +349,12 @@ async function confirmRemoveCash() {
 const uploading = ref(false);
 const busyAttachmentId = ref<number | null>(null);
 
-async function upload(picked: File) {
+async function upload(picked: File, documentType: AttachmentDocumentType) {
   uploading.value = true;
   try {
     // Shrink phone photos in the browser before they leave the device; PDFs pass through.
     const { file, originalBytes, compressed } = await compressImage(picked);
-    await expensesApi.upload(reportId, file);
+    await expensesApi.upload(reportId, file, documentType);
     snack.success(
       compressed
         ? `Uploaded ${file.name} (${formatBytes(originalBytes)} → ${formatBytes(file.size)}).`
@@ -429,6 +430,15 @@ const checklist = computed<ChecklistItem[]>(() => {
         ? 'Cooling period over'
         : `Account cooling period ends ${formatDateTime(readiness.value.coolingPeriodEndsAt)}`,
     });
+    // Finance rules: a Sponsorship or Demo line needs its document attached (CategoryDocumentRules).
+    for (const doc of readiness.value.requiredDocuments ?? []) {
+      if (!r.lines.some((l) => l.category === doc.category)) continue;
+      const attached = r.attachments.some((a) => a.documentType === doc.documentType);
+      items.push({
+        ok: attached,
+        text: attached ? `${categoryLabel[doc.category]}: ${doc.label} attached` : `${categoryLabel[doc.category]} line: attach the ${doc.label}`,
+      });
+    }
     if (processingNotice.value) {
       items.push({ ok: !readiness.value.pastFilingCutoff, optional: true, text: processingNotice.value });
     }
@@ -652,6 +662,11 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :saving="savingLine"
         :errors="lineErrors"
         :crm-available="!!readiness?.crmActivitiesAvailable"
+        :unavailable-categories="readiness?.unavailableCategories ?? []"
+        :required-documents="readiness?.requiredDocuments ?? []"
+        :attached-document-types="report?.attachments.map((a) => a.documentType ?? 'Receipt') ?? []"
+        :uploading-document="uploading"
+        @upload-document="upload"
         :crm-list="crmList"
         :crm-loading="crmLoading"
         :crm-error="crmError"

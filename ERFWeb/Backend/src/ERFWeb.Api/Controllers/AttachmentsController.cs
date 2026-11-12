@@ -1,5 +1,6 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Expenses;
+using ERFWeb.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,7 +19,10 @@ public sealed class AttachmentsController(IReceiptAttachmentService attachments)
     public async Task<ActionResult<IReadOnlyList<AttachmentDto>>> List(Guid reportId, CancellationToken ct) =>
         Ok(await attachments.ListAsync(reportId, ct));
 
-    /// <summary>Uploads one file (multipart/form-data, field name <c>file</c>). Limits come from <c>Attachments</c> in appsettings.json.</summary>
+    /// <summary>
+    /// Uploads one file (multipart/form-data, field name <c>file</c>, optional <c>documentType</c>: Receipt,
+    /// ActivityRequestForm or IsoAttendanceSheet). Limits come from <c>Attachments</c> in appsettings.json.
+    /// </summary>
     [HttpPost]
     [Consumes("multipart/form-data")]
     [Produces("application/json")]
@@ -26,7 +30,8 @@ public sealed class AttachmentsController(IReceiptAttachmentService attachments)
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<AttachmentDto>> Upload(Guid reportId, IFormFile? file, CancellationToken ct)
+    public async Task<ActionResult<AttachmentDto>> Upload(
+        Guid reportId, IFormFile? file, [FromForm] AttachmentDocumentType? documentType, CancellationToken ct)
     {
         if (file is null || file.Length == 0)
         {
@@ -40,7 +45,7 @@ public sealed class AttachmentsController(IReceiptAttachmentService attachments)
             content = stream.ToArray();
         }
 
-        var saved = await attachments.UploadAsync(reportId, new UploadAttachmentRequest(file.FileName, file.ContentType, content), ct);
+        var saved = await attachments.UploadAsync(reportId, new UploadAttachmentRequest(file.FileName, file.ContentType, content, documentType ?? AttachmentDocumentType.Receipt), ct);
         return Created($"/api/reports/{reportId}/attachments/{saved.Id}/content", saved);
     }
 
