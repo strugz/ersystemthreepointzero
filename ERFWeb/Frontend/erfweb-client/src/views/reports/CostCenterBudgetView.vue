@@ -101,8 +101,8 @@ watch([year, approvedOnly], () => {
     <template #actions>
       <AppExportButton :loading="exporting" :disabled="!report || report.costCenters.length === 0" @export="exportBudgets" />
     </template>
-    <template #bottom>
-      <AppExportButton :loading="exporting" :disabled="!report || report.costCenters.length === 0" @export="exportBudgets" />
+    <template #actions-mobile>
+      <AppExportButton compact :loading="exporting" :disabled="!report || report.costCenters.length === 0" @export="exportBudgets" />
     </template>
 
     <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">

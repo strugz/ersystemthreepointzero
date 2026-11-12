@@ -148,11 +148,14 @@ const crumbs = computed<Crumb[]>(() => [
   { title: report.value?.referenceNo || 'Expense report', mono: !!report.value?.referenceNo },
 ]);
 
+const periodLabel = computed(() => {
+  const r = report.value;
+  return r && (r.dateFrom || r.dateTo) ? `${formatDate(r.dateFrom)} – ${formatDate(r.dateTo)}` : '';
+});
 const subtitle = computed(() => {
   const r = report.value;
   if (!r) return '';
-  const parts = [reportTypeLabel[r.reportType], r.dateFrom || r.dateTo ? `${formatDate(r.dateFrom)} – ${formatDate(r.dateTo)}` : null];
-  return parts.filter(Boolean).join(' · ');
+  return [reportTypeLabel[r.reportType], periodLabel.value].filter(Boolean).join(' · ');
 });
 
 // ---- header ---------------------------------------------------------------
@@ -182,6 +185,11 @@ const savingLine = ref(false);
 const lineErrors = ref<Record<string, string[]> | null>(null);
 const busyLineId = ref<number | null>(null);
 const removingLine = ref<ExpenseLine | null>(null);
+
+function removeFromDialog(line: ExpenseLine) {
+  lineDialog.value = false;
+  removingLine.value = line;
+}
 
 const lastLineDate = computed(() => {
   const lines = report.value?.lines ?? [];
@@ -514,7 +522,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
     <!-- Phone header -->
     <template #title-mobile>
       <div v-if="report" class="text-body-1 font-weight-medium text-truncate" :class="{ mono: !!report.referenceNo }">{{ report.referenceNo || 'Expense report' }}</div>
-      <div v-if="report" class="text-caption text-medium-emphasis text-truncate">{{ subtitle }}</div>
+      <div v-if="report" class="text-caption text-medium-emphasis text-truncate">{{ periodLabel || subtitle }}</div>
     </template>
     <template #actions-mobile>
       <template v-if="report">
@@ -579,10 +587,11 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         <!-- Totals move above the document when there is no side column -->
         <ReportTotalsCard v-if="!lgAndUp" :total="report.totalAmount" :cash-advance="report.cashAdvanceTotal" :variant="xs ? 'card' : 'strip'" />
 
-        <ReportDetailsCard v-model:open="detailsOpen" :report="report" :editable="report.canEdit" :saving="savingHeader" @save="saveHeader" />
+        <ReportDetailsCard v-model:open="detailsOpen" class="editor__details" :report="report" :editable="report.canEdit" :saving="savingHeader" @save="saveHeader" />
 
         <CashAdvancesCard
           v-if="usesCashAdvance(report.reportType)"
+          class="editor__details"
           :lines="report.cashAdvances"
           :editable="report.canEdit"
           :busy-id="busyCashId"
@@ -591,7 +600,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
           @remove="removingCash = $event"
         />
 
-        <v-card>
+        <v-card class="editor__lines">
           <div class="card-h">
             <div class="d-flex align-baseline ga-3 flex-wrap">
               <span class="card-t">Expense lines</span>
@@ -615,13 +624,13 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         </v-card>
 
         <!-- Below-the-document cards on tablet / small desktop -->
-        <div v-if="!lgAndUp" class="editor__two-up">
+        <div v-if="!lgAndUp" class="editor__two-up editor__after">
           <FilingChecklist v-if="report.canFile" :items="checklist" :approver-names="readiness?.approverNames ?? []" />
           <ApprovalTimeline :steps="report.approvalSteps" :status="report.status" :cycle="report.currentCycle" />
           <FinanceSummaryCard v-if="report.finance" :finance="report.finance" />
           <VerificationCard v-if="report.verification?.requests.length" :panel="report.verification" />
           <AttachmentsPanel
-            class="editor__span"
+            class="editor__span editor__receipts"
             :report-id="report.id"
             :attachments="report.attachments"
             :editable="report.canEdit"
@@ -667,6 +676,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :attached-document-types="report?.attachments.map((a) => a.documentType ?? 'Receipt') ?? []"
         :uploading-document="uploading"
         @upload-document="upload"
+        @remove="removeFromDialog"
         :crm-list="crmList"
         :crm-loading="crmLoading"
         :crm-error="crmError"
@@ -801,6 +811,19 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
   }
   .editor__span {
     grid-column: span 1;
+  }
+  /* Phone: the lines come straight after the total, then receipts; the header details fold below them. */
+  .editor__lines {
+    order: 1;
+  }
+  .editor__details {
+    order: 2;
+  }
+  .editor__after {
+    order: 3;
+  }
+  .editor__receipts {
+    order: -1;
   }
 }
 </style>

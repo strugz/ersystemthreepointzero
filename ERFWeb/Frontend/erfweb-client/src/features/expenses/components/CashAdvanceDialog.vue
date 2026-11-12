@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
+import { useDisplay } from 'vuetify';
 import { formatMoney, todayIso } from '@/shared/format';
 import type { CashAdvanceLine, SaveCashAdvanceLineInput } from '../types';
 
@@ -14,6 +15,8 @@ const props = withDefaults(
   }>(),
   { line: null, saving: false, errors: null },
 );
+
+const { xs } = useDisplay();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
@@ -79,7 +82,7 @@ function close() {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="640" :persistent="saving" @update:model-value="close">
+  <v-dialog :model-value="modelValue" max-width="640" :fullscreen="xs" :persistent="saving" @update:model-value="close">
     <v-card>
       <v-card-title class="d-flex align-center">
         <span class="text-subtitle-1 font-weight-bold">{{ isEdit ? 'Edit cash advance' : 'Add cash advance' }}</span>

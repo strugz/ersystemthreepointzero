@@ -9,8 +9,10 @@ const props = withDefaults(
     loading?: boolean;
     disabled?: boolean;
     label?: string;
+    /** Icon only, for the phone header, so a list page keeps the bottom navigation. */
+    compact?: boolean;
   }>(),
-  { formats: () => ['Csv'], loading: false, disabled: false, label: 'Export' },
+  { formats: () => ['Csv'], loading: false, disabled: false, label: 'Export', compact: false },
 );
 
 const emit = defineEmits<{ export: [format: ExportFormat] }>();
@@ -23,26 +25,32 @@ const formatIcon: Record<ExportFormat, string> = { Csv: 'mdi-file-delimited-outl
   <v-btn
     v-if="props.formats.length === 1"
     class="press"
-    variant="outlined"
-    prepend-icon="mdi-download-outline"
+    :variant="props.compact ? 'text' : 'outlined'"
+    :icon="props.compact"
+    :prepend-icon="props.compact ? undefined : 'mdi-download-outline'"
+    :aria-label="props.label"
     :loading="props.loading"
     :disabled="props.disabled"
     @click="emit('export', props.formats[0])"
   >
-    {{ props.label }}
+    <v-icon v-if="props.compact" icon="mdi-download-outline" />
+    <template v-else>{{ props.label }}</template>
   </v-btn>
   <v-menu v-else location="bottom end">
     <template #activator="{ props: activator }">
       <v-btn
         v-bind="activator"
         class="press"
-        variant="outlined"
-        prepend-icon="mdi-download-outline"
-        append-icon="mdi-menu-down"
+        :variant="props.compact ? 'text' : 'outlined'"
+        :icon="props.compact"
+        :prepend-icon="props.compact ? undefined : 'mdi-download-outline'"
+        :append-icon="props.compact ? undefined : 'mdi-menu-down'"
+        :aria-label="props.label"
         :loading="props.loading"
         :disabled="props.disabled"
       >
-        {{ props.label }}
+        <v-icon v-if="props.compact" icon="mdi-download-outline" />
+        <template v-else>{{ props.label }}</template>
       </v-btn>
     </template>
     <v-list density="compact">

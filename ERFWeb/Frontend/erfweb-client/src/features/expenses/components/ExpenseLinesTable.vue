@@ -36,9 +36,20 @@ const groups = computed(() => groupLines(props.lines));
 const grandTotal = computed(() => props.lines.reduce((s, l) => s + l.totalAmount, 0));
 const vatTotal = computed(() => props.lines.reduce((s, l) => s + l.vatAmount, 0));
 
+function groupPlace(g: LineGroup): string {
+  return [g.location, g.workWith].filter(Boolean).join(' · ');
+}
+
 function groupLabel(g: LineGroup): string {
-  const parts = [g.location, g.workWith].filter(Boolean);
-  return parts.length ? parts.join(' · ') : '—';
+  return groupPlace(g) || '—';
+}
+
+/** Phone subtitle: what tells this line apart, never the category repeated under a title that already says it. */
+function phoneDetail(line: ExpenseLine): string | null {
+  if (line.meals.length) return line.meals.map((m) => m.mealType).join(', ');
+  if (line.location) return line.location;
+  const category = categoryLabel[line.category];
+  return line.particulars?.trim().toLowerCase() === category.toLowerCase() ? null : category;
 }
 
 function subline(line: ExpenseLine): string | null {
@@ -70,30 +81,19 @@ function adjustmentNote(line: ExpenseLine): string | null {
     <div v-else-if="xs" class="list">
       <template v-for="g in groups" :key="g.key">
         <div class="list__group">
-          <span>{{ formatDate(g.date) }} · {{ groupLabel(g) }}</span>
+          <span>{{ formatDate(g.date) }}<template v-if="groupPlace(g)"> · {{ groupPlace(g) }}</template></span>
           <span class="mono">{{ formatMoney(g.total) }}</span>
         </div>
         <div v-for="line in g.lines" :key="line.id" class="list__row" :class="{ 'list__row--busy': busyLineId === line.id }">
           <button type="button" class="list__main press" :disabled="!hasActions" @click="openLine(line)">
             <span class="list__title">{{ line.particulars }}</span>
-            <span class="list__sub">
-              <span v-if="line.invoiceOrNo" class="mono">OR {{ line.invoiceOrNo }}</span>
-              <span v-else>{{ categoryLabel[line.category] }}</span>
-              <span v-if="subline(line)"> · {{ subline(line) }}</span>
+            <span v-if="phoneDetail(line) || line.invoiceOrNo || subline(line)" class="list__sub">
+              {{ [phoneDetail(line), line.invoiceOrNo ? `OR ${line.invoiceOrNo}` : null, subline(line)].filter(Boolean).join(' · ') }}
             </span>
             <span v-if="line.adjustment" class="adj">{{ adjustmentNote(line) }}</span>
           </button>
+          <!-- Removing is in the line dialog on phones: an ✕ beside the amount was too easy to hit. -->
           <span class="mono list__amt">{{ formatMoney(line.totalAmount) }}</span>
-          <v-btn
-            v-if="editable"
-            class="press"
-            icon="mdi-close"
-            size="x-small"
-            variant="text"
-            aria-label="Remove line"
-            :loading="busyLineId === line.id"
-            @click="emit('remove', line)"
-          />
         </div>
       </template>
       <div class="list__foot">
@@ -210,7 +210,7 @@ function adjustmentNote(line: ExpenseLine): string | null {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 8px 0 16px;
+  padding: 0 16px;
   min-height: 52px;
   border-bottom: 1px solid var(--line);
   transition: opacity var(--dur-fast) var(--ease-out);

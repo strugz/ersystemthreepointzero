@@ -134,8 +134,8 @@ watch([from, to, scope, departmentId, approvedOnly], () => void load());
     <template #actions>
       <AppExportButton :formats="['Csv', 'Pdf']" :loading="exporting" :disabled="!!periodError || !summary" @export="exportSummary" />
     </template>
-    <template #bottom>
-      <AppExportButton :formats="['Csv', 'Pdf']" :loading="exporting" :disabled="!!periodError || !summary" @export="exportSummary" />
+    <template #actions-mobile>
+      <AppExportButton compact :formats="['Csv', 'Pdf']" :loading="exporting" :disabled="!!periodError || !summary" @export="exportSummary" />
     </template>
 
     <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
@@ -188,11 +188,37 @@ watch([from, to, scope, departmentId, approvedOnly], () => void load());
         :hint="`Nothing filed or approved with an expense date from ${formatDate(from)} to ${formatDate(to)}.`"
       />
 
+      <!-- Phone: one row per employee, the categories they used under the name -->
+      <div v-else-if="summary && xs" class="rows">
+        <div v-for="(e, i) in summary.employees" :key="e.employeeUserId" class="row stagger-in" :style="{ '--i': Math.min(i, 10) }">
+          <div class="row__top">
+            <div class="row__main">
+              <div class="row__name">{{ e.employeeName }}</div>
+              <div class="row__meta">
+                <template v-if="e.departmentName">{{ e.departmentName }} · </template>{{ e.lineCount }} line{{ e.lineCount === 1 ? '' : 's' }}
+              </div>
+            </div>
+            <span class="mono row__amt">{{ formatMoney(e.total) }}</span>
+          </div>
+          <div class="row__cats">
+            <span v-for="c in usedCategories.filter((c) => e.byCategory[c])" :key="c">
+              {{ categoryLabel[c] }} <span class="mono">{{ formatMoney(e.byCategory[c]) }}</span>
+            </span>
+          </div>
+        </div>
+        <div class="row row--total">
+          <div class="row__top">
+            <span class="row__name">Total</span>
+            <span class="mono row__amt">{{ formatMoney(summary.total) }}</span>
+          </div>
+        </div>
+      </div>
+
       <div v-else-if="summary" class="table-wrap">
         <table class="ledger">
           <thead>
             <tr>
-              <th>Employee</th>
+              <th class="sticky-col">Employee</th>
               <th class="r">Lines</th>
               <th v-for="c in usedCategories" :key="c" class="r">{{ categoryLabel[c] }}</th>
               <th class="r">Total</th>
@@ -200,7 +226,7 @@ watch([from, to, scope, departmentId, approvedOnly], () => void load());
           </thead>
           <tbody>
             <tr v-for="(e, i) in summary.employees" :key="e.employeeUserId" class="stagger-in" :style="{ '--i': Math.min(i, 10) }">
-              <td>
+              <td class="sticky-col">
                 <div>{{ e.employeeName }}</div>
                 <div v-if="e.departmentName" class="text-caption text-medium-emphasis">{{ e.departmentName }}</div>
               </td>
@@ -211,7 +237,7 @@ watch([from, to, scope, departmentId, approvedOnly], () => void load());
           </tbody>
           <tfoot>
             <tr class="totals">
-              <td>Total</td>
+              <td class="sticky-col">Total</td>
               <td class="r mono">{{ summary.lineCount }}</td>
               <td v-for="c in usedCategories" :key="c" class="r mono">{{ formatMoney(summary.byCategory[c]) }}</td>
               <td class="r mono">{{ formatMoney(summary.total) }}</td>
@@ -254,5 +280,61 @@ watch([from, to, scope, departmentId, approvedOnly], () => void load());
 .totals td {
   font-weight: 600;
   border-top: 2px solid var(--line);
+}
+.table-wrap {
+  overflow-x: auto;
+}
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: rgb(var(--v-theme-surface));
+  min-width: 180px;
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+.row {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.row__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.row__main {
+  flex: 1;
+  min-width: 0;
+}
+.row__name {
+  font-size: 14px;
+  font-weight: 500;
+}
+.row__meta {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.row__amt {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.row__cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.row--total {
+  border-top: 2px solid var(--line);
+  border-bottom: 0;
+}
+.row--total .row__top {
+  justify-content: space-between;
+  font-weight: 600;
 }
 </style>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
+import { useDisplay } from 'vuetify';
 import { addDaysIso, todayIso } from '@/shared/format';
 import { fieldErrors, personItems, textOrNull } from '../forms';
 import type { FieldErrors } from '../forms';
@@ -32,6 +33,8 @@ const props = withDefaults(
   }>(),
   { existing: null, editing: null, saving: false, errors: null },
 );
+
+const { xs } = useDisplay();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
@@ -210,7 +213,7 @@ function close() {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="560" scrollable :persistent="saving" @update:model-value="close">
+  <v-dialog :model-value="modelValue" max-width="560" :fullscreen="xs" scrollable :persistent="saving" @update:model-value="close">
     <v-card>
       <v-card-title class="text-subtitle-1 font-weight-bold">{{ isEdit ? `Edit assignment · ${profileName}` : `Assign ${profileName}` }}</v-card-title>
       <v-card-text>

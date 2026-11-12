@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
+import { useDisplay } from 'vuetify';
 import { formatMoney, todayIso } from '@/shared/format';
 import { hasCamera } from '@/shared/images';
 import AppCameraCapture from '@/shared/ui/AppCameraCapture.vue';
@@ -70,6 +71,8 @@ const props = withDefaults(
   },
 );
 
+const { xs } = useDisplay();
+
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   save: [input: SaveExpenseLineInput];
@@ -79,6 +82,8 @@ const emit = defineEmits<{
   'crm-load': [date: string];
   /** Upload the document the chosen category needs; the parent attaches it to the report under Receipts. */
   'upload-document': [file: File, documentType: AttachmentDocumentType];
+  /** Remove the line being edited; the parent confirms first. */
+  remove: [line: ExpenseLine];
 }>();
 
 const blank = (): SaveExpenseLineInput => ({
@@ -493,7 +498,7 @@ function close() {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="760" scrollable :persistent="saving" @update:model-value="close">
+  <v-dialog :model-value="modelValue" max-width="760" :fullscreen="xs" scrollable :persistent="saving" @update:model-value="close">
     <v-card class="eline">
       <header class="eline__head">
         <div>
@@ -793,6 +798,7 @@ function close() {
           <span v-if="amountFormula" class="total__formula mono">{{ amountFormula }}</span>
         </div>
         <div class="eline__actions">
+          <v-btn v-if="line" class="press eline__remove" variant="text" color="error" :disabled="saving" @click="emit('remove', line)">Remove</v-btn>
           <v-btn class="press" variant="text" :disabled="saving" @click="close">Cancel</v-btn>
           <v-btn class="press" color="primary" variant="flat" :loading="saving" :disabled="!canSave" @click="save">
             {{ isEdit ? 'Save line' : 'Add line' }}
@@ -1091,25 +1097,7 @@ function close() {
   .cats {
     grid-template-columns: repeat(3, 1fr);
   }
-}
-@media (max-width: 559.98px) {
-  .eline__head {
-    padding: 16px 12px 0 16px;
-  }
-  .eline__body {
-    padding: 12px 16px 4px !important;
-  }
-  .eline__row,
-  .eline__row--three {
-    grid-template-columns: 1fr;
-  }
-  .eline__row--when {
-    grid-template-columns: 1fr;
-  }
-  .seg {
-    justify-self: start;
-  }
-  /* Phone: mode and remove on top, From / To, then fare (and the typed mode). */
+  /* Phone and small tablet: mode and remove on top, From / To, then fare (and the typed mode). */
   .leg {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     padding-bottom: 10px;
@@ -1139,11 +1127,39 @@ function close() {
   .leg__detail {
     grid-column: 1 / 4;
   }
+}
+@media (max-width: 559.98px) {
+  .eline__head {
+    padding: 16px 12px 0 16px;
+  }
+  .eline__body {
+    padding: 12px 16px 4px !important;
+  }
+  .eline__row,
+  .eline__row--three {
+    grid-template-columns: 1fr;
+  }
+  .eline__row--when {
+    grid-template-columns: 1fr;
+  }
+  .seg {
+    justify-self: start;
+  }
   .more__hint {
     display: none;
   }
+  /* Full screen on phones: total on its own line, buttons below, clear of the home indicator. */
   .eline__foot {
-    padding: 12px 16px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  }
+  .eline__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .eline__remove {
+    margin-right: auto;
   }
 }
 </style>
