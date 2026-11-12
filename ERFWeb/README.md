@@ -26,7 +26,11 @@ section of the root `CLAUDE.md`) in the same change.
   its profiles as rows on phones (name and status, then lines in force and assignments) instead of a cut-off table, and
   so do a profile's **Rate lines** (category and amount, status and period, rule, then Edit / New version), the
   **Audit** log (event, then when and who; tap for the detail) and the report editor's **Cash advance received** (tap a
-  row to edit; **Remove** is in the advance dialog, as for expense lines). Tablet and
+  row to edit; **Remove** is in the advance dialog, as for expense lines). The **R47 PDF** page has a **Rotate** button on
+  phones that turns the viewer a quarter turn and fits the whole page, so the landscape form fills the screen when the
+  phone is held sideways (even with rotation lock on). Phone expense line rows show what tapping does: a chevron when the
+  line can be edited, and on the review screen the lower-amount arrow, with the hint "Tap a line marked … to lower its
+  amount". Tablet and
   desktop keep the rail and avatar menu; both read the same entries from `layouts/useAppNavigation.ts`. Frontend
   only, SPA 0.7.2 (patch); no database script.
 - **Phone and tablet layout fixes** (PR #54). **Expense summary** and **Meal claims** no longer

@@ -292,7 +292,9 @@ async function saveAdjust(amount: number, reason: string) {
           You have no action on this report right now. It is waiting for another step, or your step is done.
         </v-alert>
         <v-alert v-if="review?.canAdjustLines" type="info" variant="tonal" density="compact" icon="mdi-arrow-down-bold-circle-outline">
-          You can lower a line amount, with a reason, before you approve. Amounts lock after the first approval.
+          <template v-if="xs">Tap a line marked <v-icon icon="mdi-arrow-down-bold-circle-outline" size="16" color="primary" /> to lower its amount, with a reason, before you approve.</template>
+          <template v-else>Use <v-icon icon="mdi-arrow-down-bold-circle-outline" size="16" color="primary" /> beside a line to lower its amount, with a reason, before you approve.</template>
+          Amounts lock after the first approval.
         </v-alert>
         <v-alert v-if="report.status === 'Rejected' || report.status === 'Returned'" :type="report.status === 'Rejected' ? 'error' : 'warning'" density="compact">
           <div class="font-weight-medium">{{ report.status === 'Rejected' ? 'Rejected' : 'Returned to the employee' }}</div>

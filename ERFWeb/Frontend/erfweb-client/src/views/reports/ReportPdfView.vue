@@ -38,6 +38,12 @@ const pdfUrl = ref<string | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 const frame = ref<HTMLIFrameElement | null>(null);
+// Phones: the landscape R47 is tiny at portrait width; turning the viewer a quarter turn lets it fill the
+// screen when the phone is held sideways, even with the phone's own rotation lock on.
+const rotated = ref(false);
+// Rotated, the viewer is wider than tall: fit the whole page and hide the viewer's own toolbar and thumbnails,
+// which would otherwise take the room (PDF open parameters; viewers that ignore them still show the page).
+const frameSrc = computed(() => (pdfUrl.value && xs.value && rotated.value ? `${pdfUrl.value}#toolbar=0&navpanes=0&view=Fit` : pdfUrl.value ?? undefined));
 const snack = useSnackbar();
 
 const emails = ref<ReportEmailDelivery[]>([]);
@@ -228,9 +234,17 @@ function print() {
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
     <v-alert v-else-if="error" type="error">{{ error }}</v-alert>
-    <v-card v-else class="pdf-card">
-      <iframe ref="frame" :src="pdfUrl ?? undefined" title="Expense Report PDF" class="pdf-frame" />
-    </v-card>
+    <template v-else>
+      <div v-if="xs" class="rotate-bar">
+        <span class="text-caption text-medium-emphasis">{{ rotated ? 'Turn your phone sideways to read.' : 'Landscape form: rotate to read it larger.' }}</span>
+        <v-btn class="press" size="small" :variant="rotated ? 'flat' : 'outlined'" color="primary" prepend-icon="mdi-phone-rotate-landscape" :aria-pressed="rotated" @click="rotated = !rotated">
+          {{ rotated ? 'Upright' : 'Rotate' }}
+        </v-btn>
+      </div>
+      <v-card class="pdf-card" :class="{ 'pdf-card--rotated': xs && rotated }">
+        <iframe :key="frameSrc" ref="frame" :src="frameSrc" title="Expense Report PDF" class="pdf-frame" />
+      </v-card>
+    </template>
 
     <ApprovalActionDialog :action="action" :loading="acting" :error="actionError" @close="action = null" @confirm="confirmAction" />
   </AuthenticatedLayout>
@@ -251,5 +265,29 @@ function print() {
   .pdf-frame {
     height: 70vh;
   }
+}
+.rotate-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+/* A quarter turn clockwise: the viewer's width becomes the card's height and vice versa (container query units),
+   so the page's top sits on the right edge, which is the top when the phone is turned to the left. */
+.pdf-card--rotated {
+  position: relative;
+  /* Header, the email line, the rotate bar and the bottom action bar stay in view. */
+  height: calc(100dvh - 250px);
+  container-type: size;
+}
+.pdf-card--rotated .pdf-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100cqh;
+  height: 100cqw;
+  transform-origin: top left;
+  transform: translateX(100cqw) rotate(90deg);
 }
 </style>
