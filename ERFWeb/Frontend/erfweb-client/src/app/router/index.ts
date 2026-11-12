@@ -72,6 +72,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: ['SignatoryLevel1', 'SignatoryLevel2'] },
   },
   {
+    path: '/more',
+    name: 'more',
+    component: () => import('@/views/MoreView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/account/password',
     name: 'change-password',
     component: () => import('@/views/auth/ChangePasswordView.vue'),
