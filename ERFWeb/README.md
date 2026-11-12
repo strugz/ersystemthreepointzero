@@ -35,7 +35,9 @@ section of the root `CLAUDE.md`) in the same change.
   (`shared/composables/useLayoutMode.ts`, switch `TABLET_PHONE_LAYOUT`; `compact` = phone or tablet, `tablet` for
   tablet-only tweaks): a centred 760px column with 24px padding, and flat lists (My reports, Approvals, Users, Scope,
   coverage, rate assignments, role grants, Rates) in two columns (`rows--tablet` in `main.css`). Phones and desktop
-  (960px and up) are unchanged. The
+  (960px and up) are unchanged. In the phone and tablet report editor the ⋮ menu is gone: a printer icon in the
+  header opens the R47, **Reopen to edit** sits in the read-only banner that explains it, and only a draft keeps a ⋮
+  (Delete report). The
   **R47 PDF** page has a **Rotate** button on
   phones that turns the viewer a quarter turn and fits the whole page, so the landscape form fills the screen when the
   phone is held sideways (even with rotation lock on). Phone expense line rows show what tapping does: a chevron when the

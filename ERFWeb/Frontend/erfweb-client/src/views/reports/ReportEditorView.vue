@@ -533,18 +533,16 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
     </template>
     <template #actions-mobile>
       <template v-if="report">
-        <ReportStatusChip :status="report.status" />
-        <v-menu location="bottom end" :offset="6">
+        <ReportStatusChip :status="report.status" class="mr-1" />
+        <!-- The R47 is one tap away; Reopen sits in the read-only banner that explains it; only Delete stays in a menu. -->
+        <v-btn class="press" icon="mdi-printer-outline" variant="text" aria-label="R47 PDF" :to="{ name: 'report-pdf', params: { id: report.id } }" />
+        <v-menu v-if="report.canDelete" location="bottom end" :offset="6">
           <template #activator="{ props: menu }">
             <v-btn v-bind="menu" class="press" icon="mdi-dots-vertical" variant="text" aria-label="More actions" />
           </template>
-          <v-card min-width="220" class="pa-1">
-            <v-list density="compact" class="py-0">
-              <v-list-item prepend-icon="mdi-printer-outline" title="R47 PDF" :to="{ name: 'report-pdf', params: { id: report.id } }" />
-              <v-list-item v-if="report.canReopen" prepend-icon="mdi-lock-open-variant-outline" title="Reopen for editing" @click="reopenDialog = true" />
-              <v-list-item v-if="report.canDelete" prepend-icon="mdi-delete-outline" title="Delete report" base-color="error" @click="deleteDialog = true" />
-            </v-list>
-          </v-card>
+          <v-list density="compact" class="py-1" min-width="200">
+            <v-list-item prepend-icon="mdi-delete-outline" title="Delete report" base-color="error" @click="deleteDialog = true" />
+          </v-list>
         </v-menu>
       </template>
     </template>
@@ -581,6 +579,9 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         </v-alert>
         <v-alert v-else-if="!report.canEdit && report.canReopen" type="info" density="compact">
           This report is awaiting approval and is read-only. No approver has acted yet, so you can still reopen it to make changes.
+          <div v-if="compact" class="mt-2">
+            <v-btn class="press" size="small" variant="flat" color="primary" prepend-icon="mdi-lock-open-variant-outline" @click="reopenDialog = true">Reopen to edit</v-btn>
+          </div>
         </v-alert>
         <v-alert v-else-if="report.status === 'ForApproval'" type="info" density="compact">
           An approver has already acted, so the amounts are locked. Ask your approver to return the report if something must change.
