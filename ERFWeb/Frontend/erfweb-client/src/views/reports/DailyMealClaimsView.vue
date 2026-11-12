@@ -173,11 +173,43 @@ watch([from, to, departmentId, approvedOnly], () => void load());
         :hint="`No filed or approved meal lines with an expense date from ${formatDate(from)} to ${formatDate(to)}.`"
       />
 
+      <!-- Phone: a header per day, then one row per employee with the meals claimed -->
+      <div v-else-if="report && xs" class="rows">
+        <template v-for="day in report.days" :key="day.date">
+          <div class="row row--day">
+            <div class="row__top">
+              <div class="row__main">
+                <div class="row__name">{{ dayLabel(day.date) }}</div>
+                <div class="row__meta">{{ day.employeeCount }} employee{{ day.employeeCount === 1 ? '' : 's' }}</div>
+              </div>
+              <span class="mono row__amt">{{ formatMoney(day.amount) }}</span>
+            </div>
+          </div>
+          <div v-for="e in day.employees" :key="e.employeeUserId" class="row">
+            <div class="row__top">
+              <div class="row__main">
+                <div class="row__name">{{ e.employeeName }}</div>
+                <div v-if="e.departmentName" class="row__meta">{{ e.departmentName }}</div>
+              </div>
+              <span class="mono row__amt">{{ formatMoney(e.amount) }}</span>
+            </div>
+            <div class="row__meals">{{ MEALS.filter((m) => e[m.key]).map((m) => m.label).join(' · ') }}</div>
+            <div v-if="e.referenceNos.length" class="row__refs mono">{{ e.referenceNos.join(', ') }}</div>
+          </div>
+        </template>
+        <div class="row row--total">
+          <div class="row__top">
+            <span class="row__name">Total</span>
+            <span class="mono row__amt">{{ formatMoney(report.total) }}</span>
+          </div>
+        </div>
+      </div>
+
       <div v-else-if="report" class="table-wrap">
         <table class="ledger">
           <thead>
             <tr>
-              <th>Employee</th>
+              <th class="sticky-col">Employee</th>
               <th>ERF reference</th>
               <th v-for="m in MEALS" :key="m.key" class="c">{{ m.label }}</th>
               <th class="r">Amount</th>
@@ -185,7 +217,7 @@ watch([from, to, departmentId, approvedOnly], () => void load());
           </thead>
           <tbody v-for="day in report.days" :key="day.date">
             <tr class="day">
-              <td colspan="2">
+              <td colspan="2" class="sticky-col">
                 <strong>{{ dayLabel(day.date) }}</strong>
                 <span class="text-medium-emphasis"> · {{ day.employeeCount }} employee{{ day.employeeCount === 1 ? '' : 's' }}</span>
               </td>
@@ -193,7 +225,7 @@ watch([from, to, departmentId, approvedOnly], () => void load());
               <td class="r mono">{{ formatMoney(day.amount) }}</td>
             </tr>
             <tr v-for="e in day.employees" :key="e.employeeUserId">
-              <td>
+              <td class="sticky-col">
                 <div>{{ e.employeeName }}</div>
                 <div v-if="e.departmentName" class="text-caption text-medium-emphasis">{{ e.departmentName }}</div>
               </td>
@@ -206,7 +238,7 @@ watch([from, to, departmentId, approvedOnly], () => void load());
           </tbody>
           <tfoot>
             <tr class="totals">
-              <td colspan="2">Total</td>
+              <td colspan="2" class="sticky-col">Total</td>
               <td :colspan="MEALS.length" />
               <td class="r mono">{{ formatMoney(report.total) }}</td>
             </tr>
@@ -255,5 +287,71 @@ watch([from, to, departmentId, approvedOnly], () => void load());
 .totals td {
   font-weight: 600;
   border-top: 2px solid var(--line);
+}
+.table-wrap {
+  overflow-x: auto;
+}
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: rgb(var(--v-theme-surface));
+  min-width: 180px;
+}
+.day .sticky-col {
+  background: var(--paper);
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+.row {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.row__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.row__main {
+  flex: 1;
+  min-width: 0;
+}
+.row__name {
+  font-size: 14px;
+  font-weight: 500;
+}
+.row__meta {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.row__amt {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.row__meals {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.row__refs {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+.row--day {
+  background: var(--paper);
+  border-top: 2px solid var(--line);
+}
+.row--total {
+  border-top: 2px solid var(--line);
+  border-bottom: 0;
+}
+.row--total .row__top {
+  justify-content: space-between;
+  font-weight: 600;
 }
 </style>

@@ -582,7 +582,7 @@ defineExpose({ isDirty });
     </v-card>
 
     <!-- Stays in view while scrolling, so a change is never far from its save. -->
-    <div class="savebar d-flex align-center ga-2">
+    <div class="savebar d-flex align-center flex-wrap ga-2">
       <span v-if="isDirty" class="text-caption text-medium-emphasis">Unsaved changes</span>
       <v-spacer />
       <v-btn class="press" variant="text" :disabled="!isDirty || saving" @click="reset">Discard changes</v-btn>
@@ -594,7 +594,8 @@ defineExpose({ isDirty });
 <style scoped>
 .savebar {
   position: sticky;
-  bottom: 0;
+  /* Above the phone bottom navigation, which Vuetify reports as the layout's bottom inset. */
+  bottom: var(--v-layout-bottom, 0px);
   z-index: 2;
   padding: 10px 0;
   background: var(--paper);

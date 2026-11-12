@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { useDisplay } from 'vuetify';
 import { formatDate } from '@/shared/format';
 import { balanceDueTo, reportTypeLabel, usesCashAdvance, usesRevolvingFund } from '../labels';
 import ReportHeaderForm from './ReportHeaderForm.vue';
@@ -10,6 +11,11 @@ import type { ExpenseReportDetail, ReportHeaderInput } from '../types';
 const props = defineProps<{ report: ExpenseReportDetail; editable: boolean; saving: boolean }>();
 const emit = defineEmits<{ save: [input: ReportHeaderInput] }>();
 const open = defineModel<boolean>('open', { default: false });
+
+const { xs } = useDisplay();
+// Phones show a one-line summary under the expense lines; the fields open on tap.
+const expanded = ref(false);
+const showFields = computed(() => !xs.value || expanded.value);
 
 const initial = computed<ReportHeaderInput>(() => ({
   reportType: props.report.reportType,
@@ -36,7 +42,12 @@ const period = computed(() =>
 <template>
   <v-card class="details">
     <div class="card-h">
-      <span class="card-t">Report details</span>
+      <button v-if="xs" type="button" class="details__toggle" :aria-expanded="expanded" @click="expanded = !expanded">
+        <span class="card-t">Report details</span>
+        <span v-if="!expanded" class="details__summary">{{ [reportTypeLabel[report.reportType], period].filter(Boolean).join(' · ') }}</span>
+        <v-icon :icon="expanded ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="18" class="details__chev" />
+      </button>
+      <span v-else class="card-t">Report details</span>
       <div class="d-flex align-center ga-3">
         <span class="card-meta d-none d-sm-inline">Printed on the R47 header</span>
         <v-btn v-if="editable" class="press" size="small" variant="text" color="primary" prepend-icon="mdi-pencil-outline" @click="open = true">
@@ -45,7 +56,7 @@ const period = computed(() =>
       </div>
     </div>
 
-    <div class="details__grid">
+    <div v-if="showFields" class="details__grid">
       <div class="field"><span class="lbl">Report type</span><span class="val">{{ reportTypeLabel[report.reportType] }}</span></div>
       <div class="field"><span class="lbl">ERF reference no.</span><span class="val mono" :class="{ muted: !report.referenceNo }">{{ report.referenceNo || 'Assigned when filed' }}</span></div>
       <div v-if="showCash" class="field"><span class="lbl">Cash advance total</span><span class="val mono" :class="{ muted: cashTotal <= 0 }">{{ cashTotal > 0 ? `${money(cashTotal)} · ${report.cashAdvances.length} row${report.cashAdvances.length === 1 ? '' : 's'}` : 'None entered yet' }}</span></div>
@@ -56,7 +67,7 @@ const period = computed(() =>
       <div class="field"><span class="lbl">Balance due to</span><span class="val">{{ dueTo }}<span class="text-medium-emphasis"> · from the figures</span></span></div>
     </div>
 
-    <v-dialog v-model="open" max-width="920" scrollable :persistent="saving">
+    <v-dialog v-model="open" max-width="920" :fullscreen="xs" scrollable :persistent="saving">
       <v-card>
         <div class="card-h">
           <span class="card-t">Edit report details</span>
@@ -99,11 +110,11 @@ const period = computed(() =>
   .details__wide {
     grid-column: span 1;
   }
+  /* Label above value, so long values (purpose, period) wrap left-aligned instead of ragged on the right. */
   .details__grid .field {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
     padding: 9px 0;
     border-bottom: 1px solid var(--line);
   }
@@ -120,8 +131,38 @@ const period = computed(() =>
   .details__grid .field .val {
     border-bottom: 0;
     padding: 0;
-    text-align: right;
-    font-size: 13px;
+    font-size: 14px;
+  }
+  .details__toggle {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    position: relative;
+    padding: 0 24px 0 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .details__summary {
+    max-width: 100%;
+    font-size: 12px;
+    color: var(--ink-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .details__chev {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-3);
   }
 }
 </style>

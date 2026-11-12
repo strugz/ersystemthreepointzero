@@ -13,7 +13,7 @@ import { rulesSectionOf } from '@/features/admin/types';
 import type { ReminderStatus, RulesSection, SystemSettings, SystemSettingsInput } from '@/features/admin/types';
 
 const snack = useSnackbar();
-const { xs } = useDisplay();
+const { xs, smAndDown } = useDisplay();
 const route = useRoute();
 const router = useRouter();
 
@@ -97,7 +97,7 @@ async function save(input: SystemSettingsInput) {
       <span class="text-body-2 text-medium-emphasis">Approval thresholds, service levels, filing limits, the R47 reviewer and notifications. Changes apply to reports filed from now on.</span>
     </div>
 
-    <v-tabs v-model="tab" color="primary" density="comfortable" :show-arrows="xs" class="mb-4 tabs">
+    <v-tabs v-model="tab" color="primary" density="comfortable" :show-arrows="smAndDown" class="mb-4 tabs">
       <v-tab v-for="t in tabs" :key="t.value" :value="t.value" class="press text-none">
         <v-icon :icon="t.icon" size="18" class="mr-2 d-none d-sm-inline-flex" />{{ t.title }}
       </v-tab>

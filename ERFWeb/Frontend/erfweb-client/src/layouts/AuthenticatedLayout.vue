@@ -47,15 +47,19 @@ const { xs } = useDisplay();
 
 interface NavItem {
   title: string;
+  /** One-word label for the phone bottom bar, where five items share 360px. */
+  short?: string;
+  /** Drawn as the filled button in the phone bottom bar. */
+  primary?: boolean;
   icon: string;
   to: RouteLocationRaw;
   exact: boolean;
 }
 
 const nav: NavItem[] = [
-  { title: 'Dashboard', icon: 'mdi-view-dashboard-outline', to: { name: 'home' }, exact: true },
-  { title: 'My reports', icon: 'mdi-file-document-multiple-outline', to: { name: 'reports' }, exact: false },
-  { title: 'New report', icon: 'mdi-plus', to: { name: 'report-new' }, exact: true },
+  { title: 'Dashboard', short: 'Home', icon: 'mdi-view-dashboard-outline', to: { name: 'home' }, exact: true },
+  { title: 'My reports', short: 'Reports', icon: 'mdi-file-document-multiple-outline', to: { name: 'reports' }, exact: false },
+  { title: 'New report', short: 'New', primary: true, icon: 'mdi-plus', to: { name: 'report-new' }, exact: true },
   { title: 'Summary', icon: 'mdi-chart-box-outline', to: { name: 'expense-summary' }, exact: true },
 ];
 
@@ -370,16 +374,17 @@ async function logout() {
     <slot name="bottom" />
   </v-footer>
   <v-bottom-navigation v-else-if="xs" grow color="primary" bg-color="surface" class="bottom-nav" :elevation="0">
-    <v-btn v-for="item in nav" :key="item.title" :to="item.to" :exact="item.exact" class="press">
-      <v-icon :icon="item.icon" />
-      <span class="text-caption">{{ item.title }}</span>
+    <v-btn v-for="item in nav" :key="item.title" :to="item.to" :exact="item.exact" :aria-label="item.title" class="press bottom-nav__btn">
+      <span v-if="item.primary" class="bottom-nav__new"><v-icon :icon="item.icon" size="20" /></span>
+      <v-icon v-else :icon="item.icon" />
+      <span class="bottom-nav__label">{{ item.short ?? item.title }}</span>
     </v-btn>
     <!-- Phones have no rail or avatar menu, so scope, rates, administration and sign-out live behind "More". -->
     <v-menu v-model="moreOpen" location="top end" :offset="8">
       <template #activator="{ props: menu }">
-        <v-btn v-bind="menu" class="press" :active="moreRouteActive" aria-label="More" aria-haspopup="menu">
+        <v-btn v-bind="menu" class="press bottom-nav__btn" :active="moreRouteActive" aria-label="More" aria-haspopup="menu">
           <v-icon icon="mdi-dots-horizontal" />
-          <span class="text-caption">More</span>
+          <span class="bottom-nav__label">More</span>
         </v-btn>
       </template>
       <v-card min-width="220" class="pa-1">
@@ -756,6 +761,28 @@ async function logout() {
 }
 .bottom-nav {
   border-top: 1px solid var(--line) !important;
+}
+/* Vuetify gives each item min-width 80px, so five items overflowed 360px and clipped the end labels. */
+.bottom-nav__btn {
+  min-width: 0 !important;
+  flex: 1 1 0 !important;
+  padding: 0 2px !important;
+}
+.bottom-nav__label {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.bottom-nav__new {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 24px;
+  border-radius: 8px;
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
 }
 .app-version {
   margin: 32px 0 0;

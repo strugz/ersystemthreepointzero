@@ -18,6 +18,19 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-12
 
+- **Phone and tablet layout fixes** (not yet committed). **Expense summary** and **Meal claims** no longer
+  overflow: on tablets the table scrolls sideways with the Employee column held in place, and on phones each employee
+  is a row (categories or meals claimed listed under the name, then a Total row). The **Rules** page's Save bar sits
+  above the phone bottom navigation and wraps, and its tabs show scroll arrows below 960 px. The expense line dialog
+  and the other large form dialogs (report details, cash advance, CRM activities, delegation, scope and rate dialogs)
+  open full screen on phones; the expense line footer puts the total on its own line, and travel legs stack below
+  700 px. Phone design pass: the bottom bar uses one-word labels (Home, Reports, New, Summary, More) with **New**
+  as a filled button, and no longer clips its end items; the Dashboard shows its three counts in one row and each
+  recent report on two lines (title and amount, then reference, period and status). In the report editor the expense
+  lines come straight after the total, then Receipts, with **Report details** folded to one line below them (tap to
+  open; labels sit above values). Phone line rows show the meals or location instead of repeating the category, the
+  date header drops the "—" when there is no location, and the ✕ beside each amount is gone: **Remove** is in the
+  line dialog (still confirmed first). Frontend only, SPA 0.7.1 (patch); no database script.
 - **Sponsorship, Demo and Representation documents, Finance rules phase 4** (PR #53). Two new expense categories, both printed under
   OTHERS on the R47. A Sponsorship line can be added only once an approved **Activity Request Form** is attached to
   the report, and a Demo line only once an **ISO attendance sheet** is (the line dialog says so and can upload it on

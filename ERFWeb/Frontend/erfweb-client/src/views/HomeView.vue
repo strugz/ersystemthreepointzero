@@ -39,9 +39,9 @@ function open(item: ExpenseReportListItem) {
 }
 
 const tiles = [
-  { key: 'drafts', label: 'Drafts', status: 'New', tone: 'tile--neutral', icon: 'mdi-file-edit-outline' },
-  { key: 'forApproval', label: 'Awaiting approval', status: 'ForApproval', tone: 'tile--warning', icon: 'mdi-timer-sand' },
-  { key: 'returned', label: 'Returned to me', status: 'Returned', tone: 'tile--error', icon: 'mdi-undo-variant' },
+  { key: 'drafts', label: 'Drafts', short: 'Drafts', status: 'New', tone: 'tile--neutral', icon: 'mdi-file-edit-outline' },
+  { key: 'forApproval', label: 'Awaiting approval', short: 'Awaiting', status: 'ForApproval', tone: 'tile--warning', icon: 'mdi-timer-sand' },
+  { key: 'returned', label: 'Returned to me', short: 'Returned', status: 'Returned', tone: 'tile--error', icon: 'mdi-undo-variant' },
 ] as const;
 
 const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
@@ -76,7 +76,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
       >
         <span class="tile__icon"><v-icon :icon="t.icon" size="20" /></span>
         <span class="tile__text">
-          <span class="lbl">{{ t.label }}</span>
+          <span class="lbl">{{ xs ? t.short : t.label }}</span>
           <span class="mono tile__num">{{ counts ? counts[t.key] : '—' }}</span>
         </span>
         <v-icon icon="mdi-arrow-top-right" size="16" class="tile__go" />
@@ -104,11 +104,12 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
           <div class="recent__main">
             <div class="recent__title">{{ item.purpose || item.referenceNo || 'Untitled report' }}</div>
             <div class="recent__meta">
-              <span class="mono">{{ item.referenceNo || 'Draft' }}</span> · {{ formatDate(item.dateFrom) }} – {{ formatDate(item.dateTo) }} · {{ item.lineCount }} line{{ item.lineCount === 1 ? '' : 's' }}
+              <span class="mono">{{ item.referenceNo || 'Draft' }}</span> · {{ formatDate(item.dateFrom) }} – {{ formatDate(item.dateTo) }}
+              <span class="recent__lines">· {{ item.lineCount }} line{{ item.lineCount === 1 ? '' : 's' }}</span>
             </div>
           </div>
           <span class="mono recent__amt">{{ formatMoney(item.totalAmount) }}</span>
-          <ReportStatusChip :status="item.status" />
+          <ReportStatusChip :status="item.status" class="recent__chip" />
         </button>
       </div>
     </v-card>
@@ -123,8 +124,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
 }
 @media (max-width: 599.98px) {
   .tiles {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 8px;
   }
 }
 .hero {
@@ -278,14 +278,20 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
   color: rgb(var(--v-theme-error));
 }
 @media (max-width: 599.98px) {
+  /* Phone: three compact tiles in one row (icon, number, label) instead of three full-width bars. */
   .tile {
-    padding: 12px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+  .tile__icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
   }
   .tile__text {
-    flex: 1;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column-reverse;
   }
   .tile__num {
     font-size: 22px;
@@ -349,9 +355,41 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
   white-space: nowrap;
 }
 @media (max-width: 599.98px) {
+  /* Phone: title and amount on the first line, reference, period and status on the second. */
   .recent__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'title amt'
+      'meta chip';
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 4px;
     padding: 12px 16px;
-    gap: 10px;
+  }
+  .recent__main {
+    display: contents;
+  }
+  .recent__title {
+    grid-area: title;
+    font-weight: 500;
+  }
+  .recent__meta {
+    grid-area: meta;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .recent__lines {
+    display: none;
+  }
+  .recent__amt {
+    grid-area: amt;
+    text-align: right;
+  }
+  .recent__chip {
+    grid-area: chip;
+    justify-self: end;
   }
 }
 </style>

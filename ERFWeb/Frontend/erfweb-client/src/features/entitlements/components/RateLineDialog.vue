@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
+import { useDisplay } from 'vuetify';
 import { addDaysIso, formatDate, todayIso } from '@/shared/format';
 import { fieldErrors, numberOrNull, textOrNull } from '../forms';
 import type { FieldErrors } from '../forms';
@@ -29,6 +30,8 @@ const props = withDefaults(
   }>(),
   { from: null, editing: null, lines: () => [], saving: false, errors: null },
 );
+
+const { xs } = useDisplay();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
@@ -214,7 +217,7 @@ function close() {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="600" scrollable :persistent="saving" @update:model-value="close">
+  <v-dialog :model-value="modelValue" max-width="600" :fullscreen="xs" scrollable :persistent="saving" @update:model-value="close">
     <v-card>
       <v-card-title class="text-subtitle-1 font-weight-bold">{{ title }}</v-card-title>
       <v-card-text>
