@@ -21,6 +21,8 @@ const { xs } = useDisplay();
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   save: [input: SaveCashAdvanceLineInput];
+  /** Remove the advance being edited; the parent confirms first. */
+  remove: [line: CashAdvanceLine];
 }>();
 
 const blank = (): SaveCashAdvanceLineInput => ({
@@ -123,6 +125,7 @@ function close() {
 
       <v-divider />
       <v-card-actions class="px-4 py-3">
+        <v-btn v-if="line" class="press" variant="text" color="error" :disabled="saving" @click="emit('remove', line)">Remove</v-btn>
         <v-spacer />
         <v-btn class="press" variant="text" :disabled="saving" @click="close">{{ isEdit ? 'Cancel' : 'Done' }}</v-btn>
         <v-btn class="press" color="primary" variant="flat" :loading="saving" :disabled="!canSave" @click="save">

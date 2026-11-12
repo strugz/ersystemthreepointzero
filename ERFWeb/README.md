@@ -23,7 +23,10 @@ section of the root `CLAUDE.md`) in the same change.
   (Work queues, Signatory structure, Administration, Wellness), Appearance as one Light / Dark / System switch,
   Change password, and a separate red **Sign out**. The More tab stays highlighted on the sections it opens, and on a
   phone each of them (and Change password) has a Back arrow to More, since they have no other way back. **Rates** lists
-  its profiles as rows on phones (name and status, then lines in force and assignments) instead of a cut-off table. Tablet and
+  its profiles as rows on phones (name and status, then lines in force and assignments) instead of a cut-off table, and
+  so do a profile's **Rate lines** (category and amount, status and period, rule, then Edit / New version), the
+  **Audit** log (event, then when and who; tap for the detail) and the report editor's **Cash advance received** (tap a
+  row to edit; **Remove** is in the advance dialog, as for expense lines). Tablet and
   desktop keep the rail and avatar menu; both read the same entries from `layouts/useAppNavigation.ts`. Frontend
   only, SPA 0.7.2 (patch); no database script.
 - **Phone and tablet layout fixes** (PR #54). **Expense summary** and **Meal claims** no longer

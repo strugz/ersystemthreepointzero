@@ -183,6 +183,27 @@ function clearFilters() {
       <v-btn v-if="hasFilters" class="press" variant="text" @click="clearFilters">Clear filters</v-btn>
     </AppEmptyState>
 
+    <!-- Phone: event on the first line, when and who on the second; tap for the detail -->
+    <div v-else-if="!loading && xs" class="rows">
+      <div v-for="(e, i) in items" :key="e.id" class="mrow stagger-in" :style="{ '--i': Math.min(i, 10) }">
+        <div class="mrow__head">
+          <button type="button" class="mrow__main row-link" :aria-expanded="expanded.has(e.id)" @click="toggle(e.id)">
+            <span class="mono mrow__event">{{ e.event }}</span>
+            <span class="mrow__meta">{{ formatDateTime(e.occurredAt) }} · {{ e.actorName ?? (e.actorUserId !== null ? `#${e.actorUserId}` : 'System') }}</span>
+          </button>
+          <AppTestDeleteButton v-if="showDelete" kind="audit-entries" :id="e.id" :label="`the audit entry ${e.event} of ${formatDateTime(e.occurredAt)}`" @deleted="emit('deleted')" />
+          <v-icon :icon="expanded.has(e.id) ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="18" class="text-medium-emphasis" />
+        </div>
+        <div v-if="expanded.has(e.id)" class="mrow__detail">
+          <div class="audit__meta text-caption text-medium-emphasis">
+            <span v-if="e.reportId">Report: <span class="mono">{{ e.reportId }}</span></span>
+            <span v-if="e.correlationId">Correlation: <span class="mono">{{ e.correlationId }}</span></span>
+          </div>
+          <pre class="audit__json mono">{{ prettyDetail(e.detail) }}</pre>
+        </div>
+      </div>
+    </div>
+
     <div v-else-if="!loading" class="table-wrap">
       <table class="ledger audit">
         <thead>
@@ -276,6 +297,43 @@ function clearFilters() {
   flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 8px;
+}
+.mrow {
+  border-bottom: 1px solid var(--line);
+}
+.mrow:last-child {
+  border-bottom: 0;
+}
+.mrow__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 0;
+}
+.mrow__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0 12px 16px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.mrow__event {
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.mrow__meta {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.mrow__detail {
+  padding: 0 16px 12px;
 }
 .audit__json {
   margin: 0;

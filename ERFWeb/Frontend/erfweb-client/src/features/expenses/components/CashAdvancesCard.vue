@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useDisplay } from 'vuetify';
 import { formatDate, formatMoney } from '@/shared/format';
 import type { CashAdvanceLine } from '../types';
 
@@ -13,6 +14,7 @@ const emit = defineEmits<{
 }>();
 
 const total = computed(() => props.lines.reduce((s, l) => s + l.amount, 0));
+const { xs } = useDisplay();
 </script>
 
 <template>
@@ -27,6 +29,29 @@ const total = computed(() => props.lines.reduce((s, l) => s + l.amount, 0));
 
     <div v-if="lines.length === 0" class="pa-5 text-body-2 text-medium-emphasis">
       No cash advance recorded yet. A Liquidation of Cash Advance needs at least one before filing.
+    </div>
+
+    <!-- Phone: one row per advance; tap to edit (Remove is in the dialog, like expense lines) -->
+    <div v-else-if="xs" class="rows">
+      <button
+        v-for="l in lines"
+        :key="l.id"
+        type="button"
+        class="mrow press"
+        :class="{ 'opacity-50': busyId === l.id }"
+        :disabled="!editable || busyId === l.id"
+        @click="emit('edit', l)"
+      >
+        <span class="mrow__main">
+          <span class="mrow__title">{{ l.referenceDocument || 'Cash advance' }}</span>
+          <span class="mrow__meta">{{ formatDate(l.advanceDate) }}<template v-if="l.referenceNo"> · <span class="mono">{{ l.referenceNo }}</span></template></span>
+        </span>
+        <span class="mono mrow__amt">{{ formatMoney(l.amount) }}</span>
+      </button>
+      <div class="mrow mrow--total">
+        <span class="mrow__title">Total</span>
+        <span class="mono mrow__amt">{{ formatMoney(total) }}</span>
+      </div>
     </div>
 
     <div v-else class="table-wrap">
@@ -70,5 +95,47 @@ const total = computed(() => props.lines.reduce((s, l) => s + l.amount, 0));
 }
 .opacity-50 {
   opacity: 0.5;
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+.mrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.mrow__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mrow__title {
+  font-size: 14px;
+}
+.mrow__meta {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.mrow__amt {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.mrow--total {
+  justify-content: space-between;
+  border-bottom: 0;
+  font-weight: 600;
 }
 </style>

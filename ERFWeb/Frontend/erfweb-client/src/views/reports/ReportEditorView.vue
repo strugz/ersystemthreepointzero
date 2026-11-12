@@ -298,6 +298,11 @@ const cashErrors = ref<Record<string, string[]> | null>(null);
 const busyCashId = ref<number | null>(null);
 const removingCash = ref<CashAdvanceLine | null>(null);
 
+function removeCashFromDialog(line: CashAdvanceLine) {
+  cashDialog.value = false;
+  removingCash.value = line;
+}
+
 function openAddCash() {
   editingCash.value = null;
   cashErrors.value = null;
@@ -694,6 +699,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :saving="savingCash"
         :errors="cashErrors"
         @save="saveCash"
+        @remove="removeCashFromDialog"
       />
 
       <AppConfirmDialog
