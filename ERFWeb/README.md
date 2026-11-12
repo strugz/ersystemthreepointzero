@@ -21,7 +21,8 @@ section of the root `CLAUDE.md`) in the same change.
 - **More page on phones** (PR #55). The bottom bar's **More** opens a full page (`/more`) instead of a
   dropdown over the screen: a profile card (initials, name, roles), the sections not in the bottom bar as cards
   (Work queues, Signatory structure, Administration, Wellness), Appearance as one Light / Dark / System switch,
-  Change password, and a separate red **Sign out**. The More tab stays highlighted on the sections it opens, and on a
+  Change password, and a separate red **Sign out**. The More tab stays highlighted on the sections it opens (never on a
+  page that has its own bottom-bar tab), and on a
   phone each of them (and Change password) has a Back arrow to More, since they have no other way back. **Rates** lists
   its profiles as rows on phones (name and status, then lines in force and assignments) instead of a cut-off table, and
   so do a profile's **Rate lines** (category and amount, status and period, rule, then Edit / New version), the

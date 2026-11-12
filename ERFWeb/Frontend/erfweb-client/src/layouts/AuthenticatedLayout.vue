@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, toValue } from 'vue';
 import { useRoute } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
 import { useDisplay } from 'vuetify';
@@ -65,8 +65,12 @@ function toggleNav() {
     // Storage blocked (private window): the toggle still works for this page view.
   }
 }
+// More lights up for the pages it lists, never for one that has its own bottom-bar tab (Approvals, when the
+// main nav carries it); a report review belongs to Approvals.
 const moreRouteActive = computed(() => {
   const name = String(route.name ?? '');
+  const mainNames = new Set(toValue(nav).map((i) => (i.to as { name?: string }).name));
+  if (mainNames.has(name === 'report-review' ? 'approvals' : name)) return false;
   return name.startsWith('admin-') || entitlementRouteNames.has(name);
 });
 
