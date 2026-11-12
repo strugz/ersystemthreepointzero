@@ -1,3 +1,5 @@
+using ERFWeb.Domain;
+
 namespace ERFWeb.Application.Features.Lookups;
 
 /// <summary>A colleague selectable in the "Work With" picker.</summary>
@@ -28,7 +30,12 @@ public sealed record MyFilingReadinessDto(
     bool CrmActivitiesAvailable = false,
     DateOnly? ProcessingDate = null,
     bool PastFilingCutoff = false,
-    string? FilingCutoffText = null);
+    string? FilingCutoffText = null,
+    IReadOnlyList<ExpenseCategory>? UnavailableCategories = null,
+    IReadOnlyList<RequiredDocumentDto>? RequiredDocuments = null);
+
+/// <summary>A category whose lines need a document of <see cref="DocumentType"/> attached before filing (Finance rules).</summary>
+public sealed record RequiredDocumentDto(ExpenseCategory Category, AttachmentDocumentType DocumentType, string Label);
 
 /// <summary>An active department, for pickers.</summary>
 public sealed record DepartmentOptionDto(long Id, string? Code, string Name);

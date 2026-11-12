@@ -44,7 +44,8 @@ public static class ReportWorkflowRules
         decimal cashAdvanceAmount,
         decimal revolvingFundAmount,
         bool coolingPeriodElapsed = true,
-        string? routingProblem = null)
+        string? routingProblem = null,
+        IReadOnlyList<string>? categoryProblems = null)
     {
         var reasons = new List<string>();
 
@@ -81,6 +82,12 @@ public static class ReportWorkflowRules
         if (UsesRevolvingFund(reportType) && revolvingFundAmount <= 0)
         {
             reasons.Add("A revolving fund amount is required for a Replenishment of Revolving Fund report.");
+        }
+
+        // Finance rules: categories switched off, and documents a category needs (CategoryDocumentRules).
+        if (categoryProblems is not null)
+        {
+            reasons.AddRange(categoryProblems);
         }
 
         return reasons;

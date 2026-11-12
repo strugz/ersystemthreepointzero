@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import type { FinanceRules, R47Format, SystemSettings, SystemSettingsInput } from '../types';
+import type { FinanceRules, R47Format, RulesSection, SystemSettings, SystemSettingsInput } from '../types';
 
 /** Workflow rules (approval thresholds, SLAs, filing cut-off, Finance rules, R47 reviewer and format, notifications, sign-in lockout). The parent owns the save. */
 const props = withDefaults(
@@ -8,9 +8,13 @@ const props = withDefaults(
     initial: SystemSettings | null;
     saving?: boolean;
     errors?: Record<string, string[]> | null;
+    /** The Rules tab to show; null shows every card. One form either way, so a save keeps every tab's edits. */
+    section?: RulesSection | null;
   }>(),
-  { saving: false, errors: null },
+  { saving: false, errors: null, section: null },
 );
+
+const shows = (s: RulesSection) => props.section === null || props.section === s;
 
 const emit = defineEmits<{ submit: [input: SystemSettingsInput] }>();
 
@@ -37,7 +41,17 @@ const blank = (): SystemSettingsInput => ({
 
 // Same defaults as the server (Domain FinanceRuleSet.Default); also what an API older than the Finance rules is shown.
 function blankFinanceRules(): FinanceRules {
-  return { cutoffEnabled: true, cutoffWeekday: 'Wednesday', cutoffTime: '12:00', lateHandling: 'NoticeOnly' };
+  return {
+    cutoffEnabled: true,
+    cutoffWeekday: 'Wednesday',
+    cutoffTime: '12:00',
+    lateHandling: 'NoticeOnly',
+    sponsorshipEnabled: true,
+    sponsorshipRequiresDocument: true,
+    demoEnabled: true,
+    demoRequiresDocument: true,
+    representationRequiresDocument: true,
+  };
 }
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
@@ -204,7 +218,7 @@ defineExpose({ isDirty });
 
 <template>
   <v-form :disabled="saving" @submit.prevent="submit">
-    <v-card class="mb-4">
+    <v-card v-show="shows('approvals')" class="mb-4">
       <div class="card-h"><span class="card-t">Approval routing</span></div>
       <div class="pa-4">
         <v-row dense>
@@ -228,7 +242,7 @@ defineExpose({ isDirty });
       </div>
     </v-card>
 
-    <v-card class="mb-4">
+    <v-card v-show="shows('approvals')" class="mb-4">
       <div class="card-h"><span class="card-t">Service levels and escalation</span></div>
       <div class="pa-4">
         <v-row dense>
@@ -255,7 +269,7 @@ defineExpose({ isDirty });
       </div>
     </v-card>
 
-    <v-card class="mb-4">
+    <v-card v-show="shows('filing')" class="mb-4">
       <div class="card-h"><span class="card-t">Filing rules</span></div>
       <div class="pa-4">
         <v-row dense>
@@ -302,7 +316,7 @@ defineExpose({ isDirty });
       </div>
     </v-card>
 
-    <v-card class="mb-4">
+    <v-card v-show="shows('filing')" class="mb-4">
       <div class="card-h"><span class="card-t">Finance rules</span></div>
       <div class="pa-4">
         <div class="text-subtitle-2 mb-1">Weekly processing cutoff</div>
@@ -360,10 +374,50 @@ defineExpose({ isDirty });
             </template>
           </v-radio>
         </v-radio-group>
+
+        <v-divider class="my-5" />
+        <div class="text-subtitle-2 mb-1">Sponsorship, Demo and Representation</div>
+        <div class="text-caption text-medium-emphasis mb-2">
+          Expense categories that need a document attached under Receipts before the line can be added; filing checks again. Sponsorship and Demo
+          print under OTHERS on the R47. A category switched off is hidden from employees, and a report that still has such a line cannot be filed.
+        </div>
+        <v-row dense>
+          <v-col cols="12" sm="6">
+            <v-switch v-model="form.financeRules.sponsorshipEnabled" color="primary" label="Employees may claim Sponsorship" hide-details />
+            <v-checkbox
+              v-model="form.financeRules.sponsorshipRequiresDocument"
+              :disabled="!form.financeRules.sponsorshipEnabled"
+              color="primary"
+              density="compact"
+              label="Needs an approved Activity Request Form"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-switch v-model="form.financeRules.demoEnabled" color="primary" label="Employees may claim Demo" hide-details />
+            <v-checkbox
+              v-model="form.financeRules.demoRequiresDocument"
+              :disabled="!form.financeRules.demoEnabled"
+              color="primary"
+              density="compact"
+              label="Needs an ISO-registered attendance sheet"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-checkbox
+              v-model="form.financeRules.representationRequiresDocument"
+              color="primary"
+              density="compact"
+              label="Representation needs the food or meal receipt"
+              hide-details
+            />
+          </v-col>
+        </v-row>
       </div>
     </v-card>
 
-    <v-card class="mb-4">
+    <v-card v-show="shows('r47')" class="mb-4">
       <div class="card-h"><span class="card-t">Expense report (R47)</span></div>
       <div class="pa-4">
         <v-text-field
@@ -448,7 +502,7 @@ defineExpose({ isDirty });
       </div>
     </v-card>
 
-    <v-card class="mb-4">
+    <v-card v-show="shows('access')" class="mb-4">
       <div class="card-h"><span class="card-t">Notifications</span></div>
       <div class="pa-4">
         <v-row dense>
@@ -470,7 +524,7 @@ defineExpose({ isDirty });
       </div>
     </v-card>
 
-    <v-card class="mb-4">
+    <v-card v-show="shows('access')" class="mb-4">
       <div class="card-h"><span class="card-t">Sign-in security</span></div>
       <div class="pa-4">
         <v-row dense>
@@ -509,7 +563,7 @@ defineExpose({ isDirty });
       </div>
     </v-card>
 
-    <v-card class="mb-4">
+    <v-card v-show="shows('access')" class="mb-4">
       <div class="card-h"><span class="card-t">Account email domains</span></div>
       <div class="pa-4">
         <v-combobox
@@ -527,9 +581,23 @@ defineExpose({ isDirty });
       </div>
     </v-card>
 
-    <div class="d-flex justify-end ga-2">
+    <!-- Stays in view while scrolling, so a change is never far from its save. -->
+    <div class="savebar d-flex align-center ga-2">
+      <span v-if="isDirty" class="text-caption text-medium-emphasis">Unsaved changes</span>
+      <v-spacer />
       <v-btn class="press" variant="text" :disabled="!isDirty || saving" @click="reset">Discard changes</v-btn>
       <v-btn class="press" color="primary" variant="flat" type="submit" :loading="saving" :disabled="!canSubmit">Save rules</v-btn>
     </div>
   </v-form>
 </template>
+
+<style scoped>
+.savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: 10px 0;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+}
+</style>

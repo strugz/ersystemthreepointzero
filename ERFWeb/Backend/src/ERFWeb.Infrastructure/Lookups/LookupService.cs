@@ -80,8 +80,12 @@ public sealed class LookupService(
         var approvers = routing.Approvers.Select(a => a.FullName).ToList();
 
         var crmAvailable = crm.IsConfigured && !string.IsNullOrWhiteSpace(account?.CrmEmployeeId);
-        var cutoff = FilingCutoffRules.Evaluate(clock.UtcNow, calendar.UtcOffset, await settings.GetFinanceRulesAsync(ct));
+        var financeRules = await settings.GetFinanceRulesAsync(ct);
+        var cutoff = FilingCutoffRules.Evaluate(clock.UtcNow, calendar.UtcOffset, financeRules);
+        var documents = CategoryDocumentRules.Required(financeRules)
+            .Select(d => new RequiredDocumentDto(d.Category, d.DocumentType, d.Label))
+            .ToList();
         return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt, routing.Problem, crmAvailable,
-            cutoff?.ProcessingDate, cutoff?.IsLate ?? false, cutoff?.CutoffText);
+            cutoff?.ProcessingDate, cutoff?.IsLate ?? false, cutoff?.CutoffText, CategoryDocumentRules.Disabled(financeRules), documents);
     }
 }

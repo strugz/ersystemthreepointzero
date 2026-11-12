@@ -1,6 +1,7 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Application.Features.Reporting;
+using ERFWeb.Domain;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -53,6 +54,7 @@ public sealed class ReceiptAttachmentService(
                 Content = request.Content,
                 UploadedByUserId = user.UserId,
                 UploadedAt = clock.UtcNow,
+                DocumentType = request.DocumentType == AttachmentDocumentType.Receipt ? null : request.DocumentType,
             };
             db.ReceiptAttachments.Add(attachment);
             report.UpdatedAt = attachment.UploadedAt;

@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { formatBytes } from '@/shared/format';
+import { hasCamera } from '@/shared/images';
+import AppCameraCapture from '@/shared/ui/AppCameraCapture.vue';
 import { expensesApi } from '../api';
-import type { Attachment } from '../types';
+import { documentTypeLabel, documentTypeOptions } from '../labels';
+import type { Attachment, AttachmentDocumentType } from '../types';
 
 const props = withDefaults(
   defineProps<{ reportId: string; attachments: Attachment[]; editable: boolean; uploading?: boolean; busyId?: number | null }>(),
@@ -10,11 +13,16 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  upload: [file: File];
+  upload: [file: File, documentType: AttachmentDocumentType];
   remove: [attachment: Attachment];
 }>();
 
+// What the next file is; Sponsorship and Demo lines need their document uploaded with its type.
+const documentType = ref<AttachmentDocumentType>('Receipt');
+
 const picker = ref<HTMLInputElement | null>(null);
+const showCamera = hasCamera();
+const cameraOpen = ref(false);
 const dragging = ref(false);
 
 function pick() {
@@ -25,7 +33,7 @@ function onPicked(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (file) {
-    emit('upload', file);
+    emit('upload', file, documentType.value);
   }
   input.value = '';
 }
@@ -34,7 +42,7 @@ function onDrop(event: DragEvent) {
   dragging.value = false;
   const file = event.dataTransfer?.files?.[0];
   if (file && props.editable) {
-    emit('upload', file);
+    emit('upload', file, documentType.value);
   }
 }
 
@@ -57,6 +65,7 @@ function icon(contentType: string): string {
         <a class="file__name" :href="expensesApi.attachmentUrl(props.reportId, a.id)" target="_blank" rel="noopener" :title="`${a.uploadedBy}`">
           {{ a.fileName }}
         </a>
+        <span v-if="a.documentType && a.documentType !== 'Receipt'" class="pill pill--neutral">{{ documentTypeLabel[a.documentType] }}</span>
         <span class="file__size mono">{{ formatBytes(a.sizeBytes) }}</span>
         <v-btn
           v-if="editable"
@@ -72,7 +81,28 @@ function icon(contentType: string): string {
     </ul>
 
     <div v-if="editable" class="dropzone-wrap">
+      <v-select
+        v-model="documentType"
+        :items="documentTypeOptions"
+        label="This file is a"
+        density="compact"
+        hide-details
+        class="mb-2"
+        :disabled="uploading"
+      />
+      <div v-if="showCamera" class="sources">
+        <button type="button" class="source source--primary press" :disabled="uploading" @click="cameraOpen = true">
+          <v-progress-circular v-if="uploading" indeterminate size="20" width="2" />
+          <v-icon v-else icon="mdi-camera-outline" size="22" />
+          <span>{{ uploading ? 'Uploading…' : 'Take photo' }}</span>
+        </button>
+        <button type="button" class="source press" :disabled="uploading" @click="pick">
+          <v-icon icon="mdi-file-upload-outline" size="22" />
+          <span>Choose file</span>
+        </button>
+      </div>
       <button
+        v-else
         type="button"
         class="dropzone press"
         :class="{ 'dropzone--active': dragging }"
@@ -87,6 +117,12 @@ function icon(contentType: string): string {
         <span>{{ uploading ? 'Uploading…' : 'Drop JPEG, PNG or PDF here, or tap to choose' }}</span>
       </button>
       <input ref="picker" type="file" accept="image/jpeg,image/png,application/pdf" hidden @change="onPicked" />
+      <AppCameraCapture
+        v-if="showCamera"
+        v-model="cameraOpen"
+        :title="documentTypeLabel[documentType]"
+        @capture="(file: File) => emit('upload', file, documentType)"
+      />
     </div>
     <p class="files__hint text-caption text-medium-emphasis">Photos are shrunk before upload to save space. Finance still needs the original receipts.</p>
   </v-card>
@@ -158,6 +194,38 @@ function icon(contentType: string): string {
   background: var(--navy-soft);
   color: var(--navy);
 }
+.sources {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.source {
+  min-height: 72px;
+  border-radius: 10px;
+  border: 1px dashed var(--line-2);
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.source--primary {
+  border: 0;
+  background: var(--navy);
+  color: #fff;
+}
+.source:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.source:focus-visible,
 .dropzone:focus-visible {
   outline: 2px solid var(--navy);
   outline-offset: 2px;

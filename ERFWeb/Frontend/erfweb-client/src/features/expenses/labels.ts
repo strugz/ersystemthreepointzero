@@ -1,4 +1,4 @@
-import type { ApprovalStatus, ExpenseCategory, ExpenseType, FinanceStatus, ReportStatus, ReportType } from './types';
+import type { ApprovalStatus, AttachmentDocumentType, ExpenseCategory, ExpenseType, FinanceStatus, ReportStatus, ReportType } from './types';
 
 export const reportTypeLabel: Record<ReportType, string> = {
   RevolvingFund: 'Replenishment of Revolving Fund',
@@ -72,6 +72,8 @@ export const categoryLabel: Record<ExpenseCategory, string> = {
   Parking: 'Parking',
   Others: 'Others',
   Representation: 'Representation',
+  Sponsorship: 'Sponsorship',
+  Demo: 'Demo',
 };
 
 export const categoryOptions = (Object.keys(categoryLabel) as ExpenseCategory[]).map((value) => ({
@@ -104,6 +106,8 @@ export const categoryDefaults: Record<ExpenseCategory, CategoryDefaults> = {
   Parking: { particulars: 'Parking', meals: [], fareLeg: false },
   Representation: { particulars: 'Representation', meals: [], fareLeg: false },
   Others: { particulars: '', meals: [], fareLeg: false },
+  Sponsorship: { particulars: 'Sponsorship', meals: [], fareLeg: false },
+  Demo: { particulars: 'Demo', meals: [], fareLeg: false },
 };
 
 /** Only a Liquidation of Cash Advance carries the CASH ADVANCE RECEIVED block. */
@@ -152,10 +156,19 @@ export function r47Column(category: ExpenseCategory, type: ExpenseType): string 
   if (type === 'Foreign') {
     return 'Oth';
   }
-  return { Meals: 'MEALS', Transportation: 'TRANSP.', Toll: 'TOLL', Parking: 'PARKING', Others: 'OTHERS' }[
-    category as Exclude<ExpenseCategory, 'Representation'>
-  ];
+  // Sponsorship and Demo, like Others, print under OTHERS.
+  const columns: Partial<Record<ExpenseCategory, string>> = { Meals: 'MEALS', Transportation: 'TRANSP.', Toll: 'TOLL', Parking: 'PARKING' };
+  return columns[category] ?? 'OTHERS';
 }
+
+/** Upload picker names, in the server's order. */
+export const documentTypeOptions: { value: AttachmentDocumentType; title: string }[] = [
+  { value: 'Receipt', title: 'Receipt' },
+  { value: 'ActivityRequestForm', title: 'Activity Request Form' },
+  { value: 'IsoAttendanceSheet', title: 'ISO attendance sheet' },
+  { value: 'FoodReceipt', title: 'Food receipt' },
+];
+export const documentTypeLabel = Object.fromEntries(documentTypeOptions.map((o) => [o.value, o.title])) as Record<AttachmentDocumentType, string>;
 
 /** Icon for a fare mode by its code; unknown or admin-added codes get a generic route icon. */
 const fareModeIcons: Record<string, string> = {

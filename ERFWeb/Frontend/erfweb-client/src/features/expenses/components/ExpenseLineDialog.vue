@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { formatMoney, todayIso } from '@/shared/format';
+import { hasCamera } from '@/shared/images';
+import AppCameraCapture from '@/shared/ui/AppCameraCapture.vue';
 import { categoryDefaults, categoryOptions, expenseTypeOptions, fareModeIcon, lineTotal, mealTypes, r47Column } from '../labels';
 import CrmActivityPicker from './CrmActivityPicker.vue';
 import type {
+  AttachmentDocumentType,
   CrmActivityOption,
   CrmActivityPickList,
   EmployeeRates,
@@ -11,6 +14,7 @@ import type {
   ExpenseLine,
   ExpenseTransportItem,
   FareModeOption,
+  RequiredDocument,
   SaveExpenseLineInput,
   WorkWithOption,
 } from '../types';
@@ -36,6 +40,14 @@ const props = withDefaults(
     /** The report period, which bounds the days the CRM picker can step to. */
     periodFrom?: string | null;
     periodTo?: string | null;
+    /** Categories switched off on the Rules page (Finance rules); a saved line keeps its own. */
+    unavailableCategories?: ExpenseCategory[];
+    /** Categories whose lines need a document attached to the report first (Sponsorship, Demo). */
+    requiredDocuments?: RequiredDocument[];
+    /** Document types already attached to the report. */
+    attachedDocumentTypes?: AttachmentDocumentType[];
+    /** A document picked here is being uploaded by the parent. */
+    uploadingDocument?: boolean;
   }>(),
   {
     line: null,
@@ -48,6 +60,10 @@ const props = withDefaults(
     crmAvailable: false,
     crmList: null,
     crmLoading: false,
+    unavailableCategories: () => [],
+    requiredDocuments: () => [],
+    attachedDocumentTypes: () => [],
+    uploadingDocument: false,
     crmError: null,
     periodFrom: null,
     periodTo: null,
@@ -61,6 +77,8 @@ const emit = defineEmits<{
   'date-change': [date: string];
   /** The employee opened the CRM picker or stepped to another day; the parent loads the activities of that day. */
   'crm-load': [date: string];
+  /** Upload the document the chosen category needs; the parent attaches it to the report under Receipts. */
+  'upload-document': [file: File, documentType: AttachmentDocumentType];
 }>();
 
 const blank = (): SaveExpenseLineInput => ({
@@ -393,7 +411,13 @@ const categoryIcon: Record<ExpenseCategory, string> = {
   Parking: 'mdi-parking',
   Others: 'mdi-dots-horizontal',
   Representation: 'mdi-account-tie-outline',
+  Sponsorship: 'mdi-handshake-outline',
+  Demo: 'mdi-presentation',
 };
+
+const shownCategories = computed(() =>
+  categoryOptions.filter((c) => !props.unavailableCategories.includes(c.value) || c.value === form.category),
+);
 
 /** How the footer total is made up, e.g. "150.00 × 2" or the per-diem days; empty when it is just the amount. */
 const amountFormula = computed(() => {
@@ -408,8 +432,29 @@ function fieldErrors(field: string): string[] | undefined {
   return all[field] ?? all[field.charAt(0).toUpperCase() + field.slice(1)];
 }
 
+// Finance rules: a Sponsorship or Demo line can be added only once its document is attached to the report.
+const neededDocument = computed(() => props.requiredDocuments.find((d) => d.category === form.category) ?? null);
+const documentMissing = computed(() => !!neededDocument.value && !props.attachedDocumentTypes.includes(neededDocument.value.documentType));
+const documentPicker = ref<HTMLInputElement | null>(null);
+const showCamera = hasCamera();
+const documentCameraOpen = ref(false);
+function onDocumentCaptured(file: File) {
+  if (neededDocument.value) emit('upload-document', file, neededDocument.value.documentType);
+}
+function onDocumentPicked(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (file && neededDocument.value) emit('upload-document', file, neededDocument.value.documentType);
+  input.value = '';
+}
+
 const canSave = computed(
-  () => (form.particulars ?? '').trim().length > 0 && Number(form.amount) > 0 && !perdiemInvalid.value && !props.saving,
+  () =>
+    (form.particulars ?? '').trim().length > 0 &&
+    Number(form.amount) > 0 &&
+    !perdiemInvalid.value &&
+    !documentMissing.value &&
+    !props.saving,
 );
 
 function save() {
@@ -489,7 +534,7 @@ function close() {
 
             <div class="cats" role="group" aria-label="Category">
               <button
-                v-for="c in categoryOptions"
+                v-for="c in shownCategories"
                 :key="c.value"
                 type="button"
                 class="cat press"
@@ -501,6 +546,53 @@ function close() {
                 <span>{{ c.title }}</span>
               </button>
             </div>
+
+            <v-alert
+              v-if="neededDocument"
+              :type="documentMissing ? 'warning' : 'success'"
+              variant="tonal"
+              density="compact"
+              class="mt-3"
+            >
+              <template v-if="documentMissing">
+                A {{ form.category }} line needs the <strong>{{ neededDocument.label }}</strong> attached first.
+              </template>
+              <template v-else>{{ neededDocument.label.charAt(0).toUpperCase() + neededDocument.label.slice(1) }} attached.</template>
+              <template v-if="documentMissing" #append>
+                <div class="d-flex ga-2">
+                  <v-btn
+                    v-if="showCamera"
+                    class="press"
+                    size="small"
+                    variant="flat"
+                    color="warning"
+                    prepend-icon="mdi-camera-outline"
+                    :loading="uploadingDocument"
+                    @click="documentCameraOpen = true"
+                  >
+                    Photo
+                  </v-btn>
+                  <v-btn
+                    class="press"
+                    size="small"
+                    :variant="showCamera ? 'outlined' : 'flat'"
+                    color="warning"
+                    :loading="!showCamera && uploadingDocument"
+                    :disabled="showCamera && uploadingDocument"
+                    @click="documentPicker?.click()"
+                  >
+                    {{ showCamera ? 'File' : 'Upload' }}
+                  </v-btn>
+                </div>
+              </template>
+            </v-alert>
+            <input ref="documentPicker" type="file" accept="image/jpeg,image/png,application/pdf" hidden @change="onDocumentPicked" />
+            <AppCameraCapture
+              v-if="showCamera && neededDocument"
+              v-model="documentCameraOpen"
+              :title="neededDocument.label.charAt(0).toUpperCase() + neededDocument.label.slice(1)"
+              @capture="onDocumentCaptured"
+            />
           </section>
 
           <!-- Details -->

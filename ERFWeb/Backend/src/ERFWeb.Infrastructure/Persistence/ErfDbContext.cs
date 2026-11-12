@@ -62,6 +62,7 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
         builder.Properties<QueryDisposition>().HaveConversion<string>().HaveMaxLength(16);
         builder.Properties<ExpenseType>().HaveConversion<string>().HaveMaxLength(16);
         builder.Properties<ExpenseCategory>().HaveConversion<string>().HaveMaxLength(24);
+        builder.Properties<AttachmentDocumentType>().HaveConversion<string>().HaveMaxLength(32);
 
         // Money defaults to numeric(14,2) across the model.
         builder.Properties<decimal>().HavePrecision(14, 2);

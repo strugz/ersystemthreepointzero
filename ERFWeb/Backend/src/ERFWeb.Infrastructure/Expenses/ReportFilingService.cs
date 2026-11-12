@@ -55,9 +55,16 @@ public sealed class ReportFilingService(
             var cashAmount = await db.CashAdvanceLines.AsNoTracking()
                 .Where(c => c.ReportId == reportId).SumAsync(c => (decimal?)c.Amount, token) ?? 0m;
 
+            // Finance rules: categories switched off, and the documents Sponsorship and Demo need.
+            var lineCategories = await db.ExpenseLines.AsNoTracking()
+                .Where(l => l.ReportId == reportId && l.IsActive).Select(l => l.Category).Distinct().ToListAsync(token);
+            var attachedTypes = await db.ReceiptAttachments.AsNoTracking()
+                .Where(a => a.ReportId == reportId).Select(a => a.DocumentType ?? AttachmentDocumentType.Receipt).Distinct().ToListAsync(token);
+            var categoryProblems = CategoryDocumentRules.FilingProblems(lineCategories, attachedTypes, await settings.GetFinanceRulesAsync(token));
+
             var blockers = ReportWorkflowRules.FilingBlockers(
                 report.Status, lineCount, route.Count, report.Purpose, report.ReportType, cashAmount, report.RevolvingFundAmount,
-                coolingElapsed, routing.Problem);
+                coolingElapsed, routing.Problem, categoryProblems);
             if (blockers.Count > 0)
             {
                 throw new ValidationException(new Dictionary<string, string[]> { ["report"] = blockers.ToArray() });

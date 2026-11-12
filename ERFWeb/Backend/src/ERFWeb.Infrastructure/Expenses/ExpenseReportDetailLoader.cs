@@ -189,7 +189,7 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
          where a.ReportId == reportId
          join u in db.Users.AsNoTracking() on a.UploadedByUserId equals u.Id
          orderby a.UploadedAt
-         select new AttachmentDto(a.Id, a.FileName, a.ContentType, a.SizeBytes, u.FullName, a.UploadedAt))
+         select new AttachmentDto(a.Id, a.FileName, a.ContentType, a.SizeBytes, u.FullName, a.UploadedAt, a.DocumentType ?? AttachmentDocumentType.Receipt))
         .ToListAsync(ct);
 
     private static ExpenseLineDto ToDto(

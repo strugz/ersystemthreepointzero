@@ -328,6 +328,8 @@ public sealed class MasterDataService(
         new(ExpenseCategory.Parking, "Parking", "PARKING"),
         new(ExpenseCategory.Others, "Others", "OTHERS"),
         new(ExpenseCategory.Representation, "Representation", "Representation"),
+        new(ExpenseCategory.Sponsorship, "Sponsorship", "OTHERS"),
+        new(ExpenseCategory.Demo, "Demo", "OTHERS"),
     ];
 
     // ---------- Helpers ----------
