@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-12
 
-- **Phone and tablet layout fixes** (not yet committed). **Expense summary** and **Meal claims** no longer
+- **Phone and tablet layout fixes** (PR #54). **Expense summary** and **Meal claims** no longer
   overflow: on tablets the table scrolls sideways with the Employee column held in place, and on phones each employee
   is a row (categories or meals claimed listed under the name, then a Total row). The **Rules** page's Save bar sits
   above the phone bottom navigation and wraps, and its tabs show scroll arrows below 960 px. The expense line dialog
