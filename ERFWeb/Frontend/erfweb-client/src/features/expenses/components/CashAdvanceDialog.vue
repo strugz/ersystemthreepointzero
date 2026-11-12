@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import { formatMoney, todayIso } from '@/shared/format';
 import type { CashAdvanceLine, SaveCashAdvanceLineInput } from '../types';
 
@@ -17,11 +18,12 @@ const props = withDefaults(
 );
 
 const { xs } = useDisplay();
+const { rowsLayout } = useListLayout();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   save: [input: SaveCashAdvanceLineInput];
-  /** Remove the advance being edited (phones, where the list has no ✕); the parent confirms first. */
+  /** Remove the advance being edited (phones and tablets, where the list has no ✕); the parent confirms first. */
   remove: [line: CashAdvanceLine];
 }>();
 
@@ -125,7 +127,7 @@ function close() {
 
       <v-divider />
       <v-card-actions class="px-4 py-3">
-        <v-btn v-if="line && xs" class="press" variant="text" color="error" :disabled="saving" @click="emit('remove', line)">Remove</v-btn>
+        <v-btn v-if="line && rowsLayout" class="press" variant="text" color="error" :disabled="saving" @click="emit('remove', line)">Remove</v-btn>
         <v-spacer />
         <v-btn class="press" variant="text" :disabled="saving" @click="close">{{ isEdit ? 'Cancel' : 'Done' }}</v-btn>
         <v-btn class="press" color="primary" variant="flat" :loading="saving" :disabled="!canSave" @click="save">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppExportButton from '@/shared/ui/AppExportButton.vue';
@@ -16,6 +17,7 @@ import type { DailyMealClaimQuery, DailyMealClaimReport } from '@/features/repor
 // meals. Finance only; the API enforces it.
 const snack = useSnackbar();
 const { xs } = useDisplay();
+const { rowsLayout } = useListLayout();
 
 const MEALS = [
   { key: 'breakfast', label: 'Breakfast' },
@@ -173,8 +175,8 @@ watch([from, to, departmentId, approvedOnly], () => void load());
         :hint="`No filed or approved meal lines with an expense date from ${formatDate(from)} to ${formatDate(to)}.`"
       />
 
-      <!-- Phone: a header per day, then one row per employee with the meals claimed -->
-      <div v-else-if="report && xs" class="rows">
+      <!-- Phone and tablet (useListLayout): a header per day, then one row per employee with the meals claimed -->
+      <div v-else-if="report && rowsLayout" class="rows">
         <template v-for="day in report.days" :key="day.date">
           <div class="row row--day">
             <div class="row__top">

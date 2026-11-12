@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
@@ -35,6 +36,7 @@ const emit = defineEmits<{
 }>();
 
 const { xs } = useDisplay();
+const { rowsLayout, tabletRows } = useListLayout();
 const today = todayIso();
 const yesterday = addDaysIso(today, -1);
 
@@ -121,7 +123,7 @@ const endMessage = computed(() =>
       </v-btn>
     </AppEmptyState>
 
-    <ul v-else-if="xs" class="rows">
+    <ul v-else-if="rowsLayout" :class="{ 'rows--tablet': tabletRows }" class="rows">
       <li v-for="a in visible" :key="a.id" class="row" :class="{ 'text-medium-emphasis': isEnded(a) }">
         <div class="d-flex align-center ga-2 flex-wrap">
           <span class="font-weight-medium">{{ rateTargetText(a) }}</span>

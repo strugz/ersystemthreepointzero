@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import { formatDate, formatMoney } from '@/shared/format';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import { categoryLabel, r47Column } from '../labels';
@@ -29,7 +30,8 @@ function openLine(line: ExpenseLine) {
   else if (props.adjustable) emit('adjust', line);
 }
 
-const { xs, smAndDown } = useDisplay();
+const { smAndDown } = useDisplay();
+const { rowsLayout } = useListLayout();
 
 const groups = computed(() => groupLines(props.lines));
 
@@ -77,8 +79,8 @@ function adjustmentNote(line: ExpenseLine): string | null {
       <v-btn v-if="editable" class="press" color="primary" variant="flat" prepend-icon="mdi-plus" @click="emit('add')">Add expense line</v-btn>
     </AppEmptyState>
 
-    <!-- Phone: grouped list -->
-    <div v-else-if="xs" class="list">
+    <!-- Phone and tablet (useListLayout): grouped list -->
+    <div v-else-if="rowsLayout" class="list">
       <template v-for="g in groups" :key="g.key">
         <div class="list__group">
           <span>{{ formatDate(g.date) }}<template v-if="groupPlace(g)"> · {{ groupPlace(g) }}</template></span>

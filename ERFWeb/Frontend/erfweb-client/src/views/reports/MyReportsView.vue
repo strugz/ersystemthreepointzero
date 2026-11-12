@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import { formatDate, formatMoney } from '@/shared/format';
@@ -15,6 +16,7 @@ const router = useRouter();
 const route = useRoute();
 const snack = useSnackbar();
 const { xs } = useDisplay();
+const { rowsLayout, tabletRows } = useListLayout();
 
 const page = ref(1);
 const pageSize = 15;
@@ -116,8 +118,8 @@ function period(item: ExpenseReportListItem): string {
         <v-btn v-if="!search && !status" class="press" color="primary" variant="flat" prepend-icon="mdi-plus" :to="{ name: 'report-new' }">New report</v-btn>
       </AppEmptyState>
 
-      <!-- Phone: list rows -->
-      <div v-else-if="result && xs" class="rows">
+      <!-- Phone and tablet (useListLayout): list rows -->
+      <div v-else-if="result && rowsLayout" :class="{ 'rows--tablet': tabletRows }" class="rows">
         <button
           v-for="(item, i) in result.items"
           :key="item.id"

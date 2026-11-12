@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppExportButton from '@/shared/ui/AppExportButton.vue';
@@ -21,6 +22,7 @@ import type { ExpenseSummary, ExpenseSummaryQuery, SummaryScope } from '@/featur
 const session = useSessionStore();
 const snack = useSnackbar();
 const { xs } = useDisplay();
+const { rowsLayout } = useListLayout();
 
 const isSignatory = session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2');
 const isFinance = session.hasRole('Finance');
@@ -188,8 +190,8 @@ watch([from, to, scope, departmentId, approvedOnly], () => void load());
         :hint="`Nothing filed or approved with an expense date from ${formatDate(from)} to ${formatDate(to)}.`"
       />
 
-      <!-- Phone: one row per employee, the categories they used under the name -->
-      <div v-else-if="summary && xs" class="rows">
+      <!-- Phone and tablet (useListLayout): one row per employee, the categories they used under the name -->
+      <div v-else-if="summary && rowsLayout" class="rows">
         <div v-for="(e, i) in summary.employees" :key="e.employeeUserId" class="row stagger-in" :style="{ '--i': Math.min(i, 10) }">
           <div class="row__top">
             <div class="row__main">

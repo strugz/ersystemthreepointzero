@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import { formatDateTime } from '@/shared/format';
@@ -15,6 +16,7 @@ import type { Department, PagedResult, SortDirection, UserListItem, UserSort } f
 const router = useRouter();
 const snack = useSnackbar();
 const { xs } = useDisplay();
+const { rowsLayout, tabletRows } = useListLayout();
 
 const page = ref(1);
 const pageSize = 20;
@@ -170,8 +172,8 @@ function sortIcon(key: UserSort): string | undefined {
         <v-btn v-else class="press" color="primary" variant="flat" prepend-icon="mdi-account-plus-outline" :to="{ name: 'admin-user-new' }">New user</v-btn>
       </AppEmptyState>
 
-      <!-- Phone: list rows -->
-      <div v-else-if="result && xs" class="rows">
+      <!-- Phone and tablet (useListLayout): list rows -->
+      <div v-else-if="result && rowsLayout" :class="{ 'rows--tablet': tabletRows }" class="rows">
         <button
           v-for="(item, i) in result.items"
           :key="item.id"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import type { CoverageRow } from '../types';
 
@@ -23,7 +23,7 @@ const emit = defineEmits<{
   retry: [];
 }>();
 
-const { xs } = useDisplay();
+const { rowsLayout, tabletRows } = useListLayout();
 
 const onlyProblems = ref(false);
 const search = ref('');
@@ -102,8 +102,8 @@ function onDate(value: string | null) {
       <v-btn v-if="filtered" class="press" variant="text" @click="clearFilters">Clear filters</v-btn>
     </AppEmptyState>
 
-    <!-- Phone: stacked rows -->
-    <ul v-else-if="!loading && xs" class="rows">
+    <!-- Phone and tablet (useListLayout): stacked rows -->
+    <ul v-else-if="!loading && rowsLayout" :class="{ 'rows--tablet': tabletRows }" class="rows">
       <li v-for="r in visible" :key="r.userId" class="row" :class="{ 'row--problem': hasProblem(r) }">
         <div class="d-flex align-center ga-2 flex-wrap">
           <span class="font-weight-medium">{{ r.fullName }}</span>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { isTestMode } from '@/shared/appMode';
@@ -46,6 +47,7 @@ const emit = defineEmits<{
 }>();
 
 const { xs } = useDisplay();
+const { rowsLayout } = useListLayout();
 const showDelete = computed(() => props.testDeletable && isTestMode);
 
 // Event names seen in the current page extend the known list so the combobox stays useful.
@@ -183,8 +185,8 @@ function clearFilters() {
       <v-btn v-if="hasFilters" class="press" variant="text" @click="clearFilters">Clear filters</v-btn>
     </AppEmptyState>
 
-    <!-- Phone: event on the first line, when and who on the second; tap for the detail -->
-    <div v-else-if="!loading && xs" class="rows">
+    <!-- Phone and tablet (useListLayout): event on the first line, when and who on the second; tap for the detail -->
+    <div v-else-if="!loading && rowsLayout" class="rows">
       <div v-for="(e, i) in items" :key="e.id" class="mrow stagger-in" :style="{ '--i': Math.min(i, 10) }">
         <div class="mrow__head">
           <button type="button" class="mrow__main row-link" :aria-expanded="expanded.has(e.id)" @click="toggle(e.id)">

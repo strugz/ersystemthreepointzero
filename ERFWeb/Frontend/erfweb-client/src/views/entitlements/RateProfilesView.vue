@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import { useSessionStore } from '@/app/stores/session';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
@@ -17,6 +18,7 @@ const router = useRouter();
 const session = useSessionStore();
 const snack = useSnackbar();
 const { xs } = useDisplay();
+const { rowsLayout, tabletRows } = useListLayout();
 
 const canWrite = computed(() => hasAnyRole(session.user?.roles, rateWriterRoles));
 
@@ -131,8 +133,8 @@ async function create() {
         <v-btn v-if="profiles.length === 0 && canWrite" class="press" color="primary" variant="flat" prepend-icon="mdi-plus" @click="openCreate">New profile</v-btn>
       </AppEmptyState>
 
-      <!-- Phone: one row per profile; the four columns did not fit 360px -->
-      <div v-else-if="!loading && xs" class="rows">
+      <!-- Phone and tablet (useListLayout): one row per profile; the four columns did not fit -->
+      <div v-else-if="!loading && rowsLayout" :class="{ 'rows--tablet': tabletRows }" class="rows">
         <div
           v-for="(p, i) in visible"
           :key="p.id"

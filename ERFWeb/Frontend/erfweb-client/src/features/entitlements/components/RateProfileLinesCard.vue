@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { formatDate, formatDateTime, formatMoney, todayIso } from '@/shared/format';
@@ -30,6 +31,7 @@ const emit = defineEmits<{
 }>();
 
 const { xs } = useDisplay();
+const { rowsLayout } = useListLayout();
 const today = todayIso();
 
 type LineState = 'current' | 'scheduled' | 'ended';
@@ -118,8 +120,8 @@ function rulesText(l: RateLine): string {
       <v-btn v-if="canWrite" class="press" color="primary" variant="flat" prepend-icon="mdi-plus" :disabled="disabled" @click="emit('add', null)">Add line</v-btn>
     </AppEmptyState>
 
-    <!-- Phone: one block per category; the six-column table did not fit 360px -->
-    <div v-else-if="xs" class="rows">
+    <!-- Phone and tablet (useListLayout): one block per category; the six-column table did not fit -->
+    <div v-else-if="rowsLayout" class="rows">
       <div v-for="g in groups" :key="g.key" class="mrow">
         <div class="mrow__top">
           <span class="mrow__name">{{ g.label }}</span>

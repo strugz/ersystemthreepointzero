@@ -391,3 +391,14 @@ body {
     }
   }
 }
+
+/* Tablet list settings (useListLayout): flat row lists use two columns at 600-959px. Phones never get this
+   class. The selector outranks each screen's own scoped `.rows` rule. */
+.v-card :is(div, ul).rows--tablet {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+.v-card :is(div, ul).rows--tablet > :nth-child(odd) {
+  border-right: 1px solid var(--line);
+}

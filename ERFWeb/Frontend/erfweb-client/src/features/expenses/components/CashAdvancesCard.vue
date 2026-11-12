@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import { formatDate, formatMoney } from '@/shared/format';
 import type { CashAdvanceLine } from '../types';
 
@@ -14,7 +14,7 @@ const emit = defineEmits<{
 }>();
 
 const total = computed(() => props.lines.reduce((s, l) => s + l.amount, 0));
-const { xs } = useDisplay();
+const { rowsLayout } = useListLayout();
 </script>
 
 <template>
@@ -31,8 +31,8 @@ const { xs } = useDisplay();
       No cash advance recorded yet. A Liquidation of Cash Advance needs at least one before filing.
     </div>
 
-    <!-- Phone: one row per advance; tap to edit (Remove is in the dialog, like expense lines) -->
-    <div v-else-if="xs" class="rows">
+    <!-- Phone and tablet (useListLayout): one row per advance; tap to edit (Remove is in the dialog, like expense lines) -->
+    <div v-else-if="rowsLayout" class="rows">
       <button
         v-for="l in lines"
         :key="l.id"

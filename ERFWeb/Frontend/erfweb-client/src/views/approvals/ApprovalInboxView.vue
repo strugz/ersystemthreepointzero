@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import { formatDateTime, formatMoney } from '@/shared/format';
@@ -22,6 +23,7 @@ const router = useRouter();
 const route = useRoute();
 const snack = useSnackbar();
 const { xs } = useDisplay();
+const { rowsLayout, tabletRows } = useListLayout();
 
 // "Queries" is the Level 2's list of Not verified findings Finance referred to them (plan Flow 6).
 type InboxTab = ApprovalInboxView | 'Queries';
@@ -161,8 +163,8 @@ function waitingFor(item: ApprovalInboxItem): string {
         :hint="search ? 'Try a different name or reference number.' : view === 'Pending' ? 'Reports filed by the people you approve for appear here.' : 'Reports you approve, return or reject are listed here.'"
       />
 
-      <!-- Phone: list rows -->
-      <div v-else-if="result && xs" class="rows">
+      <!-- Phone and tablet (useListLayout): list rows -->
+      <div v-else-if="result && rowsLayout" :class="{ 'rows--tablet': tabletRows }" class="rows">
         <button
           v-for="(item, i) in result.items"
           :key="item.reportId"

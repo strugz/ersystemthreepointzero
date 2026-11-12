@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useDisplay } from 'vuetify';
+import { useListLayout } from '@/shared/composables/useListLayout';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppExportButton from '@/shared/ui/AppExportButton.vue';
@@ -20,6 +21,7 @@ import type { CostCenterBudgetReport, CostCenterBudgetRow } from '@/features/rep
 const session = useSessionStore();
 const snack = useSnackbar();
 const { xs } = useDisplay();
+const { rowsLayout } = useListLayout();
 
 const isFinance = session.hasRole('Finance');
 const isAdmin = session.hasRole('SystemAdministrator');
@@ -136,8 +138,8 @@ watch([year, approvedOnly], () => {
         :hint="emptyHint"
       />
 
-      <!-- Phone: one block per cost center (bar, used of budget, remaining); tap to list who spent it -->
-      <div v-else-if="report && xs" class="rows">
+      <!-- Phone and tablet (useListLayout): one block per cost center (bar, used of budget, remaining); tap to list who spent it -->
+      <div v-else-if="report && rowsLayout" class="rows">
         <div v-for="(row, i) in report.costCenters" :key="row.costCenterId" class="mrow stagger-in" :style="{ '--i': Math.min(i, 10) }">
           <button type="button" class="mrow__main" :aria-expanded="expanded === row.costCenterId" @click="toggle(row)">
             <span class="mrow__top">
