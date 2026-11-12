@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-12
 
-- **More page on phones** (not yet committed). The bottom bar's **More** opens a full page (`/more`) instead of a
+- **More page on phones** (PR #55). The bottom bar's **More** opens a full page (`/more`) instead of a
   dropdown over the screen: a profile card (initials, name, roles), the sections not in the bottom bar as cards
   (Work queues, Signatory structure, Administration, Wellness), Appearance as one Light / Dark / System switch,
   Change password, and a separate red **Sign out**. The More tab stays highlighted on the sections it opens. Tablet and
