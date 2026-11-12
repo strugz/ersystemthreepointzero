@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { useSessionStore } from '@/app/stores/session';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { formatDate, formatMoney, greetingName } from '@/shared/format';
@@ -11,7 +11,7 @@ import type { ExpenseReportListItem } from '@/features/expenses/types';
 
 const session = useSessionStore();
 const router = useRouter();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const recent = ref<ExpenseReportListItem[]>([]);
 const counts = ref<{ all: number; drafts: number; forApproval: number; returned: number } | null>(null);
@@ -56,7 +56,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
     <section class="hero mb-5">
       <div class="hero__body">
         <span class="hero__date">{{ today }}</span>
-        <h1 class="hero__title">{{ xs ? 'Hello' : 'Good day' }}{{ session.user ? `, ${greetingName(session.user.fullName)}` : '' }}</h1>
+        <h1 class="hero__title">{{ compact ? 'Hello' : 'Good day' }}{{ session.user ? `, ${greetingName(session.user.fullName)}` : '' }}</h1>
         <p class="hero__sub">Prepare and file your expense reports, then print the R47.</p>
       </div>
       <div class="hero__stat" aria-live="polite">
@@ -76,7 +76,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
       >
         <span class="tile__icon"><v-icon :icon="t.icon" size="20" /></span>
         <span class="tile__text">
-          <span class="lbl">{{ xs ? t.short : t.label }}</span>
+          <span class="lbl">{{ compact ? t.short : t.label }}</span>
           <span class="mono tile__num">{{ counts ? counts[t.key] : '—' }}</span>
         </span>
         <v-icon icon="mdi-arrow-top-right" size="16" class="tile__go" />
@@ -122,7 +122,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .tiles {
     gap: 8px;
   }
@@ -191,7 +191,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
   font-weight: 500;
   line-height: 1.1;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .hero {
     padding: 20px;
     border-radius: 14px;
@@ -277,7 +277,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
 .tile--error .tile__num {
   color: rgb(var(--v-theme-error));
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   /* Phone: three compact tiles in one row (icon, number, label) instead of three full-width bars. */
   .tile {
     flex-direction: column;
@@ -354,7 +354,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
   font-weight: 500;
   white-space: nowrap;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   /* Phone: title and amount on the first line, reference, period and status on the second. */
   .recent__row {
     display: grid;

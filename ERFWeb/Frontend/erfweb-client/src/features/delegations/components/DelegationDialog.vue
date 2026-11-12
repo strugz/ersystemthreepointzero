@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { addDaysIso } from '@/shared/format';
 import type { CreateDelegationInput, DelegationOptions } from '../types';
 
@@ -20,7 +20,7 @@ const props = withDefaults(
   { saving: false, error: null },
 );
 
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
@@ -111,7 +111,7 @@ function close() {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="560" :fullscreen="xs" scrollable :persistent="saving" @update:model-value="close">
+  <v-dialog :model-value="modelValue" max-width="560" :fullscreen="compact" scrollable :persistent="saving" @update:model-value="close">
     <v-card>
       <v-card-title class="text-subtitle-1 font-weight-bold">New delegation</v-card-title>
 
@@ -190,7 +190,7 @@ function close() {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .dates {
     grid-template-columns: 1fr;
   }

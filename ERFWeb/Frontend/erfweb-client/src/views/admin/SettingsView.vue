@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { formatDateTime } from '@/shared/format';
 import { useSnackbar } from '@/shared/composables/useSnackbar';
@@ -13,7 +14,8 @@ import { rulesSectionOf } from '@/features/admin/types';
 import type { ReminderStatus, RulesSection, SystemSettings, SystemSettingsInput } from '@/features/admin/types';
 
 const snack = useSnackbar();
-const { xs, smAndDown } = useDisplay();
+const { smAndDown } = useDisplay();
+const { compact } = useLayoutMode();
 const route = useRoute();
 const router = useRouter();
 
@@ -92,7 +94,7 @@ async function save(input: SystemSettingsInput) {
 
 <template>
   <AuthenticatedLayout :crumbs="[{ title: 'Rules' }]" narrow>
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Workflow rules</h1>
       <span class="text-body-2 text-medium-emphasis">Approval thresholds, service levels, filing limits, the R47 reviewer and notifications. Changes apply to reports filed from now on.</span>
     </div>

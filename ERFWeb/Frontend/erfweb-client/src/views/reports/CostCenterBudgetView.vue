@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useDisplay } from 'vuetify';
-import { useListLayout } from '@/shared/composables/useListLayout';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppExportButton from '@/shared/ui/AppExportButton.vue';
@@ -20,8 +19,7 @@ import type { CostCenterBudgetReport, CostCenterBudgetRow } from '@/features/rep
 // decides which cost centers the caller sees: all for Finance, a signatory's covered departments.
 const session = useSessionStore();
 const snack = useSnackbar();
-const { xs } = useDisplay();
-const { rowsLayout } = useListLayout();
+const { compact } = useLayoutMode();
 
 const isFinance = session.hasRole('Finance');
 const isAdmin = session.hasRole('SystemAdministrator');
@@ -107,7 +105,7 @@ watch([year, approvedOnly], () => {
       <AppExportButton compact :loading="exporting" :disabled="!report || report.costCenters.length === 0" @export="exportBudgets" />
     </template>
 
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Budgets</h1>
       <span class="text-body-2 text-medium-emphasis">Each department's yearly budget against what its employees spent. For monitoring only.</span>
     </div>
@@ -138,8 +136,8 @@ watch([year, approvedOnly], () => {
         :hint="emptyHint"
       />
 
-      <!-- Phone and tablet (useListLayout): one block per cost center (bar, used of budget, remaining); tap to list who spent it -->
-      <div v-else-if="report && rowsLayout" class="rows">
+      <!-- Phone and tablet (compact layout): one block per cost center (bar, used of budget, remaining); tap to list who spent it -->
+      <div v-else-if="report && compact" class="rows">
         <div v-for="(row, i) in report.costCenters" :key="row.costCenterId" class="mrow stagger-in" :style="{ '--i': Math.min(i, 10) }">
           <button type="button" class="mrow__main" :aria-expanded="expanded === row.costCenterId" @click="toggle(row)">
             <span class="mrow__top">

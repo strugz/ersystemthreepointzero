@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import { reviewLink, reviewOriginCrumb } from '@/views/approvals/reviewCrumbs';
@@ -21,7 +21,7 @@ import { formatDateTime } from '@/shared/format';
 
 const route = useRoute();
 const router = useRouter();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 const reportId = String(route.params.id);
 
 // Opened from a review (approver, Finance, verifier): lead back there, where the actions are,
@@ -43,7 +43,7 @@ const frame = ref<HTMLIFrameElement | null>(null);
 const rotated = ref(false);
 // Rotated, the viewer is wider than tall: fit the whole page and hide the viewer's own toolbar and thumbnails,
 // which would otherwise take the room (PDF open parameters; viewers that ignore them still show the page).
-const frameSrc = computed(() => (pdfUrl.value && xs.value && rotated.value ? `${pdfUrl.value}#toolbar=0&navpanes=0&view=Fit` : pdfUrl.value ?? undefined));
+const frameSrc = computed(() => (pdfUrl.value && compact.value && rotated.value ? `${pdfUrl.value}#toolbar=0&navpanes=0&view=Fit` : pdfUrl.value ?? undefined));
 const snack = useSnackbar();
 
 const emails = ref<ReportEmailDelivery[]>([]);
@@ -224,7 +224,7 @@ function print() {
       <v-btn v-else class="press" color="primary" variant="flat" prepend-icon="mdi-open-in-new" :href="reportingApi.pdfUrl(reportId)" target="_blank" rel="noopener" :disabled="!pdfUrl">Open</v-btn>
     </template>
 
-    <div v-if="!xs" class="mb-4">
+    <div v-if="!compact" class="mb-4">
       <h1 class="page-title">Expense report (R47)</h1>
       <p class="text-body-2 text-medium-emphasis mb-0">The controlled form exactly as it prints. Landscape, US Letter.</p>
     </div>
@@ -235,13 +235,13 @@ function print() {
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
     <v-alert v-else-if="error" type="error">{{ error }}</v-alert>
     <template v-else>
-      <div v-if="xs" class="rotate-bar">
+      <div v-if="compact" class="rotate-bar">
         <span class="text-caption text-medium-emphasis">{{ rotated ? 'Turn your phone sideways to read.' : 'Landscape form: rotate to read it larger.' }}</span>
         <v-btn class="press" size="small" :variant="rotated ? 'flat' : 'outlined'" color="primary" prepend-icon="mdi-phone-rotate-landscape" :aria-pressed="rotated" @click="rotated = !rotated">
           {{ rotated ? 'Upright' : 'Rotate' }}
         </v-btn>
       </div>
-      <v-card class="pdf-card" :class="{ 'pdf-card--rotated': xs && rotated }">
+      <v-card class="pdf-card" :class="{ 'pdf-card--rotated': compact && rotated }">
         <iframe :key="frameSrc" ref="frame" :src="frameSrc" title="Expense Report PDF" class="pdf-frame" />
       </v-card>
     </template>
@@ -261,7 +261,7 @@ function print() {
   display: block;
   background: #525659;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .pdf-frame {
     height: 70vh;
   }

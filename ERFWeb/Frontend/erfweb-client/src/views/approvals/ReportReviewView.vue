@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import { formatDate, formatDateTime, formatMoney } from '@/shared/format';
@@ -39,7 +40,8 @@ const route = useRoute();
 const router = useRouter();
 const snack = useSnackbar();
 const session = useSessionStore();
-const { xs, lgAndUp } = useDisplay();
+const { lgAndUp } = useDisplay();
+const { compact } = useLayoutMode();
 const reportId = String(route.params.id);
 
 const report = ref<ExpenseReportDetail | null>(null);
@@ -279,7 +281,7 @@ async function saveAdjust(amount: number, reason: string) {
 
     <div v-else-if="report" class="review" :class="{ 'review--wide': lgAndUp }">
       <div class="review__main">
-        <div v-if="!xs" class="title-row">
+        <div v-if="!compact" class="title-row">
           <h1 class="page-title">{{ report.employeeName }}</h1>
           <ReportStatusChip :status="report.status" />
           <span class="text-body-2 text-medium-emphasis">
@@ -292,7 +294,7 @@ async function saveAdjust(amount: number, reason: string) {
           You have no action on this report right now. It is waiting for another step, or your step is done.
         </v-alert>
         <v-alert v-if="review?.canAdjustLines" type="info" variant="tonal" density="compact" icon="mdi-arrow-down-bold-circle-outline">
-          <template v-if="xs">Tap a line marked <v-icon icon="mdi-arrow-down-bold-circle-outline" size="16" color="primary" /> to lower its amount, with a reason, before you approve.</template>
+          <template v-if="compact">Tap a line marked <v-icon icon="mdi-arrow-down-bold-circle-outline" size="16" color="primary" /> to lower its amount, with a reason, before you approve.</template>
           <template v-else>You can lower a line amount, with a reason, before you approve.</template>
           Amounts lock after the first approval.
         </v-alert>
@@ -301,7 +303,7 @@ async function saveAdjust(amount: number, reason: string) {
           <div v-if="report.cancelNote" class="text-body-2" style="white-space: pre-line">{{ report.cancelNote }}</div>
         </v-alert>
 
-        <ReportTotalsCard v-if="!lgAndUp" :total="report.totalAmount" :cash-advance="report.cashAdvanceTotal" :variant="xs ? 'card' : 'strip'" />
+        <ReportTotalsCard v-if="!lgAndUp" :total="report.totalAmount" :cash-advance="report.cashAdvanceTotal" :variant="compact ? 'card' : 'strip'" />
 
         <ReportDetailsCard v-model:open="detailsOpen" :report="report" :editable="false" :saving="false" />
 
@@ -313,7 +315,7 @@ async function saveAdjust(amount: number, reason: string) {
               <span class="card-t">Expense lines</span>
               <span class="card-meta">{{ report.lines.length }} line{{ report.lines.length === 1 ? '' : 's' }}</span>
             </div>
-            <span v-if="xs" class="mono card-t">{{ formatMoney(report.totalAmount) }}</span>
+            <span v-if="compact" class="mono card-t">{{ formatMoney(report.totalAmount) }}</span>
           </div>
           <ExpenseLinesTable
             :lines="report.lines"
@@ -400,7 +402,7 @@ async function saveAdjust(amount: number, reason: string) {
 .review__span {
   grid-column: span 2;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .review__main {
     gap: 14px;
   }

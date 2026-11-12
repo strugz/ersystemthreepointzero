@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useListLayout } from '@/shared/composables/useListLayout';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { formatDate, formatMoney } from '@/shared/format';
@@ -28,7 +28,7 @@ const emit = defineEmits<{
   deleted: [];
 }>();
 
-const { rowsLayout, tabletRows } = useListLayout();
+const { compact, tablet } = useLayoutMode();
 
 function coverText(a: ScopeAssignment): string {
   if (a.type === 'Department') return a.departmentName ?? '—';
@@ -72,8 +72,8 @@ function onRow(a: ScopeAssignment) {
       <v-btn v-else-if="canWrite" class="press" color="primary" variant="flat" prepend-icon="mdi-plus" @click="emit('create')">New assignment</v-btn>
     </AppEmptyState>
 
-    <!-- Phone and tablet (useListLayout): stacked rows -->
-    <div v-else-if="!loading && rowsLayout" :class="{ 'rows--tablet': tabletRows }" class="rows">
+    <!-- Phone and tablet (compact layout): stacked rows -->
+    <div v-else-if="!loading && compact" :class="{ 'rows--tablet': tablet }" class="rows">
       <component
         :is="canWrite ? 'button' : 'div'"
         v-for="(a, i) in items"

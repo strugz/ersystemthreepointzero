@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useDisplay } from 'vuetify';
-import { useListLayout } from '@/shared/composables/useListLayout';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { isTestMode } from '@/shared/appMode';
@@ -46,8 +45,7 @@ const emit = defineEmits<{
   deleted: [];
 }>();
 
-const { xs } = useDisplay();
-const { rowsLayout } = useListLayout();
+const { compact } = useLayoutMode();
 const showDelete = computed(() => props.testDeletable && isTestMode);
 
 // Event names seen in the current page extend the known list so the combobox stays useful.
@@ -185,8 +183,8 @@ function clearFilters() {
       <v-btn v-if="hasFilters" class="press" variant="text" @click="clearFilters">Clear filters</v-btn>
     </AppEmptyState>
 
-    <!-- Phone and tablet (useListLayout): event on the first line, when and who on the second; tap for the detail -->
-    <div v-else-if="!loading && rowsLayout" class="rows">
+    <!-- Phone and tablet (compact layout): event on the first line, when and who on the second; tap for the detail -->
+    <div v-else-if="!loading && compact" class="rows">
       <div v-for="(e, i) in items" :key="e.id" class="mrow stagger-in" :style="{ '--i': Math.min(i, 10) }">
         <div class="mrow__head">
           <button type="button" class="mrow__main row-link" :aria-expanded="expanded.has(e.id)" @click="toggle(e.id)">
@@ -234,7 +232,7 @@ function clearFilters() {
             </tr>
             <tr v-if="expanded.has(e.id)" class="audit__detail">
               <td></td>
-              <td :colspan="(xs ? 2 : 5) + (showDelete ? 1 : 0)">
+              <td :colspan="(compact ? 2 : 5) + (showDelete ? 1 : 0)">
                 <div class="audit__meta text-caption text-medium-emphasis">
                   <span>Actor: {{ e.actorName ?? '—' }}<template v-if="e.actorUserId !== null"> (#{{ e.actorUserId }})</template></span>
                   <span v-if="e.reportId">Report: <span class="mono">{{ e.reportId }}</span></span>
@@ -249,7 +247,7 @@ function clearFilters() {
     </div>
 
     <div v-if="!loading && totalPages > 1" class="d-flex justify-center py-2">
-      <v-pagination :model-value="page" :length="totalPages" density="comfortable" :total-visible="xs ? 5 : 7" @update:model-value="(p: number) => emit('update:page', p)" />
+      <v-pagination :model-value="page" :length="totalPages" density="comfortable" :total-visible="compact ? 5 : 7" @update:model-value="(p: number) => emit('update:page', p)" />
     </div>
   </v-card>
 </template>
@@ -273,7 +271,7 @@ function clearFilters() {
 .filters__dir {
   height: 40px;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .filters__event,
   .filters__date {
     flex: 1 1 100%;

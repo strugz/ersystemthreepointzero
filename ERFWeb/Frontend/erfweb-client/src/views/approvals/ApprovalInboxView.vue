@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useDisplay } from 'vuetify';
-import { useListLayout } from '@/shared/composables/useListLayout';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import { formatDateTime, formatMoney } from '@/shared/format';
@@ -22,8 +21,7 @@ import type { VerificationQueueItem } from '@/features/verification/types';
 const router = useRouter();
 const route = useRoute();
 const snack = useSnackbar();
-const { xs } = useDisplay();
-const { rowsLayout, tabletRows } = useListLayout();
+const { compact, tablet } = useLayoutMode();
 
 // "Queries" is the Level 2's list of Not verified findings Finance referred to them (plan Flow 6).
 type InboxTab = ApprovalInboxView | 'Queries';
@@ -108,7 +106,7 @@ function waitingFor(item: ApprovalInboxItem): string {
 
 <template>
   <AuthenticatedLayout :crumbs="[{ title: 'Approvals' }]">
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Approvals</h1>
       <span class="text-body-2 text-medium-emphasis">Reports routed to you. Steps go in order; a Level 2 may override a pending Level 1 with a reason.</span>
     </div>
@@ -152,7 +150,7 @@ function waitingFor(item: ApprovalInboxItem): string {
         />
         <VerificationList v-else-if="queries" :items="queries.items" show-query @open="openQuery" />
         <div v-if="queries && queries.totalPages > 1" class="d-flex justify-center py-2">
-          <v-pagination v-model="page" :length="queries.totalPages" density="comfortable" :total-visible="xs ? 5 : 7" />
+          <v-pagination v-model="page" :length="queries.totalPages" density="comfortable" :total-visible="compact ? 5 : 7" />
         </div>
       </template>
 
@@ -163,8 +161,8 @@ function waitingFor(item: ApprovalInboxItem): string {
         :hint="search ? 'Try a different name or reference number.' : view === 'Pending' ? 'Reports filed by the people you approve for appear here.' : 'Reports you approve, return or reject are listed here.'"
       />
 
-      <!-- Phone and tablet (useListLayout): list rows -->
-      <div v-else-if="result && rowsLayout" :class="{ 'rows--tablet': tabletRows }" class="rows">
+      <!-- Phone and tablet (compact layout): list rows -->
+      <div v-else-if="result && compact" :class="{ 'rows--tablet': tablet }" class="rows">
         <button
           v-for="(item, i) in result.items"
           :key="item.reportId"
@@ -233,7 +231,7 @@ function waitingFor(item: ApprovalInboxItem): string {
       </div>
 
       <div v-if="result && result.totalPages > 1" class="d-flex justify-center py-2">
-        <v-pagination v-model="page" :length="result.totalPages" density="comfortable" :total-visible="xs ? 5 : 7" />
+        <v-pagination v-model="page" :length="result.totalPages" density="comfortable" :total-visible="compact ? 5 : 7" />
       </div>
     </v-card>
   </AuthenticatedLayout>
@@ -251,7 +249,7 @@ function waitingFor(item: ApprovalInboxItem): string {
   flex: 1 1 240px;
   max-width: 360px;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .filters__search {
     flex: 1 1 100%;
     max-width: none;

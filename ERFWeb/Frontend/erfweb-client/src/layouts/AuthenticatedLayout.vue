@@ -2,7 +2,7 @@
 import { computed, ref, toValue } from 'vue';
 import { useRoute } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { useSessionStore } from '@/app/stores/session';
 import { useThemeStore } from '@/app/stores/theme';
 import DailyQuoteDialog from '@/features/wellness/components/DailyQuoteDialog.vue';
@@ -14,11 +14,12 @@ import { themeOptions, useAppNavigation } from './useAppNavigation';
 
 /**
  * Application shell.
- *  - Desktop / tablet (>= 600px): a left navigation pane the user opens or closes: a 72px icon rail
+ *  - Desktop (>= 960px): a left navigation pane the user opens or closes: a 72px icon rail
  *    (closed) or a 248px pane with labels (open). The choice is remembered in this browser.
  *    64px white header with a breadcrumb.
- *  - Phone (< 600px): no rail; a 56px header with a back button, and a bottom bar — either the
- *    page's own sticky actions (#bottom slot) or the global bottom navigation.
+ *  - Phone and tablet (`compact`, useLayoutMode): no rail; a 56px header with a back button, and a bottom
+ *    bar — either the page's own sticky actions (#bottom slot) or the global bottom navigation. Tablets
+ *    get their own content width below.
  */
 export interface Crumb {
   title: string;
@@ -40,7 +41,7 @@ const props = withDefaults(
 const session = useSessionStore();
 const theme = useThemeStore();
 const route = useRoute();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const { nav, navGroups, roleSummary, initials, logout } = useAppNavigation();
 
@@ -93,7 +94,7 @@ const lastCrumb = computed(() => props.crumbs[props.crumbs.length - 1]);
 <template>
   <!-- Navigation pane: tablet and desktop. Closed = icon rail, open = icons with labels. -->
   <v-navigation-drawer
-    v-if="!xs"
+    v-if="!compact"
     permanent
     :rail="!expanded"
     rail-width="72"
@@ -212,8 +213,8 @@ const lastCrumb = computed(() => props.crumbs[props.crumbs.length - 1]);
   </v-navigation-drawer>
 
   <!-- Header -->
-  <v-app-bar flat color="surface" :height="xs ? 56 : 64" class="shell-header">
-    <template v-if="xs">
+  <v-app-bar flat color="surface" :height="compact ? 56 : 64" class="shell-header">
+    <template v-if="compact">
       <v-btn
         v-if="backTarget"
         class="press"
@@ -274,10 +275,10 @@ const lastCrumb = computed(() => props.crumbs[props.crumbs.length - 1]);
   </v-main>
 
   <!-- Phone bottom: page actions when provided, otherwise global navigation -->
-  <v-footer v-if="xs && $slots.bottom" app class="bottom-bar" color="surface">
+  <v-footer v-if="compact && $slots.bottom" app class="bottom-bar" color="surface">
     <slot name="bottom" />
   </v-footer>
-  <v-bottom-navigation v-else-if="xs" grow color="primary" bg-color="surface" class="bottom-nav" :elevation="0">
+  <v-bottom-navigation v-else-if="compact" grow color="primary" bg-color="surface" class="bottom-nav" :elevation="0">
     <v-btn v-for="item in nav" :key="item.title" :to="item.to" :exact="item.exact" :aria-label="item.title" class="press bottom-nav__btn">
       <span v-if="item.primary" class="bottom-nav__new"><v-icon :icon="item.icon" size="20" /></span>
       <v-icon v-else :icon="item.icon" />
@@ -616,6 +617,13 @@ const lastCrumb = computed(() => props.crumbs[props.crumbs.length - 1]);
 @media (max-width: 599.98px) {
   .page {
     padding: 16px 16px 24px;
+  }
+}
+/* Tablet in the phone layout: a centred column, so rows and forms do not stretch across a wide screen. */
+@media (min-width: 600px) and (max-width: 959.98px) {
+  .page {
+    max-width: 760px;
+    margin-inline: auto;
   }
 }
 

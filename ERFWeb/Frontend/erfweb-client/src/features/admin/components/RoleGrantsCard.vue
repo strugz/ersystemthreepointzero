@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useListLayout } from '@/shared/composables/useListLayout';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
 import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { formatDateTime } from '@/shared/format';
@@ -36,7 +36,7 @@ const emit = defineEmits<{
   deleted: [];
 }>();
 
-const { rowsLayout, tabletRows } = useListLayout();
+const { compact, tablet } = useLayoutMode();
 
 const isSelf = computed(() => props.userId === props.currentUserId);
 
@@ -125,8 +125,8 @@ const actionMessage = computed(() =>
 
     <div v-if="ordered.length === 0" class="text-body-2 text-medium-emphasis pa-5">No roles granted beyond Employee.</div>
 
-    <!-- Phone and tablet (useListLayout): stacked rows -->
-    <ul v-else-if="rowsLayout" :class="{ 'rows--tablet': tabletRows }" class="grants">
+    <!-- Phone and tablet (compact layout): stacked rows -->
+    <ul v-else-if="compact" :class="{ 'rows--tablet': tablet }" class="grants">
       <li v-for="g in ordered" :key="g.role" class="grant">
         <div class="d-flex align-center ga-2 flex-wrap">
           <span class="font-weight-medium">{{ roleLabel(g.role) }}</span>

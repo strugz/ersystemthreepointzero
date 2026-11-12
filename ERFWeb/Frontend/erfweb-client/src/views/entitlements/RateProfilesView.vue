@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useDisplay } from 'vuetify';
-import { useListLayout } from '@/shared/composables/useListLayout';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { useSessionStore } from '@/app/stores/session';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
@@ -17,8 +16,7 @@ import type { RateProfileListItem } from '@/features/entitlements/types';
 const router = useRouter();
 const session = useSessionStore();
 const snack = useSnackbar();
-const { xs } = useDisplay();
-const { rowsLayout, tabletRows } = useListLayout();
+const { compact, tablet } = useLayoutMode();
 
 const canWrite = computed(() => hasAnyRole(session.user?.roles, rateWriterRoles));
 
@@ -90,7 +88,7 @@ async function create() {
       <v-btn class="press" icon="mdi-plus" variant="text" aria-label="New profile" @click="openCreate" />
     </template>
 
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Rate profiles</h1>
       <span class="text-body-2 text-medium-emphasis">Meal, transport and other rates, assigned by person, job grade, department or company.</span>
     </div>
@@ -107,7 +105,7 @@ async function create() {
           density="compact"
           hide-details
           color="primary"
-          :label="xs ? 'Inactive' : `Show inactive (${inactiveCount})`"
+          :label="compact ? 'Inactive' : `Show inactive (${inactiveCount})`"
         />
       </div>
 
@@ -133,8 +131,8 @@ async function create() {
         <v-btn v-if="profiles.length === 0 && canWrite" class="press" color="primary" variant="flat" prepend-icon="mdi-plus" @click="openCreate">New profile</v-btn>
       </AppEmptyState>
 
-      <!-- Phone and tablet (useListLayout): one row per profile; the four columns did not fit -->
-      <div v-else-if="!loading && rowsLayout" :class="{ 'rows--tablet': tabletRows }" class="rows">
+      <!-- Phone and tablet (compact layout): one row per profile; the four columns did not fit -->
+      <div v-else-if="!loading && compact" :class="{ 'rows--tablet': tablet }" class="rows">
         <div
           v-for="(p, i) in visible"
           :key="p.id"

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useDisplay } from 'vuetify';
-import { useListLayout } from '@/shared/composables/useListLayout';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppExportButton from '@/shared/ui/AppExportButton.vue';
@@ -21,8 +20,7 @@ import type { ExpenseSummary, ExpenseSummaryQuery, SummaryScope } from '@/featur
 // roles; the API decides what each scope may see.
 const session = useSessionStore();
 const snack = useSnackbar();
-const { xs } = useDisplay();
-const { rowsLayout } = useListLayout();
+const { compact } = useLayoutMode();
 
 const isSignatory = session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2');
 const isFinance = session.hasRole('Finance');
@@ -140,7 +138,7 @@ watch([from, to, scope, departmentId, approvedOnly], () => void load());
       <AppExportButton compact :formats="['Csv', 'Pdf']" :loading="exporting" :disabled="!!periodError || !summary" @export="exportSummary" />
     </template>
 
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Expense summary</h1>
       <span class="text-body-2 text-medium-emphasis">Filed and approved expenses by expense date, totalled per employee and category.</span>
     </div>
@@ -190,8 +188,8 @@ watch([from, to, scope, departmentId, approvedOnly], () => void load());
         :hint="`Nothing filed or approved with an expense date from ${formatDate(from)} to ${formatDate(to)}.`"
       />
 
-      <!-- Phone and tablet (useListLayout): one row per employee, the categories they used under the name -->
-      <div v-else-if="summary && rowsLayout" class="rows">
+      <!-- Phone and tablet (compact layout): one row per employee, the categories they used under the name -->
+      <div v-else-if="summary && compact" class="rows">
         <div v-for="(e, i) in summary.employees" :key="e.employeeUserId" class="row stagger-in" :style="{ '--i': Math.min(i, 10) }">
           <div class="row__top">
             <div class="row__main">
@@ -271,7 +269,7 @@ watch([from, to, scope, departmentId, approvedOnly], () => void load());
   flex: 0 1 220px;
   min-width: 180px;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .filters__date {
     flex: 1 1 calc(50% - 6px);
   }

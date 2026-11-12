@@ -392,7 +392,7 @@ body {
   }
 }
 
-/* Tablet list settings (useListLayout): flat row lists use two columns at 600-959px. Phones never get this
+/* Tablet list settings (useLayoutMode tablet): flat row lists use two columns at 600-959px. Phones never get this
    class. The selector outranks each screen's own scoped `.rows` rule. */
 .v-card :is(div, ul).rows--tablet {
   display: grid;

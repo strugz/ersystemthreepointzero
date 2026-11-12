@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { useSessionStore } from '@/app/stores/session';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { todayIso } from '@/shared/format';
@@ -28,7 +28,7 @@ const route = useRoute();
 const router = useRouter();
 const session = useSessionStore();
 const snack = useSnackbar();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 // Write controls are presentation only; the API decides which level each actor may set.
 const canWrite = computed(() => hasAnyRole(session.user?.roles, scopeWriterRoles));
@@ -187,7 +187,7 @@ async function update(input: UpdateScopeAssignmentInput) {
       <v-btn class="press" icon="mdi-plus" variant="text" aria-label="New assignment" @click="openCreate" />
     </template>
 
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-4">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-4">
       <h1 class="page-title">Scope</h1>
       <span class="text-body-2 text-medium-emphasis">Who signs for whom. Every employee needs exactly one Level 1 and one Level 2.</span>
     </div>

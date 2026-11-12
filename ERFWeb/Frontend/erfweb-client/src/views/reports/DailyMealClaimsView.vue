@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useDisplay } from 'vuetify';
-import { useListLayout } from '@/shared/composables/useListLayout';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppExportButton from '@/shared/ui/AppExportButton.vue';
@@ -16,8 +15,7 @@ import type { DailyMealClaimQuery, DailyMealClaimReport } from '@/features/repor
 // Daily meal claims (Finance requirement 3): for each day, the employees who claimed their meal budget and which
 // meals. Finance only; the API enforces it.
 const snack = useSnackbar();
-const { xs } = useDisplay();
-const { rowsLayout } = useListLayout();
+const { compact } = useLayoutMode();
 
 const MEALS = [
   { key: 'breakfast', label: 'Breakfast' },
@@ -125,7 +123,7 @@ watch([from, to, departmentId, approvedOnly], () => void load());
       <AppExportButton compact :loading="exporting" :disabled="!!periodError || !report" @export="exportClaims" />
     </template>
 
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Meal claims</h1>
       <span class="text-body-2 text-medium-emphasis">Who claimed their meal budget each day, from filed and approved reports.</span>
     </div>
@@ -175,8 +173,8 @@ watch([from, to, departmentId, approvedOnly], () => void load());
         :hint="`No filed or approved meal lines with an expense date from ${formatDate(from)} to ${formatDate(to)}.`"
       />
 
-      <!-- Phone and tablet (useListLayout): a header per day, then one row per employee with the meals claimed -->
-      <div v-else-if="report && rowsLayout" class="rows">
+      <!-- Phone and tablet (compact layout): a header per day, then one row per employee with the meals claimed -->
+      <div v-else-if="report && compact" class="rows">
         <template v-for="day in report.days" :key="day.date">
           <div class="row row--day">
             <div class="row__top">
@@ -271,7 +269,7 @@ watch([from, to, departmentId, approvedOnly], () => void load());
   flex: 0 1 220px;
   min-width: 180px;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .filters__date {
     flex: 1 1 calc(50% - 6px);
   }

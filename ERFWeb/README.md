@@ -30,10 +30,12 @@ section of the root `CLAUDE.md`) in the same change.
   row to edit; **Remove** is in the advance dialog on phones, as for expense lines). **Budgets** shows one block per
   cost center on phones (usage bar, used of budget, remaining; tap to list who spent it); its table no longer prints
   "Not set" beside a budget that is set. The Dashboard greets by the whole first name ("Ma. Agnes", not "Ma.";
-  `greetingName` in `shared/format.ts`). **Tablets** (600-959px) now show every list screen as the same rows as phones
-  instead of tables, under their own setting (`shared/composables/useListLayout.ts`, switch `TABLET_ROWS`, and the
-  `rows--tablet` styles in `main.css`): flat lists (My reports, Approvals, Users, Scope, coverage, rate assignments,
-  role grants, Rates) use two columns there; grouped lists stay one column. Phones and desktop are unchanged. The
+  `greetingName` in `shared/format.ts`). **Tablets** (600-959px) use the phone layout: bottom bar, phone header with
+  Back, row lists instead of tables, full-screen dialogs, no side rail. It is the tablet's own setting
+  (`shared/composables/useLayoutMode.ts`, switch `TABLET_PHONE_LAYOUT`; `compact` = phone or tablet, `tablet` for
+  tablet-only tweaks): a centred 760px column with 24px padding, and flat lists (My reports, Approvals, Users, Scope,
+  coverage, rate assignments, role grants, Rates) in two columns (`rows--tablet` in `main.css`). Phones and desktop
+  (960px and up) are unchanged. The
   **R47 PDF** page has a **Rotate** button on
   phones that turns the viewer a quarter turn and fits the whole page, so the landscape form fills the screen when the
   phone is held sideways (even with rotation lock on). Phone expense line rows show what tapping does: a chevron when the

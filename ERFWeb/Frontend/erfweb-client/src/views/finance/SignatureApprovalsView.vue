@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
@@ -16,7 +16,7 @@ import type { SignatureReviewItem } from '@/features/finance/types';
 // signature that was replaced or already decided since the list loaded (409).
 const session = useSessionStore();
 const snack = useSnackbar();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const tab = ref<'Pending' | 'Approved'>('Pending');
 const loading = ref(false);
@@ -98,7 +98,7 @@ watch(tab, () => void load());
 
 <template>
   <AuthenticatedLayout :crumbs="[{ title: 'Signatures' }]">
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Signatures</h1>
       <span class="text-body-2 text-medium-emphasis">
         A signature image prints on the R47, with an ELECTRONIC SIGNATURE watermark, only after Finance approves it.

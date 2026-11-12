@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { todayIso } from '@/shared/format';
 import { fieldErrors, numberOrNull, personItems, textOrNull } from '../forms';
 import type { FieldErrors } from '../forms';
@@ -36,7 +36,7 @@ const props = withDefaults(
   { assignment: null, defaultLevel: null, saving: false, errors: null },
 );
 
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
@@ -192,7 +192,7 @@ function close() {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="620" :fullscreen="xs" scrollable :persistent="saving" @update:model-value="close">
+  <v-dialog :model-value="modelValue" max-width="620" :fullscreen="compact" scrollable :persistent="saving" @update:model-value="close">
     <v-card>
       <v-card-title class="d-flex align-center ga-2">
         <span class="text-subtitle-1 font-weight-bold">{{ isEdit ? 'Edit scope assignment' : 'New scope assignment' }}</span>

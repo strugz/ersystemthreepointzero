@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
@@ -16,7 +16,7 @@ import type { CreateDelegationInput, Delegation, DelegationOptions, MyDelegation
 
 const snack = useSnackbar();
 const session = useSessionStore();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const mine = ref<MyDelegations | null>(null);
 const options = ref<DelegationOptions | null>(null);
@@ -120,8 +120,8 @@ function byLine(d: Delegation, section: string): string | null {
 <template>
   <AuthenticatedLayout :crumbs="[{ title: 'Delegations' }]">
     <div class="d-flex align-center ga-3 flex-wrap mb-5">
-      <h1 v-if="!xs" class="page-title">Delegations</h1>
-      <span v-if="!xs" class="text-body-2 text-medium-emphasis">Name a delegate before you leave. Only approving is delegated.</span>
+      <h1 v-if="!compact" class="page-title">Delegations</h1>
+      <span v-if="!compact" class="text-body-2 text-medium-emphasis">Name a delegate before you leave. Only approving is delegated.</span>
       <v-spacer />
       <v-btn class="press" color="primary" variant="flat" prepend-icon="mdi-plus" :disabled="!options" @click="openCreate">New delegation</v-btn>
     </div>

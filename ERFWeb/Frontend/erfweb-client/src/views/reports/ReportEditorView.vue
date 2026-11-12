@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
@@ -48,7 +49,8 @@ const router = useRouter();
 const session = useSessionStore();
 const isAdmin = computed(() => session.hasRole('SystemAdministrator'));
 const snack = useSnackbar();
-const { xs, lgAndUp } = useDisplay();
+const { lgAndUp } = useDisplay();
+const { compact } = useLayoutMode();
 const reportId = String(route.params.id);
 
 const report = ref<ExpenseReportDetail | null>(null);
@@ -559,7 +561,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
     <div v-else-if="report" class="editor" :class="{ 'editor--wide': lgAndUp }">
       <!-- Main column -->
       <div class="editor__main">
-        <div v-if="!xs" class="title-row">
+        <div v-if="!compact" class="title-row">
           <h1 class="page-title">Expense report</h1>
           <ReportStatusChip :status="report.status" />
           <span class="text-body-2 text-medium-emphasis">
@@ -590,7 +592,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         </template>
 
         <!-- Totals move above the document when there is no side column -->
-        <ReportTotalsCard v-if="!lgAndUp" :total="report.totalAmount" :cash-advance="report.cashAdvanceTotal" :variant="xs ? 'card' : 'strip'" />
+        <ReportTotalsCard v-if="!lgAndUp" :total="report.totalAmount" :cash-advance="report.cashAdvanceTotal" :variant="compact ? 'card' : 'strip'" />
 
         <ReportDetailsCard v-model:open="detailsOpen" class="editor__details" :report="report" :editable="report.canEdit" :saving="savingHeader" @save="saveHeader" />
 
@@ -621,8 +623,8 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
                   <v-list-item v-for="o in lineSortOptions" :key="o.value" :title="o.label" @click="sortLines(o.value)" />
                 </v-list>
               </v-menu>
-              <v-btn v-if="report.canEdit && report.lines.length && !xs" class="press" size="small" variant="outlined" prepend-icon="mdi-plus" @click="openAddLine">Add line</v-btn>
-              <span v-else-if="xs" class="mono card-t">{{ formatMoney(report.totalAmount) }}</span>
+              <v-btn v-if="report.canEdit && report.lines.length && !compact" class="press" size="small" variant="outlined" prepend-icon="mdi-plus" @click="openAddLine">Add line</v-btn>
+              <span v-else-if="compact" class="mono card-t">{{ formatMoney(report.totalAmount) }}</span>
             </div>
           </div>
           <ExpenseLinesTable :lines="report.lines" :editable="report.canEdit" :busy-line-id="busyLineId" @add="openAddLine" @edit="openEditLine" @remove="removingLine = $event" />
@@ -807,7 +809,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
 .editor__span {
   grid-column: span 2;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .editor__main {
     gap: 14px;
   }

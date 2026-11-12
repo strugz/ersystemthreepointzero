@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import type { Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import { useSnackbar } from '@/shared/composables/useSnackbar';
@@ -16,7 +16,7 @@ import type { CostCenter, Currency, Department, ExpenseCategoryInfo, FareMode, S
 const route = useRoute();
 const router = useRouter();
 const snack = useSnackbar();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 type Tab = 'departments' | 'cost-centers' | 'currencies' | 'sites' | 'fare-modes' | 'categories';
 const tabs: { value: Tab; title: string; icon: string }[] = [
@@ -344,12 +344,12 @@ function saveFareMode(draft: Draft, existing: FareMode | null) {
 
 <template>
   <AuthenticatedLayout :crumbs="[{ title: 'Master data' }]">
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-4">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-4">
       <h1 class="page-title">Master data</h1>
       <span class="text-body-2 text-medium-emphasis">Reference lists shared by expense reports and the R47. Deactivate rather than delete.</span>
     </div>
 
-    <v-tabs v-model="tab" color="primary" density="comfortable" :show-arrows="xs" class="mb-4 tabs">
+    <v-tabs v-model="tab" color="primary" density="comfortable" :show-arrows="compact" class="mb-4 tabs">
       <v-tab v-for="t in tabs" :key="t.value" :value="t.value" class="press text-none">
         <v-icon :icon="t.icon" size="18" class="mr-2 d-none d-sm-inline-flex" />{{ t.title }}
       </v-tab>

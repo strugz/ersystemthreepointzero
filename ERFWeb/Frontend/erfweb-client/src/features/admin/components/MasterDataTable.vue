@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends { isActive: boolean }">
 import { computed, reactive, ref, watch } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import type { TestDataKind } from '@/shared/api/testData';
@@ -63,12 +63,12 @@ const emit = defineEmits<{
   deleted: [];
 }>();
 
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const showInactive = ref(false);
 const visible = computed(() => (showInactive.value ? props.items : props.items.filter((i) => i.isActive)));
 const inactiveCount = computed(() => props.items.filter((i) => !i.isActive).length);
-const visibleColumns = computed(() => props.columns.filter((c) => !(xs.value && c.hideOnPhone)));
+const visibleColumns = computed(() => props.columns.filter((c) => !(compact.value && c.hideOnPhone)));
 
 function cell(item: T, column: MasterDataColumn<T>): string {
   if (column.render) return column.render(item);
@@ -159,11 +159,11 @@ function save() {
           density="compact"
           hide-details
           color="primary"
-          :label="xs ? 'Inactive' : `Show inactive (${inactiveCount})`"
+          :label="compact ? 'Inactive' : `Show inactive (${inactiveCount})`"
           class="mr-2"
         />
         <v-btn class="press" size="small" variant="outlined" prepend-icon="mdi-plus" :disabled="loading" @click="openCreate">
-          {{ xs ? 'Add' : `Add ${singular}` }}
+          {{ compact ? 'Add' : `Add ${singular}` }}
         </v-btn>
       </div>
     </div>

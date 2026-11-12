@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { useSessionStore } from '@/app/stores/session';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { useSnackbar } from '@/shared/composables/useSnackbar';
@@ -13,7 +13,7 @@ import type { AuditEntry, PagedResult } from '@/features/admin/types';
 const route = useRoute();
 const session = useSessionStore();
 const snack = useSnackbar();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const isAdmin = session.hasRole('SystemAdministrator');
 const q = (key: string) => (typeof route.query[key] === 'string' ? (route.query[key] as string) : null);
@@ -71,7 +71,7 @@ watch(
 
 <template>
   <AuthenticatedLayout :crumbs="[{ title: 'Audit' }]">
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Audit log</h1>
       <span class="text-body-2 text-medium-emphasis">Who did what and when. Entries are append-only.</span>
     </div>

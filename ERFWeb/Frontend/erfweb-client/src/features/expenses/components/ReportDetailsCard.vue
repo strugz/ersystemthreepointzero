@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { formatDate } from '@/shared/format';
 import { balanceDueTo, reportTypeLabel, usesCashAdvance, usesRevolvingFund } from '../labels';
 import ReportHeaderForm from './ReportHeaderForm.vue';
@@ -12,10 +12,10 @@ const props = defineProps<{ report: ExpenseReportDetail; editable: boolean; savi
 const emit = defineEmits<{ save: [input: ReportHeaderInput] }>();
 const open = defineModel<boolean>('open', { default: false });
 
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 // Phones show a one-line summary under the expense lines; the fields open on tap.
 const expanded = ref(false);
-const showFields = computed(() => !xs.value || expanded.value);
+const showFields = computed(() => !compact.value || expanded.value);
 
 const initial = computed<ReportHeaderInput>(() => ({
   reportType: props.report.reportType,
@@ -42,7 +42,7 @@ const period = computed(() =>
 <template>
   <v-card class="details">
     <div class="card-h">
-      <button v-if="xs" type="button" class="details__toggle" :aria-expanded="expanded" @click="expanded = !expanded">
+      <button v-if="compact" type="button" class="details__toggle" :aria-expanded="expanded" @click="expanded = !expanded">
         <span class="card-t">Report details</span>
         <span v-if="!expanded" class="details__summary">{{ [reportTypeLabel[report.reportType], period].filter(Boolean).join(' · ') }}</span>
         <v-icon :icon="expanded ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="18" class="details__chev" />
@@ -67,7 +67,7 @@ const period = computed(() =>
       <div class="field"><span class="lbl">Balance due to</span><span class="val">{{ dueTo }}<span class="text-medium-emphasis"> · from the figures</span></span></div>
     </div>
 
-    <v-dialog v-model="open" max-width="920" :fullscreen="xs" scrollable :persistent="saving">
+    <v-dialog v-model="open" max-width="920" :fullscreen="compact" scrollable :persistent="saving">
       <v-card>
         <div class="card-h">
           <span class="card-t">Edit report details</span>
@@ -101,7 +101,7 @@ const period = computed(() =>
     grid-column: span 2;
   }
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .details__grid {
     grid-template-columns: 1fr;
     padding: 4px 16px 12px;

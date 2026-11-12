@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useListLayout } from '@/shared/composables/useListLayout';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import type { CoverageRow } from '../types';
 
@@ -23,7 +23,7 @@ const emit = defineEmits<{
   retry: [];
 }>();
 
-const { rowsLayout, tabletRows } = useListLayout();
+const { compact, tablet } = useLayoutMode();
 
 const onlyProblems = ref(false);
 const search = ref('');
@@ -102,8 +102,8 @@ function onDate(value: string | null) {
       <v-btn v-if="filtered" class="press" variant="text" @click="clearFilters">Clear filters</v-btn>
     </AppEmptyState>
 
-    <!-- Phone and tablet (useListLayout): stacked rows -->
-    <ul v-else-if="!loading && rowsLayout" :class="{ 'rows--tablet': tabletRows }" class="rows">
+    <!-- Phone and tablet (compact layout): stacked rows -->
+    <ul v-else-if="!loading && compact" :class="{ 'rows--tablet': tablet }" class="rows">
       <li v-for="r in visible" :key="r.userId" class="row" :class="{ 'row--problem': hasProblem(r) }">
         <div class="d-flex align-center ga-2 flex-wrap">
           <span class="font-weight-medium">{{ r.fullName }}</span>
@@ -178,7 +178,7 @@ function onDate(value: string | null) {
 .filters__switch {
   flex: 0 0 auto;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .filters__search,
   .filters__date {
     flex: 1 1 100%;
