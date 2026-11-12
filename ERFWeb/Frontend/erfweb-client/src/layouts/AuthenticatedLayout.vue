@@ -44,7 +44,7 @@ const { xs } = useDisplay();
 
 const { nav, navGroups, roleSummary, initials, logout } = useAppNavigation();
 
-const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications', 'cost-center-budgets', 'daily-meal-claims', 'random-quotes', 'more']);
+const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications', 'cost-center-budgets', 'daily-meal-claims', 'random-quotes', 'more', 'change-password']);
 
 
 // Open/closed navigation pane: a per-browser convenience, so storage failures just fall back to closed.
@@ -70,10 +70,16 @@ const moreRouteActive = computed(() => {
   return name.startsWith('admin-') || entitlementRouteNames.has(name);
 });
 
+// Pages listed on the phone More page; on a phone they have no other way back, so Back returns to More.
+const moreSectionNames = computed(
+  () => new Set(['change-password', ...navGroups.value.flatMap((g) => g.items.map((i) => (i.to as { name?: string }).name ?? ''))]),
+);
+
 const backTarget = computed<RouteLocationRaw | undefined>(() => {
   if (props.back) return props.back;
   const prev = props.crumbs.length > 1 ? props.crumbs[props.crumbs.length - 2] : undefined;
-  return prev?.to;
+  if (prev?.to) return prev.to;
+  return moreSectionNames.value.has(String(route.name ?? '')) ? { name: 'more' } : undefined;
 });
 
 const lastCrumb = computed(() => props.crumbs[props.crumbs.length - 1]);
