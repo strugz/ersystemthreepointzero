@@ -58,3 +58,13 @@ export function addDaysIso(value: string, days: number): string {
   const dd = String(date.getDate()).padStart(2, '0');
   return `${date.getFullYear()}-${mm}-${dd}`;
 }
+
+/**
+ * The name to greet someone by: their first name, kept whole when it starts with an abbreviation
+ * ("Ma. Agnes J Santos" -> "Ma. Agnes", "Jay C Abaoag" -> "Jay").
+ */
+export function greetingName(fullName: string): string {
+  const words = fullName.trim().split(/\s+/).filter(Boolean);
+  const [first = '', second] = words;
+  return first.endsWith('.') && second && words.length > 2 ? `${first} ${second}` : first;
+}

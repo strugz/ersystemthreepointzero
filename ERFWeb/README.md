@@ -28,7 +28,8 @@ section of the root `CLAUDE.md`) in the same change.
   **Audit** log (event, then when and who; tap for the detail) and the report editor's **Cash advance received** (tap a
   row to edit; **Remove** is in the advance dialog on phones, as for expense lines). **Budgets** shows one block per
   cost center on phones (usage bar, used of budget, remaining; tap to list who spent it); its table no longer prints
-  "Not set" beside a budget that is set. The **R47 PDF** page has a **Rotate** button on
+  "Not set" beside a budget that is set. The Dashboard greets by the whole first name ("Ma. Agnes", not "Ma.";
+  `greetingName` in `shared/format.ts`). The **R47 PDF** page has a **Rotate** button on
   phones that turns the viewer a quarter turn and fits the whole page, so the landscape form fills the screen when the
   phone is held sideways (even with rotation lock on). Phone expense line rows show what tapping does: a chevron when the
   line can be edited, and on the review screen the lower-amount arrow, with the hint "Tap a line marked … to lower its

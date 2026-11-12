@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
 import { useSessionStore } from '@/app/stores/session';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
-import { formatDate, formatMoney } from '@/shared/format';
+import { formatDate, formatMoney, greetingName } from '@/shared/format';
 import { expensesApi } from '@/features/expenses/api';
 import ReportStatusChip from '@/features/expenses/components/ReportStatusChip.vue';
 import type { ExpenseReportListItem } from '@/features/expenses/types';
@@ -56,7 +56,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
     <section class="hero mb-5">
       <div class="hero__body">
         <span class="hero__date">{{ today }}</span>
-        <h1 class="hero__title">{{ xs ? 'Hello' : 'Good day' }}{{ session.user ? `, ${session.user.fullName.split(' ')[0]}` : '' }}</h1>
+        <h1 class="hero__title">{{ xs ? 'Hello' : 'Good day' }}{{ session.user ? `, ${greetingName(session.user.fullName)}` : '' }}</h1>
         <p class="hero__sub">Prepare and file your expense reports, then print the R47.</p>
       </div>
       <div class="hero__stat" aria-live="polite">
