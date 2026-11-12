@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-12
 
-- **Sponsorship, Demo and Representation documents, Finance rules phase 4** (not yet committed). Two new expense categories, both printed under
+- **Sponsorship, Demo and Representation documents, Finance rules phase 4** (PR #53). Two new expense categories, both printed under
   OTHERS on the R47. A Sponsorship line can be added only once an approved **Activity Request Form** is attached to
   the report, and a Demo line only once an **ISO attendance sheet** is (the line dialog says so and can upload it on
   the spot); a Representation line likewise needs the **food or meal receipt** (Finance confirmed the three documents
@@ -27,13 +27,13 @@ section of the root `CLAUDE.md`) in the same change.
   document rule; a category switched off is hidden from employees and blocks filing a report that still has one
   (Domain `CategoryDocumentRules`). Apply `026`, then deploy the backend, then the frontend. API `0.4.0` → `0.5.0`,
   SPA `0.6.0` → `0.7.0` (minor).
-- **Rules page in tabs** (not yet committed). The Rules page (`/admin/settings`) shows one tab at a time instead of
+- **Rules page in tabs** (PR #53). The Rules page (`/admin/settings`) shows one tab at a time instead of
   one long page: **Approvals** (routing, service levels, SLA reminders), **Filing and Finance** (filing rules and
   Finance rules), **R47** and **Notifications and sign-in** (notifications, sign-in security, email domains). The tab
   is in the URL (`?tab=filing`). It is still one form: edits on several tabs are saved together, the **Save rules**
   bar stays at the bottom of the screen with an "Unsaved changes" note, and a refused field opens its tab. Frontend
   only, in SPA `0.7.0`.
-- **Take photo on phones and tablets** (not yet committed). On a touch device the Receipts panel shows **Take photo**
+- **Take photo on phones and tablets** (PR #53). On a touch device the Receipts panel shows **Take photo**
   and **Choose file**, and the line dialog's document note **Photo** and **File**. **Take photo** opens a full-screen
   in-app camera (`src/shared/ui/AppCameraCapture.vue`, `getUserMedia`, back camera first): a frame guide, shutter,
   switch camera, then a review with **Rotate** (quarter turns) and **Scan look** (grey, paper whitened and ink
