@@ -134,8 +134,8 @@ watch([from, to, scope, departmentId, approvedOnly], () => void load());
     <template #actions>
       <AppExportButton :formats="['Csv', 'Pdf']" :loading="exporting" :disabled="!!periodError || !summary" @export="exportSummary" />
     </template>
-    <template #bottom>
-      <AppExportButton :formats="['Csv', 'Pdf']" :loading="exporting" :disabled="!!periodError || !summary" @export="exportSummary" />
+    <template #actions-mobile>
+      <AppExportButton compact :formats="['Csv', 'Pdf']" :loading="exporting" :disabled="!!periodError || !summary" @export="exportSummary" />
     </template>
 
     <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">

@@ -119,8 +119,8 @@ watch([from, to, departmentId, approvedOnly], () => void load());
     <template #actions>
       <AppExportButton :loading="exporting" :disabled="!!periodError || !report" @export="exportClaims" />
     </template>
-    <template #bottom>
-      <AppExportButton :loading="exporting" :disabled="!!periodError || !report" @export="exportClaims" />
+    <template #actions-mobile>
+      <AppExportButton compact :loading="exporting" :disabled="!!periodError || !report" @export="exportClaims" />
     </template>
 
     <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
