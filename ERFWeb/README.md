@@ -26,7 +26,9 @@ section of the root `CLAUDE.md`) in the same change.
   its profiles as rows on phones (name and status, then lines in force and assignments) instead of a cut-off table, and
   so do a profile's **Rate lines** (category and amount, status and period, rule, then Edit / New version), the
   **Audit** log (event, then when and who; tap for the detail) and the report editor's **Cash advance received** (tap a
-  row to edit; **Remove** is in the advance dialog, as for expense lines). The **R47 PDF** page has a **Rotate** button on
+  row to edit; **Remove** is in the advance dialog on phones, as for expense lines). **Budgets** shows one block per
+  cost center on phones (usage bar, used of budget, remaining; tap to list who spent it); its table no longer prints
+  "Not set" beside a budget that is set. The **R47 PDF** page has a **Rotate** button on
   phones that turns the viewer a quarter turn and fits the whole page, so the landscape form fills the screen when the
   phone is held sideways (even with rotation lock on). Phone expense line rows show what tapping does: a chevron when the
   line can be edited, and on the review screen the lower-amount arrow, with the hint "Tap a line marked … to lower its
@@ -44,8 +46,8 @@ section of the root `CLAUDE.md`) in the same change.
   recent report on two lines (title and amount, then reference, period and status). In the report editor the expense
   lines come straight after the total, then Receipts, with **Report details** folded to one line below them (tap to
   open; labels sit above values). Phone line rows show the meals or location instead of repeating the category, the
-  date header drops the "—" when there is no location, and the ✕ beside each amount is gone: **Remove** is in the
-  line dialog (still confirmed first). On phones **Expense summary**, **Meal claims** and **Budgets** keep the bottom
+  date header drops the "—" when there is no location, and the ✕ beside each amount is gone on phones: **Remove** is in the
+  line dialog there (still confirmed first). On phones **Expense summary**, **Meal claims** and **Budgets** keep the bottom
   navigation: Export is a download icon in the header instead of a bottom bar that hid the nav and left no way back
   (`AppExportButton compact`). Detail screens (report editor, review, R47 PDF) keep their action bar and back arrow.
   Frontend only, SPA 0.7.1 (patch); no database script.

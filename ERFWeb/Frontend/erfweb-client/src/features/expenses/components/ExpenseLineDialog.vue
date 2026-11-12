@@ -82,7 +82,7 @@ const emit = defineEmits<{
   'crm-load': [date: string];
   /** Upload the document the chosen category needs; the parent attaches it to the report under Receipts. */
   'upload-document': [file: File, documentType: AttachmentDocumentType];
-  /** Remove the line being edited; the parent confirms first. */
+  /** Remove the line being edited (phones, where the list has no ✕); the parent confirms first. */
   remove: [line: ExpenseLine];
 }>();
 
@@ -798,7 +798,7 @@ function close() {
           <span v-if="amountFormula" class="total__formula mono">{{ amountFormula }}</span>
         </div>
         <div class="eline__actions">
-          <v-btn v-if="line" class="press eline__remove" variant="text" color="error" :disabled="saving" @click="emit('remove', line)">Remove</v-btn>
+          <v-btn v-if="line && xs" class="press eline__remove" variant="text" color="error" :disabled="saving" @click="emit('remove', line)">Remove</v-btn>
           <v-btn class="press" variant="text" :disabled="saving" @click="close">Cancel</v-btn>
           <v-btn class="press" color="primary" variant="flat" :loading="saving" :disabled="!canSave" @click="save">
             {{ isEdit ? 'Save line' : 'Add line' }}
