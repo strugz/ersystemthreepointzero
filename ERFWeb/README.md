@@ -51,6 +51,10 @@ section of the root `CLAUDE.md`) in the same change.
   amount". Tablet and
   desktop keep the rail and avatar menu; both read the same entries from `layouts/useAppNavigation.ts`. Frontend
   only, SPA 0.7.2 (patch); no database script.
+- **Maintenance script `reset_user_first_sign_in.sql`** (PR #56). Puts every account except
+  `admin` back to its first sign-in (`must_change_password` true, lockout cleared); roles and all other data stay.
+  Documented under "Putting every account back to its first sign-in". Maintenance script only; no numbered database script, no
+  version change.
 - **Phone and tablet layout fixes** (PR #54). **Expense summary** and **Meal claims** no longer
   overflow: on tablets the table scrolls sideways with the Employee column held in place, and on phones each employee
   is a row (categories or meals claimed listed under the name, then a Total row). The **Rules** page's Save bar sits
@@ -427,6 +431,13 @@ and all other audit rows stay. One transaction, safe to re-run, no rollback, so 
 ```bash
 psql -d erms_db -f Database/maintenance/reset_reports.sql
 ```
+
+**Putting every account back to its first sign-in.** `Database/maintenance/reset_user_first_sign_in.sql` sets
+`must_change_password` to true for every user except `admin` and clears their `login_security` lockout rows, so
+each user signs in with their current password and must choose a new one, as a new account does. Roles, scope,
+rates, routes, delegations, reports and audit are not touched; one `Users.FirstSignInResetByScript` event with the
+count is written. Run the whole script in pgAdmin's Query Tool or with `psql -d erms_db -f`; safe to re-run. To
+give one user a new password, use **Reset password** on the Users page instead.
 
 ### Database setup — Option B: EF Core migrations (when EF tooling is available)
 
