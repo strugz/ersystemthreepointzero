@@ -18,6 +18,12 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-12
 
+- **Approvals up front for signatories** (PR #55). A signatory's **Dashboard** shows a **For your approval**
+  card (only while reports wait for them): the pending count, up to five reports with employee, reference, whose
+  turn it is and days waiting, a tap opens the review, and **All approvals** opens the inbox. **Approvals** takes the
+  fourth main slot (phone bottom bar and rail) for signatories instead of **Summary**, which moves to a Reports card
+  on the More page (rail group). Uses the existing `GET /api/approvals?view=Pending`; no backend change. SPA 0.8.0
+  (minor, raises this PR's 0.7.2 patch); no database script.
 - **More page on phones** (PR #55). The bottom bar's **More** opens a full page (`/more`) instead of a
   dropdown over the screen: a profile card (initials, name, roles), the sections not in the bottom bar as cards
   (Work queues, Signatory structure, Administration, Wellness), Appearance as one Light / Dark / System switch,

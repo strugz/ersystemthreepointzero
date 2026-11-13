@@ -22,12 +22,13 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-const nav: NavItem[] = [
+const baseNav: NavItem[] = [
   { title: 'Dashboard', short: 'Home', icon: 'mdi-view-dashboard-outline', to: { name: 'home' }, exact: true },
   { title: 'My reports', short: 'Reports', icon: 'mdi-file-document-multiple-outline', to: { name: 'reports' }, exact: false },
   { title: 'New report', short: 'New', primary: true, icon: 'mdi-plus', to: { name: 'report-new' }, exact: true },
-  { title: 'Summary', icon: 'mdi-chart-box-outline', to: { name: 'expense-summary' }, exact: true },
 ];
+const summaryItem: NavItem = { title: 'Summary', icon: 'mdi-chart-box-outline', to: { name: 'expense-summary' }, exact: true };
+const approvalsItem: NavItem = { title: 'Approvals', icon: 'mdi-check-decagram-outline', to: { name: 'approvals' }, exact: false };
 
 // Open to every signed-in user; kept out of the main nav so the phone bottom bar stays at four items.
 const wellnessNav: NavItem[] = [{ title: 'Healthy living', icon: 'mdi-heart-pulse', to: { name: 'random-quotes' }, exact: true }];
@@ -46,6 +47,11 @@ export function useAppNavigation() {
   const session = useSessionStore();
   const router = useRouter();
 
+  const isSignatory = computed(() => session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2'));
+
+  // The fourth main entry (and phone bottom-bar slot): Approvals for signatories, Summary for everyone else.
+  const nav = computed<NavItem[]>(() => [...baseNav, isSignatory.value ? approvalsItem : summaryItem]);
+
   const adminNav = computed<NavItem[]>(() => {
     const items: NavItem[] = [];
     const isAdmin = session.hasRole('SystemAdministrator');
@@ -62,15 +68,14 @@ export function useAppNavigation() {
     return items;
   });
 
-  // Work queues: approvals for signatories, cost center budgets for signatories and Finance, the receipt
+  // Work queues: delegations for signatories (Approvals is in the main nav), cost center budgets for signatories and Finance, the receipt
   // queue and signature approvals for Finance, verifications for the Expense Verifier.
   const workNav = computed<NavItem[]>(() => {
     const items: NavItem[] = [];
-    if (session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2')) {
-      items.push({ title: 'Approvals', icon: 'mdi-check-decagram-outline', to: { name: 'approvals' }, exact: false });
+    if (isSignatory.value) {
       items.push({ title: 'Delegations', icon: 'mdi-account-arrow-right-outline', to: { name: 'delegations' }, exact: false });
     }
-    if (session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2') || session.hasRole('Finance')) {
+    if (isSignatory.value || session.hasRole('Finance')) {
       items.push({ title: 'Budgets', icon: 'mdi-chart-donut', to: { name: 'cost-center-budgets' }, exact: false });
     }
     if (session.hasRole('Finance')) {
@@ -100,6 +105,7 @@ export function useAppNavigation() {
   /** Groups shown after the main nav: behind a separator on the rail, as cards on the phone More page. */
   const navGroups = computed<NavGroup[]>(() =>
     [
+      { label: 'Reports', items: isSignatory.value ? [summaryItem] : [] },
       { label: 'Work queues', items: workNav.value },
       { label: 'Signatory structure', items: entitlementNav.value },
       { label: 'Administration', items: adminNav.value },

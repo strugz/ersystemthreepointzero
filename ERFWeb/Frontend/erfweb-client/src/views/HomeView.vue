@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { useSessionStore } from '@/app/stores/session';
@@ -8,6 +8,8 @@ import { formatDate, formatMoney, greetingName } from '@/shared/format';
 import { expensesApi } from '@/features/expenses/api';
 import ReportStatusChip from '@/features/expenses/components/ReportStatusChip.vue';
 import type { ExpenseReportListItem } from '@/features/expenses/types';
+import { approvalsApi } from '@/features/approvals/api';
+import type { ApprovalInboxItem } from '@/features/approvals/types';
 
 const session = useSessionStore();
 const router = useRouter();
@@ -17,7 +19,24 @@ const recent = ref<ExpenseReportListItem[]>([]);
 const counts = ref<{ all: number; drafts: number; forApproval: number; returned: number } | null>(null);
 const loading = ref(true);
 
+// Signatories see the reports waiting for their approval first; the card shows only when there are some.
+const isSignatory = computed(() => session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2'));
+const pending = ref<ApprovalInboxItem[]>([]);
+const pendingTotal = ref(0);
+
+async function loadPending() {
+  if (!isSignatory.value) return;
+  try {
+    const page = await approvalsApi.inbox({ view: 'Pending', page: 1, pageSize: 5 });
+    pending.value = page.items;
+    pendingTotal.value = page.total;
+  } catch {
+    // Best-effort like the rest of the dashboard; the Approvals page shows precise errors.
+  }
+}
+
 onMounted(async () => {
+  void loadPending();
   try {
     const [all, drafts, forApproval, returned] = await Promise.all([
       expensesApi.list({ page: 1, pageSize: 5 }),
@@ -36,6 +55,15 @@ onMounted(async () => {
 
 function open(item: ExpenseReportListItem) {
   router.push({ name: 'report-edit', params: { id: item.id } });
+}
+
+function review(item: ApprovalInboxItem) {
+  router.push({ name: 'report-review', params: { id: item.reportId } });
+}
+
+function waitingFor(item: ApprovalInboxItem) {
+  if (item.isMyTurn) return item.onBehalfOfName ? `Your turn, for ${item.onBehalfOfName}` : 'Your turn';
+  return item.currentApproverName ? `Waiting for ${item.currentApproverName}` : 'Waiting';
 }
 
 const tiles = [
@@ -83,6 +111,34 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
       </router-link>
     </div>
 
+    <v-card v-if="pending.length > 0" class="mt-5 approvals">
+      <div class="card-h">
+        <span class="card-t">For your approval <span class="approvals__count mono">{{ pendingTotal }}</span></span>
+        <v-btn class="press" size="small" variant="text" color="primary" :to="{ name: 'approvals' }" append-icon="mdi-arrow-right">All approvals</v-btn>
+      </div>
+      <div class="recent">
+        <button
+          v-for="(item, i) in pending"
+          :key="item.reportId"
+          type="button"
+          class="recent__row press stagger-in"
+          :style="{ '--i': Math.min(i, 8) }"
+          @click="review(item)"
+        >
+          <div class="recent__main">
+            <div class="recent__title">{{ item.employeeName }}</div>
+            <div class="recent__meta">
+              <span class="mono">{{ item.referenceNo }}</span> ·
+              <span :class="{ 'approvals__turn': item.isMyTurn }">{{ waitingFor(item) }}</span>
+              <span v-if="item.daysWaiting > 0" class="recent__lines">· {{ item.daysWaiting }} day{{ item.daysWaiting === 1 ? '' : 's' }} waiting</span>
+            </div>
+          </div>
+          <span class="mono recent__amt">{{ formatMoney(item.totalAmount) }}</span>
+          <ReportStatusChip :status="item.status" class="recent__chip" />
+        </button>
+      </div>
+    </v-card>
+
     <v-card class="mt-5">
       <div class="card-h">
         <span class="card-t">Recent reports</span>
@@ -117,6 +173,25 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
 </template>
 
 <style scoped>
+.approvals {
+  border-left: 3px solid rgb(var(--v-theme-warning));
+}
+.approvals__count {
+  display: inline-block;
+  min-width: 22px;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 11px;
+  background: rgba(var(--v-theme-warning), 0.16);
+  color: rgb(var(--v-theme-warning));
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+.approvals__turn {
+  color: rgb(var(--v-theme-warning));
+  font-weight: 500;
+}
 .tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
