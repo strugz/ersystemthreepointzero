@@ -51,7 +51,7 @@ section of the root `CLAUDE.md`) in the same change.
   amount". Tablet and
   desktop keep the rail and avatar menu; both read the same entries from `layouts/useAppNavigation.ts`. Frontend
   only, SPA 0.7.2 (patch); no database script.
-- **Maintenance script `reset_user_first_sign_in.sql`** (not yet committed). Puts every account except
+- **Maintenance script `reset_user_first_sign_in.sql`** (PR #56). Puts every account except
   `admin` back to its first sign-in (`must_change_password` true, lockout cleared); roles and all other data stay.
   Documented under "Putting every account back to its first sign-in". Maintenance script only; no numbered database script, no
   version change.
