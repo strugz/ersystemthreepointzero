@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import { formatDateTime } from '@/shared/format';
@@ -14,7 +14,7 @@ import type { Department, PagedResult, SortDirection, UserListItem, UserSort } f
 
 const router = useRouter();
 const snack = useSnackbar();
-const { xs } = useDisplay();
+const { compact, tablet } = useLayoutMode();
 
 const page = ref(1);
 const pageSize = 20;
@@ -112,7 +112,7 @@ function sortIcon(key: UserSort): string | undefined {
       <v-btn class="press" icon="mdi-account-plus-outline" variant="text" :to="{ name: 'admin-user-new' }" aria-label="New user" />
     </template>
 
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Users</h1>
       <span class="text-body-2 text-medium-emphasis">Accounts, roles and signatures. A granted role applies at once.</span>
     </div>
@@ -140,7 +140,7 @@ function sortIcon(key: UserSort): string | undefined {
         <v-select v-model="role" :items="roleOptions" density="compact" hide-details clearable label="Role" class="filters__select" />
         <v-select v-model="isActive" :items="activeOptions" density="compact" hide-details clearable label="Status" class="filters__select filters__select--sm" />
         <v-select
-          v-if="xs"
+          v-if="compact"
           v-model="sort"
           :items="userSortOptions"
           density="compact"
@@ -170,8 +170,8 @@ function sortIcon(key: UserSort): string | undefined {
         <v-btn v-else class="press" color="primary" variant="flat" prepend-icon="mdi-account-plus-outline" :to="{ name: 'admin-user-new' }">New user</v-btn>
       </AppEmptyState>
 
-      <!-- Phone: list rows -->
-      <div v-else-if="result && xs" class="rows">
+      <!-- Phone and tablet (compact layout): list rows -->
+      <div v-else-if="result && compact" :class="{ 'rows--tablet': tablet }" class="rows">
         <button
           v-for="(item, i) in result.items"
           :key="item.id"
@@ -241,7 +241,7 @@ function sortIcon(key: UserSort): string | undefined {
       </div>
 
       <div v-if="result && result.totalPages > 1" class="d-flex justify-center py-2">
-        <v-pagination v-model="page" :length="result.totalPages" density="comfortable" :total-visible="xs ? 5 : 7" />
+        <v-pagination v-model="page" :length="result.totalPages" density="comfortable" :total-visible="compact ? 5 : 7" />
       </div>
     </v-card>
   </AuthenticatedLayout>
@@ -267,7 +267,7 @@ function sortIcon(key: UserSort): string | undefined {
   flex-basis: 150px;
   min-width: 130px;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .filters__search,
   .filters__select {
     flex: 1 1 100%;

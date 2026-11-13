@@ -97,7 +97,7 @@ const balanceLabel = computed(() => `Balance due to ${balanceDueTo(balance.value
   font-weight: 500;
   white-space: nowrap;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .totals--strip {
     grid-template-columns: 1fr;
   }

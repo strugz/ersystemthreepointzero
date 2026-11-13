@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
@@ -22,7 +22,7 @@ import SendSmsDialog from '@/features/notifications/components/SendSmsDialog.vue
 // clears them for payment. The API refuses out-of-order steps (409) and Finance's own reports (403).
 const router = useRouter();
 const snack = useSnackbar();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const page = ref(1);
 const pageSize = 20;
@@ -242,7 +242,7 @@ async function sendFollowUp(message: string, idempotencyKey: string) {
 
 <template>
   <AuthenticatedLayout :crumbs="[{ title: 'Finance queue' }]">
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Finance queue</h1>
       <span class="text-body-2 text-medium-emphasis">Approved reports waiting for their original receipts. Confirm the receipts, then clear the report for payment.</span>
     </div>
@@ -343,7 +343,7 @@ async function sendFollowUp(message: string, idempotencyKey: string) {
       </div>
 
       <div v-if="result && result.totalPages > 1" class="d-flex justify-center py-2">
-        <v-pagination v-model="page" :length="result.totalPages" density="comfortable" :total-visible="xs ? 5 : 7" />
+        <v-pagination v-model="page" :length="result.totalPages" density="comfortable" :total-visible="compact ? 5 : 7" />
       </div>
     </v-card>
 
@@ -427,7 +427,7 @@ async function sendFollowUp(message: string, idempotencyKey: string) {
   flex: 0 1 220px;
   min-width: 180px;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .filters__search,
   .filters__status {
     flex: 1 1 100%;
@@ -507,7 +507,7 @@ async function sendFollowUp(message: string, idempotencyKey: string) {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .item {
     flex-direction: column;
     gap: 10px;

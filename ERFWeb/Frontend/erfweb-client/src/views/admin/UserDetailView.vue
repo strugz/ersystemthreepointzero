@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { useSessionStore } from '@/app/stores/session';
 import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
@@ -23,7 +24,8 @@ const route = useRoute();
 const router = useRouter();
 const session = useSessionStore();
 const snack = useSnackbar();
-const { xs, lgAndUp } = useDisplay();
+const { lgAndUp } = useDisplay();
+const { compact } = useLayoutMode();
 const userId = Number(route.params.id);
 
 const user = ref<UserDetail | null>(null);
@@ -362,7 +364,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
       <ResetPasswordDialog v-model="passwordOpen" :full-name="user.fullName" :saving="savingPassword" :errors="passwordErrors" @submit="resetPassword" />
     </template>
 
-    <template v-if="xs && user && !isSelf && !editOpen" #bottom>
+    <template v-if="compact && user && !isSelf && !editOpen" #bottom>
       <v-btn class="press" variant="outlined" prepend-icon="mdi-lock-reset" @click="passwordOpen = true">Reset password</v-btn>
       <v-btn class="press" :color="user.isActive ? 'error' : 'success'" variant="tonal" @click="activeDialog = true">
         {{ user.isActive ? 'Deactivate' : 'Activate' }}
@@ -398,7 +400,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
 .profile--stack {
   grid-template-columns: 1fr;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .profile {
     grid-template-columns: 1fr;
   }

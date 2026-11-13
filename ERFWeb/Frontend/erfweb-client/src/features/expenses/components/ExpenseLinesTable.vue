@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { formatDate, formatMoney } from '@/shared/format';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import { categoryLabel, r47Column } from '../labels';
@@ -29,7 +30,8 @@ function openLine(line: ExpenseLine) {
   else if (props.adjustable) emit('adjust', line);
 }
 
-const { xs, smAndDown } = useDisplay();
+const { smAndDown } = useDisplay();
+const { compact } = useLayoutMode();
 
 const groups = computed(() => groupLines(props.lines));
 
@@ -77,8 +79,8 @@ function adjustmentNote(line: ExpenseLine): string | null {
       <v-btn v-if="editable" class="press" color="primary" variant="flat" prepend-icon="mdi-plus" @click="emit('add')">Add expense line</v-btn>
     </AppEmptyState>
 
-    <!-- Phone: grouped list -->
-    <div v-else-if="xs" class="list">
+    <!-- Phone and tablet (compact layout): grouped list -->
+    <div v-else-if="compact" class="list">
       <template v-for="g in groups" :key="g.key">
         <div class="list__group">
           <span>{{ formatDate(g.date) }}<template v-if="groupPlace(g)"> · {{ groupPlace(g) }}</template></span>
@@ -92,8 +94,18 @@ function adjustmentNote(line: ExpenseLine): string | null {
             </span>
             <span v-if="line.adjustment" class="adj">{{ adjustmentNote(line) }}</span>
           </button>
-          <!-- Removing is in the line dialog on phones: an ✕ beside the amount was too easy to hit. -->
-          <span class="mono list__amt">{{ formatMoney(line.totalAmount) }}</span>
+          <!-- Removing is in the line dialog on phones: an ✕ beside the amount was too easy to hit. The trailing icon
+               says the row opens: a chevron to edit, the lower-amount arrow for the approver. -->
+          <span class="mono list__amt" :class="{ 'list__amt--tap': hasActions }" @click="hasActions && openLine(line)">{{ formatMoney(line.totalAmount) }}</span>
+          <v-icon
+            v-if="hasActions"
+            :icon="editable ? 'mdi-chevron-right' : 'mdi-arrow-down-bold-circle-outline'"
+            :color="editable ? undefined : 'primary'"
+            size="20"
+            class="list__go"
+            aria-hidden="true"
+            @click="openLine(line)"
+          />
         </div>
       </template>
       <div class="list__foot">
@@ -246,6 +258,15 @@ function adjustmentNote(line: ExpenseLine): string | null {
 .list__amt {
   font-size: 14px;
   white-space: nowrap;
+}
+.list__amt--tap,
+.list__go {
+  cursor: pointer;
+}
+.list__go {
+  flex: none;
+  margin-right: -4px;
+  color: var(--ink-3);
 }
 .list__foot {
   display: flex;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import { formatDate, formatDateTime, formatMoney, todayIso } from '@/shared/format';
@@ -29,7 +29,7 @@ const emit = defineEmits<{
   deleted: [];
 }>();
 
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 const today = todayIso();
 
 type LineState = 'current' | 'scheduled' | 'ended';
@@ -105,7 +105,7 @@ function rulesText(l: RateLine): string {
         <span class="card-meta">{{ groups.length }} categor{{ groups.length === 1 ? 'y' : 'ies' }}</span>
       </div>
       <v-btn v-if="canWrite" class="press" size="small" variant="outlined" prepend-icon="mdi-plus" :disabled="disabled" @click="emit('add', null)">
-        {{ xs ? 'Add' : 'Add line' }}
+        {{ compact ? 'Add' : 'Add line' }}
       </v-btn>
     </div>
 
@@ -117,6 +117,66 @@ function rulesText(l: RateLine): string {
     >
       <v-btn v-if="canWrite" class="press" color="primary" variant="flat" prepend-icon="mdi-plus" :disabled="disabled" @click="emit('add', null)">Add line</v-btn>
     </AppEmptyState>
+
+    <!-- Phone and tablet (compact layout): one block per category; the six-column table did not fit -->
+    <div v-else-if="compact" class="rows">
+      <div v-for="g in groups" :key="g.key" class="mrow">
+        <div class="mrow__top">
+          <span class="mrow__name">{{ g.label }}</span>
+          <span class="mono mrow__amt">{{ amountText(g.headline) }}</span>
+        </div>
+        <div class="mrow__meta">
+          <span class="pill" :class="stateTone[stateOf(g.headline)]">{{ stateLabel[stateOf(g.headline)] }}</span>
+          <span>{{ periodText(g.headline) }}</span>
+        </div>
+        <div v-if="rulesText(g.headline)" class="mrow__rules">{{ rulesText(g.headline) }}</div>
+        <div v-if="canWrite || g.versions.length > 1" class="mrow__actions">
+          <v-btn
+            v-if="g.versions.length > 1"
+            class="press"
+            size="small"
+            variant="text"
+            :append-icon="expanded.has(g.key) ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+            :aria-expanded="expanded.has(g.key)"
+            @click="toggle(g.key)"
+          >
+            {{ g.versions.length }} versions
+          </v-btn>
+          <v-spacer />
+          <v-btn v-if="canWrite" class="press" size="small" variant="text" prepend-icon="mdi-pencil-outline" :disabled="disabled" @click="emit('edit', g.headline)">Edit</v-btn>
+          <v-btn v-if="canWrite" class="press" size="small" variant="tonal" color="primary" :disabled="disabled" @click="emit('add', g.headline)">New version</v-btn>
+          <AppTestDeleteButton
+            v-if="canWrite"
+            kind="rate-profile-lines"
+            :id="g.headline.id"
+            :label="`the ${g.label} version from ${formatDate(g.headline.effectiveFrom)}`"
+            @deleted="emit('deleted')"
+          />
+        </div>
+        <template v-if="expanded.has(g.key)">
+          <div v-for="v in g.versions" :key="v.id" class="history__row mt-2">
+            <span class="mono text-no-wrap">{{ amountText(v) }}</span>
+            <span class="text-no-wrap">{{ periodText(v) }}</span>
+            <span class="pill" :class="stateTone[stateOf(v)]">{{ stateLabel[stateOf(v)] }}</span>
+            <v-chip v-if="v.backdateOverride" size="x-small" label variant="tonal" color="warning">Backdated</v-chip>
+            <span class="text-medium-emphasis">{{ rulesText(v) }}</span>
+            <v-btn
+              v-if="canWrite"
+              class="press"
+              size="x-small"
+              variant="text"
+              icon="mdi-pencil-outline"
+              :disabled="disabled"
+              :aria-label="`Edit the ${g.label} version from ${formatDate(v.effectiveFrom)}`"
+              @click="emit('edit', v)"
+            />
+            <span class="text-caption text-medium-emphasis history__who">
+              {{ v.changedByName ?? '—' }} · {{ formatDateTime(v.createdAt) }}<template v-if="v.changeReason"> · “{{ v.changeReason }}”</template>
+            </span>
+          </div>
+        </template>
+      </div>
+    </div>
 
     <div v-else class="table-wrap">
       <table class="ledger">
@@ -249,5 +309,48 @@ function rulesText(l: RateLine): string {
 }
 .history__who {
   flex-basis: 100%;
+}
+.mrow {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.mrow:last-child {
+  border-bottom: 0;
+}
+.mrow__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.mrow__name {
+  font-size: 15px;
+  font-weight: 500;
+}
+.mrow__amt {
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.mrow__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.mrow__rules {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.mrow__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px -8px 0;
 }
 </style>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { addDaysIso, formatDate } from '@/shared/format';
 import type { CrmActivityOption, CrmActivityPickList } from '../types';
 
@@ -25,7 +25,7 @@ const props = withDefaults(
   { minDate: null, maxDate: null, list: null, loading: false, error: null, selected: () => [] },
 );
 
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
@@ -99,7 +99,7 @@ function use() {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="680" :fullscreen="xs" scrollable @update:model-value="(v: boolean) => emit('update:modelValue', v)">
+  <v-dialog :model-value="modelValue" max-width="680" :fullscreen="compact" scrollable @update:model-value="(v: boolean) => emit('update:modelValue', v)">
     <v-card class="crm">
       <header class="crm__head">
         <div>

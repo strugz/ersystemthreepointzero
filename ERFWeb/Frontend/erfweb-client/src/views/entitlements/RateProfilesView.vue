@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { useSessionStore } from '@/app/stores/session';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
@@ -16,7 +16,7 @@ import type { RateProfileListItem } from '@/features/entitlements/types';
 const router = useRouter();
 const session = useSessionStore();
 const snack = useSnackbar();
-const { xs } = useDisplay();
+const { compact, tablet } = useLayoutMode();
 
 const canWrite = computed(() => hasAnyRole(session.user?.roles, rateWriterRoles));
 
@@ -88,7 +88,7 @@ async function create() {
       <v-btn class="press" icon="mdi-plus" variant="text" aria-label="New profile" @click="openCreate" />
     </template>
 
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Rate profiles</h1>
       <span class="text-body-2 text-medium-emphasis">Meal, transport and other rates, assigned by person, job grade, department or company.</span>
     </div>
@@ -105,7 +105,7 @@ async function create() {
           density="compact"
           hide-details
           color="primary"
-          :label="xs ? 'Inactive' : `Show inactive (${inactiveCount})`"
+          :label="compact ? 'Inactive' : `Show inactive (${inactiveCount})`"
         />
       </div>
 
@@ -130,6 +130,35 @@ async function create() {
       >
         <v-btn v-if="profiles.length === 0 && canWrite" class="press" color="primary" variant="flat" prepend-icon="mdi-plus" @click="openCreate">New profile</v-btn>
       </AppEmptyState>
+
+      <!-- Phone and tablet (compact layout): one row per profile; the four columns did not fit -->
+      <div v-else-if="!loading && compact" :class="{ 'rows--tablet': tablet }" class="rows">
+        <div
+          v-for="(p, i) in visible"
+          :key="p.id"
+          class="mrow row-link stagger-in"
+          :class="{ 'text-medium-emphasis': !p.isActive }"
+          :style="{ '--i': Math.min(i, 10) }"
+          role="link"
+          tabindex="0"
+          @click="open(p)"
+          @keydown.enter="open(p)"
+        >
+          <div class="mrow__main">
+            <div class="mrow__top">
+              <span class="mrow__name">{{ p.name }}</span>
+              <span class="pill" :class="p.isActive ? 'pill--success' : 'pill--neutral'">{{ p.isActive ? 'Active' : 'Inactive' }}</span>
+            </div>
+            <div class="mrow__meta">
+              {{ p.currentLineCount }} line{{ p.currentLineCount === 1 ? '' : 's' }} in force · {{ p.activeAssignmentCount }} assignment{{
+                p.activeAssignmentCount === 1 ? '' : 's'
+              }}
+            </div>
+          </div>
+          <AppTestDeleteButton v-if="canWrite" kind="rate-profiles" :id="p.id" :label="`the rate profile ${p.name}`" @deleted="load" />
+          <v-icon icon="mdi-chevron-right" size="18" class="text-medium-emphasis" />
+        </div>
+      </div>
 
       <div v-else-if="!loading" class="table-wrap">
         <table class="ledger">
@@ -196,5 +225,41 @@ async function create() {
 .row-link:focus-visible {
   outline: 2px solid var(--navy);
   outline-offset: -2px;
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+.mrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.mrow:last-child {
+  border-bottom: 0;
+}
+.mrow__main {
+  flex: 1;
+  min-width: 0;
+}
+.mrow__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mrow__name {
+  font-size: 15px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mrow__meta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ink-3);
 }
 </style>

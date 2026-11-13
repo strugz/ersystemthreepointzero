@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppExportButton from '@/shared/ui/AppExportButton.vue';
@@ -19,7 +19,7 @@ import type { CostCenterBudgetReport, CostCenterBudgetRow } from '@/features/rep
 // decides which cost centers the caller sees: all for Finance, a signatory's covered departments.
 const session = useSessionStore();
 const snack = useSnackbar();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const isFinance = session.hasRole('Finance');
 const isAdmin = session.hasRole('SystemAdministrator');
@@ -105,7 +105,7 @@ watch([year, approvedOnly], () => {
       <AppExportButton compact :loading="exporting" :disabled="!report || report.costCenters.length === 0" @export="exportBudgets" />
     </template>
 
-    <div v-if="!xs" class="d-flex align-baseline ga-3 flex-wrap mb-5">
+    <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Budgets</h1>
       <span class="text-body-2 text-medium-emphasis">Each department's yearly budget against what its employees spent. For monitoring only.</span>
     </div>
@@ -135,6 +135,57 @@ watch([year, approvedOnly], () => {
         title="No cost centers to show"
         :hint="emptyHint"
       />
+
+      <!-- Phone and tablet (compact layout): one block per cost center (bar, used of budget, remaining); tap to list who spent it -->
+      <div v-else-if="report && compact" class="rows">
+        <div v-for="(row, i) in report.costCenters" :key="row.costCenterId" class="mrow stagger-in" :style="{ '--i': Math.min(i, 10) }">
+          <button type="button" class="mrow__main" :aria-expanded="expanded === row.costCenterId" @click="toggle(row)">
+            <span class="mrow__top">
+              <span class="mrow__name"><span class="mono">{{ row.code }}</span> · {{ row.name }}</span>
+              <span class="mono mrow__pct" :class="{ 'text-error': row.overBudget }">
+                {{ barValue(row) === null ? '' : row.percentUsed === null ? 'Over' : `${row.percentUsed}%` }}
+              </span>
+              <v-icon size="18" class="mrow__chev" :icon="expanded === row.costCenterId ? 'mdi-chevron-up' : 'mdi-chevron-down'" />
+            </span>
+            <span class="mrow__dept">{{ row.departmentName }}</span>
+            <v-progress-linear v-if="barValue(row) !== null" :model-value="barValue(row)!" :color="barColor(row)" height="6" rounded class="my-2" />
+            <span class="mrow__figures">
+              Used <span class="mono">{{ formatMoney(row.used) }}</span>
+              <template v-if="row.budget !== null">
+                of <span class="mono">{{ formatMoney(row.budget) }}</span> · Remaining
+                <span class="mono" :class="{ 'text-error font-weight-medium': row.overBudget }">{{ formatMoney(row.remaining ?? 0) }}</span>
+              </template>
+              <template v-else> · <span class="text-medium-emphasis">Budget not set</span></template>
+            </span>
+          </button>
+          <div v-if="expanded === row.costCenterId" class="mrow__detail">
+            <p v-if="row.employees.length === 0" class="text-body-2 text-medium-emphasis ma-0">Nothing spent in {{ report.year }}.</p>
+            <div v-for="e in row.employees" :key="e.employeeUserId" class="emp">
+              <div class="emp__top">
+                <span>{{ e.employeeName }}</span>
+                <span class="mono">{{ formatMoney(e.total) }}</span>
+              </div>
+              <div class="emp__cats">
+                {{
+                  [
+                    `${e.lineCount} line${e.lineCount === 1 ? '' : 's'}`,
+                    ...usedCategories(row)
+                      .filter((c) => e.byCategory[c])
+                      .map((c) => `${categoryLabel[c]} ${formatMoney(e.byCategory[c])}`),
+                  ].join(' · ')
+                }}
+              </div>
+            </div>
+            <AppTestDeleteButton
+              v-if="isAdmin && row.budget !== null"
+              kind="cost-center-budgets"
+              :id="`${row.costCenterId}-${report.year}`"
+              :label="`the ${report.year} budget of ${row.code}`"
+              @deleted="load"
+            />
+          </div>
+        </div>
+      </div>
 
       <div v-else-if="report" class="table-wrap">
         <table class="ledger">
@@ -168,14 +219,16 @@ watch([year, approvedOnly], () => {
                   <div class="text-caption text-medium-emphasis pl-6">{{ row.departmentName }}</div>
                 </td>
                 <td class="r mono">
-                  <span v-if="row.budget !== null">{{ formatMoney(row.budget) }}</span>
-                  <AppTestDeleteButton
-                    v-if="isAdmin && row.budget !== null"
-                    kind="cost-center-budgets"
-                    :id="`${row.costCenterId}-${report.year}`"
-                    :label="`the ${report.year} budget of ${row.code}`"
-                    @deleted="load"
-                  />
+                  <template v-if="row.budget !== null">
+                    <span>{{ formatMoney(row.budget) }}</span>
+                    <AppTestDeleteButton
+                      v-if="isAdmin"
+                      kind="cost-center-budgets"
+                      :id="`${row.costCenterId}-${report.year}`"
+                      :label="`the ${report.year} budget of ${row.code}`"
+                      @deleted="load"
+                    />
+                  </template>
                   <span v-else class="text-medium-emphasis">Not set</span>
                 </td>
                 <td class="r mono">{{ formatMoney(row.used) }}</td>
@@ -256,5 +309,70 @@ watch([year, approvedOnly], () => {
 }
 .ledger--inner {
   font-size: 0.875rem;
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+.mrow {
+  border-bottom: 1px solid var(--line);
+}
+.mrow:last-child {
+  border-bottom: 0;
+}
+.mrow__main {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mrow__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mrow__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+.mrow__pct {
+  font-size: 13px;
+  white-space: nowrap;
+}
+.mrow__chev {
+  color: var(--ink-3);
+}
+.mrow__dept {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.mrow__figures {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.mrow__detail {
+  padding: 0 16px 12px;
+}
+.emp {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.emp__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.emp__cats {
+  font-size: 12px;
+  color: var(--ink-3);
 }
 </style>

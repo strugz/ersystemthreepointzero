@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { formatMoney, todayIso } from '@/shared/format';
 import { hasCamera } from '@/shared/images';
 import AppCameraCapture from '@/shared/ui/AppCameraCapture.vue';
@@ -71,7 +71,7 @@ const props = withDefaults(
   },
 );
 
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
@@ -82,7 +82,7 @@ const emit = defineEmits<{
   'crm-load': [date: string];
   /** Upload the document the chosen category needs; the parent attaches it to the report under Receipts. */
   'upload-document': [file: File, documentType: AttachmentDocumentType];
-  /** Remove the line being edited; the parent confirms first. */
+  /** Remove the line being edited (phones and tablets, where the list has no ✕); the parent confirms first. */
   remove: [line: ExpenseLine];
 }>();
 
@@ -498,7 +498,7 @@ function close() {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="760" :fullscreen="xs" scrollable :persistent="saving" @update:model-value="close">
+  <v-dialog :model-value="modelValue" max-width="760" :fullscreen="compact" scrollable :persistent="saving" @update:model-value="close">
     <v-card class="eline">
       <header class="eline__head">
         <div>
@@ -798,7 +798,7 @@ function close() {
           <span v-if="amountFormula" class="total__formula mono">{{ amountFormula }}</span>
         </div>
         <div class="eline__actions">
-          <v-btn v-if="line" class="press eline__remove" variant="text" color="error" :disabled="saving" @click="emit('remove', line)">Remove</v-btn>
+          <v-btn v-if="line && compact" class="press eline__remove" variant="text" color="error" :disabled="saving" @click="emit('remove', line)">Remove</v-btn>
           <v-btn class="press" variant="text" :disabled="saving" @click="close">Cancel</v-btn>
           <v-btn class="press" color="primary" variant="flat" :loading="saving" :disabled="!canSave" @click="save">
             {{ isEdit ? 'Save line' : 'Add line' }}

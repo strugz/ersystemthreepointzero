@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { formatMoney, todayIso } from '@/shared/format';
 import type { CashAdvanceLine, SaveCashAdvanceLineInput } from '../types';
 
@@ -16,11 +16,13 @@ const props = withDefaults(
   { line: null, saving: false, errors: null },
 );
 
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   save: [input: SaveCashAdvanceLineInput];
+  /** Remove the advance being edited (phones and tablets, where the list has no ✕); the parent confirms first. */
+  remove: [line: CashAdvanceLine];
 }>();
 
 const blank = (): SaveCashAdvanceLineInput => ({
@@ -82,7 +84,7 @@ function close() {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="640" :fullscreen="xs" :persistent="saving" @update:model-value="close">
+  <v-dialog :model-value="modelValue" max-width="640" :fullscreen="compact" :persistent="saving" @update:model-value="close">
     <v-card>
       <v-card-title class="d-flex align-center">
         <span class="text-subtitle-1 font-weight-bold">{{ isEdit ? 'Edit cash advance' : 'Add cash advance' }}</span>
@@ -123,6 +125,7 @@ function close() {
 
       <v-divider />
       <v-card-actions class="px-4 py-3">
+        <v-btn v-if="line && compact" class="press" variant="text" color="error" :disabled="saving" @click="emit('remove', line)">Remove</v-btn>
         <v-spacer />
         <v-btn class="press" variant="text" :disabled="saving" @click="close">{{ isEdit ? 'Cancel' : 'Done' }}</v-btn>
         <v-btn class="press" color="primary" variant="flat" :loading="saving" :disabled="!canSave" @click="save">

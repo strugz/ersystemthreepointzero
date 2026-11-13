@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { useSessionStore } from '@/app/stores/session';
 import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
@@ -35,7 +36,8 @@ const route = useRoute();
 const router = useRouter();
 const session = useSessionStore();
 const snack = useSnackbar();
-const { xs, lgAndUp } = useDisplay();
+const { lgAndUp } = useDisplay();
+const { compact } = useLayoutMode();
 const profileId = Number(route.params.id);
 
 // Presentation only: the API refuses rate changes that would apply to the actor.
@@ -418,7 +420,7 @@ async function resolve(userId: number, date: string) {
       </template>
     </template>
 
-    <template v-if="xs && profile && canWrite" #bottom>
+    <template v-if="compact && profile && canWrite" #bottom>
       <v-btn class="press" variant="outlined" prepend-icon="mdi-pencil-outline" @click="openRename">Rename</v-btn>
       <v-btn class="press" :color="profile.isActive ? 'error' : 'success'" variant="tonal" @click="activeDialog = true">
         {{ profile.isActive ? 'Deactivate' : 'Activate' }}

@@ -18,6 +18,39 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-12
 
+- **Approvals up front for signatories** (PR #55). A signatory's **Dashboard** shows a **For your approval**
+  card (only while reports wait for them): the pending count, up to five reports with employee, reference, whose
+  turn it is and days waiting, a tap opens the review, and **All approvals** opens the inbox. **Approvals** takes the
+  fourth main slot (phone bottom bar and rail) for signatories instead of **Summary**, which moves to a Reports card
+  on the More page (rail group). Uses the existing `GET /api/approvals?view=Pending`; no backend change. SPA 0.8.0
+  (minor, raises this PR's 0.7.2 patch); no database script.
+- **More page on phones** (PR #55). The bottom bar's **More** opens a full page (`/more`) instead of a
+  dropdown over the screen: a profile card (initials, name, roles), the sections not in the bottom bar as cards
+  (Work queues, Signatory structure, Administration, Wellness), Appearance as one Light / Dark / System switch,
+  Change password, and a separate red **Sign out**. The More tab stays highlighted on the sections it opens (never on a
+  page that has its own bottom-bar tab), and on a
+  phone each of them (and Change password) has a Back arrow to More, since they have no other way back. **Rates** lists
+  its profiles as rows on phones (name and status, then lines in force and assignments) instead of a cut-off table, and
+  so do a profile's **Rate lines** (category and amount, status and period, rule, then Edit / New version), the
+  **Audit** log (event, then when and who; tap for the detail) and the report editor's **Cash advance received** (tap a
+  row to edit; **Remove** is in the advance dialog on phones, as for expense lines). **Budgets** shows one block per
+  cost center on phones (usage bar, used of budget, remaining; tap to list who spent it); its table no longer prints
+  "Not set" beside a budget that is set. The Dashboard greets by the whole first name ("Ma. Agnes", not "Ma.";
+  `greetingName` in `shared/format.ts`). **Tablets** (600-959px) use the phone layout: bottom bar, phone header with
+  Back, row lists instead of tables, full-screen dialogs, no side rail. It is the tablet's own setting
+  (`shared/composables/useLayoutMode.ts`, switch `TABLET_PHONE_LAYOUT`; `compact` = phone or tablet, `tablet` for
+  tablet-only tweaks): a centred 760px column with 24px padding, and flat lists (My reports, Approvals, Users, Scope,
+  coverage, rate assignments, role grants, Rates) in two columns (`rows--tablet` in `main.css`). Phones and desktop
+  (960px and up) are unchanged. In the phone and tablet report editor the ⋮ menu is gone: a printer icon in the
+  header opens the R47, **Reopen to edit** sits in the read-only banner that explains it, and only a draft keeps a ⋮
+  (Delete report). The
+  **R47 PDF** page has a **Rotate** button on
+  phones that turns the viewer a quarter turn and fits the whole page, so the landscape form fills the screen when the
+  phone is held sideways (even with rotation lock on). Phone expense line rows show what tapping does: a chevron when the
+  line can be edited, and on the review screen the lower-amount arrow, with the hint "Tap a line marked … to lower its
+  amount". Tablet and
+  desktop keep the rail and avatar menu; both read the same entries from `layouts/useAppNavigation.ts`. Frontend
+  only, SPA 0.7.2 (patch); no database script.
 - **Phone and tablet layout fixes** (PR #54). **Expense summary** and **Meal claims** no longer
   overflow: on tablets the table scrolls sideways with the Employee column held in place, and on phones each employee
   is a row (categories or meals claimed listed under the name, then a Total row). The **Rules** page's Save bar sits
@@ -29,8 +62,8 @@ section of the root `CLAUDE.md`) in the same change.
   recent report on two lines (title and amount, then reference, period and status). In the report editor the expense
   lines come straight after the total, then Receipts, with **Report details** folded to one line below them (tap to
   open; labels sit above values). Phone line rows show the meals or location instead of repeating the category, the
-  date header drops the "—" when there is no location, and the ✕ beside each amount is gone: **Remove** is in the
-  line dialog (still confirmed first). On phones **Expense summary**, **Meal claims** and **Budgets** keep the bottom
+  date header drops the "—" when there is no location, and the ✕ beside each amount is gone on phones: **Remove** is in the
+  line dialog there (still confirmed first). On phones **Expense summary**, **Meal claims** and **Budgets** keep the bottom
   navigation: Export is a download icon in the header instead of a bottom bar that hid the nav and left no way back
   (`AppExportButton compact`). Detail screens (report editor, review, R47 PDF) keep their action bar and back arrow.
   Frontend only, SPA 0.7.1 (patch); no database script.

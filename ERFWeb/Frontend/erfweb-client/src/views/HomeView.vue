@@ -1,23 +1,42 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { useSessionStore } from '@/app/stores/session';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
-import { formatDate, formatMoney } from '@/shared/format';
+import { formatDate, formatMoney, greetingName } from '@/shared/format';
 import { expensesApi } from '@/features/expenses/api';
 import ReportStatusChip from '@/features/expenses/components/ReportStatusChip.vue';
 import type { ExpenseReportListItem } from '@/features/expenses/types';
+import { approvalsApi } from '@/features/approvals/api';
+import type { ApprovalInboxItem } from '@/features/approvals/types';
 
 const session = useSessionStore();
 const router = useRouter();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
 const recent = ref<ExpenseReportListItem[]>([]);
 const counts = ref<{ all: number; drafts: number; forApproval: number; returned: number } | null>(null);
 const loading = ref(true);
 
+// Signatories see the reports waiting for their approval first; the card shows only when there are some.
+const isSignatory = computed(() => session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2'));
+const pending = ref<ApprovalInboxItem[]>([]);
+const pendingTotal = ref(0);
+
+async function loadPending() {
+  if (!isSignatory.value) return;
+  try {
+    const page = await approvalsApi.inbox({ view: 'Pending', page: 1, pageSize: 5 });
+    pending.value = page.items;
+    pendingTotal.value = page.total;
+  } catch {
+    // Best-effort like the rest of the dashboard; the Approvals page shows precise errors.
+  }
+}
+
 onMounted(async () => {
+  void loadPending();
   try {
     const [all, drafts, forApproval, returned] = await Promise.all([
       expensesApi.list({ page: 1, pageSize: 5 }),
@@ -38,6 +57,15 @@ function open(item: ExpenseReportListItem) {
   router.push({ name: 'report-edit', params: { id: item.id } });
 }
 
+function review(item: ApprovalInboxItem) {
+  router.push({ name: 'report-review', params: { id: item.reportId } });
+}
+
+function waitingFor(item: ApprovalInboxItem) {
+  if (item.isMyTurn) return item.onBehalfOfName ? `Your turn, for ${item.onBehalfOfName}` : 'Your turn';
+  return item.currentApproverName ? `Waiting for ${item.currentApproverName}` : 'Waiting';
+}
+
 const tiles = [
   { key: 'drafts', label: 'Drafts', short: 'Drafts', status: 'New', tone: 'tile--neutral', icon: 'mdi-file-edit-outline' },
   { key: 'forApproval', label: 'Awaiting approval', short: 'Awaiting', status: 'ForApproval', tone: 'tile--warning', icon: 'mdi-timer-sand' },
@@ -56,7 +84,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
     <section class="hero mb-5">
       <div class="hero__body">
         <span class="hero__date">{{ today }}</span>
-        <h1 class="hero__title">{{ xs ? 'Hello' : 'Good day' }}{{ session.user ? `, ${session.user.fullName.split(' ')[0]}` : '' }}</h1>
+        <h1 class="hero__title">{{ compact ? 'Hello' : 'Good day' }}{{ session.user ? `, ${greetingName(session.user.fullName)}` : '' }}</h1>
         <p class="hero__sub">Prepare and file your expense reports, then print the R47.</p>
       </div>
       <div class="hero__stat" aria-live="polite">
@@ -76,12 +104,40 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
       >
         <span class="tile__icon"><v-icon :icon="t.icon" size="20" /></span>
         <span class="tile__text">
-          <span class="lbl">{{ xs ? t.short : t.label }}</span>
+          <span class="lbl">{{ compact ? t.short : t.label }}</span>
           <span class="mono tile__num">{{ counts ? counts[t.key] : '—' }}</span>
         </span>
         <v-icon icon="mdi-arrow-top-right" size="16" class="tile__go" />
       </router-link>
     </div>
+
+    <v-card v-if="pending.length > 0" class="mt-5 approvals">
+      <div class="card-h">
+        <span class="card-t">For your approval <span class="approvals__count mono">{{ pendingTotal }}</span></span>
+        <v-btn class="press" size="small" variant="text" color="primary" :to="{ name: 'approvals' }" append-icon="mdi-arrow-right">All approvals</v-btn>
+      </div>
+      <div class="recent">
+        <button
+          v-for="(item, i) in pending"
+          :key="item.reportId"
+          type="button"
+          class="recent__row press stagger-in"
+          :style="{ '--i': Math.min(i, 8) }"
+          @click="review(item)"
+        >
+          <div class="recent__main">
+            <div class="recent__title">{{ item.employeeName }}</div>
+            <div class="recent__meta">
+              <span class="mono">{{ item.referenceNo }}</span> ·
+              <span :class="{ 'approvals__turn': item.isMyTurn }">{{ waitingFor(item) }}</span>
+              <span v-if="item.daysWaiting > 0" class="recent__lines">· {{ item.daysWaiting }} day{{ item.daysWaiting === 1 ? '' : 's' }} waiting</span>
+            </div>
+          </div>
+          <span class="mono recent__amt">{{ formatMoney(item.totalAmount) }}</span>
+          <ReportStatusChip :status="item.status" class="recent__chip" />
+        </button>
+      </div>
+    </v-card>
 
     <v-card class="mt-5">
       <div class="card-h">
@@ -117,12 +173,31 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
 </template>
 
 <style scoped>
+.approvals {
+  border-left: 3px solid rgb(var(--v-theme-warning));
+}
+.approvals__count {
+  display: inline-block;
+  min-width: 22px;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 11px;
+  background: rgba(var(--v-theme-warning), 0.16);
+  color: rgb(var(--v-theme-warning));
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+.approvals__turn {
+  color: rgb(var(--v-theme-warning));
+  font-weight: 500;
+}
 .tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .tiles {
     gap: 8px;
   }
@@ -191,7 +266,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
   font-weight: 500;
   line-height: 1.1;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .hero {
     padding: 20px;
     border-radius: 14px;
@@ -277,7 +352,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
 .tile--error .tile__num {
   color: rgb(var(--v-theme-error));
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   /* Phone: three compact tiles in one row (icon, number, label) instead of three full-width bars. */
   .tile {
     flex-direction: column;
@@ -354,7 +429,7 @@ const today = new Intl.DateTimeFormat('en-PH', { weekday: 'long', month: 'long',
   font-weight: 500;
   white-space: nowrap;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   /* Phone: title and amount on the first line, reference, period and status on the second. */
   .recent__row {
     display: grid;

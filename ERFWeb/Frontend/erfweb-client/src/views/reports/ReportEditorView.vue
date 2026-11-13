@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
@@ -48,7 +49,8 @@ const router = useRouter();
 const session = useSessionStore();
 const isAdmin = computed(() => session.hasRole('SystemAdministrator'));
 const snack = useSnackbar();
-const { xs, lgAndUp } = useDisplay();
+const { lgAndUp } = useDisplay();
+const { compact } = useLayoutMode();
 const reportId = String(route.params.id);
 
 const report = ref<ExpenseReportDetail | null>(null);
@@ -298,6 +300,11 @@ const cashErrors = ref<Record<string, string[]> | null>(null);
 const busyCashId = ref<number | null>(null);
 const removingCash = ref<CashAdvanceLine | null>(null);
 
+function removeCashFromDialog(line: CashAdvanceLine) {
+  cashDialog.value = false;
+  removingCash.value = line;
+}
+
 function openAddCash() {
   editingCash.value = null;
   cashErrors.value = null;
@@ -526,18 +533,16 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
     </template>
     <template #actions-mobile>
       <template v-if="report">
-        <ReportStatusChip :status="report.status" />
-        <v-menu location="bottom end" :offset="6">
+        <ReportStatusChip :status="report.status" class="mr-1" />
+        <!-- The R47 is one tap away; Reopen sits in the read-only banner that explains it; only Delete stays in a menu. -->
+        <v-btn class="press" icon="mdi-printer-outline" variant="text" aria-label="R47 PDF" :to="{ name: 'report-pdf', params: { id: report.id } }" />
+        <v-menu v-if="report.canDelete" location="bottom end" :offset="6">
           <template #activator="{ props: menu }">
             <v-btn v-bind="menu" class="press" icon="mdi-dots-vertical" variant="text" aria-label="More actions" />
           </template>
-          <v-card min-width="220" class="pa-1">
-            <v-list density="compact" class="py-0">
-              <v-list-item prepend-icon="mdi-printer-outline" title="R47 PDF" :to="{ name: 'report-pdf', params: { id: report.id } }" />
-              <v-list-item v-if="report.canReopen" prepend-icon="mdi-lock-open-variant-outline" title="Reopen for editing" @click="reopenDialog = true" />
-              <v-list-item v-if="report.canDelete" prepend-icon="mdi-delete-outline" title="Delete report" base-color="error" @click="deleteDialog = true" />
-            </v-list>
-          </v-card>
+          <v-list density="compact" class="py-1" min-width="200">
+            <v-list-item prepend-icon="mdi-delete-outline" title="Delete report" base-color="error" @click="deleteDialog = true" />
+          </v-list>
         </v-menu>
       </template>
     </template>
@@ -554,7 +559,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
     <div v-else-if="report" class="editor" :class="{ 'editor--wide': lgAndUp }">
       <!-- Main column -->
       <div class="editor__main">
-        <div v-if="!xs" class="title-row">
+        <div v-if="!compact" class="title-row">
           <h1 class="page-title">Expense report</h1>
           <ReportStatusChip :status="report.status" />
           <span class="text-body-2 text-medium-emphasis">
@@ -574,6 +579,9 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         </v-alert>
         <v-alert v-else-if="!report.canEdit && report.canReopen" type="info" density="compact">
           This report is awaiting approval and is read-only. No approver has acted yet, so you can still reopen it to make changes.
+          <div v-if="compact" class="mt-2">
+            <v-btn class="press" size="small" variant="flat" color="primary" prepend-icon="mdi-lock-open-variant-outline" @click="reopenDialog = true">Reopen to edit</v-btn>
+          </div>
         </v-alert>
         <v-alert v-else-if="report.status === 'ForApproval'" type="info" density="compact">
           An approver has already acted, so the amounts are locked. Ask your approver to return the report if something must change.
@@ -585,7 +593,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         </template>
 
         <!-- Totals move above the document when there is no side column -->
-        <ReportTotalsCard v-if="!lgAndUp" :total="report.totalAmount" :cash-advance="report.cashAdvanceTotal" :variant="xs ? 'card' : 'strip'" />
+        <ReportTotalsCard v-if="!lgAndUp" :total="report.totalAmount" :cash-advance="report.cashAdvanceTotal" :variant="compact ? 'card' : 'strip'" />
 
         <ReportDetailsCard v-model:open="detailsOpen" class="editor__details" :report="report" :editable="report.canEdit" :saving="savingHeader" @save="saveHeader" />
 
@@ -616,8 +624,8 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
                   <v-list-item v-for="o in lineSortOptions" :key="o.value" :title="o.label" @click="sortLines(o.value)" />
                 </v-list>
               </v-menu>
-              <v-btn v-if="report.canEdit && report.lines.length && !xs" class="press" size="small" variant="outlined" prepend-icon="mdi-plus" @click="openAddLine">Add line</v-btn>
-              <span v-else-if="xs" class="mono card-t">{{ formatMoney(report.totalAmount) }}</span>
+              <v-btn v-if="report.canEdit && report.lines.length && !compact" class="press" size="small" variant="outlined" prepend-icon="mdi-plus" @click="openAddLine">Add line</v-btn>
+              <span v-else-if="compact" class="mono card-t">{{ formatMoney(report.totalAmount) }}</span>
             </div>
           </div>
           <ExpenseLinesTable :lines="report.lines" :editable="report.canEdit" :busy-line-id="busyLineId" @add="openAddLine" @edit="openEditLine" @remove="removingLine = $event" />
@@ -694,6 +702,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :saving="savingCash"
         :errors="cashErrors"
         @save="saveCash"
+        @remove="removeCashFromDialog"
       />
 
       <AppConfirmDialog
@@ -801,7 +810,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
 .editor__span {
   grid-column: span 2;
 }
-@media (max-width: 599.98px) {
+@media (max-width: 959.98px) {
   .editor__main {
     gap: 14px;
   }

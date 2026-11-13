@@ -1,26 +1,25 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { computed, ref, toValue } from 'vue';
+import { useRoute } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { useSessionStore } from '@/app/stores/session';
 import { useThemeStore } from '@/app/stores/theme';
-import type { ThemePreference } from '@/app/theme';
-import { roleLabel } from '@/features/auth/labels';
-import { entitlementReaderRoles, hasAnyRole, rateNavRoles } from '@/features/entitlements/access';
 import DailyQuoteDialog from '@/features/wellness/components/DailyQuoteDialog.vue';
 import AppErsMark from '@/shared/ui/AppErsMark.vue';
 import AppSnackbar from '@/shared/ui/AppSnackbar.vue';
 import { appVersionLabel } from '@/shared/appVersion';
 import { isTestMode } from '@/shared/appMode';
+import { themeOptions, useAppNavigation } from './useAppNavigation';
 
 /**
  * Application shell.
- *  - Desktop / tablet (>= 600px): a left navigation pane the user opens or closes: a 72px icon rail
+ *  - Desktop (>= 960px): a left navigation pane the user opens or closes: a 72px icon rail
  *    (closed) or a 248px pane with labels (open). The choice is remembered in this browser.
  *    64px white header with a breadcrumb.
- *  - Phone (< 600px): no rail; a 56px header with a back button, and a bottom bar — either the
- *    page's own sticky actions (#bottom slot) or the global bottom navigation.
+ *  - Phone and tablet (`compact`, useLayoutMode): no rail; a 56px header with a back button, and a bottom
+ *    bar — either the page's own sticky actions (#bottom slot) or the global bottom navigation. Tablets
+ *    get their own content width below.
  */
 export interface Crumb {
   title: string;
@@ -41,98 +40,13 @@ const props = withDefaults(
 
 const session = useSessionStore();
 const theme = useThemeStore();
-const router = useRouter();
 const route = useRoute();
-const { xs } = useDisplay();
+const { compact } = useLayoutMode();
 
-interface NavItem {
-  title: string;
-  /** One-word label for the phone bottom bar, where five items share 360px. */
-  short?: string;
-  /** Drawn as the filled button in the phone bottom bar. */
-  primary?: boolean;
-  icon: string;
-  to: RouteLocationRaw;
-  exact: boolean;
-}
+const { nav, navGroups, roleSummary, initials, logout } = useAppNavigation();
 
-const nav: NavItem[] = [
-  { title: 'Dashboard', short: 'Home', icon: 'mdi-view-dashboard-outline', to: { name: 'home' }, exact: true },
-  { title: 'My reports', short: 'Reports', icon: 'mdi-file-document-multiple-outline', to: { name: 'reports' }, exact: false },
-  { title: 'New report', short: 'New', primary: true, icon: 'mdi-plus', to: { name: 'report-new' }, exact: true },
-  { title: 'Summary', icon: 'mdi-chart-box-outline', to: { name: 'expense-summary' }, exact: true },
-];
+const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications', 'cost-center-budgets', 'daily-meal-claims', 'random-quotes', 'more', 'change-password']);
 
-// Administration entries, gated by role. The API enforces access; this only decides what to show.
-const adminNav = computed<NavItem[]>(() => {
-  const items: NavItem[] = [];
-  const isAdmin = session.hasRole('SystemAdministrator');
-  if (isAdmin) {
-    items.push(
-      { title: 'Users', icon: 'mdi-account-multiple-outline', to: { name: 'admin-users' }, exact: false },
-      { title: 'Master data', icon: 'mdi-database-outline', to: { name: 'admin-master-data' }, exact: false },
-      { title: 'Rules', icon: 'mdi-tune-variant', to: { name: 'admin-settings' }, exact: false },
-    );
-  }
-  if (isAdmin || session.hasRole('Finance')) {
-    items.push({ title: 'Audit', icon: 'mdi-clipboard-text-clock-outline', to: { name: 'admin-audit' }, exact: false });
-  }
-  return items;
-});
-
-// Work queues: approvals for signatories, cost center budgets for signatories and Finance, the receipt
-// queue and signature approvals for Finance, verifications for the Expense Verifier. Gating is display only.
-const workNav = computed<NavItem[]>(() => {
-  const items: NavItem[] = [];
-  if (session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2')) {
-    items.push({ title: 'Approvals', icon: 'mdi-check-decagram-outline', to: { name: 'approvals' }, exact: false });
-    items.push({ title: 'Delegations', icon: 'mdi-account-arrow-right-outline', to: { name: 'delegations' }, exact: false });
-  }
-  if (session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2') || session.hasRole('Finance')) {
-    items.push({ title: 'Budgets', icon: 'mdi-chart-donut', to: { name: 'cost-center-budgets' }, exact: false });
-  }
-  if (session.hasRole('Finance')) {
-    items.push({ title: 'Finance queue', icon: 'mdi-receipt-text-check-outline', to: { name: 'finance-queue' }, exact: false });
-    items.push({ title: 'Meal claims', icon: 'mdi-silverware-fork-knife', to: { name: 'daily-meal-claims' }, exact: false });
-    items.push({ title: 'Signatures', icon: 'mdi-draw-pen', to: { name: 'signature-approvals' }, exact: false });
-  }
-  if (session.hasRole('ExpenseVerifier')) {
-    items.push({ title: 'Verifications', icon: 'mdi-magnify-scan', to: { name: 'verifications' }, exact: false });
-  }
-  return items;
-});
-
-// Signatory structure entries: scope and rates for every entitlement reader; the System
-// Administrator maintains both. Gating is display only.
-const entitlementNav = computed<NavItem[]>(() => {
-  const roles = session.user?.roles;
-  const items: NavItem[] = [];
-  if (hasAnyRole(roles, entitlementReaderRoles)) {
-    items.push({ title: 'Scope', icon: 'mdi-account-supervisor-outline', to: { name: 'scope' }, exact: false });
-  }
-  if (hasAnyRole(roles, rateNavRoles)) {
-    items.push({ title: 'Rates', icon: 'mdi-cash-multiple', to: { name: 'rate-profiles' }, exact: false });
-  }
-  return items;
-});
-
-// Open to every signed-in user; kept out of the main nav so the phone bottom bar stays at four items.
-const wellnessNav: NavItem[] = [{ title: 'Healthy living', icon: 'mdi-heart-pulse', to: { name: 'random-quotes' }, exact: true }];
-
-/** Groups shown after the main nav, each behind a separator on the rail and a divider in "More". */
-const navGroups = computed(() =>
-  [
-    { label: 'Work queues', items: workNav.value },
-    { label: 'Signatory structure', items: entitlementNav.value },
-    { label: 'Administration', items: adminNav.value },
-    { label: 'Wellness', items: wellnessNav },
-  ].filter((g) => g.items.length > 0),
-);
-
-const entitlementRouteNames = new Set(['scope', 'rate-profiles', 'rate-profile', 'approvals', 'delegations', 'report-review', 'finance-queue', 'verifications', 'cost-center-budgets', 'daily-meal-claims', 'random-quotes']);
-
-const roleSummary = computed(() => (session.user?.roles ?? []).map(roleLabel).join(' · '));
-const moreOpen = ref(false);
 
 // Open/closed navigation pane: a per-browser convenience, so storage failures just fall back to closed.
 const NAV_KEY = 'erfweb.nav.expanded';
@@ -152,44 +66,35 @@ function toggleNav() {
     // Storage blocked (private window): the toggle still works for this page view.
   }
 }
+// More lights up for the pages it lists, never for one that has its own bottom-bar tab (Approvals, when the
+// main nav carries it); a report review belongs to Approvals.
 const moreRouteActive = computed(() => {
   const name = String(route.name ?? '');
+  const mainNames = new Set(toValue(nav).map((i) => (i.to as { name?: string }).name));
+  if (mainNames.has(name === 'report-review' ? 'approvals' : name)) return false;
   return name.startsWith('admin-') || entitlementRouteNames.has(name);
 });
 
-const initials = computed(() =>
-  (session.user?.fullName ?? '?')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? '')
-    .join(''),
+// Pages listed on the phone More page; on a phone they have no other way back, so Back returns to More.
+const moreSectionNames = computed(
+  () => new Set(['change-password', ...navGroups.value.flatMap((g) => g.items.map((i) => (i.to as { name?: string }).name ?? ''))]),
 );
 
 const backTarget = computed<RouteLocationRaw | undefined>(() => {
   if (props.back) return props.back;
   const prev = props.crumbs.length > 1 ? props.crumbs[props.crumbs.length - 2] : undefined;
-  return prev?.to;
+  if (prev?.to) return prev.to;
+  return moreSectionNames.value.has(String(route.name ?? '')) ? { name: 'more' } : undefined;
 });
 
 const lastCrumb = computed(() => props.crumbs[props.crumbs.length - 1]);
 
-const themeOptions: { value: ThemePreference; label: string; icon: string }[] = [
-  { value: 'light', label: 'Light', icon: 'mdi-white-balance-sunny' },
-  { value: 'dark', label: 'Dark', icon: 'mdi-weather-night' },
-  { value: 'system', label: 'System', icon: 'mdi-monitor' },
-];
-
-async function logout() {
-  await session.logout();
-  await router.push({ name: 'login' });
-}
 </script>
 
 <template>
   <!-- Navigation pane: tablet and desktop. Closed = icon rail, open = icons with labels. -->
   <v-navigation-drawer
-    v-if="!xs"
+    v-if="!compact"
     permanent
     :rail="!expanded"
     rail-width="72"
@@ -308,8 +213,8 @@ async function logout() {
   </v-navigation-drawer>
 
   <!-- Header -->
-  <v-app-bar flat color="surface" :height="xs ? 56 : 64" class="shell-header">
-    <template v-if="xs">
+  <v-app-bar flat color="surface" :height="compact ? 56 : 64" class="shell-header">
+    <template v-if="compact">
       <v-btn
         v-if="backTarget"
         class="press"
@@ -370,48 +275,20 @@ async function logout() {
   </v-main>
 
   <!-- Phone bottom: page actions when provided, otherwise global navigation -->
-  <v-footer v-if="xs && $slots.bottom" app class="bottom-bar" color="surface">
+  <v-footer v-if="compact && $slots.bottom" app class="bottom-bar" color="surface">
     <slot name="bottom" />
   </v-footer>
-  <v-bottom-navigation v-else-if="xs" grow color="primary" bg-color="surface" class="bottom-nav" :elevation="0">
+  <v-bottom-navigation v-else-if="compact" grow color="primary" bg-color="surface" class="bottom-nav" :elevation="0">
     <v-btn v-for="item in nav" :key="item.title" :to="item.to" :exact="item.exact" :aria-label="item.title" class="press bottom-nav__btn">
       <span v-if="item.primary" class="bottom-nav__new"><v-icon :icon="item.icon" size="20" /></span>
       <v-icon v-else :icon="item.icon" />
       <span class="bottom-nav__label">{{ item.short ?? item.title }}</span>
     </v-btn>
-    <!-- Phones have no rail or avatar menu, so scope, rates, administration and sign-out live behind "More". -->
-    <v-menu v-model="moreOpen" location="top end" :offset="8">
-      <template #activator="{ props: menu }">
-        <v-btn v-bind="menu" class="press bottom-nav__btn" :active="moreRouteActive" aria-label="More" aria-haspopup="menu">
-          <v-icon icon="mdi-dots-horizontal" />
-          <span class="bottom-nav__label">More</span>
-        </v-btn>
-      </template>
-      <v-card min-width="220" class="pa-1">
-        <v-list density="compact" class="py-0">
-          <v-list-item :title="session.user?.fullName" :subtitle="roleSummary" />
-          <template v-for="group in navGroups" :key="group.label">
-            <v-divider class="my-1" />
-            <v-list-subheader class="more__group">{{ group.label }}</v-list-subheader>
-            <v-list-item v-for="item in group.items" :key="item.title" :prepend-icon="item.icon" :title="item.title" :to="item.to" />
-          </template>
-          <v-divider class="my-1" />
-          <v-list-subheader class="more__group">Appearance</v-list-subheader>
-          <v-list-item
-            v-for="o in themeOptions"
-            :key="o.value"
-            :prepend-icon="o.icon"
-            :title="o.label"
-            :active="theme.preference === o.value"
-            color="primary"
-            @click.stop="theme.setPreference(o.value)"
-          />
-          <v-divider class="my-1" />
-          <v-list-item prepend-icon="mdi-lock-reset" title="Change password" :to="{ name: 'change-password' }" />
-          <v-list-item prepend-icon="mdi-logout" title="Sign out" @click="logout" />
-        </v-list>
-      </v-card>
-    </v-menu>
+    <!-- Phones have no rail or avatar menu: account, the other sections, appearance and sign-out are on the More page. -->
+    <v-btn :to="{ name: 'more' }" class="press bottom-nav__btn" :active="moreRouteActive" aria-label="More">
+      <v-icon icon="mdi-dots-horizontal" />
+      <span class="bottom-nav__label">More</span>
+    </v-btn>
   </v-bottom-navigation>
 
   <AppSnackbar />
@@ -742,6 +619,13 @@ async function logout() {
     padding: 16px 16px 24px;
   }
 }
+/* Tablet in the phone layout: a centred column, so rows and forms do not stretch across a wide screen. */
+@media (min-width: 600px) and (max-width: 959.98px) {
+  .page {
+    max-width: 760px;
+    margin-inline: auto;
+  }
+}
 
 .bottom-bar {
   border-top: 1px solid var(--line) !important;
@@ -752,12 +636,6 @@ async function logout() {
   flex: 1;
   height: 48px;
   font-size: 15px;
-}
-.more__group {
-  min-height: 28px;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 .bottom-nav {
   border-top: 1px solid var(--line) !important;

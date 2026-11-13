@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useDisplay } from 'vuetify';
+import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
 import AppEmptyState from '@/shared/ui/AppEmptyState.vue';
 import AppTestDeleteButton from '@/shared/ui/AppTestDeleteButton.vue';
@@ -34,7 +34,7 @@ const emit = defineEmits<{
   deleted: [];
 }>();
 
-const { xs } = useDisplay();
+const { compact, tablet } = useLayoutMode();
 const today = todayIso();
 const yesterday = addDaysIso(today, -1);
 
@@ -95,11 +95,11 @@ const endMessage = computed(() =>
           density="compact"
           hide-details
           color="primary"
-          :label="xs ? 'Ended' : `Show ended (${endedCount})`"
+          :label="compact ? 'Ended' : `Show ended (${endedCount})`"
           class="mr-2"
         />
         <v-btn v-if="canWrite" class="press" size="small" variant="outlined" prepend-icon="mdi-plus" :disabled="disabled" @click="emit('create')">
-          {{ xs ? 'Assign' : 'Assign profile' }}
+          {{ compact ? 'Assign' : 'Assign profile' }}
         </v-btn>
       </div>
     </div>
@@ -121,7 +121,7 @@ const endMessage = computed(() =>
       </v-btn>
     </AppEmptyState>
 
-    <ul v-else-if="xs" class="rows">
+    <ul v-else-if="compact" :class="{ 'rows--tablet': tablet }" class="rows">
       <li v-for="a in visible" :key="a.id" class="row" :class="{ 'text-medium-emphasis': isEnded(a) }">
         <div class="d-flex align-center ga-2 flex-wrap">
           <span class="font-weight-medium">{{ rateTargetText(a) }}</span>
