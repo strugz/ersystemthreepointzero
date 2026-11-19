@@ -6,10 +6,17 @@ export type ReportStatus = 'New' | 'ForApproval' | 'Returned' | 'Approved' | 'Re
 export type ApprovalStatus = 'Pending' | 'Approved' | 'Returned' | 'Superseded' | 'Rejected' | 'Overridden';
 export type FinanceStatus = 'Pending' | 'ReceiptsIncomplete' | 'ReceiptsReceived' | 'ClearedForPayment';
 export type ExpenseType = 'Local' | 'Foreign';
-export type ExpenseCategory = 'Meals' | 'Transportation' | 'Toll' | 'Parking' | 'Others' | 'Representation' | 'Sponsorship' | 'Demo' | 'Lodging';
+export type ExpenseCategory = 'Meals' | 'Transportation' | 'Toll' | 'Parking' | 'Others' | 'Representation' | 'Sponsorship' | 'Demo' | 'Lodging' | 'Gas' | 'Medical';
 
-/** What an uploaded file is; Sponsorship, Demo, Representation and Lodging lines need their document attached first. */
-export type AttachmentDocumentType = 'Receipt' | 'ActivityRequestForm' | 'IsoAttendanceSheet' | 'FoodReceipt' | 'LodgingReceipt';
+/** What an uploaded file is; Sponsorship, Demo, Representation, Lodging (and Gas, Medical by Finance rule) lines need their document attached first. */
+export type AttachmentDocumentType =
+  | 'Receipt'
+  | 'ActivityRequestForm'
+  | 'IsoAttendanceSheet'
+  | 'FoodReceipt'
+  | 'LodgingReceipt'
+  | 'GasReceipt'
+  | 'MedicalCertificate';
 /** How an ISO attendance sheet matched the Demo form code (R94): found in the PDF text, or confirmed by the employee. */
 export type FormCodeCheck = 'Found' | 'Confirmed';
 

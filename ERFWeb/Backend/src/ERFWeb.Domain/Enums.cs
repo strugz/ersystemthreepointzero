@@ -132,6 +132,12 @@ public enum ExpenseCategory
 
     /// <summary>Finance rule: a per-night amount times the nights (the multiplier), capped at the lodging rate. Prints under OTHERS.</summary>
     Lodging,
+
+    /// <summary>Finance rule: verified by an Expense Verifier and/or a gas receipt. Prints under OTHERS.</summary>
+    Gas,
+
+    /// <summary>Finance rule: verified by an Expense Verifier and/or a medical certificate. Prints under OTHERS.</summary>
+    Medical,
 }
 
 /// <summary>What an uploaded file is. A file uploaded without a type is a receipt.</summary>
@@ -146,6 +152,12 @@ public enum AttachmentDocumentType
 
     /// <summary>The official receipt from the hotel or lodging; a Lodging line needs it.</summary>
     LodgingReceipt,
+
+    /// <summary>The gas station receipt; a Gas line needs it when the Finance rules verify Gas by document.</summary>
+    GasReceipt,
+
+    /// <summary>A Medical line needs it when the Finance rules verify Medical by document.</summary>
+    MedicalCertificate,
 }
 
 /// <summary>How an ISO attendance sheet upload was matched to the Demo form code (e.g. R94).</summary>

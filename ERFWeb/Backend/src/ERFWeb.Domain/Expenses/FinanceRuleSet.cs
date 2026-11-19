@@ -22,6 +22,22 @@ public enum LodgingRateBasis
     Flat,
 }
 
+/// <summary>How Gas and Medical lines are verified (Finance questions 6 and 7).</summary>
+public enum CategoryVerification
+{
+    /// <summary>No check beyond the normal approval.</summary>
+    None,
+
+    /// <summary>On final approval each line gets a verification request; Finance cannot clear until it is closed.</summary>
+    Person,
+
+    /// <summary>The line needs its document (gas receipt, medical certificate) attached to the report.</summary>
+    Document,
+
+    /// <summary>Person and Document.</summary>
+    Both,
+}
+
 /// <summary>
 /// The Finance rules the System Administrator sets on the Rules page (Finance requirements of 2026-11-11), stored
 /// as one JSON row. Every property has a default, so JSON saved before a rule existed still loads with that
@@ -73,6 +89,16 @@ public sealed record FinanceRuleSet
 
     /// <summary>A Lodging line needs the official receipt from the hotel or lodging attached.</summary>
     public bool LodgingRequiresDocument { get; init; } = true;
+
+    /// <summary>Employees may claim Gas.</summary>
+    public bool GasEnabled { get; init; } = true;
+
+    public CategoryVerification GasVerification { get; init; } = CategoryVerification.Person;
+
+    /// <summary>Employees may claim Medical.</summary>
+    public bool MedicalEnabled { get; init; } = true;
+
+    public CategoryVerification MedicalVerification { get; init; } = CategoryVerification.Person;
 }
 
 /// <summary>Validation of the Finance rules the administrator saves; field names match the Rules page.</summary>
@@ -114,6 +140,16 @@ public static class FinanceRuleSetRules
         else if (rules.LodgingRateBasis == LodgingRateBasis.Flat && rules.LodgingFlatRate == 0)
         {
             errors["financeRules.lodgingFlatRate"] = "Enter the flat amount per night.";
+        }
+
+        if (!Enum.IsDefined(rules.GasVerification))
+        {
+            errors["financeRules.gasVerification"] = "Choose how Gas is verified.";
+        }
+
+        if (!Enum.IsDefined(rules.MedicalVerification))
+        {
+            errors["financeRules.medicalVerification"] = "Choose how Medical is verified.";
         }
 
         var code = rules.DemoFormCode?.Trim() ?? string.Empty;

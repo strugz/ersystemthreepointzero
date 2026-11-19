@@ -383,6 +383,8 @@ export function rulesSectionOf(field: string): RulesSection {
 export type CutoffWeekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
 export type LateFilingHandling = 'NoticeOnly' | 'FlagForFinance';
 export type LodgingRateBasis = 'RateProfile' | 'Flat';
+/** How Gas and Medical lines are verified: a verifier after approval, a document before filing, both, or neither. */
+export type CategoryVerification = 'None' | 'Person' | 'Document' | 'Both';
 
 /** Finance rules (Rules page, one JSON row on the server). Each rule answers an open Finance question. */
 export interface FinanceRules {
@@ -412,6 +414,10 @@ export interface FinanceRules {
   lodgingCapAtRate: boolean;
   /** A Lodging line needs the official receipt from the hotel or lodging attached first. */
   lodgingRequiresDocument: boolean;
+  gasEnabled: boolean;
+  gasVerification: CategoryVerification;
+  medicalEnabled: boolean;
+  medicalVerification: CategoryVerification;
 }
 
 export interface SystemSettingsInput {

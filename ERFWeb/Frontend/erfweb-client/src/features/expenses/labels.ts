@@ -75,6 +75,8 @@ export const categoryLabel: Record<ExpenseCategory, string> = {
   Sponsorship: 'Sponsorship',
   Demo: 'Demo',
   Lodging: 'Lodging',
+  Gas: 'Gas',
+  Medical: 'Medical',
 };
 
 export const categoryOptions = (Object.keys(categoryLabel) as ExpenseCategory[]).map((value) => ({
@@ -110,6 +112,8 @@ export const categoryDefaults: Record<ExpenseCategory, CategoryDefaults> = {
   Sponsorship: { particulars: 'Sponsorship', meals: [], fareLeg: false },
   Demo: { particulars: 'Demo', meals: [], fareLeg: false },
   Lodging: { particulars: 'Lodging', meals: [], fareLeg: false },
+  Gas: { particulars: 'Gas', meals: [], fareLeg: false },
+  Medical: { particulars: 'Medical', meals: [], fareLeg: false },
 };
 
 /** Only a Liquidation of Cash Advance carries the CASH ADVANCE RECEIVED block. */
@@ -158,7 +162,7 @@ export function r47Column(category: ExpenseCategory, type: ExpenseType): string 
   if (type === 'Foreign') {
     return 'Oth';
   }
-  // Sponsorship, Demo and Lodging, like Others, print under OTHERS.
+  // Sponsorship, Demo, Lodging, Gas and Medical, like Others, print under OTHERS.
   const columns: Partial<Record<ExpenseCategory, string>> = { Meals: 'MEALS', Transportation: 'TRANSP.', Toll: 'TOLL', Parking: 'PARKING' };
   return columns[category] ?? 'OTHERS';
 }
@@ -170,6 +174,8 @@ export const documentTypeOptions: { value: AttachmentDocumentType; title: string
   { value: 'IsoAttendanceSheet', title: 'ISO attendance sheet' },
   { value: 'FoodReceipt', title: 'Food receipt' },
   { value: 'LodgingReceipt', title: 'Lodging receipt' },
+  { value: 'GasReceipt', title: 'Gas receipt' },
+  { value: 'MedicalCertificate', title: 'Medical certificate' },
 ];
 export const documentTypeLabel = Object.fromEntries(documentTypeOptions.map((o) => [o.value, o.title])) as Record<AttachmentDocumentType, string>;
 

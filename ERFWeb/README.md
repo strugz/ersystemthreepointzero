@@ -18,6 +18,18 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-19
 
+- **Gas and Medical verification, Finance rules phase 6** (not yet committed). New **Gas** and **Medical**
+  categories, printed under OTHERS on the R47. **Rules → Filing and Finance → Finance rules → Gas and Medical**
+  switches each on or off and sets how it is verified (Finance questions 6 and 7): **Expense Verifier after
+  approval** (default), **Document attached before filing** (gas receipt or medical certificate, new upload types
+  **Gas receipt** and **Medical certificate**), **Both** or **No extra check**. With a verifier, final approval opens
+  a verification request for each Gas or Medical line (raised by the final approver, audited `VerificationRequested`
+  with `automatic`), the Expense Verifiers are notified, and Finance cannot clear the report until each is closed.
+  No database script. API 0.8.0, SPA 0.11.0 (minor); deploy the backend, then the frontend.
+- **Docs: database script list and backup setup brought up to date** (not yet committed). The script list
+  includes `028_job_grades.sql`; **Backups and monitoring** names the backup folder as `<BACKUP FOLDER>` (live
+  server `C:\ERFWeb-Backups`) and explains that on a workgroup server the tasks must run as a local backup account
+  with a saved share login, since SYSTEM gets "Access is denied" on the share. No version change.
 - **Job grades are master data** (PR #58). The System Administrator adds and renames grades on
   **Master data → Job grades** (`GET/POST/PUT /api/admin/master-data/job-grades`, table `job_grades`, script `028`,
   `SchemaVersion.Required` 28). Script `028` seeds the first three (`Staff`, `Specialist`, `Supervisor`). A grade's
@@ -443,6 +455,7 @@ psql -d erfweb -f Database/024_signature_approval.sql          # Finance approva
 psql -d erfweb -f Database/025_filing_cutoff.sql               # expense_reports.filed_late: filed after the weekly processing cutoff
 psql -d erfweb -f Database/026_attachment_document_type.sql    # receipt_attachments.document_type: Activity Request Form, ISO attendance sheet
 psql -d erfweb -f Database/027_attachment_form_code_check.sql  # receipt_attachments.form_code_check: attendance sheet form code (R94) found or confirmed
+psql -d erfweb -f Database/028_job_grades.sql                  # job_grades master data (Staff, Specialist, Supervisor)
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -742,7 +755,7 @@ trigger stamps `record_history.changed_by`.
 | `PUT /api/reports/{id}/lines/order` | Body `{ lineIds }`: every active line once, in the order the R47 prints them (saved as `sort_order`). A list that no longer matches the report's lines → 409. The editor's **Sort** menu (date or total) calls it |
 | `GET /api/lookups/fare-modes` | Active fare modes for the fare-leg picker, in sort order |
 | `POST /api/reports/{id}/cash-advances` · `PUT/DELETE …/cash-advances/{lineId}` | Rows of the CASH ADVANCE RECEIVED block (Liquidation of Cash Advance only); the R47 reconciles against their total |
-| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`, optional `documentType`: `Receipt`, `ActivityRequestForm`, `IsoAttendanceSheet`, `FoodReceipt`, `LodgingReceipt`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller). On phones and tablets **Take photo** opens the in-app camera (`AppCameraCapture`) |
+| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`, optional `documentType`: `Receipt`, `ActivityRequestForm`, `IsoAttendanceSheet`, `FoodReceipt`, `LodgingReceipt`, `GasReceipt`, `MedicalCertificate`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller). On phones and tablets **Take photo** opens the in-app camera (`AppCameraCapture`) |
 | `POST /api/reports/{id}/file` | File / re-file → `ForApproval`; snapshots the approval route into `approval_steps` |
 | `POST /api/reports/{id}/reopen` | Pull a `ForApproval`/`Approved` report back to `New` (supersedes the cycle) |
 | `GET /api/lookups/work-with` · `my-rates` · `my-filing-readiness` | Editor lookups (`crmActivitiesAvailable` turns on **From CRM**) |
@@ -777,7 +790,7 @@ stored JSON keeps its default), audited `SettingsChanged`, read at filing time, 
 before a line can be added (confirmed with Finance on 2026-11-11): an approved Activity Request Form for Sponsorship
 (new category), an ISO-registered attendance sheet for Demo (new category), the food or meal receipt for
 Representation. When uploading under **Receipts** the employee picks what the file is (**This file is a**: Receipt,
-Activity Request Form, ISO attendance sheet, Food receipt or Lodging receipt;
+Activity Request Form, ISO attendance sheet, Food receipt, Lodging receipt, Gas receipt or Medical certificate;
 `documentType` in the upload form, stored in `receipt_attachments.document_type`, NULL for older files = Receipt).
 The document comes first: choosing Sponsorship or Demo in the line dialog shows an amber note with **Upload** until
 the report has that document, **Save** stays off, and the server refuses the line (400 on `category`). Filing checks
@@ -798,6 +811,16 @@ means no limit. `lodgingEnabled` switches the category like Sponsorship and Demo
 (default on) a Lodging line needs a `LodgingReceipt` attachment (the official receipt from the hotel or lodging)
 before it is saved and at filing, like Representation's food receipt. Lodging prints under OTHERS
 (Foreign: Other Exp.). Location-based rates are not supported.
+
+**Gas and Medical (Finance rules).** Two categories (`gasEnabled`, `medicalEnabled`, on by default) whose lines are
+verified as **Rules → Finance rules → Gas and Medical** says (`gasVerification`, `medicalVerification`:
+`Person` default, `Document`, `Both`, `None`; Domain `CategoryVerification`). `Document` works like Lodging's
+receipt: the line needs a `GasReceipt` or `MedicalCertificate` attachment before it is saved and at filing.
+`Person`: when the last signatory approves, `ApprovalService` opens one verification request per active Gas or
+Medical line that has none open, in the same transaction, requested by that signatory with the reason "Automatic:
+… (Finance rule)"; the Expense Verifiers who did not approve the report get one notification after commit. The
+requests then follow the normal verification flow and Finance cannot clear the report while one is open. A rule
+changed later does not touch requests already raised. Both categories print under OTHERS (Foreign: Other Exp.).
 
 **ERF reference number.** Issued by the system on **first filing** as a yearly series
 `ERF-2026-000142` (`ReferenceNumberFormat` + `ReferenceNumberGenerator`): one counter row per
@@ -1510,7 +1533,7 @@ email alerts to `-AlertTo` (default jca.mdmpi@marsmandrysdale.com).
 
 | Task | When | What it does |
 | --- | --- | --- |
-| **ERFWeb Database Backup** (`Backup-ErfWebDatabase.ps1`) | every night at 01:00 | `pg_dump` (custom format) of the database to `D:\ERFWeb-Backups\erms_db_yyyyMMdd_HHmm.dump`; checks the file with `pg_restore --list` (whole archive readable, table data present, `workflow_audit` included); copies it to the network share (`-CopyTo`) and checks the copy's size; deletes backups older than 14 days in both places. Log: `D:\ERFWeb-Backups\backup-log.txt`. Emails on any failure |
+| **ERFWeb Database Backup** (`Backup-ErfWebDatabase.ps1`) | every night at 01:00 | `pg_dump` (custom format) of the database to `<BACKUP FOLDER>\erms_db_yyyyMMdd_HHmm.dump` (`-BackupDir`; script default `D:\ERFWeb-Backups`, live server `C:\ERFWeb-Backups`); checks the file with `pg_restore --list` (whole archive readable, table data present, `workflow_audit` included); copies it to the network share (`-CopyTo`) and checks the copy's size; deletes backups older than 14 days in both places. Log: `<BACKUP FOLDER>\backup-log.txt`. Emails on any failure |
 | **ERFWeb Health Check** (`Test-ErfWebHealth.ps1`) | every 5 minutes | Calls `https://sr.mdmpi.com.ph/erf/health` (nginx, API and database together) and emails "ERFWeb is DOWN" after 2 failed checks in a row, then "back up" when it recovers; also emails when the newest backup is older than 26 hours. Log (changes only): `C:\ProgramData\ERFWeb\health-log.txt` |
 
 **Before installing:**
@@ -1518,12 +1541,17 @@ email alerts to `-AlertTo` (default jca.mdmpi@marsmandrysdale.com).
 * PostgreSQL runs on another server, so install the **PostgreSQL command line tools** on the API server (the
   PostgreSQL installer's "Command Line Tools" component), the **same major version as the database server or
   newer**. The script finds them in `C:\Program Files\PostgreSQL\<version>\bin`, or pass `-PgBin`.
-* Ask IT for the network share. The tasks run as `SYSTEM` (the share then sees the server's computer account,
-  e.g. `MDMPI\SERVERNAME$`, which needs write access) or as a service account given with `-RunAsUser`.
-* Check that `D:` exists, or pass `-BackupDir`.
+* Ask IT for the network share, as a `\\server\share` path (the task cannot see mapped drive letters). The tasks
+  run as `SYSTEM` unless `-RunAsUser` (or `RUN_AS_USER` in the `.cmd`) names another account. SYSTEM reaches a
+  share as the server's computer account: on a domain that account needs write access; on a workgroup server (as
+  the live one is) the share refuses it with "Access is denied" right after "Backup OK". Then use a local backup
+  account instead: a user on the share's PC with Change on the share and Modify on the folder, and a local
+  administrator on the API server that has saved that login with `cmdkey /add:<share PC> /user:<share PC>\<user>
+  /pass` while signed in as itself. Step 5 of `Backend/tools/README.txt` has the steps.
+* Check that `D:` exists, or pass `-BackupDir` (the live server uses `C:\ERFWeb-Backups`).
 
 **After installing:** run `Start-ScheduledTask -TaskName 'ERFWeb Database Backup'` in an administrator PowerShell,
-then read `D:\ERFWeb-Backups\backup-log.txt`: the last line should be `Backup OK: …` and the share should hold the
+then read `<BACKUP FOLDER>\backup-log.txt`: the last line should be `Backup OK: …` and the share should hold the
 same file. Running the installer again replaces both tasks; `-Uninstall` removes them and keeps the backups.
 
 **Limits:** the monitor runs on the API server, so it cannot report that whole server being off (IT's own
@@ -1535,7 +1563,7 @@ replacing anything:
 
 ```bash
 createdb -h <db-host> -U <user> erms_db_restored
-pg_restore -h <db-host> -U <user> -d erms_db_restored --no-owner D:\ERFWeb-Backups\erms_db_20261026_0100.dump
+pg_restore -h <db-host> -U <user> -d erms_db_restored --no-owner <BACKUP FOLDER>\erms_db_20261026_0100.dump
 ```
 
 To put a backup back into `erms_db` itself, stop the API first (`Stop-Service ERFWeb.Api`), take a fresh backup of
@@ -1604,7 +1632,7 @@ Every log line written for that request carries the same id.
 | A new feature answers 404 | The frontend went live before the backend that has the endpoint | Deploy the backend (step D) |
 | An image or link loads the website page instead | The frontend builds that address without `VITE_API_BASE_URL` | Use `apiUrl(...)` from `shared/api/client.ts` for every API address |
 | Email not sent | `Smtp` settings wrong, or the server cannot reach the mail server | `email_deliveries.status` and `smtp_status_code` in the database, and the log file |
-| Backup failure email, or "Database backup is MISSING" | `pg_dump` not installed or older than the database server, share not writable, or the task did not run | `D:\ERFWeb-Backups\backup-log.txt`, then Task Scheduler → **ERFWeb Database Backup** → History |
+| Backup failure email, or "Database backup is MISSING" | `pg_dump` not installed or older than the database server, share not writable (see **Backups and monitoring → Before installing**), or the task did not run | `<BACKUP FOLDER>\backup-log.txt`, then Task Scheduler → **ERFWeb Database Backup** → History |
 | No SLA reminders | `Reminders:Enabled` is not `true`, SLA days are 0, or nothing is overdue yet | The log line `SLA reminders are off` or `SLA reminder run: …`, and `reminder_deliveries` |
 
 ### Local development against the live API

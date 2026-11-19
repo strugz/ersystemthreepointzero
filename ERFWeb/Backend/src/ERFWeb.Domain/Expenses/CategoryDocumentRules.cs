@@ -9,7 +9,8 @@ public sealed record RequiredDocument(ExpenseCategory Category, AttachmentDocume
 /// Categories switched on or off by the Finance rules, and the documents some categories need (Finance requirements 7
 /// and 8, confirmed with Finance on 2026-11-11): Sponsorship needs an approved Activity Request Form, Demo an
 /// ISO-registered attendance sheet, Representation the food or meal receipt, Lodging the official receipt from the
-/// hotel or lodging (added 2026-11-19). A document is
+/// hotel or lodging (added 2026-11-19); Gas and Medical a gas receipt or medical certificate when the rules verify
+/// them by document (requirement 6). A document is
 /// any attachment of the report with that type. It must be attached before such a line can be added (or changed);
 /// filing checks again in case it was deleted afterwards. An attendance sheet counts only when its upload showed
 /// the form code (<see cref="FinanceRuleSet.DemoFormCode"/>, R94) or the employee confirmed it.
@@ -22,6 +23,8 @@ public static class CategoryDocumentRules
         AttachmentDocumentType.IsoAttendanceSheet => "ISO-registered attendance sheet",
         AttachmentDocumentType.FoodReceipt => "food or meal receipt",
         AttachmentDocumentType.LodgingReceipt => "official receipt from the hotel or lodging",
+        AttachmentDocumentType.GasReceipt => "gas station receipt",
+        AttachmentDocumentType.MedicalCertificate => "medical certificate",
         _ => "receipt",
     };
 
@@ -33,6 +36,8 @@ public static class CategoryDocumentRules
             ExpenseCategory.Sponsorship => rules.SponsorshipEnabled,
             ExpenseCategory.Demo => rules.DemoEnabled,
             ExpenseCategory.Lodging => rules.LodgingEnabled,
+            ExpenseCategory.Gas => rules.GasEnabled,
+            ExpenseCategory.Medical => rules.MedicalEnabled,
             _ => true,
         };
     }
@@ -69,8 +74,38 @@ public static class CategoryDocumentRules
             required.Add(Doc(ExpenseCategory.Lodging, AttachmentDocumentType.LodgingReceipt));
         }
 
+        if (rules.GasEnabled && rules.GasVerification is CategoryVerification.Document or CategoryVerification.Both)
+        {
+            required.Add(Doc(ExpenseCategory.Gas, AttachmentDocumentType.GasReceipt));
+        }
+
+        if (rules.MedicalEnabled && rules.MedicalVerification is CategoryVerification.Document or CategoryVerification.Both)
+        {
+            required.Add(Doc(ExpenseCategory.Medical, AttachmentDocumentType.MedicalCertificate));
+        }
+
         return required;
     }
+
+    /// <summary>
+    /// Whether lines in <paramref name="category"/> get a verification request when the report is fully approved
+    /// (Gas or Medical verified by a person).
+    /// </summary>
+    public static bool NeedsPersonVerification(FinanceRuleSet rules, ExpenseCategory category)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        var mode = category switch
+        {
+            ExpenseCategory.Gas => rules.GasVerification,
+            ExpenseCategory.Medical => rules.MedicalVerification,
+            _ => CategoryVerification.None,
+        };
+        return mode is CategoryVerification.Person or CategoryVerification.Both;
+    }
+
+    /// <summary>The reason recorded on an automatic verification request.</summary>
+    public static string AutomaticVerificationReason(ExpenseCategory category) =>
+        $"Automatic: {category} lines are verified before Finance clears the report (Finance rule).";
 
     /// <summary>Why a line in <paramref name="category"/> cannot be saved yet: its document is not attached. Null when it can.</summary>
     public static string? LineProblem(ExpenseCategory category, IEnumerable<AttachmentDocumentType> attachedTypes, FinanceRuleSet rules)
@@ -139,6 +174,8 @@ public static class CategoryDocumentRules
         AttachmentDocumentType.IsoAttendanceSheet => "ISO attendance sheet",
         AttachmentDocumentType.FoodReceipt => "Food receipt",
         AttachmentDocumentType.LodgingReceipt => "Lodging receipt",
+        AttachmentDocumentType.GasReceipt => "Gas receipt",
+        AttachmentDocumentType.MedicalCertificate => "Medical certificate",
         _ => "Receipt",
     };
 

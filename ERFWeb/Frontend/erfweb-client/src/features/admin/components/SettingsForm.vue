@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import type { FinanceRules, LodgingRateBasis, R47Format, RulesSection, SystemSettings, SystemSettingsInput } from '../types';
+import type { CategoryVerification, FinanceRules, LodgingRateBasis, R47Format, RulesSection, SystemSettings, SystemSettingsInput } from '../types';
 
 /** Workflow rules (approval thresholds, SLAs, filing cut-off, Finance rules, R47 reviewer and format, notifications, sign-in lockout). The parent owns the save. */
 const props = withDefaults(
@@ -57,6 +57,10 @@ function blankFinanceRules(): FinanceRules {
     lodgingFlatRate: 0,
     lodgingCapAtRate: true,
     lodgingRequiresDocument: true,
+    gasEnabled: true,
+    gasVerification: 'Person',
+    medicalEnabled: true,
+    medicalVerification: 'Person',
   };
 }
 
@@ -64,6 +68,12 @@ const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as con
 const LODGING_RATE_BASES: { value: LodgingRateBasis; title: string }[] = [
   { value: 'RateProfile', title: 'Rate profile' },
   { value: 'Flat', title: 'Flat amount' },
+];
+const VERIFICATIONS: { value: CategoryVerification; title: string }[] = [
+  { value: 'Person', title: 'Expense Verifier after approval' },
+  { value: 'Document', title: 'Document attached before filing' },
+  { value: 'Both', title: 'Both' },
+  { value: 'None', title: 'No extra check' },
 ];
 
 // Same limits and defaults as the server (Domain LoginLockoutRules).
@@ -489,6 +499,38 @@ defineExpose({ isDirty });
           label="Lodging needs the official receipt from the hotel or lodging"
           hide-details
         />
+
+        <v-divider class="my-5" />
+        <div class="text-subtitle-2 mb-1">Gas and Medical</div>
+        <div class="text-caption text-medium-emphasis mb-2">
+          Finance questions 6 and 7. Expense Verifier: when the report is fully approved, each line gets a verification request and Finance
+          cannot clear the report until it is verified. Document: the gas receipt or medical certificate must be attached under Receipts
+          before the line can be added. Both print under OTHERS on the R47.
+        </div>
+        <v-row dense>
+          <v-col cols="12" sm="6">
+            <v-switch v-model="form.financeRules.gasEnabled" color="primary" label="Employees may claim Gas" hide-details />
+            <v-select
+              v-model="form.financeRules.gasVerification"
+              :items="VERIFICATIONS"
+              label="Gas is verified by"
+              :disabled="!form.financeRules.gasEnabled"
+              class="mt-2"
+              :error-messages="fieldErrors('financeRules.gasVerification')"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-switch v-model="form.financeRules.medicalEnabled" color="primary" label="Employees may claim Medical" hide-details />
+            <v-select
+              v-model="form.financeRules.medicalVerification"
+              :items="VERIFICATIONS"
+              label="Medical is verified by"
+              :disabled="!form.financeRules.medicalEnabled"
+              class="mt-2"
+              :error-messages="fieldErrors('financeRules.medicalVerification')"
+            />
+          </v-col>
+        </v-row>
       </div>
     </v-card>
 

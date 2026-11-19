@@ -144,6 +144,55 @@ public class CategoryDocumentRulesTests
     }
 
     [Fact]
+    public void GasAndMedical_DefaultToPersonVerification_WithoutDocuments()
+    {
+        Assert.True(CategoryDocumentRules.NeedsPersonVerification(On, ExpenseCategory.Gas));
+        Assert.True(CategoryDocumentRules.NeedsPersonVerification(On, ExpenseCategory.Medical));
+        Assert.False(CategoryDocumentRules.NeedsPersonVerification(On, ExpenseCategory.Transportation));
+        Assert.Empty(CategoryDocumentRules.FilingProblems([ExpenseCategory.Gas, ExpenseCategory.Medical], [], On));
+    }
+
+    [Theory]
+    [InlineData(CategoryVerification.None, false, false)]
+    [InlineData(CategoryVerification.Person, true, false)]
+    [InlineData(CategoryVerification.Document, false, true)]
+    [InlineData(CategoryVerification.Both, true, true)]
+    public void GasVerification_SetsPersonAndDocument(CategoryVerification mode, bool person, bool document)
+    {
+        var rules = On with { GasVerification = mode };
+
+        Assert.Equal(person, CategoryDocumentRules.NeedsPersonVerification(rules, ExpenseCategory.Gas));
+        Assert.Equal(document, CategoryDocumentRules.Required(rules).Any(r => r is { Category: ExpenseCategory.Gas, DocumentType: AttachmentDocumentType.GasReceipt }));
+    }
+
+    [Fact]
+    public void MedicalByDocument_NeedsTheCertificate()
+    {
+        var rules = On with { MedicalVerification = CategoryVerification.Document };
+
+        Assert.Equal(["A Medical line needs a medical certificate attached. Upload it under Receipts as \"Medical certificate\"."],
+            CategoryDocumentRules.FilingProblems([ExpenseCategory.Medical], [AttachmentDocumentType.Receipt], rules));
+        Assert.Null(CategoryDocumentRules.LineProblem(ExpenseCategory.Medical, [AttachmentDocumentType.MedicalCertificate], rules));
+    }
+
+    [Fact]
+    public void GasOff_IsDisabled_AndNeedsNoDocument()
+    {
+        var rules = On with { GasEnabled = false, GasVerification = CategoryVerification.Both };
+
+        Assert.Equal([ExpenseCategory.Gas], CategoryDocumentRules.Disabled(rules));
+        Assert.DoesNotContain(CategoryDocumentRules.Required(rules), r => r.Category == ExpenseCategory.Gas);
+    }
+
+    [Fact]
+    public void UnknownVerificationMode_IsRefused()
+    {
+        var errors = FinanceRuleSetRules.Validate(On with { MedicalVerification = (CategoryVerification)9 });
+
+        Assert.Equal(["financeRules.medicalVerification"], errors.Keys);
+    }
+
+    [Fact]
     public void FilingBlockers_IncludeCategoryProblems()
     {
         var blockers = ReportWorkflowRules.FilingBlockers(

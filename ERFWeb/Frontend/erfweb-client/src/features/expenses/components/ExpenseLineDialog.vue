@@ -426,6 +426,8 @@ const categoryIcon: Record<ExpenseCategory, string> = {
   Sponsorship: 'mdi-handshake-outline',
   Demo: 'mdi-presentation',
   Lodging: 'mdi-bed-outline',
+  Gas: 'mdi-gas-station-outline',
+  Medical: 'mdi-medical-bag',
 };
 
 const amountLabel = computed(() => {

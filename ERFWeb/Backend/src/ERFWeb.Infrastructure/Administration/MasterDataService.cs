@@ -386,6 +386,8 @@ public sealed class MasterDataService(
         new(ExpenseCategory.Sponsorship, "Sponsorship", "OTHERS"),
         new(ExpenseCategory.Demo, "Demo", "OTHERS"),
         new(ExpenseCategory.Lodging, "Lodging", "OTHERS"),
+        new(ExpenseCategory.Gas, "Gas", "OTHERS"),
+        new(ExpenseCategory.Medical, "Medical", "OTHERS"),
     ];
 
     // ---------- Helpers ----------
