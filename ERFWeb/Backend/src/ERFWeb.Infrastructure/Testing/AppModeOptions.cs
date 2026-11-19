@@ -3,7 +3,7 @@ namespace ERFWeb.Infrastructure.Testing;
 /// <summary>
 /// Whether this API is a test or a production install, bound from the optional <c>App</c> section of
 /// appsettings.json. Anything other than <c>Test</c> (or a missing section) is production, so the
-/// test-only deletes stay off unless a server's appsettings.json turns them on.
+/// test-only deletes and the test recipient stay off unless a server's appsettings.json turns them on.
 /// </summary>
 public sealed class AppModeOptions
 {
@@ -11,6 +11,9 @@ public sealed class AppModeOptions
 
     /// <summary><c>Test</c> or <c>Production</c>.</summary>
     public string Mode { get; set; } = "Production";
+
+    /// <summary>Username of the account that receives every SMS and email when <see cref="IsTest"/>; none set means nothing is sent.</summary>
+    public string? TestRecipient { get; set; }
 
     public bool IsTest => string.Equals(Mode, "Test", StringComparison.OrdinalIgnoreCase);
 }

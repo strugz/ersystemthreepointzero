@@ -109,8 +109,11 @@ public static class DependencyInjection
 
         // Notification SMS through the Lasius gateway; the URL and API key come from appsettings.json.
         services.AddOptions<LasiusOptions>();
-        services.AddHttpClient<ISmsGateway, LasiusSmsGateway>((sp, client) =>
+        // On a test install (App:Mode Test) both gateways send to the App:TestRecipient account only.
+        services.AddHttpClient<LasiusSmsGateway>((sp, client) =>
             client.Timeout = TimeSpan.FromSeconds(Math.Max(1, sp.GetRequiredService<IOptions<LasiusOptions>>().Value.TimeoutSeconds)));
+        services.AddScoped<TestModeRecipients>();
+        services.AddScoped<ISmsGateway, TestModeSmsGateway>();
         services.AddScoped<ISmsService, SmsService>();
 
         // CRM employee and activity lookups (read-only); the base URL and API key come from appsettings.json.
@@ -124,7 +127,8 @@ public static class DependencyInjection
 
         // Report email over SMTP (MailKit); host, sender and login come from appsettings.json.
         services.AddOptions<SmtpOptions>();
-        services.AddSingleton<IEmailGateway, MailKitEmailGateway>();
+        services.AddSingleton<MailKitEmailGateway>();
+        services.AddScoped<IEmailGateway, TestModeEmailGateway>();
         services.AddScoped<IReportEmailService, ReportEmailService>();
 
         // Daily SLA reminders (Phase 8.4); the API's ApprovalReminderJob runs it when Reminders:Enabled is true.
