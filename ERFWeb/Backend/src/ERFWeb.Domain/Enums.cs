@@ -143,6 +143,9 @@ public enum AttachmentDocumentType
 
     /// <summary>The official receipt for the food served; a Representation line needs it.</summary>
     FoodReceipt,
+
+    /// <summary>The official receipt from the hotel or lodging; a Lodging line needs it.</summary>
+    LodgingReceipt,
 }
 
 /// <summary>How an ISO attendance sheet upload was matched to the Demo form code (e.g. R94).</summary>

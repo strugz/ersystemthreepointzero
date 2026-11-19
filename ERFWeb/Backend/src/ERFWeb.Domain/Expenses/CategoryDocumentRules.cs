@@ -8,7 +8,8 @@ public sealed record RequiredDocument(ExpenseCategory Category, AttachmentDocume
 /// <summary>
 /// Categories switched on or off by the Finance rules, and the documents some categories need (Finance requirements 7
 /// and 8, confirmed with Finance on 2026-11-11): Sponsorship needs an approved Activity Request Form, Demo an
-/// ISO-registered attendance sheet, Representation the food or meal receipt. A document is
+/// ISO-registered attendance sheet, Representation the food or meal receipt, Lodging the official receipt from the
+/// hotel or lodging (added 2026-11-19). A document is
 /// any attachment of the report with that type. It must be attached before such a line can be added (or changed);
 /// filing checks again in case it was deleted afterwards. An attendance sheet counts only when its upload showed
 /// the form code (<see cref="FinanceRuleSet.DemoFormCode"/>, R94) or the employee confirmed it.
@@ -20,6 +21,7 @@ public static class CategoryDocumentRules
         AttachmentDocumentType.ActivityRequestForm => "approved Activity Request Form",
         AttachmentDocumentType.IsoAttendanceSheet => "ISO-registered attendance sheet",
         AttachmentDocumentType.FoodReceipt => "food or meal receipt",
+        AttachmentDocumentType.LodgingReceipt => "official receipt from the hotel or lodging",
         _ => "receipt",
     };
 
@@ -60,6 +62,11 @@ public static class CategoryDocumentRules
         if (rules.RepresentationRequiresDocument)
         {
             required.Add(Doc(ExpenseCategory.Representation, AttachmentDocumentType.FoodReceipt));
+        }
+
+        if (rules.LodgingEnabled && rules.LodgingRequiresDocument)
+        {
+            required.Add(Doc(ExpenseCategory.Lodging, AttachmentDocumentType.LodgingReceipt));
         }
 
         return required;
@@ -131,6 +138,7 @@ public static class CategoryDocumentRules
         AttachmentDocumentType.ActivityRequestForm => "Activity Request Form",
         AttachmentDocumentType.IsoAttendanceSheet => "ISO attendance sheet",
         AttachmentDocumentType.FoodReceipt => "Food receipt",
+        AttachmentDocumentType.LodgingReceipt => "Lodging receipt",
         _ => "Receipt",
     };
 

@@ -394,6 +394,8 @@ export interface FinanceRules {
   lodgingFlatRate: number;
   /** A per-night amount above the rate is refused; no rate set means no cap. */
   lodgingCapAtRate: boolean;
+  /** A Lodging line needs the official receipt from the hotel or lodging attached first. */
+  lodgingRequiresDocument: boolean;
 }
 
 export interface SystemSettingsInput {

@@ -70,6 +70,9 @@ public sealed record FinanceRuleSet
 
     /// <summary>A per-night amount above the lodging rate is refused (no rate set means no cap).</summary>
     public bool LodgingCapAtRate { get; init; } = true;
+
+    /// <summary>A Lodging line needs the official receipt from the hotel or lodging attached.</summary>
+    public bool LodgingRequiresDocument { get; init; } = true;
 }
 
 /// <summary>Validation of the Finance rules the administrator saves; field names match the Rules page.</summary>

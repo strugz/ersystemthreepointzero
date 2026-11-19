@@ -8,8 +8,8 @@ export type FinanceStatus = 'Pending' | 'ReceiptsIncomplete' | 'ReceiptsReceived
 export type ExpenseType = 'Local' | 'Foreign';
 export type ExpenseCategory = 'Meals' | 'Transportation' | 'Toll' | 'Parking' | 'Others' | 'Representation' | 'Sponsorship' | 'Demo' | 'Lodging';
 
-/** What an uploaded file is; Sponsorship and Demo lines need their document attached before filing. */
-export type AttachmentDocumentType = 'Receipt' | 'ActivityRequestForm' | 'IsoAttendanceSheet' | 'FoodReceipt';
+/** What an uploaded file is; Sponsorship, Demo, Representation and Lodging lines need their document attached first. */
+export type AttachmentDocumentType = 'Receipt' | 'ActivityRequestForm' | 'IsoAttendanceSheet' | 'FoodReceipt' | 'LodgingReceipt';
 /** How an ISO attendance sheet matched the Demo form code (R94): found in the PDF text, or confirmed by the employee. */
 export type FormCodeCheck = 'Found' | 'Confirmed';
 

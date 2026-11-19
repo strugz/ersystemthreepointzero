@@ -21,7 +21,7 @@ public sealed class AttachmentsController(IReceiptAttachmentService attachments)
 
     /// <summary>
     /// Uploads one file (multipart/form-data, field name <c>file</c>, optional <c>documentType</c>: Receipt,
-    /// ActivityRequestForm, IsoAttendanceSheet or FoodReceipt). An IsoAttendanceSheet must show the Demo form code
+    /// ActivityRequestForm, IsoAttendanceSheet, FoodReceipt or LodgingReceipt). An IsoAttendanceSheet must show the Demo form code
     /// (R94) in its PDF text or come with <c>formCodeConfirmed=true</c>; otherwise 400 with a <c>formCodeConfirmed</c>
     /// error. Limits come from <c>Attachments</c> in appsettings.json.
     /// </summary>

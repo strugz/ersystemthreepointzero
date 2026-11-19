@@ -169,6 +169,7 @@ export const documentTypeOptions: { value: AttachmentDocumentType; title: string
   { value: 'ActivityRequestForm', title: 'Activity Request Form' },
   { value: 'IsoAttendanceSheet', title: 'ISO attendance sheet' },
   { value: 'FoodReceipt', title: 'Food receipt' },
+  { value: 'LodgingReceipt', title: 'Lodging receipt' },
 ];
 export const documentTypeLabel = Object.fromEntries(documentTypeOptions.map((o) => [o.value, o.title])) as Record<AttachmentDocumentType, string>;
 

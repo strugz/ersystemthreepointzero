@@ -42,8 +42,10 @@ section of the root `CLAUDE.md`) in the same change.
   profile on the expense date, set on the Rates page) or **Flat amount** (one per-night amount for everyone).
   The line dialog pre-fills the rate (`/api/lookups/my-rates` returns `lodgingRate`); with **Refuse an amount per
   night above the lodging rate** on (default), the server refuses a higher amount (400 on `amount`); no rate set
-  means no limit. Rates by location are not supported. No database script. API 0.6.0, SPA 0.9.0 (minor); deploy
-  the backend before the frontend.
+  means no limit. A Lodging line needs the official receipt from the hotel or lodging attached first (upload type
+  **Lodging receipt**; a plain Receipt does not count; checked again at filing), switched by **Lodging needs the
+  official receipt from the hotel or lodging** (default on). Rates by location are not supported. No database
+  script. API 0.6.0, SPA 0.9.0 (minor); deploy the backend before the frontend.
 
 ### 2026-11-12
 
@@ -731,7 +733,7 @@ trigger stamps `record_history.changed_by`.
 | `PUT /api/reports/{id}/lines/order` | Body `{ lineIds }`: every active line once, in the order the R47 prints them (saved as `sort_order`). A list that no longer matches the report's lines → 409. The editor's **Sort** menu (date or total) calls it |
 | `GET /api/lookups/fare-modes` | Active fare modes for the fare-leg picker, in sort order |
 | `POST /api/reports/{id}/cash-advances` · `PUT/DELETE …/cash-advances/{lineId}` | Rows of the CASH ADVANCE RECEIVED block (Liquidation of Cash Advance only); the R47 reconciles against their total |
-| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`, optional `documentType`: `Receipt`, `ActivityRequestForm`, `IsoAttendanceSheet`, `FoodReceipt`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller). On phones and tablets **Take photo** opens the in-app camera (`AppCameraCapture`) |
+| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`, optional `documentType`: `Receipt`, `ActivityRequestForm`, `IsoAttendanceSheet`, `FoodReceipt`, `LodgingReceipt`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller). On phones and tablets **Take photo** opens the in-app camera (`AppCameraCapture`) |
 | `POST /api/reports/{id}/file` | File / re-file → `ForApproval`; snapshots the approval route into `approval_steps` |
 | `POST /api/reports/{id}/reopen` | Pull a `ForApproval`/`Approved` report back to `New` (supersedes the cycle) |
 | `GET /api/lookups/work-with` · `my-rates` · `my-filing-readiness` | Editor lookups (`crmActivitiesAvailable` turns on **From CRM**) |
@@ -766,7 +768,7 @@ stored JSON keeps its default), audited `SettingsChanged`, read at filing time, 
 before a line can be added (confirmed with Finance on 2026-11-11): an approved Activity Request Form for Sponsorship
 (new category), an ISO-registered attendance sheet for Demo (new category), the food or meal receipt for
 Representation. When uploading under **Receipts** the employee picks what the file is (**This file is a**: Receipt,
-Activity Request Form, ISO attendance sheet or Food receipt;
+Activity Request Form, ISO attendance sheet, Food receipt or Lodging receipt;
 `documentType` in the upload form, stored in `receipt_attachments.document_type`, NULL for older files = Receipt).
 The document comes first: choosing Sponsorship or Demo in the line dialog shows an amber note with **Upload** until
 the report has that document, **Save** stays off, and the server refuses the line (400 on `category`). Filing checks
@@ -783,7 +785,9 @@ print under OTHERS (Foreign: Other Exp.).
 line in force on the expense date, so per employee, grade, department or company) or `Flat` (`lodgingFlatRate`,
 required above 0). `my-rates` returns it as `lodgingRate` and the dialog pre-fills it on a new line. With
 `lodgingCapAtRate` (default on) a per-night amount above the rate is refused when the line is saved; no rate set
-means no limit. `lodgingEnabled` switches the category like Sponsorship and Demo. Lodging prints under OTHERS
+means no limit. `lodgingEnabled` switches the category like Sponsorship and Demo. With `lodgingRequiresDocument`
+(default on) a Lodging line needs a `LodgingReceipt` attachment (the official receipt from the hotel or lodging)
+before it is saved and at filing, like Representation's food receipt. Lodging prints under OTHERS
 (Foreign: Other Exp.). Location-based rates are not supported.
 
 **ERF reference number.** Issued by the system on **first filing** as a yearly series

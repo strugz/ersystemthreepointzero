@@ -56,6 +56,7 @@ function blankFinanceRules(): FinanceRules {
     lodgingRateBasis: 'RateProfile',
     lodgingFlatRate: 0,
     lodgingCapAtRate: true,
+    lodgingRequiresDocument: true,
   };
 }
 
@@ -478,6 +479,14 @@ defineExpose({ isDirty });
           color="primary"
           density="compact"
           label="Refuse an amount per night above the lodging rate (no rate set: no limit)"
+          hide-details
+        />
+        <v-checkbox
+          v-model="form.financeRules.lodgingRequiresDocument"
+          :disabled="!form.financeRules.lodgingEnabled"
+          color="primary"
+          density="compact"
+          label="Lodging needs the official receipt from the hotel or lodging"
           hide-details
         />
       </div>
