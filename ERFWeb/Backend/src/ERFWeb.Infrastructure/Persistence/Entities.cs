@@ -111,6 +111,10 @@ public class User
     public string? Position { get; set; }
     public string? Email { get; set; }
     public string? MobileNo { get; set; }
+
+    /// <summary>The issued vehicle Gas and Vehicle emergency purchase lines fill in (script 029); both or neither.</summary>
+    public string? VehicleModel { get; set; }
+    public string? VehiclePlateNo { get; set; }
     public string? JobGrade { get; set; }
     public long? DepartmentId { get; set; }
     public long? CostCenterId { get; set; }

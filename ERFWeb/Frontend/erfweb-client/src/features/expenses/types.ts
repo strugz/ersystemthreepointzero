@@ -6,9 +6,9 @@ export type ReportStatus = 'New' | 'ForApproval' | 'Returned' | 'Approved' | 'Re
 export type ApprovalStatus = 'Pending' | 'Approved' | 'Returned' | 'Superseded' | 'Rejected' | 'Overridden';
 export type FinanceStatus = 'Pending' | 'ReceiptsIncomplete' | 'ReceiptsReceived' | 'ClearedForPayment';
 export type ExpenseType = 'Local' | 'Foreign';
-export type ExpenseCategory = 'Meals' | 'Transportation' | 'Toll' | 'Parking' | 'Others' | 'Representation' | 'Sponsorship' | 'Demo' | 'Lodging' | 'Gas' | 'Medical';
+export type ExpenseCategory = 'Meals' | 'Transportation' | 'Toll' | 'Parking' | 'Others' | 'Representation' | 'Sponsorship' | 'Demo' | 'Lodging' | 'Gas' | 'VehicleEmergency';
 
-/** What an uploaded file is; Sponsorship, Demo, Representation, Lodging (and Gas, Medical by Finance rule) lines need their document attached first. */
+/** What an uploaded file is; Sponsorship, Demo, Representation, Lodging (and Gas, Vehicle emergency purchase by Finance rule) lines need their document attached first. */
 export type AttachmentDocumentType =
   | 'Receipt'
   | 'ActivityRequestForm'
@@ -16,7 +16,8 @@ export type AttachmentDocumentType =
   | 'FoodReceipt'
   | 'LodgingReceipt'
   | 'GasReceipt'
-  | 'MedicalCertificate';
+  | 'VehiclePurchaseReceipt'
+  | 'JobOrder';
 /** How an ISO attendance sheet matched the Demo form code (R94): found in the PDF text, or confirmed by the employee. */
 export type FormCodeCheck = 'Found' | 'Confirmed';
 
@@ -258,6 +259,12 @@ export interface WorkWithOption {
   fullName: string;
   position: string | null;
   department: string | null;
+}
+
+/** The employee's saved issued vehicle; new Gas and Vehicle emergency purchase lines fill it in. Nulls when none is saved. */
+export interface MyVehicle {
+  model: string | null;
+  plateNo: string | null;
 }
 
 export interface EmployeeRates {

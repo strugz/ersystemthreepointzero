@@ -4,7 +4,7 @@ import { formatBytes } from '@/shared/format';
 import { hasCamera } from '@/shared/images';
 import AppCameraCapture from '@/shared/ui/AppCameraCapture.vue';
 import { expensesApi } from '../api';
-import { documentTypeLabel, documentTypeOptions } from '../labels';
+import { documentTypeLabel, documentTypeOptions, hasFormCode } from '../labels';
 import type { Attachment, AttachmentDocumentType } from '../types';
 
 const props = withDefaults(
@@ -51,7 +51,7 @@ const formCodeText = { Found: 'Code found', Confirmed: 'Confirmed by employee', 
 const formCodeTitle = {
   Found: 'The form code was found in the PDF.',
   Confirmed: 'A photo or scan: the employee confirmed it is the form.',
-  None: 'Uploaded before the form code check; upload it again for a Demo line.',
+  None: 'Uploaded before the form code check; upload it again so it counts.',
 } as const;
 
 function icon(contentType: string): string {
@@ -75,7 +75,7 @@ function icon(contentType: string): string {
         </a>
         <span v-if="a.documentType && a.documentType !== 'Receipt'" class="pill pill--neutral">{{ documentTypeLabel[a.documentType] }}</span>
         <span
-          v-if="a.documentType === 'IsoAttendanceSheet'"
+          v-if="hasFormCode(a.documentType)"
           class="pill"
           :class="a.formCodeCheck === 'Found' ? 'pill--success' : 'pill--warning'"
           :title="formCodeTitle[a.formCodeCheck ?? 'None']"

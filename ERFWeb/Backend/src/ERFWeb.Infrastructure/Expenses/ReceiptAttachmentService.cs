@@ -127,25 +127,26 @@ public sealed class ReceiptAttachmentService(
     }
 
     /// <summary>
-    /// Finance rules (Demo): an ISO attendance sheet must be the form whose code is set on the Rules page (R94).
+    /// Finance rules: an ISO attendance sheet (Demo, R94) or Job Order (vehicle emergency purchase, R42) must be the
+    /// form whose code is set on the Rules page.
     /// A PDF with the code in its text is Found; anything else needs the employee's confirmation or is refused.
     /// Only the outcome is logged, never the file or its name.
     /// </summary>
     private async Task<FormCodeCheck?> CheckFormCodeAsync(UploadAttachmentRequest request, CancellationToken ct)
     {
-        if (request.DocumentType != AttachmentDocumentType.IsoAttendanceSheet)
+        var rules = await settings.GetFinanceRulesAsync(ct);
+        if (CategoryDocumentRules.FormCodeFor(rules, request.DocumentType) is not { } code)
         {
             return null;
         }
 
-        var rules = await settings.GetFinanceRulesAsync(ct);
         var isPdf = string.Equals(request.ContentType.Trim(), "application/pdf", StringComparison.OrdinalIgnoreCase);
-        FormCodeCheck? check = isPdf && PdfFormCodeReader.Contains(request.Content, rules.DemoFormCode)
+        FormCodeCheck? check = isPdf && PdfFormCodeReader.Contains(request.Content, code)
             ? FormCodeCheck.Found
             : request.FormCodeConfirmed ? FormCodeCheck.Confirmed : null;
-        logger.LogInformation("Attendance sheet form code check: {Outcome}", check?.ToString() ?? "Refused");
+        logger.LogInformation("{DocumentType} form code check: {Outcome}", request.DocumentType, check?.ToString() ?? "Refused");
 
-        return check ?? throw new ValidationException("formCodeConfirmed", CategoryDocumentRules.FormCodeNotFound(rules));
+        return check ?? throw new ValidationException("formCodeConfirmed", CategoryDocumentRules.FormCodeNotFound(rules, request.DocumentType));
     }
 
     private async Task EnsureCanViewAsync(Guid reportId, CancellationToken ct)

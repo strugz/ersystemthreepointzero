@@ -166,17 +166,22 @@ public sealed class ExpenseLineService(
             errors["meals"] = ["Each meal item needs a meal type (Breakfast, Lunch, Dinner, OT)."];
         }
 
+        if (!errors.ContainsKey("particulars") && VehicleParticulars.Problem(r.Category, r.Particulars) is { } vehicleProblem)
+        {
+            errors["particulars"] = [vehicleProblem];
+        }
+
         // Finance rules: a category switched off on the Rules page cannot be claimed, Sponsorship and Demo need
         // their document attached to the report first, and Lodging may be capped at the claimant's lodging rate.
         var financeRules = await settings.GetFinanceRulesAsync(ct);
         if (!CategoryDocumentRules.IsEnabled(financeRules, r.Category))
         {
-            errors["category"] = [$"{r.Category} claims are switched off."];
+            errors["category"] = [$"{CategoryDocumentRules.CategoryName(r.Category)} claims are switched off."];
         }
         else if (CategoryDocumentRules.Required(financeRules).Any(d => d.Category == r.Category))
         {
             var attached = await db.ReceiptAttachments.AsNoTracking()
-                .Where(a => a.ReportId == report.Id && (a.DocumentType != AttachmentDocumentType.IsoAttendanceSheet || a.FormCodeCheck != null))
+                .Where(a => a.ReportId == report.Id && ((a.DocumentType != AttachmentDocumentType.IsoAttendanceSheet && a.DocumentType != AttachmentDocumentType.JobOrder) || a.FormCodeCheck != null))
                 .Select(a => a.DocumentType ?? AttachmentDocumentType.Receipt)
                 .Distinct()
                 .ToListAsync(ct);

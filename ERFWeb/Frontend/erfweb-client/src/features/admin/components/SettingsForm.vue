@@ -58,9 +58,10 @@ function blankFinanceRules(): FinanceRules {
     lodgingCapAtRate: true,
     lodgingRequiresDocument: true,
     gasEnabled: true,
-    gasVerification: 'Person',
-    medicalEnabled: true,
-    medicalVerification: 'Person',
+    gasVerification: 'Both',
+    vehicleEmergencyEnabled: true,
+    vehicleEmergencyVerification: 'Both',
+    jobOrderFormCode: 'R42',
   };
 }
 
@@ -226,6 +227,7 @@ function submit() {
     ...form.financeRules,
     cutoffTime: form.financeRules.cutoffTime.trim(),
     demoFormCode: form.financeRules.demoFormCode.trim().toUpperCase(),
+    jobOrderFormCode: form.financeRules.jobOrderFormCode.trim().toUpperCase(),
     lodgingFlatRate: Number(form.financeRules.lodgingFlatRate) || 0,
   };
   for (const f of FORMAT_FIELDS) {
@@ -501,11 +503,11 @@ defineExpose({ isDirty });
         />
 
         <v-divider class="my-5" />
-        <div class="text-subtitle-2 mb-1">Gas and Medical</div>
+        <div class="text-subtitle-2 mb-1">Gas and Vehicle emergency purchase</div>
         <div class="text-caption text-medium-emphasis mb-2">
           Finance questions 6 and 7. Expense Verifier: when the report is fully approved, each line gets a verification request and Finance
-          cannot clear the report until it is verified. Document: the gas receipt or medical certificate must be attached under Receipts
-          before the line can be added. Both print under OTHERS on the R47.
+          cannot clear the report until it is verified. Document: the gas receipt or vehicle purchase receipt must be attached under Receipts
+          before the line can be added. Particulars read reason - vehicle model - plate no. Both print under OTHERS on the R47.
         </div>
         <v-row dense>
           <v-col cols="12" sm="6">
@@ -520,14 +522,30 @@ defineExpose({ isDirty });
             />
           </v-col>
           <v-col cols="12" sm="6">
-            <v-switch v-model="form.financeRules.medicalEnabled" color="primary" label="Employees may claim Medical" hide-details />
+            <v-switch
+              v-model="form.financeRules.vehicleEmergencyEnabled"
+              color="primary"
+              label="Employees may claim a vehicle emergency purchase"
+              hide-details
+            />
             <v-select
-              v-model="form.financeRules.medicalVerification"
+              v-model="form.financeRules.vehicleEmergencyVerification"
               :items="VERIFICATIONS"
-              label="Medical is verified by"
-              :disabled="!form.financeRules.medicalEnabled"
+              label="Vehicle emergency purchase is verified by"
+              :disabled="!form.financeRules.vehicleEmergencyEnabled"
               class="mt-2"
-              :error-messages="fieldErrors('financeRules.medicalVerification')"
+              :error-messages="fieldErrors('financeRules.vehicleEmergencyVerification')"
+            />
+            <v-text-field
+              v-model="form.financeRules.jobOrderFormCode"
+              :disabled="!form.financeRules.vehicleEmergencyEnabled"
+              label="Job Order (JO) form code"
+              hint="Without a receipt, the Job Order counts instead. Searched for in an uploaded PDF; a photo or scan needs the employee's confirmation."
+              persistent-hint
+              density="compact"
+              maxlength="20"
+              class="mt-2"
+              :error-messages="fieldErrors('financeRules.jobOrderFormCode')"
             />
           </v-col>
         </v-row>

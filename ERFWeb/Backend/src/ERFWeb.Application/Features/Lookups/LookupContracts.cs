@@ -54,4 +54,18 @@ public interface ILookupService
     Task<IReadOnlyList<WorkWithOptionDto>> WorkWithAsync(string? search, CancellationToken ct = default);
     Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, CancellationToken ct = default);
     Task<MyFilingReadinessDto> MyFilingReadinessAsync(CancellationToken ct = default);
+    Task<MyVehicleDto> MyVehicleAsync(CancellationToken ct = default);
+    Task<MyVehicleDto> UpdateMyVehicleAsync(UpdateMyVehicleRequest request, CancellationToken ct = default);
+}
+
+/// <summary>The signed-in employee's issued vehicle, filled into new Gas and Vehicle emergency purchase lines; nulls when none is saved.</summary>
+public sealed record MyVehicleDto(string? Model, string? PlateNo);
+
+/// <summary>Saves (or, with both empty, clears) the signed-in employee's vehicle.</summary>
+public sealed record UpdateMyVehicleRequest(string? Model, string? PlateNo);
+
+/// <summary>Audit events for changes employees make to their own account.</summary>
+public static class AccountAuditEvents
+{
+    public const string VehicleChanged = "Account.VehicleChanged";
 }

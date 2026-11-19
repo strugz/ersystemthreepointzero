@@ -287,7 +287,7 @@ public sealed class ApprovalService(
     }
 
     /// <summary>
-    /// Finance rule (requirement 6): on final approval, each Gas or Medical line verified by a person gets an open
+    /// Finance rule (requirement 6): on final approval, each Gas or Vehicle emergency purchase line verified by a person gets an open
     /// verification request, raised by the final approver, so Finance cannot clear the report until an Expense
     /// Verifier closes it. Returns one notification for the verifiers who may take them, or null when none was raised.
     /// </summary>
@@ -296,7 +296,7 @@ public sealed class ApprovalService(
         var rules = await settings.GetFinanceRulesAsync(ct);
         var lines = (await db.ExpenseLines.AsNoTracking()
                 .Where(l => l.ReportId == report.Id && l.IsActive
-                    && (l.Category == ExpenseCategory.Gas || l.Category == ExpenseCategory.Medical)
+                    && (l.Category == ExpenseCategory.Gas || l.Category == ExpenseCategory.VehicleEmergency)
                     && !db.VerificationRequests.Any(v => v.ExpenseLineId == l.Id && v.Status != VerificationStatus.Closed))
                 .OrderBy(l => l.Id)
                 .Select(l => new { l.Id, l.Category, l.Particulars })

@@ -23,14 +23,20 @@ section of the root `CLAUDE.md`) in the same change.
   everything (workflow and verification notices, Email R47, SLA reminders) to the user named by the new
   `App:TestRecipient` (username) instead of the real recipients, marked `[TEST]`; an email says how many recipients
   it was meant for. With no such active user, mobile number or email, nothing is sent. No database script.
-- **Gas and Medical verification, Finance rules phase 6** (PR #59). New **Gas** and **Medical**
-  categories, printed under OTHERS on the R47. **Rules → Filing and Finance → Finance rules → Gas and Medical**
-  switches each on or off and sets how it is verified (Finance questions 6 and 7): **Expense Verifier after
-  approval** (default), **Document attached before filing** (gas receipt or medical certificate, new upload types
-  **Gas receipt** and **Medical certificate**), **Both** or **No extra check**. With a verifier, final approval opens
-  a verification request for each Gas or Medical line (raised by the final approver, audited `VerificationRequested`
+- **Gas and Vehicle emergency purchase verification, Finance rules phase 6** (PR #59). New **Gas** and
+  **Vehicle emergency purchase** categories for the issued vehicle, printed under OTHERS on the R47; their
+  Particulars read **reason - vehicle model - plate no.** (three fields in the line dialog, checked by the server).
+  **Rules → Filing and Finance → Finance rules → Gas and Vehicle emergency purchase** switches each on or off and
+  sets how it is verified (Finance questions 6 and 7): **Both** (default: the receipt before filing and an Expense
+  Verifier after approval), **Expense Verifier after approval**, **Document attached before filing** (new upload
+  types **Gas receipt** and **Vehicle purchase receipt**; a vehicle emergency purchase also needs the ISO **Job Order
+  (JO)**, form R42, checked like the R94 attendance sheet) or **No extra check**. With a verifier, final approval
+  opens a verification request for each such line (raised by the final approver, audited `VerificationRequested`
   with `automatic`), the Expense Verifiers are notified, and Finance cannot clear the report until each is closed.
-  No database script. API 0.8.0, SPA 0.11.0 (minor); deploy the backend, then the frontend.
+  Saved vehicle: after saving such a line with a vehicle the employee has not saved, ERFWeb asks **Save to my
+  details**; new Gas and Vehicle emergency purchase lines then fill in the model and plate (`users.vehicle_model`,
+  `users.vehicle_plate_no`, script `029`, `SchemaVersion.Required` 29). API 0.8.0, SPA 0.11.0 (minor); apply `029`,
+  deploy the backend, then the frontend.
 - **Docs: database script list and backup setup brought up to date** (PR #59). The script list
   includes `028_job_grades.sql`; **Backups and monitoring** names the backup folder as `<BACKUP FOLDER>` (live
   server `C:\ERFWeb-Backups`) and explains that on a workgroup server the tasks must run as a local backup account
@@ -466,6 +472,7 @@ psql -d erfweb -f Database/025_filing_cutoff.sql               # expense_reports
 psql -d erfweb -f Database/026_attachment_document_type.sql    # receipt_attachments.document_type: Activity Request Form, ISO attendance sheet
 psql -d erfweb -f Database/027_attachment_form_code_check.sql  # receipt_attachments.form_code_check: attendance sheet form code (R94) found or confirmed
 psql -d erfweb -f Database/028_job_grades.sql                  # job_grades master data (Staff, Specialist, Supervisor)
+psql -d erfweb -f Database/029_user_vehicle.sql                # users.vehicle_model / vehicle_plate_no: the employee's saved vehicle
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -765,10 +772,11 @@ trigger stamps `record_history.changed_by`.
 | `PUT /api/reports/{id}/lines/order` | Body `{ lineIds }`: every active line once, in the order the R47 prints them (saved as `sort_order`). A list that no longer matches the report's lines → 409. The editor's **Sort** menu (date or total) calls it |
 | `GET /api/lookups/fare-modes` | Active fare modes for the fare-leg picker, in sort order |
 | `POST /api/reports/{id}/cash-advances` · `PUT/DELETE …/cash-advances/{lineId}` | Rows of the CASH ADVANCE RECEIVED block (Liquidation of Cash Advance only); the R47 reconciles against their total |
-| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`, optional `documentType`: `Receipt`, `ActivityRequestForm`, `IsoAttendanceSheet`, `FoodReceipt`, `LodgingReceipt`, `GasReceipt`, `MedicalCertificate`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller). On phones and tablets **Take photo** opens the in-app camera (`AppCameraCapture`) |
+| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`, optional `documentType`: `Receipt`, `ActivityRequestForm`, `IsoAttendanceSheet`, `FoodReceipt`, `LodgingReceipt`, `GasReceipt`, `VehiclePurchaseReceipt`, `JobOrder`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller). On phones and tablets **Take photo** opens the in-app camera (`AppCameraCapture`) |
 | `POST /api/reports/{id}/file` | File / re-file → `ForApproval`; snapshots the approval route into `approval_steps` |
 | `POST /api/reports/{id}/reopen` | Pull a `ForApproval`/`Approved` report back to `New` (supersedes the cycle) |
 | `GET /api/lookups/work-with` · `my-rates` · `my-filing-readiness` | Editor lookups (`crmActivitiesAvailable` turns on **From CRM**) |
+| `GET/PUT /api/lookups/my-vehicle` | The signed-in employee's own saved vehicle (`model`, `plateNo`; both empty clears it; plate saved upper-case); audited `Account.VehicleChanged` without the values |
 | `GET /api/reports/{id}/crm-activities?date=YYYY-MM-DD` (report owner) | The owner's CRM activities on the line's date, every status, Completed first and marked when already claimed (see CRM activities on expense lines) |
 
 Rules (Domain, unit-tested): a report is editable only while `New` or `Returned`; filing requires ≥ 1 active
@@ -800,7 +808,7 @@ stored JSON keeps its default), audited `SettingsChanged`, read at filing time, 
 before a line can be added (confirmed with Finance on 2026-11-11): an approved Activity Request Form for Sponsorship
 (new category), an ISO-registered attendance sheet for Demo (new category), the food or meal receipt for
 Representation. When uploading under **Receipts** the employee picks what the file is (**This file is a**: Receipt,
-Activity Request Form, ISO attendance sheet, Food receipt, Lodging receipt, Gas receipt or Medical certificate;
+Activity Request Form, ISO attendance sheet, Food receipt, Lodging receipt, Gas receipt, Vehicle purchase receipt or Job Order (JO);
 `documentType` in the upload form, stored in `receipt_attachments.document_type`, NULL for older files = Receipt).
 The document comes first: choosing Sponsorship or Demo in the line dialog shows an amber note with **Upload** until
 the report has that document, **Save** stays off, and the server refuses the line (400 on `category`). Filing checks
@@ -822,15 +830,35 @@ means no limit. `lodgingEnabled` switches the category like Sponsorship and Demo
 before it is saved and at filing, like Representation's food receipt. Lodging prints under OTHERS
 (Foreign: Other Exp.). Location-based rates are not supported.
 
-**Gas and Medical (Finance rules).** Two categories (`gasEnabled`, `medicalEnabled`, on by default) whose lines are
-verified as **Rules → Finance rules → Gas and Medical** says (`gasVerification`, `medicalVerification`:
-`Person` default, `Document`, `Both`, `None`; Domain `CategoryVerification`). `Document` works like Lodging's
-receipt: the line needs a `GasReceipt` or `MedicalCertificate` attachment before it is saved and at filing.
-`Person`: when the last signatory approves, `ApprovalService` opens one verification request per active Gas or
-Medical line that has none open, in the same transaction, requested by that signatory with the reason "Automatic:
+**Gas and Vehicle emergency purchase (Finance rules).** Two categories for the issued vehicle (`Gas`,
+`VehicleEmergency`; `gasEnabled`, `vehicleEmergencyEnabled`, on by default). Their Particulars must read
+"reason - vehicle model - plate no." (Domain `VehicleParticulars`, 400 on `particulars` otherwise; the reason may
+itself contain " - "); the line dialog shows Reason, Vehicle model and Plate no. instead of Particulars. Reason is
+picked from suggested reasons per category (`vehicleReasons` in `features/expenses/labels.ts`, e.g. Client visit,
+Flat tire) or typed. Reason and **Work with** use `shared/ui/AppPickerField.vue` instead of a dropdown: tapping the
+field opens a pop-up list (full screen on phones and tablets) with a search box, one tap for Reason, tick boxes and
+**Done** for Work with, and "Use “…”" for a typed entry. The line dialog's category tiles are all one height (labels
+at most two lines; the Vehicle emergency purchase tile reads "Vehicle emergency") and Local / Foreign is as tall as
+the Date field. Lines are
+verified as **Rules → Finance rules → Gas and Vehicle emergency purchase** says (`gasVerification`,
+`vehicleEmergencyVerification`: `Both` default, `Person`, `Document`, `None`; Domain `CategoryVerification`).
+`Document` works like Lodging's receipt: the line needs a `GasReceipt` or `VehiclePurchaseReceipt` attachment before
+it is saved and at filing. A vehicle emergency purchase needs both the receipt and the company's ISO **Job Order
+(JO)** (`JobOrder`; two `RequiredDocument` entries for the category); the line dialog's warning names every document
+still missing and offers a choice of which one to upload. Gas needs only its receipt. Like the Demo attendance sheet,
+a Job Order must be form **R42** (`jobOrderFormCode` on the same card, `CategoryDocumentRules.FormCodeFor`): a PDF is
+searched for the code, a photo or scan needs the employee's confirmation ("Is this the Job Order?"), and an upload
+without either does not count. `Person`: when the last signatory approves, `ApprovalService` opens one verification
+request per active Gas or Vehicle emergency purchase line that has none open, in the same transaction, requested by that signatory with the reason "Automatic:
 … (Finance rule)"; the Expense Verifiers who did not approve the report get one notification after commit. The
 requests then follow the normal verification flow and Finance cannot clear the report while one is open. A rule
 changed later does not touch requests already raised. Both categories print under OTHERS (Foreign: Other Exp.).
+**Saved vehicle:** each user may keep one vehicle (`users.vehicle_model`, `users.vehicle_plate_no`, script `029`;
+Domain `VehicleParticulars.VehicleProblems`: both or neither, model up to 60 and plate up to 20 characters, no
+" - "). A new Gas or Vehicle emergency purchase line fills Vehicle model and Plate no. from it. After such a line is
+saved with a model and plate that differ from the saved ones (or none is saved), the report editor asks **Save your
+vehicle?** (or offers to replace it); **Save to my details** calls `PUT /api/lookups/my-vehicle`, **Cancel**
+remembers that plate in the browser so it is not offered again. There is no vehicle field on the admin user page.
 
 **ERF reference number.** Issued by the system on **first filing** as a yearly series
 `ERF-2026-000142` (`ReferenceNumberFormat` + `ReferenceNumberGenerator`): one counter row per

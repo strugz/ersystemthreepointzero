@@ -22,7 +22,7 @@ public enum LodgingRateBasis
     Flat,
 }
 
-/// <summary>How Gas and Medical lines are verified (Finance questions 6 and 7).</summary>
+/// <summary>How Gas and Vehicle emergency purchase lines are verified (Finance questions 6 and 7).</summary>
 public enum CategoryVerification
 {
     /// <summary>No check beyond the normal approval.</summary>
@@ -31,7 +31,7 @@ public enum CategoryVerification
     /// <summary>On final approval each line gets a verification request; Finance cannot clear until it is closed.</summary>
     Person,
 
-    /// <summary>The line needs its document (gas receipt, medical certificate) attached to the report.</summary>
+    /// <summary>The line needs its receipt (gas receipt, vehicle purchase receipt) attached to the report.</summary>
     Document,
 
     /// <summary>Person and Document.</summary>
@@ -93,12 +93,15 @@ public sealed record FinanceRuleSet
     /// <summary>Employees may claim Gas.</summary>
     public bool GasEnabled { get; init; } = true;
 
-    public CategoryVerification GasVerification { get; init; } = CategoryVerification.Person;
+    public CategoryVerification GasVerification { get; init; } = CategoryVerification.Both;
 
-    /// <summary>Employees may claim Medical.</summary>
-    public bool MedicalEnabled { get; init; } = true;
+    /// <summary>Employees may claim an emergency purchase for the issued vehicle.</summary>
+    public bool VehicleEmergencyEnabled { get; init; } = true;
 
-    public CategoryVerification MedicalVerification { get; init; } = CategoryVerification.Person;
+    public CategoryVerification VehicleEmergencyVerification { get; init; } = CategoryVerification.Both;
+
+    /// <summary>Document code of the ISO Job Order (JO); a Job Order upload must show it or be confirmed.</summary>
+    public string JobOrderFormCode { get; init; } = "R42";
 }
 
 /// <summary>Validation of the Finance rules the administrator saves; field names match the Rules page.</summary>
@@ -147,18 +150,28 @@ public static class FinanceRuleSetRules
             errors["financeRules.gasVerification"] = "Choose how Gas is verified.";
         }
 
-        if (!Enum.IsDefined(rules.MedicalVerification))
+        if (!Enum.IsDefined(rules.VehicleEmergencyVerification))
         {
-            errors["financeRules.medicalVerification"] = "Choose how Medical is verified.";
+            errors["financeRules.vehicleEmergencyVerification"] = "Choose how a vehicle emergency purchase is verified.";
         }
 
-        var code = rules.DemoFormCode?.Trim() ?? string.Empty;
-        if (code.Length == 0 || code.Length > MaxFormCodeLength || !code.All(c => char.IsAsciiLetterOrDigit(c) || c == '-'))
+        if (!IsFormCode(rules.DemoFormCode))
         {
             errors["financeRules.demoFormCode"] = "Enter the form code, for example R94 (letters, digits and -, up to 20).";
         }
 
+        if (!IsFormCode(rules.JobOrderFormCode))
+        {
+            errors["financeRules.jobOrderFormCode"] = "Enter the form code, for example R42 (letters, digits and -, up to 20).";
+        }
+
         return errors;
+    }
+
+    private static bool IsFormCode(string? value)
+    {
+        var code = value?.Trim() ?? string.Empty;
+        return code.Length > 0 && code.Length <= MaxFormCodeLength && code.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');
     }
 
     /// <summary>A 24-hour "HH:mm" time, or null when it is not one.</summary>

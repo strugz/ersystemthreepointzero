@@ -1,4 +1,13 @@
-import type { ApprovalStatus, Attachment, AttachmentDocumentType, ExpenseCategory, ExpenseType, FinanceStatus, ReportStatus, ReportType } from './types';
+import type {
+  ApprovalStatus,
+  Attachment,
+  AttachmentDocumentType,
+  ExpenseCategory,
+  ExpenseType,
+  FinanceStatus,
+  ReportStatus,
+  ReportType,
+} from './types';
 
 export const reportTypeLabel: Record<ReportType, string> = {
   RevolvingFund: 'Replenishment of Revolving Fund',
@@ -76,7 +85,7 @@ export const categoryLabel: Record<ExpenseCategory, string> = {
   Demo: 'Demo',
   Lodging: 'Lodging',
   Gas: 'Gas',
-  Medical: 'Medical',
+  VehicleEmergency: 'Vehicle emergency purchase',
 };
 
 export const categoryOptions = (Object.keys(categoryLabel) as ExpenseCategory[]).map((value) => ({
@@ -112,8 +121,9 @@ export const categoryDefaults: Record<ExpenseCategory, CategoryDefaults> = {
   Sponsorship: { particulars: 'Sponsorship', meals: [], fareLeg: false },
   Demo: { particulars: 'Demo', meals: [], fareLeg: false },
   Lodging: { particulars: 'Lodging', meals: [], fareLeg: false },
-  Gas: { particulars: 'Gas', meals: [], fareLeg: false },
-  Medical: { particulars: 'Medical', meals: [], fareLeg: false },
+  // Gas and Vehicle emergency purchase: Particulars come from the reason, vehicle model and plate no. fields.
+  Gas: { particulars: '', meals: [], fareLeg: false },
+  VehicleEmergency: { particulars: '', meals: [], fareLeg: false },
 };
 
 /** Only a Liquidation of Cash Advance carries the CASH ADVANCE RECEIVED block. */
@@ -162,7 +172,7 @@ export function r47Column(category: ExpenseCategory, type: ExpenseType): string 
   if (type === 'Foreign') {
     return 'Oth';
   }
-  // Sponsorship, Demo, Lodging, Gas and Medical, like Others, print under OTHERS.
+  // Sponsorship, Demo, Lodging, Gas and Vehicle emergency purchase, like Others, print under OTHERS.
   const columns: Partial<Record<ExpenseCategory, string>> = { Meals: 'MEALS', Transportation: 'TRANSP.', Toll: 'TOLL', Parking: 'PARKING' };
   return columns[category] ?? 'OTHERS';
 }
@@ -175,13 +185,17 @@ export const documentTypeOptions: { value: AttachmentDocumentType; title: string
   { value: 'FoodReceipt', title: 'Food receipt' },
   { value: 'LodgingReceipt', title: 'Lodging receipt' },
   { value: 'GasReceipt', title: 'Gas receipt' },
-  { value: 'MedicalCertificate', title: 'Medical certificate' },
+  { value: 'VehiclePurchaseReceipt', title: 'Vehicle purchase receipt' },
+  { value: 'JobOrder', title: 'Job Order (JO)' },
 ];
 export const documentTypeLabel = Object.fromEntries(documentTypeOptions.map((o) => [o.value, o.title])) as Record<AttachmentDocumentType, string>;
 
 /** The document an attachment counts as; an attendance sheet counts only once its form code was found or confirmed (server rule). */
+/** Upload types that must show an ISO form code (attendance sheet R94, Job Order R42) to count. */
+export const hasFormCode = (type: AttachmentDocumentType | null | undefined): boolean => type === 'IsoAttendanceSheet' || type === 'JobOrder';
+
 export const countedDocumentType = (a: Attachment): AttachmentDocumentType =>
-  a.documentType === 'IsoAttendanceSheet' && !a.formCodeCheck ? 'Receipt' : (a.documentType ?? 'Receipt');
+  hasFormCode(a.documentType) && !a.formCodeCheck ? 'Receipt' : (a.documentType ?? 'Receipt');
 
 /** Icon for a fare mode by its code; unknown or admin-added codes get a generic route icon. */
 const fareModeIcons: Record<string, string> = {
@@ -201,4 +215,44 @@ const fareModeIcons: Record<string, string> = {
 
 export function fareModeIcon(code: string | null | undefined): string {
   return (code && fareModeIcons[code]) || 'mdi-map-marker-path';
+}
+
+// Gas and Vehicle emergency purchase are for the issued vehicle: Particulars read "reason - vehicle model - plate no."
+// (Domain VehicleParticulars). The reason may contain " - "; the last two parts are the model and the plate.
+export const VEHICLE_SEPARATOR = ' - ';
+
+export function isVehicleCategory(category: ExpenseCategory): boolean {
+  return category === 'Gas' || category === 'VehicleEmergency';
+}
+
+export function vehicleParts(particulars: string): { reason: string; model: string; plate: string } {
+  const parts = particulars.split(VEHICLE_SEPARATOR);
+  if (parts.length < 3) return { reason: particulars.trim(), model: '', plate: '' };
+  return {
+    reason: parts.slice(0, -2).join(VEHICLE_SEPARATOR).trim(),
+    model: parts[parts.length - 2].trim(),
+    plate: parts[parts.length - 1].trim(),
+  };
+}
+
+/** Suggested reasons for the Reason field; the employee may still type their own. */
+export const vehicleReasons: Record<'Gas' | 'VehicleEmergency', string[]> = {
+  Gas: ['Client visit', 'Service call', 'Preventive maintenance', 'Installation', 'Delivery', 'Demo', 'Training', 'Office errand'],
+  VehicleEmergency: [
+    'Flat tire',
+    'Tire replacement',
+    'Battery replacement',
+    'Jump start',
+    'Towing',
+    'Engine overheating',
+    'Brake repair',
+    'Busted light',
+    'Wiper replacement',
+    'Oil or coolant top-up',
+  ],
+};
+
+/** A plate number as the server saves it: upper-case, single spaces. */
+export function normalizePlate(plate: string): string {
+  return plate.trim().toUpperCase().split(/\s+/).filter(Boolean).join(' ');
 }

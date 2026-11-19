@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Crm;
@@ -19,6 +20,8 @@ public sealed class LookupService(
     IApprovalRouter router,
     IRateService rates,
     ICrmActivityDirectory crm,
+    ITransactionRunner tx,
+    IWorkflowAuditWriter audit,
     Entitlements.EntitlementContext calendar) : ILookupService
 {
     private const int MaxWorkWithResults = 50;
@@ -91,5 +94,42 @@ public sealed class LookupService(
             .ToList();
         return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt, routing.Problem, crmAvailable,
             cutoff?.ProcessingDate, cutoff?.IsLate ?? false, cutoff?.CutoffText, CategoryDocumentRules.Disabled(financeRules), documents);
+    }
+
+    public async Task<MyVehicleDto> MyVehicleAsync(CancellationToken ct = default) =>
+        await db.Users.AsNoTracking()
+            .Where(u => u.Id == user.UserId)
+            .Select(u => new MyVehicleDto(u.VehicleModel, u.VehiclePlateNo))
+            .FirstOrDefaultAsync(ct)
+        ?? new MyVehicleDto(null, null);
+
+    /// <summary>Always the signed-in user's own vehicle; the audit row says only that it changed, never the values.</summary>
+    public async Task<MyVehicleDto> UpdateMyVehicleAsync(UpdateMyVehicleRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var problems = VehicleParticulars.VehicleProblems(request.Model, request.PlateNo);
+        if (problems.Count > 0)
+        {
+            throw new ValidationException(problems.ToDictionary(p => p.Key, p => new[] { p.Value }));
+        }
+
+        var model = string.IsNullOrWhiteSpace(request.Model) ? null : request.Model.Trim();
+        var plate = VehicleParticulars.NormalizePlate(request.PlateNo);
+
+        return await tx.ExecuteAsync(async token =>
+        {
+            var account = await db.Users.FirstOrDefaultAsync(u => u.Id == user.UserId, token)
+                ?? throw new NotFoundException("Account not found.");
+            if (account.VehicleModel != model || account.VehiclePlateNo != plate)
+            {
+                account.VehicleModel = model;
+                account.VehiclePlateNo = plate;
+                await db.SaveChangesAsync(token);
+                await audit.WriteAsync(new WorkflowAuditEntry(AccountAuditEvents.VehicleChanged, null, user.UserId,
+                    JsonSerializer.Serialize(new { cleared = model is null })), token);
+            }
+
+            return new MyVehicleDto(model, plate);
+        }, ct);
     }
 }
