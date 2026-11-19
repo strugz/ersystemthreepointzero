@@ -9,7 +9,7 @@ import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
 import { formatDateTime } from '@/shared/format';
-import { jobGradeLabel } from '@/shared/jobGrades';
+import { jobGradeName } from '@/shared/jobGrades';
 import { useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { adminApi } from '@/features/admin/api';
@@ -19,7 +19,7 @@ import SignatureUpload from '@/features/admin/components/SignatureUpload.vue';
 import ResetPasswordDialog from '@/features/admin/components/ResetPasswordDialog.vue';
 import { roleLabel } from '@/features/auth/labels';
 import type { UserRole } from '@/features/auth/types';
-import type { CreateUserInput, Department, RoleGrant, UserDetail } from '@/features/admin/types';
+import type { CreateUserInput, Department, JobGrade, RoleGrant, UserDetail } from '@/features/admin/types';
 
 const route = useRoute();
 const router = useRouter();
@@ -33,6 +33,7 @@ const user = ref<UserDetail | null>(null);
 const loading = ref(true);
 const loadError = ref<string | null>(null);
 const departments = ref<Department[]>([]);
+const jobGrades = ref<JobGrade[]>([]);
 /** Undefined until the settings load; the form then falls back to its default domain. */
 const emailDomains = ref<string[] | undefined>(undefined);
 
@@ -54,8 +55,9 @@ async function load() {
 }
 
 async function loadLookups() {
-  const [d, s] = await Promise.allSettled([adminApi.departments(), adminApi.settings()]);
+  const [d, s, g] = await Promise.allSettled([adminApi.departments(), adminApi.settings(), adminApi.jobGrades()]);
   if (d.status === 'fulfilled') departments.value = d.value;
+  if (g.status === 'fulfilled') jobGrades.value = g.value;
   // An API older than the domain list sends none; keep the form's default.
   if (s.status === 'fulfilled' && s.value.emailDomains?.length) emailDomains.value = s.value.emailDomains;
 }
@@ -281,6 +283,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
                 mode="edit"
                 :initial="user"
                 :departments="departments"
+                :job-grades="jobGrades"
                 :email-domains="emailDomains"
                 :saving="savingProfile"
                 :errors="profileErrors"
@@ -292,7 +295,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
               <div class="field"><span class="lbl">Full name</span><span class="val">{{ user.fullName }}</span></div>
               <div class="field"><span class="lbl">Username</span><span class="val mono">{{ user.username }}</span></div>
               <div class="field"><span class="lbl">Position</span><span class="val" :class="{ muted: !user.position }">{{ user.position || '—' }}</span></div>
-              <div class="field"><span class="lbl">Job grade</span><span class="val" :class="{ muted: !user.jobGrade }">{{ jobGradeLabel(user.jobGrade) || '—' }}</span></div>
+              <div class="field"><span class="lbl">Job grade</span><span class="val" :class="{ muted: !user.jobGrade }">{{ jobGradeName(jobGrades, user.jobGrade) || '—' }}</span></div>
               <div class="field"><span class="lbl">Email</span><span class="val" :class="{ muted: !user.email }">{{ user.email || '—' }}</span></div>
               <div class="field"><span class="lbl">Mobile no.</span><span class="val" :class="{ muted: !user.mobileNo }">{{ user.mobileNo || '—' }}</span></div>
               <div class="field"><span class="lbl">Department</span><span class="val" :class="{ muted: !user.departmentName }">{{ user.departmentName || '—' }}</span></div>

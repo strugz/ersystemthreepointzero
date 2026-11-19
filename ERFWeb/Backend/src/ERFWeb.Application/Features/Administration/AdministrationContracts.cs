@@ -178,6 +178,10 @@ public sealed record SiteDto(long Id, string Code, string Name, bool IsActive, u
 
 public sealed record SaveSiteRequest(string Code, string Name, bool IsActive, uint? RowVersion);
 
+public sealed record JobGradeDto(long Id, string Code, string Name, bool IsActive, uint RowVersion);
+
+public sealed record SaveJobGradeRequest(string Code, string Name, bool IsActive, uint? RowVersion);
+
 /// <summary>The fixed expense categories (R47 columns) exposed read-only for the console.</summary>
 public sealed record ExpenseCategoryDto(ExpenseCategory Category, string Label, string R47Column);
 
@@ -199,6 +203,10 @@ public interface IMasterDataService
     Task<IReadOnlyList<SiteDto>> ListSitesAsync(bool includeInactive, CancellationToken ct = default);
     Task<SiteDto> CreateSiteAsync(SaveSiteRequest request, CancellationToken ct = default);
     Task<SiteDto> UpdateSiteAsync(long id, SaveSiteRequest request, CancellationToken ct = default);
+
+    Task<IReadOnlyList<JobGradeDto>> ListJobGradesAsync(bool includeInactive, CancellationToken ct = default);
+    Task<JobGradeDto> CreateJobGradeAsync(SaveJobGradeRequest request, CancellationToken ct = default);
+    Task<JobGradeDto> UpdateJobGradeAsync(long id, SaveJobGradeRequest request, CancellationToken ct = default);
 
     IReadOnlyList<ExpenseCategoryDto> ListExpenseCategories();
 }

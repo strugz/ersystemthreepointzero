@@ -18,6 +18,13 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-19
 
+- **Job grades are master data** (PR #58). The System Administrator adds and renames grades on
+  **Master data → Job grades** (`GET/POST/PUT /api/admin/master-data/job-grades`, table `job_grades`, script `028`,
+  `SchemaVersion.Required` 28). Script `028` seeds the first three (`Staff`, `Specialist`, `Supervisor`). A grade's
+  code cannot change once created (users and Grade rate assignments store it); the name can, and a grade is
+  deactivated, never deleted. The user form and the Grade rate assignment dialog list the active grades; a record
+  whose grade was deactivated keeps it. Replaces the fixed list of PR #57 (Domain `JobGrades` removed). API 0.7.0,
+  SPA 0.10.0 (minor); apply `028`, deploy backend before frontend.
 - **Wording fix** (PR #57). The filing message for a missing document says "a food or meal receipt", not
   "an food or meal receipt" (`CategoryDocumentRules` picks a or an from the document's label). Same release.
 - **Job grade is a required dropdown** (PR #57). Creating or editing a user needs one of three job
@@ -868,15 +875,16 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 | --- | --- |
 | `GET/POST /api/admin/users`, `GET/PUT …/{id}`, `POST …/{id}/active`, `…/password`, `GET/POST/DELETE …/signature` (SystemAdministrator) | Register and maintain accounts; load or remove the signature printed on the R47 |
 | `POST /api/admin/users/{id}/roles` · `POST …/roles/{role}/revoke` (SystemAdministrator) | Grant, revoke |
-| `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). Fare modes replace the legacy `dbo.tbFare` list. A cost center needs a department and carries `budgets` (`[{ year, amount }]`); saving sends the years to set or clear (`amount: null`) |
+| `GET/POST/PUT /api/admin/master-data/{departments,cost-centers,currencies,sites,job-grades,fare-modes}` · `GET …/expense-categories` | Master data (deactivate, never delete). A job grade's code is fixed once created. Fare modes replace the legacy `dbo.tbFare` list. A cost center needs a department and carries `budgets` (`[{ year, amount }]`); saving sends the years to set or clear (`amount: null`) |
 | `GET/PUT /api/admin/settings` | Workflow rules (Level 2 threshold, SLAs, escalation), business rules (filing cut-off, receipt threshold, cooling period), notification switches, account email domains, the R47 REVIEWED BY and signature rule (`r47SignatureMode`: `ESignature` or `StatusOnly`), the sign-in lockout (`loginMaxFailedAttempts`, `loginLockoutMinutes`); stored in `app_settings` |
 | `GET /api/signatures?status=Pending\|Approved` · `GET …/{userId}/image` · `POST …/{userId}/approve` · `POST …/{userId}/reject` (Finance) | Finance's review of signature images. Approve and reject send `{ uploadedAt, note? }` (the upload reviewed; a newer one answers 409). Rejecting removes the image. Your own signature answers 403 |
 | `GET /api/admin/crm/employees?search&includeInactive` · `GET …/{employeeId}` (SystemAdministrator) | CRM employee lookup for the user form (see CRM employee link) |
 | `GET /api/admin/audit?event&actorUserId&from&to` (SystemAdministrator, Finance) | Append-only audit trail |
 
-**Job grade** is required on every account and picked from a fixed list (Domain `JobGrades`): `Staff`,
-`Specialist` (Specialists/Engineers) and `Supervisor` (Team Leaders/Supervisors/Assistant Managers). The code is
-stored; the screens show the label. Grade rate assignments use the same codes.
+**Job grade** is required on every account and picked from the active grades on **Master data → Job grades**
+(`job_grades`, script `028`; seeded with `Staff`, `Specialist` and `Supervisor`). The code is stored on the user
+and on Grade rate assignments, so it cannot change once created; the name is shown on screen and can change. A
+deactivated grade stays on the users and rates that already have it (`JobGradeCheck`).
 
 First-time setup (plan flow 1): sign in as `admin`, create accounts and master data, set the rules, grant the
 signatory roles, then give each signatory a scope (Scope page) so reports route to them.

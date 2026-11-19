@@ -1,6 +1,4 @@
-import { categoryLabel } from '@/features/expenses/labels';
-import { jobGradeLabel } from '@/shared/jobGrades';
-import type { MealSubCategory, RateCategory, RateLine, RateTargetType, RateType, ScopeAssignmentType, ScopeLevel } from './types';
+import { categoryLabel } from '@/features/expenses/labels';import type { MealSubCategory, RateCategory, RateLine, RateTargetType, RateType, ScopeAssignmentType, ScopeLevel } from './types';
 
 export { categoryLabel, categoryOptions } from '@/features/expenses/labels';
 
@@ -76,7 +74,7 @@ export function rateTargetText(a: {
     case 'Individual':
       return a.userName ?? '—';
     case 'Grade':
-      return a.jobGrade ? jobGradeLabel(a.jobGrade) : '—';
+      return a.jobGrade ? `Grade ${a.jobGrade}` : '—';
     case 'Department':
       return a.departmentName ?? '—';
     default:

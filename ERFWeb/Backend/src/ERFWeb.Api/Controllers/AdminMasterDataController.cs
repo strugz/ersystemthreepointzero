@@ -76,6 +76,23 @@ public sealed class AdminMasterDataController(IMasterDataService masterData, IFa
     public async Task<ActionResult<SiteDto>> UpdateSite(long id, [FromBody] SaveSiteRequest request, CancellationToken ct) =>
         Ok(await masterData.UpdateSiteAsync(id, request, ct));
 
+    [HttpGet("job-grades")]
+    public async Task<ActionResult<IReadOnlyList<JobGradeDto>>> JobGrades([FromQuery] bool includeInactive = true, CancellationToken ct = default) =>
+        Ok(await masterData.ListJobGradesAsync(includeInactive, ct));
+
+    [HttpPost("job-grades")]
+    [ProducesResponseType<JobGradeDto>(StatusCodes.Status201Created)]
+    public async Task<ActionResult<JobGradeDto>> CreateJobGrade([FromBody] SaveJobGradeRequest request, CancellationToken ct)
+    {
+        var created = await masterData.CreateJobGradeAsync(request, ct);
+        return StatusCode(StatusCodes.Status201Created, created);
+    }
+
+    /// <summary>Changes the label or active flag; the code is fixed once created.</summary>
+    [HttpPut("job-grades/{id:long}")]
+    public async Task<ActionResult<JobGradeDto>> UpdateJobGrade(long id, [FromBody] SaveJobGradeRequest request, CancellationToken ct) =>
+        Ok(await masterData.UpdateJobGradeAsync(id, request, ct));
+
     [HttpGet("fare-modes")]
     public async Task<ActionResult<IReadOnlyList<FareModeDto>>> FareModes([FromQuery] bool includeInactive = true, CancellationToken ct = default) =>
         Ok(await fareModes.ListAsync(includeInactive, ct));

@@ -3,7 +3,6 @@ using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Domain;
-using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Rates;
 using ERFWeb.Domain.Scope;
 using ERFWeb.Infrastructure.Persistence;
@@ -586,6 +585,11 @@ public sealed class RateService(
             throw new ValidationException("userId", "The person does not exist or is inactive.");
         }
 
+        if (target.JobGrade is { } g && !await db.JobGrades.AsNoTracking().AnyAsync(x => x.Code == g && x.IsActive, ct))
+        {
+            throw new ValidationException("jobGrade", "Pick a job grade from the list.");
+        }
+
         if (target.DepartmentId is { } d && !await db.Departments.AsNoTracking().AnyAsync(x => x.Id == d && x.IsActive, ct))
         {
             throw new ValidationException("departmentId", "The department does not exist or is inactive.");
@@ -608,11 +612,6 @@ public sealed class RateService(
     private static RateTarget ValidTarget(RateTargetType type, long? userId, string? jobGrade, long? departmentId)
     {
         var grade = string.IsNullOrWhiteSpace(jobGrade) ? null : jobGrade.Trim();
-        if (type == RateTargetType.Grade && grade is not null)
-        {
-            grade = JobGrades.Normalize(grade) ?? throw new ValidationException("jobGrade", JobGrades.Problem);
-        }
-
         return type switch
         {
             RateTargetType.Individual when userId is not null && grade is null && departmentId is null => new RateTarget(type, userId, null, null),

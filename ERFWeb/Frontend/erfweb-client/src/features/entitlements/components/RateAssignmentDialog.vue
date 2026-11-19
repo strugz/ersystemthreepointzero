@@ -2,7 +2,8 @@
 import { computed, reactive, watch } from 'vue';
 import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { addDaysIso, todayIso } from '@/shared/format';
-import { isJobGrade, jobGradeOptions } from '@/shared/jobGrades';
+import { jobGradeItems } from '@/shared/jobGrades';
+import type { JobGradeOption } from '@/shared/jobGrades';
 import { fieldErrors, personItems, textOrNull } from '../forms';
 import type { FieldErrors } from '../forms';
 import { targetTypeOptions } from '../labels';
@@ -25,6 +26,7 @@ const props = withDefaults(
     profileName: string;
     people: PersonOption[];
     departments: DepartmentOption[];
+    jobGrades: JobGradeOption[];
     /** Every assignment, ended ones included; null while unknown (then any backdate asks for the override). */
     existing?: RateAssignment[] | null;
     /** The assignment being corrected; null to create a new one. */
@@ -89,6 +91,7 @@ watch(
 
 const personOptions = computed(() => personItems(props.people));
 const departmentItems = computed(() => props.departments.map((d) => ({ value: d.id, title: d.name })));
+const gradeItems = computed(() => jobGradeItems(props.jobGrades, props.editing?.jobGrade));
 
 const sameTarget = (a: RateAssignment) => {
   if (a.targetType !== form.targetType) return false;
@@ -159,7 +162,7 @@ const targetChosen = computed(() => {
     case 'Individual':
       return form.userId !== null;
     case 'Grade':
-      return isJobGrade(form.jobGrade);
+      return gradeItems.value.some((g) => g.value === form.jobGrade);
     case 'Department':
       return form.departmentId !== null;
     default:
@@ -238,7 +241,7 @@ function close() {
             <v-select
               v-else-if="form.targetType === 'Grade'"
               v-model="form.jobGrade"
-              :items="jobGradeOptions"
+              :items="gradeItems"
               label="Job grade *"
               :error-messages="err('jobGrade')"
             />

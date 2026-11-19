@@ -65,6 +65,15 @@ public class Site
     public bool IsActive { get; set; } = true;
 }
 
+/// <summary>A job grade; users and Grade rate assignments store its code, which never changes.</summary>
+public class JobGrade
+{
+    public long Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+}
+
 /// <summary>Key/value store for the System Administrator's workflow, business, and notification rules.</summary>
 public class AppSetting
 {
