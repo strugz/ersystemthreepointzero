@@ -18,12 +18,12 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-19
 
-- **Test mode sends every SMS and email to one account** (branch `feat/erfweb-gas-medical`, same release as phase 6, API
+- **Test mode sends every SMS and email to one account** (PR #59, same release as phase 6, API
   0.8.0). With `App:Mode` `Test`, the SMS and email gateways (`TestModeSmsGateway`, `TestModeEmailGateway`) send
   everything (workflow and verification notices, Email R47, SLA reminders) to the user named by the new
   `App:TestRecipient` (username) instead of the real recipients, marked `[TEST]`; an email says how many recipients
   it was meant for. With no such active user, mobile number or email, nothing is sent. No database script.
-- **Gas and Medical verification, Finance rules phase 6** (not yet committed). New **Gas** and **Medical**
+- **Gas and Medical verification, Finance rules phase 6** (PR #59). New **Gas** and **Medical**
   categories, printed under OTHERS on the R47. **Rules → Filing and Finance → Finance rules → Gas and Medical**
   switches each on or off and sets how it is verified (Finance questions 6 and 7): **Expense Verifier after
   approval** (default), **Document attached before filing** (gas receipt or medical certificate, new upload types
@@ -31,11 +31,11 @@ section of the root `CLAUDE.md`) in the same change.
   a verification request for each Gas or Medical line (raised by the final approver, audited `VerificationRequested`
   with `automatic`), the Expense Verifiers are notified, and Finance cannot clear the report until each is closed.
   No database script. API 0.8.0, SPA 0.11.0 (minor); deploy the backend, then the frontend.
-- **Docs: database script list and backup setup brought up to date** (not yet committed). The script list
+- **Docs: database script list and backup setup brought up to date** (PR #59). The script list
   includes `028_job_grades.sql`; **Backups and monitoring** names the backup folder as `<BACKUP FOLDER>` (live
   server `C:\ERFWeb-Backups`) and explains that on a workgroup server the tasks must run as a local backup account
   with a saved share login, since SYSTEM gets "Access is denied" on the share. No version change.
-- **Docs: setting the backup task's account by hand** (not yet committed). **Backups and monitoring** and
+- **Docs: setting the backup task's account by hand** (PR #59). **Backups and monitoring** and
   `Backend/tools/README.txt` explain how to run **ERFWeb Database Backup** as an account with a saved share login
   from Task Scheduler (as on the live server), what breaks it, and a logon-failure troubleshooting row. No version
   change.
