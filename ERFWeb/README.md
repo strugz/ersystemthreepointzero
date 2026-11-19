@@ -18,6 +18,16 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-19
 
+- **Verification card reads as a conversation** (PR #60). Each request on the review and report
+  pages shows a step bar (Asked, Picked up, finding, and Sent to Level 2 / decision when needed), then a thread:
+  automatic requests as "Opened automatically when <approver> gave final approval" with the Finance rule, the
+  verifier picking it up, the finding, Finance's query to Level 2 and Level 2's decision, each with name, role and
+  time. A footer says whose turn it is and since when, with that person's button, or how it ended; the header pill
+  shows the outcome (Let through, Returned, Rejected, Verified) instead of Closed. The **Verifications** queue rows
+  (Expense Verifier) and Level 2's **Queries** rows show one outcome pill instead of three, a trail of what happened
+  after the finding (your finding, Finance sent it to Level 2, Level 2 decided, or who it waits on) and a closing line
+  such as "Closed. Finance can clear the report."; automatic requests read "Finance rule" and "Opened automatically
+  on <approver>'s final approval". Frontend only, SPA 0.11.1 (patch).
 - **Test mode sends every SMS and email to one account** (PR #59, same release as phase 6, API
   0.8.0). With `App:Mode` `Test`, the SMS and email gateways (`TestModeSmsGateway`, `TestModeEmailGateway`) send
   everything (workflow and verification notices, Email R47, SLA reminders) to the user named by the new
@@ -1173,7 +1183,7 @@ fail it.
 Every action returns the report detail, which now carries `verification` (the requests with what the viewer may
 do) and `finance.underVerification`; Finance queue rows carry `openVerifications` and `needsQuery`. SPA:
 **Verifications** (`/verifications`) for Expense Verifiers, a **Queries** tab in Approvals for Level 2, and a
-Verification card on the review and report pages. Events are written as `VerificationRequested`,
+Verification card on the review and report pages (a step bar, the request as a thread of who did what, and a footer saying whose turn it is). Events are written as `VerificationRequested`,
 `VerificationPickedUp`, `VerificationFound`, `QueryRaised`, and `QueryDecided`.
 
 ## Delegation, signatures, summaries and exports (plan Phase 7)

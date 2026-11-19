@@ -35,6 +35,27 @@ export const dispositionLabel: Record<QueryDisposition, string> = {
   Reject: 'Rejected',
 };
 
+export const dispositionTone: Record<QueryDisposition, string> = {
+  Resume: 'pill--success',
+  Return: 'pill--warning',
+  Reject: 'pill--error',
+};
+
+/** How a closed request ended, as one sentence (no disposition = verified without Level 2). */
+export function closedOutcome(disposition: QueryDisposition | null): string {
+  switch (disposition) {
+    case 'Return':
+      return 'Closed. Returned to the employee for correction.';
+    case 'Reject':
+      return 'Closed. The report was rejected.';
+    default:
+      return 'Closed. Finance can clear the report.';
+  }
+}
+
+/** Requests opened by a Finance rule on final approval start their reason with this (Domain CategoryDocumentRules). */
+export const AUTOMATIC_PREFIX = 'Automatic: ';
+
 export const findingOptions: { value: VerificationFinding; title: string; hint: string }[] = [
   { value: 'Verified', title: 'Verified', hint: 'The facts check out.' },
   { value: 'VerifiedWithNote', title: 'Verified with note', hint: 'It checks out, with something Finance should know.' },
