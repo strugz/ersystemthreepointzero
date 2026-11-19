@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ERFWeb.Api.Controllers;
 
-/// <summary>Reference data for the report editor.</summary>
+/// <summary>Reference data for the report editor, and the signed-in employee's saved vehicle.</summary>
 [ApiController]
 [Route("api/lookups")]
 [Authorize]
@@ -40,4 +40,17 @@ public sealed class LookupsController(ILookupService lookups) : ControllerBase
     [ProducesResponseType<MyFilingReadinessDto>(StatusCodes.Status200OK)]
     public async Task<ActionResult<MyFilingReadinessDto>> MyFilingReadiness(CancellationToken ct) =>
         Ok(await lookups.MyFilingReadinessAsync(ct));
+
+    /// <summary>The signed-in employee's saved vehicle (model and plate number), filled into new Gas and Vehicle emergency purchase lines.</summary>
+    [HttpGet("my-vehicle")]
+    [ProducesResponseType<MyVehicleDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<MyVehicleDto>> MyVehicle(CancellationToken ct) =>
+        Ok(await lookups.MyVehicleAsync(ct));
+
+    /// <summary>Saves the signed-in employee's own vehicle (both empty clears it); 400 on <c>model</c> or <c>plateNo</c>.</summary>
+    [HttpPut("my-vehicle")]
+    [ProducesResponseType<MyVehicleDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<MyVehicleDto>> UpdateMyVehicle([FromBody] UpdateMyVehicleRequest request, CancellationToken ct) =>
+        Ok(await lookups.UpdateMyVehicleAsync(request, ct));
 }

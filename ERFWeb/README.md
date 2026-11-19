@@ -18,6 +18,33 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-19
 
+- **Test mode sends every SMS and email to one account** (PR #59, same release as phase 6, API
+  0.8.0). With `App:Mode` `Test`, the SMS and email gateways (`TestModeSmsGateway`, `TestModeEmailGateway`) send
+  everything (workflow and verification notices, Email R47, SLA reminders) to the user named by the new
+  `App:TestRecipient` (username) instead of the real recipients, marked `[TEST]`; an email says how many recipients
+  it was meant for. With no such active user, mobile number or email, nothing is sent. No database script.
+- **Gas and Vehicle emergency purchase verification, Finance rules phase 6** (PR #59). New **Gas** and
+  **Vehicle emergency purchase** categories for the issued vehicle, printed under OTHERS on the R47; their
+  Particulars read **reason - vehicle model - plate no.** (three fields in the line dialog, checked by the server).
+  **Rules → Filing and Finance → Finance rules → Gas and Vehicle emergency purchase** switches each on or off and
+  sets how it is verified (Finance questions 6 and 7): **Both** (default: the receipt before filing and an Expense
+  Verifier after approval), **Expense Verifier after approval**, **Document attached before filing** (new upload
+  types **Gas receipt** and **Vehicle purchase receipt**; a vehicle emergency purchase also needs the ISO **Job Order
+  (JO)**, form R42, checked like the R94 attendance sheet) or **No extra check**. With a verifier, final approval
+  opens a verification request for each such line (raised by the final approver, audited `VerificationRequested`
+  with `automatic`), the Expense Verifiers are notified, and Finance cannot clear the report until each is closed.
+  Saved vehicle: after saving such a line with a vehicle the employee has not saved, ERFWeb asks **Save to my
+  details**; new Gas and Vehicle emergency purchase lines then fill in the model and plate (`users.vehicle_model`,
+  `users.vehicle_plate_no`, script `029`, `SchemaVersion.Required` 29). API 0.8.0, SPA 0.11.0 (minor); apply `029`,
+  deploy the backend, then the frontend.
+- **Docs: database script list and backup setup brought up to date** (PR #59). The script list
+  includes `028_job_grades.sql`; **Backups and monitoring** names the backup folder as `<BACKUP FOLDER>` (live
+  server `C:\ERFWeb-Backups`) and explains that on a workgroup server the tasks must run as a local backup account
+  with a saved share login, since SYSTEM gets "Access is denied" on the share. No version change.
+- **Docs: setting the backup task's account by hand** (PR #59). **Backups and monitoring** and
+  `Backend/tools/README.txt` explain how to run **ERFWeb Database Backup** as an account with a saved share login
+  from Task Scheduler (as on the live server), what breaks it, and a logon-failure troubleshooting row. No version
+  change.
 - **Job grades are master data** (PR #58). The System Administrator adds and renames grades on
   **Master data → Job grades** (`GET/POST/PUT /api/admin/master-data/job-grades`, table `job_grades`, script `028`,
   `SchemaVersion.Required` 28). Script `028` seeds the first three (`Staff`, `Specialist`, `Supervisor`). A grade's
@@ -398,7 +425,8 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Crm:*` (optional) | CRM employee and activity lookups: `BaseUrl` (e.g. `https://<crm-host>/api2/erf/v1`), `ApiKey`, `ApiKeyHeaderName` (`X-Api-Key`), `TimeoutSeconds`. Without it the Add User CRM search answers 503, accounts save unlinked, and the line editor hides **From CRM** |
 | `Smtp:*` (optional) | Mail server, sender mailbox and login for report email (see Report email) |
 | `Reminders:Enabled` / `RunAt` (optional) | Daily SLA approval reminders; off unless `Enabled` is `true`, run at `RunAt` (`HH:mm`, business time, default `08:00`) on working days (see SLA reminders) |
-| `App:Mode` (optional, default `Production`) | `Test` lets the System Administrator hard-delete test data (see Test mode); anything else is production |
+| `App:Mode` (optional, default `Production`) | `Test` lets the System Administrator hard-delete test data and sends every SMS and email to `App:TestRecipient` (see Test mode); anything else is production |
+| `App:TestRecipient` (optional) | Username of the account that receives every SMS and email when `App:Mode` is `Test`; empty means nothing is sent |
 | `Kestrel:*` (server) | Endpoint the API listens on behind nginx |
 | `RateLimiting:SignInPerMinute` (optional, default 30) | Sign-in and password-change attempts allowed per client address per minute (429 `rate_limited` beyond) |
 | `RateLimiting:ApiPerMinute` (optional, default 1200) | All other API requests per client address per minute; only stops runaway clients |
@@ -443,6 +471,8 @@ psql -d erfweb -f Database/024_signature_approval.sql          # Finance approva
 psql -d erfweb -f Database/025_filing_cutoff.sql               # expense_reports.filed_late: filed after the weekly processing cutoff
 psql -d erfweb -f Database/026_attachment_document_type.sql    # receipt_attachments.document_type: Activity Request Form, ISO attendance sheet
 psql -d erfweb -f Database/027_attachment_form_code_check.sql  # receipt_attachments.form_code_check: attendance sheet form code (R94) found or confirmed
+psql -d erfweb -f Database/028_job_grades.sql                  # job_grades master data (Staff, Specialist, Supervisor)
+psql -d erfweb -f Database/029_user_vehicle.sql                # users.vehicle_model / vehicle_plate_no: the employee's saved vehicle
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -742,10 +772,11 @@ trigger stamps `record_history.changed_by`.
 | `PUT /api/reports/{id}/lines/order` | Body `{ lineIds }`: every active line once, in the order the R47 prints them (saved as `sort_order`). A list that no longer matches the report's lines → 409. The editor's **Sort** menu (date or total) calls it |
 | `GET /api/lookups/fare-modes` | Active fare modes for the fare-leg picker, in sort order |
 | `POST /api/reports/{id}/cash-advances` · `PUT/DELETE …/cash-advances/{lineId}` | Rows of the CASH ADVANCE RECEIVED block (Liquidation of Cash Advance only); the R47 reconciles against their total |
-| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`, optional `documentType`: `Receipt`, `ActivityRequestForm`, `IsoAttendanceSheet`, `FoodReceipt`, `LodgingReceipt`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller). On phones and tablets **Take photo** opens the in-app camera (`AppCameraCapture`) |
+| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`, optional `documentType`: `Receipt`, `ActivityRequestForm`, `IsoAttendanceSheet`, `FoodReceipt`, `LodgingReceipt`, `GasReceipt`, `VehiclePurchaseReceipt`, `JobOrder`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller). On phones and tablets **Take photo** opens the in-app camera (`AppCameraCapture`) |
 | `POST /api/reports/{id}/file` | File / re-file → `ForApproval`; snapshots the approval route into `approval_steps` |
 | `POST /api/reports/{id}/reopen` | Pull a `ForApproval`/`Approved` report back to `New` (supersedes the cycle) |
 | `GET /api/lookups/work-with` · `my-rates` · `my-filing-readiness` | Editor lookups (`crmActivitiesAvailable` turns on **From CRM**) |
+| `GET/PUT /api/lookups/my-vehicle` | The signed-in employee's own saved vehicle (`model`, `plateNo`; both empty clears it; plate saved upper-case); audited `Account.VehicleChanged` without the values |
 | `GET /api/reports/{id}/crm-activities?date=YYYY-MM-DD` (report owner) | The owner's CRM activities on the line's date, every status, Completed first and marked when already claimed (see CRM activities on expense lines) |
 
 Rules (Domain, unit-tested): a report is editable only while `New` or `Returned`; filing requires ≥ 1 active
@@ -777,7 +808,7 @@ stored JSON keeps its default), audited `SettingsChanged`, read at filing time, 
 before a line can be added (confirmed with Finance on 2026-11-11): an approved Activity Request Form for Sponsorship
 (new category), an ISO-registered attendance sheet for Demo (new category), the food or meal receipt for
 Representation. When uploading under **Receipts** the employee picks what the file is (**This file is a**: Receipt,
-Activity Request Form, ISO attendance sheet, Food receipt or Lodging receipt;
+Activity Request Form, ISO attendance sheet, Food receipt, Lodging receipt, Gas receipt, Vehicle purchase receipt or Job Order (JO);
 `documentType` in the upload form, stored in `receipt_attachments.document_type`, NULL for older files = Receipt).
 The document comes first: choosing Sponsorship or Demo in the line dialog shows an amber note with **Upload** until
 the report has that document, **Save** stays off, and the server refuses the line (400 on `category`). Filing checks
@@ -798,6 +829,36 @@ means no limit. `lodgingEnabled` switches the category like Sponsorship and Demo
 (default on) a Lodging line needs a `LodgingReceipt` attachment (the official receipt from the hotel or lodging)
 before it is saved and at filing, like Representation's food receipt. Lodging prints under OTHERS
 (Foreign: Other Exp.). Location-based rates are not supported.
+
+**Gas and Vehicle emergency purchase (Finance rules).** Two categories for the issued vehicle (`Gas`,
+`VehicleEmergency`; `gasEnabled`, `vehicleEmergencyEnabled`, on by default). Their Particulars must read
+"reason - vehicle model - plate no." (Domain `VehicleParticulars`, 400 on `particulars` otherwise; the reason may
+itself contain " - "); the line dialog shows Reason, Vehicle model and Plate no. instead of Particulars. Reason is
+picked from suggested reasons per category (`vehicleReasons` in `features/expenses/labels.ts`, e.g. Client visit,
+Flat tire) or typed. Reason and **Work with** use `shared/ui/AppPickerField.vue` instead of a dropdown: tapping the
+field opens a pop-up list (full screen on phones and tablets) with a search box, one tap for Reason, tick boxes and
+**Done** for Work with, and "Use “…”" for a typed entry. The line dialog's category tiles are all one height (labels
+at most two lines; the Vehicle emergency purchase tile reads "Vehicle emergency") and Local / Foreign is as tall as
+the Date field. Lines are
+verified as **Rules → Finance rules → Gas and Vehicle emergency purchase** says (`gasVerification`,
+`vehicleEmergencyVerification`: `Both` default, `Person`, `Document`, `None`; Domain `CategoryVerification`).
+`Document` works like Lodging's receipt: the line needs a `GasReceipt` or `VehiclePurchaseReceipt` attachment before
+it is saved and at filing. A vehicle emergency purchase needs both the receipt and the company's ISO **Job Order
+(JO)** (`JobOrder`; two `RequiredDocument` entries for the category); the line dialog's warning names every document
+still missing and offers a choice of which one to upload. Gas needs only its receipt. Like the Demo attendance sheet,
+a Job Order must be form **R42** (`jobOrderFormCode` on the same card, `CategoryDocumentRules.FormCodeFor`): a PDF is
+searched for the code, a photo or scan needs the employee's confirmation ("Is this the Job Order?"), and an upload
+without either does not count. `Person`: when the last signatory approves, `ApprovalService` opens one verification
+request per active Gas or Vehicle emergency purchase line that has none open, in the same transaction, requested by that signatory with the reason "Automatic:
+… (Finance rule)"; the Expense Verifiers who did not approve the report get one notification after commit. The
+requests then follow the normal verification flow and Finance cannot clear the report while one is open. A rule
+changed later does not touch requests already raised. Both categories print under OTHERS (Foreign: Other Exp.).
+**Saved vehicle:** each user may keep one vehicle (`users.vehicle_model`, `users.vehicle_plate_no`, script `029`;
+Domain `VehicleParticulars.VehicleProblems`: both or neither, model up to 60 and plate up to 20 characters, no
+" - "). A new Gas or Vehicle emergency purchase line fills Vehicle model and Plate no. from it. After such a line is
+saved with a model and plate that differ from the saved ones (or none is saved), the report editor asks **Save your
+vehicle?** (or offers to replace it); **Save to my details** calls `PUT /api/lookups/my-vehicle`, **Cancel**
+remembers that plate in the browser so it is not offered again. There is no vehicle field on the admin user page.
 
 **ERF reference number.** Issued by the system on **first filing** as a yearly series
 `ERF-2026-000142` (`ReferenceNumberFormat` + `ReferenceNumberGenerator`): one counter row per
@@ -1313,7 +1374,9 @@ and result. "No run recorded yet" until the first run after this was deployed.
 For cleaning up records made while testing. Two switches, both off by default:
 
 - **API:** `"App": { "Mode": "Test" }` in the server's `appsettings.json`. Without it, or with `Production`,
-  `DELETE /api/test-data/...` answers 403 and nothing can be deleted.
+  `DELETE /api/test-data/...` answers 403 and nothing can be deleted. In `Test` mode every SMS and email goes to
+  the account named by `"TestRecipient": "<username>"` in the same section (its mobile number and email, message
+  marked `[TEST]`); without it, or when that account has no number or email, nothing is sent at all.
 - **SPA:** `VITE_APP_MODE=test` at build time. Without it the Delete buttons and the TEST chip are not shown.
 
 `DELETE /api/test-data/{kind}/{id}` is for the System Administrator only (`TestDataController`,
@@ -1510,7 +1573,7 @@ email alerts to `-AlertTo` (default jca.mdmpi@marsmandrysdale.com).
 
 | Task | When | What it does |
 | --- | --- | --- |
-| **ERFWeb Database Backup** (`Backup-ErfWebDatabase.ps1`) | every night at 01:00 | `pg_dump` (custom format) of the database to `D:\ERFWeb-Backups\erms_db_yyyyMMdd_HHmm.dump`; checks the file with `pg_restore --list` (whole archive readable, table data present, `workflow_audit` included); copies it to the network share (`-CopyTo`) and checks the copy's size; deletes backups older than 14 days in both places. Log: `D:\ERFWeb-Backups\backup-log.txt`. Emails on any failure |
+| **ERFWeb Database Backup** (`Backup-ErfWebDatabase.ps1`) | every night at 01:00 | `pg_dump` (custom format) of the database to `<BACKUP FOLDER>\erms_db_yyyyMMdd_HHmm.dump` (`-BackupDir`; script default `D:\ERFWeb-Backups`, live server `C:\ERFWeb-Backups`); checks the file with `pg_restore --list` (whole archive readable, table data present, `workflow_audit` included); copies it to the network share (`-CopyTo`) and checks the copy's size; deletes backups older than 14 days in both places. Log: `<BACKUP FOLDER>\backup-log.txt`. Emails on any failure |
 | **ERFWeb Health Check** (`Test-ErfWebHealth.ps1`) | every 5 minutes | Calls `https://sr.mdmpi.com.ph/erf/health` (nginx, API and database together) and emails "ERFWeb is DOWN" after 2 failed checks in a row, then "back up" when it recovers; also emails when the newest backup is older than 26 hours. Log (changes only): `C:\ProgramData\ERFWeb\health-log.txt` |
 
 **Before installing:**
@@ -1518,13 +1581,40 @@ email alerts to `-AlertTo` (default jca.mdmpi@marsmandrysdale.com).
 * PostgreSQL runs on another server, so install the **PostgreSQL command line tools** on the API server (the
   PostgreSQL installer's "Command Line Tools" component), the **same major version as the database server or
   newer**. The script finds them in `C:\Program Files\PostgreSQL\<version>\bin`, or pass `-PgBin`.
-* Ask IT for the network share. The tasks run as `SYSTEM` (the share then sees the server's computer account,
-  e.g. `MDMPI\SERVERNAME$`, which needs write access) or as a service account given with `-RunAsUser`.
-* Check that `D:` exists, or pass `-BackupDir`.
+* Ask IT for the network share, as a `\\server\share` path (the task cannot see mapped drive letters). The tasks
+  run as `SYSTEM` unless `-RunAsUser` (or `RUN_AS_USER` in the `.cmd`) names another account. SYSTEM reaches a
+  share as the server's computer account: on a domain that account needs write access; on a workgroup server (as
+  the live one is) the share refuses it with "Access is denied" right after "Backup OK". Then use a local backup
+  account instead: a user on the share's PC with Change on the share and Modify on the folder, and a local
+  administrator on the API server that has saved that login with `cmdkey /add:<share PC> /user:<share PC>\<user>
+  /pass` while signed in as itself. Step 5 of `Backend/tools/README.txt` has the steps.
+* Check that `D:` exists, or pass `-BackupDir` (the live server uses `C:\ERFWeb-Backups`).
 
 **After installing:** run `Start-ScheduledTask -TaskName 'ERFWeb Database Backup'` in an administrator PowerShell,
-then read `D:\ERFWeb-Backups\backup-log.txt`: the last line should be `Backup OK: …` and the share should hold the
+then read `<BACKUP FOLDER>\backup-log.txt`: the last line should be `Backup OK: …` and the share should hold the
 same file. Running the installer again replaces both tasks; `-Uninstall` removes them and keeps the backups.
+
+**Setting the backup task's account by hand.** Instead of `-RunAsUser`, the account can be set in Task Scheduler,
+as on the live server, where the backup task runs as an existing administrator account that has the share login
+saved:
+
+1. Sign in to the API server as that account and check the share login is saved (`cmdkey /list` lists the share
+   PC, or it was saved with "Remember my credentials" in Explorer). Test a write to the share.
+2. Task Scheduler → **ERFWeb Database Backup** → **Properties** → **General** → **Change User or Group…**, enter
+   the account, **Check Names**, **OK**.
+3. Tick **Run whether user is logged on or not** and **Run with highest privileges**. Leave **Do not store
+   password** unticked: with it ticked the task cannot reach the share.
+4. **OK**, type the account's Windows password, then right-click the task → **Run**. The log should show
+   `Backup OK` and then `Copied to \\…`.
+
+Leave **ERFWeb Health Check** on SYSTEM; it only reads the local backup folder. What breaks it:
+
+* The account's Windows password changes: the task fails with a logon failure. Open it, **OK**, type the new
+  password.
+* The share login changes or is removed: "Access is denied" again. Run `cmdkey` again as that account.
+* The account is disabled or removed: backups stop. A dedicated backup account avoids this.
+* Running `Install-ErfWebMaintenance.cmd` again resets both tasks to `RUN_AS_USER`, which is `SYSTEM` when empty.
+  Set `RUN_AS_USER` to the account first, or set the account here again afterwards.
 
 **Limits:** the monitor runs on the API server, so it cannot report that whole server being off (IT's own
 monitoring should). Email goes through `System.Net.Mail`, which supports STARTTLS (`Security: StartTls`, as the
@@ -1535,7 +1625,7 @@ replacing anything:
 
 ```bash
 createdb -h <db-host> -U <user> erms_db_restored
-pg_restore -h <db-host> -U <user> -d erms_db_restored --no-owner D:\ERFWeb-Backups\erms_db_20261026_0100.dump
+pg_restore -h <db-host> -U <user> -d erms_db_restored --no-owner <BACKUP FOLDER>\erms_db_20261026_0100.dump
 ```
 
 To put a backup back into `erms_db` itself, stop the API first (`Stop-Service ERFWeb.Api`), take a fresh backup of
@@ -1604,7 +1694,8 @@ Every log line written for that request carries the same id.
 | A new feature answers 404 | The frontend went live before the backend that has the endpoint | Deploy the backend (step D) |
 | An image or link loads the website page instead | The frontend builds that address without `VITE_API_BASE_URL` | Use `apiUrl(...)` from `shared/api/client.ts` for every API address |
 | Email not sent | `Smtp` settings wrong, or the server cannot reach the mail server | `email_deliveries.status` and `smtp_status_code` in the database, and the log file |
-| Backup failure email, or "Database backup is MISSING" | `pg_dump` not installed or older than the database server, share not writable, or the task did not run | `D:\ERFWeb-Backups\backup-log.txt`, then Task Scheduler → **ERFWeb Database Backup** → History |
+| Backup failure email, or "Database backup is MISSING" | `pg_dump` not installed or older than the database server, share not writable (see **Backups and monitoring → Before installing**), or the task did not run | `<BACKUP FOLDER>\backup-log.txt`, then Task Scheduler → **ERFWeb Database Backup** → History |
+| Backup task does not run; Task Scheduler shows a logon failure | The task account's Windows password changed, or the account is disabled | Open the task, **OK**, type the current password; or set another account (**Setting the backup task's account by hand**) |
 | No SLA reminders | `Reminders:Enabled` is not `true`, SLA days are 0, or nothing is overdue yet | The log line `SLA reminders are off` or `SLA reminder run: …`, and `reminder_deliveries` |
 
 ### Local development against the live API

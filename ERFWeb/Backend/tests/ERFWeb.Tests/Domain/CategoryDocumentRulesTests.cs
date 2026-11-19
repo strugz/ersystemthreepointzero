@@ -9,7 +9,7 @@ public class CategoryDocumentRulesTests
     private static readonly FinanceRuleSet On = FinanceRuleSet.Default;
 
     [Fact]
-    public void Default_RequiresTheFourDocuments()
+    public void Default_RequiresTheSevenDocuments()
     {
         var required = CategoryDocumentRules.Required(On);
 
@@ -19,6 +19,9 @@ public class CategoryDocumentRulesTests
                 (ExpenseCategory.Demo, AttachmentDocumentType.IsoAttendanceSheet),
                 (ExpenseCategory.Representation, AttachmentDocumentType.FoodReceipt),
                 (ExpenseCategory.Lodging, AttachmentDocumentType.LodgingReceipt),
+                (ExpenseCategory.Gas, AttachmentDocumentType.GasReceipt),
+                (ExpenseCategory.VehicleEmergency, AttachmentDocumentType.VehiclePurchaseReceipt),
+                (ExpenseCategory.VehicleEmergency, AttachmentDocumentType.JobOrder),
             ],
             required.Select(r => (r.Category, r.DocumentType)));
         Assert.Empty(CategoryDocumentRules.Disabled(On));
@@ -141,6 +144,89 @@ public class CategoryDocumentRulesTests
         Assert.DoesNotContain(CategoryDocumentRules.Required(rules), r => r.Category == ExpenseCategory.Lodging);
         Assert.Equal(["Lodging claims are switched off. Remove or change those lines."],
             CategoryDocumentRules.FilingProblems([ExpenseCategory.Lodging], [], rules));
+    }
+
+    [Fact]
+    public void GasAndVehicleEmergency_DefaultToVerifierAndReceipt()
+    {
+        Assert.True(CategoryDocumentRules.NeedsPersonVerification(On, ExpenseCategory.Gas));
+        Assert.True(CategoryDocumentRules.NeedsPersonVerification(On, ExpenseCategory.VehicleEmergency));
+        Assert.False(CategoryDocumentRules.NeedsPersonVerification(On, ExpenseCategory.Transportation));
+        Assert.Empty(CategoryDocumentRules.FilingProblems(
+            [ExpenseCategory.Gas, ExpenseCategory.VehicleEmergency],
+            [AttachmentDocumentType.GasReceipt, AttachmentDocumentType.VehiclePurchaseReceipt, AttachmentDocumentType.JobOrder],
+            On));
+    }
+
+    [Theory]
+    [InlineData(CategoryVerification.None, false, false)]
+    [InlineData(CategoryVerification.Person, true, false)]
+    [InlineData(CategoryVerification.Document, false, true)]
+    [InlineData(CategoryVerification.Both, true, true)]
+    public void GasVerification_SetsPersonAndDocument(CategoryVerification mode, bool person, bool document)
+    {
+        var rules = On with { GasVerification = mode };
+
+        Assert.Equal(person, CategoryDocumentRules.NeedsPersonVerification(rules, ExpenseCategory.Gas));
+        Assert.Equal(document, CategoryDocumentRules.Required(rules).Any(r => r is { Category: ExpenseCategory.Gas, DocumentType: AttachmentDocumentType.GasReceipt }));
+    }
+
+    [Fact]
+    public void VehicleEmergency_NeedsTheReceiptAndTheJobOrder()
+    {
+        Assert.Equal(
+            "Attach the receipt for the vehicle purchase and the Job Order (JO), form R42 under Receipts "
+                + "(as \"Vehicle purchase receipt\" and \"Job Order (JO)\") before adding a Vehicle emergency purchase line.",
+            CategoryDocumentRules.LineProblem(ExpenseCategory.VehicleEmergency, [AttachmentDocumentType.Receipt], On));
+        Assert.Equal(
+            ["A Vehicle emergency purchase line needs a Job Order (JO), form R42 attached. Upload it under Receipts as \"Job Order (JO)\"."],
+            CategoryDocumentRules.FilingProblems([ExpenseCategory.VehicleEmergency], [AttachmentDocumentType.VehiclePurchaseReceipt], On));
+        Assert.NotNull(CategoryDocumentRules.LineProblem(ExpenseCategory.VehicleEmergency, [AttachmentDocumentType.JobOrder], On));
+        Assert.Null(CategoryDocumentRules.LineProblem(
+            ExpenseCategory.VehicleEmergency, [AttachmentDocumentType.VehiclePurchaseReceipt, AttachmentDocumentType.JobOrder], On));
+        Assert.Empty(CategoryDocumentRules.FilingProblems(
+            [ExpenseCategory.VehicleEmergency], [AttachmentDocumentType.VehiclePurchaseReceipt, AttachmentDocumentType.JobOrder], On));
+    }
+
+    [Fact]
+    public void JobOrder_NeedsItsFormCode_R42ByDefault()
+    {
+        Assert.Equal("R42", CategoryDocumentRules.FormCodeFor(On, AttachmentDocumentType.JobOrder));
+        Assert.Equal("R94", CategoryDocumentRules.FormCodeFor(On, AttachmentDocumentType.IsoAttendanceSheet));
+        Assert.Null(CategoryDocumentRules.FormCodeFor(On, AttachmentDocumentType.VehiclePurchaseReceipt));
+        Assert.Equal("This file does not show form R42. Upload the R42 Job Order, or confirm that this file is form R42.",
+            CategoryDocumentRules.FormCodeNotFound(On, AttachmentDocumentType.JobOrder));
+        Assert.Equal(["financeRules.jobOrderFormCode"], FinanceRuleSetRules.Validate(On with { JobOrderFormCode = " " }).Keys);
+    }
+
+    [Fact]
+    public void GasOff_IsDisabled_AndNeedsNoDocument()
+    {
+        var rules = On with { GasEnabled = false };
+
+        Assert.Equal([ExpenseCategory.Gas], CategoryDocumentRules.Disabled(rules));
+        Assert.DoesNotContain(CategoryDocumentRules.Required(rules), r => r.Category == ExpenseCategory.Gas);
+    }
+
+    [Fact]
+    public void UnknownVerificationMode_IsRefused()
+    {
+        var errors = FinanceRuleSetRules.Validate(On with { VehicleEmergencyVerification = (CategoryVerification)9 });
+
+        Assert.Equal(["financeRules.vehicleEmergencyVerification"], errors.Keys);
+    }
+
+    [Theory]
+    [InlineData("Client visit - Toyota Vios - ABC 1234", null)]
+    [InlineData("Flat tire - CALMC - Toyota Vios - ABC 1234", null)]
+    [InlineData("Client visit - Toyota Vios", "format")]
+    [InlineData("Client visit -  - ABC 1234", "format")]
+    [InlineData("Gas", "format")]
+    public void VehicleParticulars_NeedReasonModelAndPlate(string particulars, string? expected)
+    {
+        Assert.Equal(expected is null, VehicleParticulars.Problem(ExpenseCategory.Gas, particulars) is null);
+        Assert.Equal(expected is null, VehicleParticulars.Problem(ExpenseCategory.VehicleEmergency, particulars) is null);
+        Assert.Null(VehicleParticulars.Problem(ExpenseCategory.Transportation, particulars));
     }
 
     [Fact]

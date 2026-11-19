@@ -1,12 +1,15 @@
 using System.Text.Json;
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Approvals;
 using ERFWeb.Application.Features.Expenses;
+using ERFWeb.Application.Features.Verification;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Approval;
 using ERFWeb.Domain.Expenses;
 using ERFWeb.Infrastructure.Expenses;
 using ERFWeb.Infrastructure.Persistence;
+using ERFWeb.Infrastructure.Verification;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -28,6 +31,8 @@ public sealed class ApprovalService(
     ExpenseReportDetailLoader loader,
     IApprovalNotifier notifier,
     IDelegationLookup delegations,
+    ISystemSettingsService settings,
+    VerificationReader verificationReader,
     ILogger<ApprovalService> logger) : IApprovalService
 {
     // ---------- Inbox ----------
@@ -265,12 +270,82 @@ public sealed class ApprovalService(
             var notification = new WorkflowEventNotification(auditEvent, reportId, report.ReferenceNo, employeeName,
                 recipients.Where(id => id != user.UserId).Distinct().ToList(), summary,
                 ActorName: actor, Note: reason, NextApproverName: nextName, Cycle: report.CurrentCycle, StepOrder: acting.StepOrder);
-            return (report.Status, nextName, notification);
+            var verification = decision.CompletesApproval
+                ? await RaiseAutomaticVerificationsAsync(report, employeeName, token)
+                : null;
+            return (report.Status, nextName, notification, verification);
         }, ct);
 
         await NotifyAsync(outcome.notification, ct);
+        if (outcome.verification is not null)
+        {
+            await NotifyAsync(outcome.verification, ct);
+        }
+
         var detail = await loader.LoadAsync(reportId, ct);
         return new ApprovalActionResultDto(reportId, outcome.Status, outcome.nextName, detail);
+    }
+
+    /// <summary>
+    /// Finance rule (requirement 6): on final approval, each Gas or Vehicle emergency purchase line verified by a person gets an open
+    /// verification request, raised by the final approver, so Finance cannot clear the report until an Expense
+    /// Verifier closes it. Returns one notification for the verifiers who may take them, or null when none was raised.
+    /// </summary>
+    private async Task<WorkflowEventNotification?> RaiseAutomaticVerificationsAsync(ExpenseReport report, string employeeName, CancellationToken ct)
+    {
+        var rules = await settings.GetFinanceRulesAsync(ct);
+        var lines = (await db.ExpenseLines.AsNoTracking()
+                .Where(l => l.ReportId == report.Id && l.IsActive
+                    && (l.Category == ExpenseCategory.Gas || l.Category == ExpenseCategory.VehicleEmergency)
+                    && !db.VerificationRequests.Any(v => v.ExpenseLineId == l.Id && v.Status != VerificationStatus.Closed))
+                .OrderBy(l => l.Id)
+                .Select(l => new { l.Id, l.Category, l.Particulars })
+                .ToListAsync(ct))
+            .Where(l => CategoryDocumentRules.NeedsPersonVerification(rules, l.Category))
+            .ToList();
+        if (lines.Count == 0)
+        {
+            return null;
+        }
+
+        var now = clock.UtcNow;
+        var requests = lines.Select(l => (Line: l, Request: new VerificationRequest
+        {
+            ReportId = report.Id,
+            ExpenseLineId = l.Id,
+            Reason = CategoryDocumentRules.AutomaticVerificationReason(l.Category),
+            Status = VerificationStatus.Open,
+            RequestedByUserId = user.UserId,
+            RequestedAt = now,
+            CreatedAt = now,
+            UpdatedAt = now,
+        })).ToList();
+        db.VerificationRequests.AddRange(requests.Select(r => r.Request));
+        await db.SaveWithConcurrencyAsync(ct);
+
+        foreach (var (line, request) in requests)
+        {
+            await audit.WriteAsync(new WorkflowAuditEntry(VerificationAuditEvents.Requested, report.Id, user.UserId, JsonSerializer.Serialize(new
+            {
+                requestId = request.Id,
+                lineId = line.Id,
+                particulars = line.Particulars,
+                reason = request.Reason,
+                automatic = true,
+            })), ct);
+        }
+
+        // Only verifiers who may take them (9.16): an approver of the report is left out; the claimant already hears of the approval.
+        var approvers = await verificationReader.ApproversAsync(report.Id, ct);
+        var verifiers = await db.UserRoleGrants.AsNoTracking()
+            .Where(g => g.Role == UserRole.ExpenseVerifier && g.Status == RoleGrantStatus.Active)
+            .Select(g => g.UserId)
+            .ToListAsync(ct);
+        var categories = string.Join(" and ", lines.Select(l => l.Category).Distinct().Order());
+        return new WorkflowEventNotification(VerificationAuditEvents.Requested, report.Id, report.ReferenceNo, employeeName,
+            verifiers.Where(id => !approvers.Contains(id) && id != report.EmployeeUserId && id != user.UserId).Distinct().ToList(),
+            $"{lines.Count} {categories} line(s) need verification before Finance clears the report.",
+            DeliveryKey: $"{VerificationAuditEvents.Requested}:{requests[0].Request.Id}");
     }
 
     // ---------- Line adjustment ----------

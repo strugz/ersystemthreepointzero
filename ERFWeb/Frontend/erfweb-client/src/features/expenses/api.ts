@@ -11,6 +11,7 @@ import type {
   FareModeOption,
   FileReportResult,
   FilingReadiness,
+  MyVehicle,
   PagedResult,
   ReportHeaderInput,
   ReportListQuery,
@@ -69,6 +70,9 @@ export const expensesApi = {
   /** The rates in force on the date (today when omitted). */
   myRates: (date?: string) => api.get<EmployeeRates>(`/lookups/my-rates${qs({ date })}`),
   filingReadiness: () => api.get<FilingReadiness>('/lookups/my-filing-readiness'),
+  myVehicle: () => api.get<MyVehicle>('/lookups/my-vehicle'),
+  /** Saves the employee's own vehicle (both empty clears it). */
+  updateMyVehicle: (input: { model: string; plateNo: string }) => api.put<MyVehicle>('/lookups/my-vehicle', input),
   fareModes: () => api.get<FareModeOption[]>('/lookups/fare-modes'),
   /** The employee's CRM activities on one day, Completed first (the server calls the CRM). */
   crmActivities: (id: string, date: string) => api.get<CrmActivityPickList>(`${r(id)}/crm-activities${qs({ date })}`),

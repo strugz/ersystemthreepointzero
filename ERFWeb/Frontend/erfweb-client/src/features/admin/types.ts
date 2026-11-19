@@ -383,6 +383,8 @@ export function rulesSectionOf(field: string): RulesSection {
 export type CutoffWeekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
 export type LateFilingHandling = 'NoticeOnly' | 'FlagForFinance';
 export type LodgingRateBasis = 'RateProfile' | 'Flat';
+/** How Gas and Vehicle emergency purchase lines are verified: a verifier after approval, a document before filing, both, or neither. */
+export type CategoryVerification = 'None' | 'Person' | 'Document' | 'Both';
 
 /** Finance rules (Rules page, one JSON row on the server). Each rule answers an open Finance question. */
 export interface FinanceRules {
@@ -412,6 +414,12 @@ export interface FinanceRules {
   lodgingCapAtRate: boolean;
   /** A Lodging line needs the official receipt from the hotel or lodging attached first. */
   lodgingRequiresDocument: boolean;
+  gasEnabled: boolean;
+  gasVerification: CategoryVerification;
+  vehicleEmergencyEnabled: boolean;
+  vehicleEmergencyVerification: CategoryVerification;
+  /** Code an uploaded Job Order (JO) must show, e.g. R42; a photo or scan needs the employee's confirmation. */
+  jobOrderFormCode: string;
 }
 
 export interface SystemSettingsInput {

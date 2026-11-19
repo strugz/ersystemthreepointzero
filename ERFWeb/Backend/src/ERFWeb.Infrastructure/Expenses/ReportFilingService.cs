@@ -59,7 +59,7 @@ public sealed class ReportFilingService(
             var lineCategories = await db.ExpenseLines.AsNoTracking()
                 .Where(l => l.ReportId == reportId && l.IsActive).Select(l => l.Category).Distinct().ToListAsync(token);
             var attachedTypes = await db.ReceiptAttachments.AsNoTracking()
-                .Where(a => a.ReportId == reportId && (a.DocumentType != AttachmentDocumentType.IsoAttendanceSheet || a.FormCodeCheck != null))
+                .Where(a => a.ReportId == reportId && ((a.DocumentType != AttachmentDocumentType.IsoAttendanceSheet && a.DocumentType != AttachmentDocumentType.JobOrder) || a.FormCodeCheck != null))
                 .Select(a => a.DocumentType ?? AttachmentDocumentType.Receipt).Distinct().ToListAsync(token);
             var categoryProblems = CategoryDocumentRules.FilingProblems(lineCategories, attachedTypes, await settings.GetFinanceRulesAsync(token));
 

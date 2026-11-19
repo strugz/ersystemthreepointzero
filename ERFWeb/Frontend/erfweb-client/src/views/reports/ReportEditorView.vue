@@ -12,7 +12,16 @@ import { formatBytes, formatDate, formatDateTime, formatMoney } from '@/shared/f
 import { describeError, useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { expensesApi } from '@/features/expenses/api';
-import { categoryLabel, countedDocumentType, reportTypeLabel, usesCashAdvance, usesRevolvingFund } from '@/features/expenses/labels';
+import {
+  categoryLabel,
+  countedDocumentType,
+  isVehicleCategory,
+  normalizePlate,
+  reportTypeLabel,
+  usesCashAdvance,
+  usesRevolvingFund,
+  vehicleParts,
+} from '@/features/expenses/labels';
 import { lineSortOptions, sortedLineIds, type LineSort } from '@/features/expenses/lineOrder';
 import ReportStatusChip from '@/features/expenses/components/ReportStatusChip.vue';
 import ReportDetailsCard from '@/features/expenses/components/ReportDetailsCard.vue';
@@ -38,6 +47,7 @@ import type {
   ExpenseReportDetail,
   FareModeOption,
   FilingReadiness,
+  MyVehicle,
   ReportHeaderInput,
   SaveCashAdvanceLineInput,
   SaveExpenseLineInput,
@@ -80,10 +90,78 @@ async function load() {
 }
 
 async function loadLookups() {
-  const [ww, fr, fm] = await Promise.allSettled([expensesApi.workWith(), expensesApi.filingReadiness(), expensesApi.fareModes()]);
+  const [ww, fr, fm, mv] = await Promise.allSettled([
+    expensesApi.workWith(),
+    expensesApi.filingReadiness(),
+    expensesApi.fareModes(),
+    expensesApi.myVehicle(),
+  ]);
   if (ww.status === 'fulfilled') workWith.value = ww.value;
   if (fr.status === 'fulfilled') readiness.value = fr.value;
   if (fm.status === 'fulfilled') fareModes.value = fm.value;
+  if (mv.status === 'fulfilled') savedVehicle.value = mv.value;
+}
+
+// ---- saved vehicle --------------------------------------------------------------------------
+// After a Gas or Vehicle emergency purchase line is saved with a vehicle the employee has not saved (or a different
+// one), offer to keep it in their details so new lines fill it in. Not offered when the saved vehicle could not be
+// loaded; "Cancel" remembers the plate in this browser so the same plate is not offered again.
+const savedVehicle = ref<MyVehicle | null>(null);
+const vehicleOffer = ref<{ model: string; plateNo: string } | null>(null);
+const savingVehicle = ref(false);
+const DECLINED_PLATES_KEY = 'erfweb.declinedVehiclePlates';
+
+function declinedPlates(): string[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(DECLINED_PLATES_KEY) ?? '[]');
+    return Array.isArray(value) ? value.filter((p): p is string => typeof p === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function offerVehicle(input: SaveExpenseLineInput) {
+  if (!savedVehicle.value || !isVehicleCategory(input.category)) return;
+  const parts = vehicleParts(input.particulars ?? '');
+  const plateNo = normalizePlate(parts.plate);
+  if (!parts.model || !plateNo) return;
+  const saved = savedVehicle.value;
+  if ((saved.model === parts.model && saved.plateNo === plateNo) || declinedPlates().includes(plateNo)) return;
+  vehicleOffer.value = { model: parts.model, plateNo };
+}
+
+const vehicleOfferMessage = computed(() => {
+  const offer = vehicleOffer.value;
+  if (!offer) return '';
+  const offered = `${offer.model} · ${offer.plateNo}`;
+  const saved = savedVehicle.value;
+  return saved?.model && saved.plateNo
+    ? `Replace your saved vehicle (${saved.model} · ${saved.plateNo}) with ${offered}?`
+    : `Save ${offered} to your details? Your next Gas and Vehicle emergency purchase lines will fill it in.`;
+});
+
+function closeVehicleOffer(open: boolean) {
+  if (open || savingVehicle.value || !vehicleOffer.value) return;
+  try {
+    localStorage.setItem(DECLINED_PLATES_KEY, JSON.stringify([...declinedPlates(), vehicleOffer.value.plateNo].slice(-20)));
+  } catch {
+    // Not remembered: the offer may come back for this plate, which is harmless.
+  }
+  vehicleOffer.value = null;
+}
+
+async function saveVehicle() {
+  if (!vehicleOffer.value) return;
+  savingVehicle.value = true;
+  try {
+    savedVehicle.value = await expensesApi.updateMyVehicle(vehicleOffer.value);
+    snack.success('Vehicle saved to your details.');
+    vehicleOffer.value = null;
+  } catch (err) {
+    snack.error(describeError(err, 'Unable to save the vehicle.'));
+  } finally {
+    savingVehicle.value = false;
+  }
 }
 
 // Rates are versioned by date, so they follow the line dialog's date. Debounced while typing; a
@@ -239,11 +317,13 @@ async function saveLine(input: SaveExpenseLineInput) {
     if (editingLine.value) {
       await expensesApi.updateLine(reportId, editingLine.value.id, input);
       snack.success('Expense line updated.');
+      offerVehicle(input);
       lineDialog.value = false;
       await load();
     } else {
       await expensesApi.addLine(reportId, input);
       snack.success('Expense line added.');
+      offerVehicle(input);
       // Stay open for the next line: reload first so the default date follows the line just added.
       await load();
       lineDialogRef.value?.reset();
@@ -364,10 +444,10 @@ async function confirmRemoveCash() {
 const uploading = ref(false);
 const busyAttachmentId = ref<number | null>(null);
 
-// An attendance sheet whose form code (R94) is not in its PDF text waits here for the employee to confirm it.
+// An attendance sheet (R94) or Job Order (R42) whose form code is not in its PDF text waits here for the employee to confirm it.
 const formCodeDialog = ref(false);
 const formCodeMessage = ref('');
-const pendingSheet = ref<{ file: File; note: string } | null>(null);
+const pendingSheet = ref<{ file: File; note: string; documentType: AttachmentDocumentType } | null>(null);
 
 async function upload(picked: File, documentType: AttachmentDocumentType) {
   uploading.value = true;
@@ -381,7 +461,7 @@ async function upload(picked: File, documentType: AttachmentDocumentType) {
       const formCodeError = err instanceof ApiError && err.status === 400 ? err.problem?.errors?.formCodeConfirmed?.[0] : undefined;
       if (!formCodeError) throw err;
       formCodeMessage.value = formCodeError;
-      pendingSheet.value = { file, note };
+      pendingSheet.value = { file, note, documentType };
       formCodeDialog.value = true;
       return;
     }
@@ -399,7 +479,7 @@ async function confirmFormCode() {
   if (!sheet) return;
   uploading.value = true;
   try {
-    await expensesApi.upload(reportId, sheet.file, 'IsoAttendanceSheet', true);
+    await expensesApi.upload(reportId, sheet.file, sheet.documentType, true);
     formCodeDialog.value = false;
     pendingSheet.value = null;
     snack.success(`Uploaded ${sheet.file.name}${sheet.note}.`);
@@ -711,6 +791,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :required-documents="readiness?.requiredDocuments ?? []"
         :attached-document-types="report?.attachments.map(countedDocumentType) ?? []"
         :uploading-document="uploading"
+        :saved-vehicle="savedVehicle"
         @upload-document="upload"
         @remove="removeFromDialog"
         :crm-list="crmList"
@@ -731,6 +812,16 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :errors="cashErrors"
         @save="saveCash"
         @remove="removeCashFromDialog"
+      />
+
+      <AppConfirmDialog
+        :model-value="vehicleOffer !== null"
+        title="Save your vehicle?"
+        :message="vehicleOfferMessage"
+        confirm-text="Save to my details"
+        :loading="savingVehicle"
+        @update:model-value="closeVehicleOffer"
+        @confirm="saveVehicle"
       />
 
       <AppConfirmDialog
@@ -791,7 +882,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
 
       <AppConfirmDialog
         v-model="formCodeDialog"
-        title="Is this the attendance sheet?"
+        :title="pendingSheet?.documentType === 'JobOrder' ? 'Is this the Job Order?' : 'Is this the attendance sheet?'"
         :message="`${formCodeMessage}\n\nPhotos and scans cannot be searched. Upload it only if it is the form; Finance checks it against the original.`"
         confirm-text="Yes, it is the form"
         :loading="uploading"

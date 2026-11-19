@@ -4,7 +4,21 @@ import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { formatMoney, todayIso } from '@/shared/format';
 import { hasCamera } from '@/shared/images';
 import AppCameraCapture from '@/shared/ui/AppCameraCapture.vue';
-import { categoryDefaults, categoryOptions, expenseTypeOptions, fareModeIcon, lineTotal, mealTypes, r47Column } from '../labels';
+import AppPickerField from '@/shared/ui/AppPickerField.vue';
+import {
+  VEHICLE_SEPARATOR,
+  categoryDefaults,
+  categoryLabel,
+  categoryOptions,
+  expenseTypeOptions,
+  fareModeIcon,
+  isVehicleCategory,
+  lineTotal,
+  mealTypes,
+  r47Column,
+  vehicleParts,
+  vehicleReasons,
+} from '../labels';
 import CrmActivityPicker from './CrmActivityPicker.vue';
 import type {
   AttachmentDocumentType,
@@ -15,6 +29,7 @@ import type {
   ExpenseLine,
   ExpenseTransportItem,
   FareModeOption,
+  MyVehicle,
   RequiredDocument,
   SaveExpenseLineInput,
   WorkWithOption,
@@ -49,6 +64,8 @@ const props = withDefaults(
     attachedDocumentTypes?: AttachmentDocumentType[];
     /** A document picked here is being uploaded by the parent. */
     uploadingDocument?: boolean;
+    /** The employee's saved vehicle; fills Vehicle model and Plate no. on a new Gas or Vehicle emergency purchase line. */
+    savedVehicle?: MyVehicle | null;
   }>(),
   {
     line: null,
@@ -65,6 +82,7 @@ const props = withDefaults(
     requiredDocuments: () => [],
     attachedDocumentTypes: () => [],
     uploadingDocument: false,
+    savedVehicle: null,
     crmError: null,
     periodFrom: null,
     periodTo: null,
@@ -121,6 +139,28 @@ const dateInput = ref<HTMLElement | null>(null);
 // while it is still empty or still holds that auto value, so anything the employee typed is kept.
 const auto = reactive({ particulars: '', amount: 0 });
 
+// Gas and Vehicle emergency purchase: Particulars typed as Reason, Vehicle model and Plate no. A new line takes the
+// model and plate from the employee's saved vehicle.
+// Reason is set by a picker; an older value may be null.
+const vehicle = reactive<{ reason: string | null; model: string; plate: string }>({ reason: '', model: '', plate: '' });
+const isVehicleLine = computed(() => isVehicleCategory(form.category));
+
+function loadVehicleFields() {
+  const parts = vehicleParts(form.particulars ?? '');
+  if (props.line === null && !parts.model && !parts.plate && props.savedVehicle?.model && props.savedVehicle.plateNo) {
+    parts.model = props.savedVehicle.model;
+    parts.plate = props.savedVehicle.plateNo;
+  }
+  Object.assign(vehicle, parts);
+}
+
+watch(vehicle, () => {
+  if (!isVehicleLine.value) return;
+  const parts = [vehicle.reason, vehicle.model, vehicle.plate].map((p) => (p ?? '').trim());
+  form.particulars = parts.every((p) => p.length > 0) ? parts.join(VEHICLE_SEPARATOR) : '';
+  auto.particulars = form.particulars;
+});
+
 function applyCategoryDefaults() {
   if (props.line !== null) {
     return;
@@ -149,6 +189,7 @@ function applyCategoryDefaults() {
 function reset() {
   Object.assign(form, blank());
   Object.assign(auto, { particulars: '', amount: 0 });
+  Object.assign(vehicle, { reason: '', model: '', plate: '' });
   selectedMeals.value = [];
   triedSave.value = false;
   pickedActivities.value = [];
@@ -196,6 +237,7 @@ watch(
     pickedActivities.value = [];
     Object.assign(auto, { particulars: '', amount: 0 });
     applyCategoryDefaults();
+    if (isVehicleLine.value) loadVehicleFields();
   },
 );
 
@@ -203,6 +245,7 @@ watch(
   () => form.category,
   () => {
     applyCategoryDefaults();
+    if (isVehicleLine.value) loadVehicleFields();
     fillLegFromActivity();
   },
 );
@@ -416,6 +459,9 @@ const workWithList = computed<string[]>({
   },
 });
 
+// Tile text kept to two lines so every tile row is the same height; the full name stays in the tooltip and elsewhere.
+const tileLabel: Partial<Record<ExpenseCategory, string>> = { VehicleEmergency: 'Vehicle emergency' };
+
 const categoryIcon: Record<ExpenseCategory, string> = {
   Meals: 'mdi-silverware-fork-knife',
   Transportation: 'mdi-car-outline',
@@ -426,6 +472,8 @@ const categoryIcon: Record<ExpenseCategory, string> = {
   Sponsorship: 'mdi-handshake-outline',
   Demo: 'mdi-presentation',
   Lodging: 'mdi-bed-outline',
+  Gas: 'mdi-gas-station-outline',
+  VehicleEmergency: 'mdi-car-wrench',
 };
 
 const amountLabel = computed(() => {
@@ -450,19 +498,27 @@ function fieldErrors(field: string): string[] | undefined {
   return all[field] ?? all[field.charAt(0).toUpperCase() + field.slice(1)];
 }
 
-// Finance rules: a Sponsorship or Demo line can be added only once its document is attached to the report.
-const neededDocument = computed(() => props.requiredDocuments.find((d) => d.category === form.category) ?? null);
-const documentMissing = computed(() => !!neededDocument.value && !props.attachedDocumentTypes.includes(neededDocument.value.documentType));
+// Finance rules: a line in some categories can be added only once its documents are attached to the report (a vehicle
+// emergency purchase needs two: the receipt and the Job Order). With several missing, the employee picks which to upload.
+const neededDocuments = computed(() => props.requiredDocuments.filter((d) => d.category === form.category));
+const missingDocuments = computed(() => neededDocuments.value.filter((d) => !props.attachedDocumentTypes.includes(d.documentType)));
+const documentMissing = computed(() => missingDocuments.value.length > 0);
+const uploadChoice = ref<AttachmentDocumentType | null>(null);
+const uploadDocument = computed(
+  () => missingDocuments.value.find((d) => d.documentType === uploadChoice.value) ?? missingDocuments.value[0] ?? null,
+);
+const uploadType = computed(() => uploadDocument.value?.documentType);
+const capitalise = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 const documentPicker = ref<HTMLInputElement | null>(null);
 const showCamera = hasCamera();
 const documentCameraOpen = ref(false);
 function onDocumentCaptured(file: File) {
-  if (neededDocument.value) emit('upload-document', file, neededDocument.value.documentType);
+  if (uploadType.value) emit('upload-document', file, uploadType.value);
 }
 function onDocumentPicked(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
-  if (file && neededDocument.value) emit('upload-document', file, neededDocument.value.documentType);
+  if (file && uploadType.value) emit('upload-document', file, uploadType.value);
   input.value = '';
 }
 
@@ -558,24 +614,40 @@ function close() {
                 class="cat press"
                 :class="{ 'cat--on': form.category === c.value }"
                 :aria-pressed="form.category === c.value"
+                :title="c.title"
                 @click="form.category = c.value"
               >
                 <v-icon :icon="categoryIcon[c.value]" size="20" />
-                <span>{{ c.title }}</span>
+                <span class="cat__label">{{ tileLabel[c.value] ?? c.title }}</span>
               </button>
             </div>
 
             <v-alert
-              v-if="neededDocument"
+              v-if="neededDocuments.length"
               :type="documentMissing ? 'warning' : 'success'"
               variant="tonal"
               density="compact"
               class="mt-3"
             >
               <template v-if="documentMissing">
-                A {{ form.category }} line needs the <strong>{{ neededDocument.label }}</strong> attached first.
+                A {{ categoryLabel[form.category] }} line needs
+                <template v-for="(doc, i) in missingDocuments" :key="doc.documentType"
+                  >{{ i > 0 ? ' and ' : '' }}the <strong>{{ doc.label }}</strong></template
+                >
+                attached first.
+                <v-chip-group
+                  v-if="missingDocuments.length > 1"
+                  :model-value="uploadDocument?.documentType"
+                  mandatory
+                  class="mt-1"
+                  @update:model-value="(v: AttachmentDocumentType) => (uploadChoice = v)"
+                >
+                  <v-chip v-for="doc in missingDocuments" :key="doc.documentType" :value="doc.documentType" size="small" filter>
+                    Upload: {{ capitalise(doc.label) }}
+                  </v-chip>
+                </v-chip-group>
               </template>
-              <template v-else>{{ neededDocument.label.charAt(0).toUpperCase() + neededDocument.label.slice(1) }} attached.</template>
+              <template v-else>{{ neededDocuments.map((d) => capitalise(d.label)).join(' and ') }} attached.</template>
               <template v-if="documentMissing" #append>
                 <div class="d-flex ga-2">
                   <v-btn
@@ -606,9 +678,9 @@ function close() {
             </v-alert>
             <input ref="documentPicker" type="file" accept="image/jpeg,image/png,application/pdf" hidden @change="onDocumentPicked" />
             <AppCameraCapture
-              v-if="showCamera && neededDocument"
+              v-if="showCamera && uploadDocument"
               v-model="documentCameraOpen"
-              :title="neededDocument.label.charAt(0).toUpperCase() + neededDocument.label.slice(1)"
+              :title="capitalise(uploadDocument.label)"
               @capture="onDocumentCaptured"
             />
           </section>
@@ -648,7 +720,24 @@ function close() {
               </span>
             </div>
             <p v-if="fieldErrors('crmActivityIds')" class="crmlink__error" role="alert">{{ fieldErrors('crmActivityIds')?.join(' ') }}</p>
+            <template v-if="isVehicleLine">
+              <AppPickerField
+                v-model="vehicle.reason"
+                :items="vehicleReasons[form.category === 'Gas' ? 'Gas' : 'VehicleEmergency']"
+                label="Reason"
+                placeholder="Tap to pick or type your own"
+              />
+              <div class="eline__row">
+                <v-text-field v-model="vehicle.model" label="Vehicle model" placeholder="e.g. Toyota Vios" hide-details="auto" />
+                <v-text-field v-model="vehicle.plate" label="Plate no." placeholder="e.g. ABC 1234" hide-details="auto" />
+              </div>
+              <p class="text-caption text-medium-emphasis mb-0">
+                Particulars: {{ form.particulars || 'reason - vehicle model - plate no.' }}
+              </p>
+              <p v-if="fieldErrors('particulars')" class="text-caption text-error mb-0" role="alert">{{ fieldErrors('particulars')?.join(' ') }}</p>
+            </template>
             <v-text-field
+              v-else
               v-model="form.particulars"
               label="Particulars"
               placeholder="e.g. SUCAT - NICHOLS"
@@ -658,16 +747,13 @@ function close() {
             />
             <div class="eline__row">
               <v-text-field v-model="form.location" label="Location" placeholder="e.g. MDMPI, CALMC" hide-details="auto" />
-              <v-combobox
+              <AppPickerField
                 v-model="workWithList"
                 :items="workWithItems"
                 label="Work with"
+                title="Work with (pick one or more)"
                 hint="Pick or type one or more people. Printed as initials after the location; groups lines on the R47."
-                hide-details="auto"
                 multiple
-                chips
-                closable-chips
-                clearable
               />
             </div>
           </section>
@@ -881,7 +967,6 @@ function close() {
 }
 .eline__row--when {
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
 }
 .eline__row--amount {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -926,9 +1011,12 @@ function close() {
   letter-spacing: 0;
 }
 
-/* Segmented Local / Foreign */
+/* Segmented Local / Foreign: as tall as the Date field beside it (56px), so the row reads as one line. */
 .seg {
   display: inline-flex;
+  align-items: stretch;
+  height: 56px;
+  box-sizing: border-box;
   padding: 3px;
   border: 1px solid var(--line-2);
   border-radius: 10px;
@@ -956,10 +1044,11 @@ function close() {
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
-/* Category tiles */
+/* Category tiles: every row the same height (grid-auto-rows), labels at most two lines. */
 .cats {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
   gap: 8px;
 }
 .cat {
@@ -968,7 +1057,7 @@ function close() {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 72px;
+  min-height: 76px;
   padding: 10px 6px;
   border: 1px solid var(--line-2);
   border-radius: var(--radius);
@@ -982,6 +1071,14 @@ function close() {
     background-color var(--dur-fast) ease,
     color var(--dur-fast) ease,
     transform var(--dur-press) var(--ease-out);
+}
+.cat__label {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.25;
+  text-align: center;
 }
 @media (hover: hover) and (pointer: fine) {
   .cat:hover:not(.cat--on) {
@@ -1110,7 +1207,7 @@ function close() {
 
 @media (max-width: 699.98px) {
   .cats {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   /* Phone and small tablet: mode and remove on top, From / To, then fare (and the typed mode). */
   .leg {
@@ -1159,6 +1256,7 @@ function close() {
   }
   .seg {
     justify-self: start;
+    height: 48px;
   }
   .more__hint {
     display: none;
