@@ -18,14 +18,14 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-19
 
-- **Job grade is a required dropdown** (not yet committed). Creating or editing a user needs one of three job
+- **Job grade is a required dropdown** (PR #57). Creating or editing a user needs one of three job
   grades: Staff, Specialists/Engineers, or Team Leaders/Supervisors/Assistant Managers (Domain `JobGrades`). The
   short code (`Staff`, `Specialist`, `Supervisor`) is stored in `users.job_grade`; screens show the label. A
   **Grade** rate assignment uses the same list. Anything else is refused (400 on `jobGrade`). Users and grade
   rate assignments with an older free-text grade keep it until edited, and a grade rate stops matching once its
   people move to the new codes, so fix those first. No database script. Same release as Lodging (API 0.6.0,
   SPA 0.9.0).
-- **Demo attendance sheet must be form R94** (not yet committed). An upload marked **ISO attendance sheet** is
+- **Demo attendance sheet must be form R94** (PR #57). An upload marked **ISO attendance sheet** is
   searched for the form code (the R94's header prints "Document Code: R94"): a PDF whose text shows it is saved as
   **Code found**; a photo, a scan or a PDF without it asks the employee "Is this the attendance sheet?" and is saved
   as **Confirmed by employee** only when they confirm, otherwise refused (400 on `formCodeConfirmed`). The Receipts
@@ -35,7 +35,7 @@ section of the root `CLAUDE.md`) in the same change.
   **PdfPig** (Apache-2.0, new dependency; see [PDF libraries](#pdf-libraries--which-one-to-use)); only the outcome is
   logged. Script `027` (`receipt_attachments.form_code_check`, `SchemaVersion.Required` 27). Same release as
   Lodging (API 0.6.0, SPA 0.9.0); apply `027`, deploy the backend, then the frontend.
-- **Lodging, Finance rules phase 5** (not yet committed). New **Lodging** category, printed under OTHERS on the R47:
+- **Lodging, Finance rules phase 5** (PR #57). New **Lodging** category, printed under OTHERS on the R47:
   the employee enters the amount **Per night** and the **Nights** (the multiplier); the line computation reads
   "(3 Nights) * 1500". **Rules → Filing and Finance → Finance rules → Lodging** switches it on or off and sets where
   the rate comes from (Finance question 5): **Rate profile** (default: the Lodging line of the employee's rate
