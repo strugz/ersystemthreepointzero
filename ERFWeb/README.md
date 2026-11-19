@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-19
 
-- **Job grades are master data** (not yet committed). The System Administrator adds and renames grades on
+- **Job grades are master data** (PR #58). The System Administrator adds and renames grades on
   **Master data → Job grades** (`GET/POST/PUT /api/admin/master-data/job-grades`, table `job_grades`, script `028`,
   `SchemaVersion.Required` 28). Script `028` seeds the first three (`Staff`, `Specialist`, `Supervisor`). A grade's
   code cannot change once created (users and Grade rate assignments store it); the name can, and a grade is
