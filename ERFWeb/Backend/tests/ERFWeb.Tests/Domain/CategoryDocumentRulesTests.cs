@@ -90,6 +90,9 @@ public class CategoryDocumentRulesTests
             CategoryDocumentRules.LineProblem(ExpenseCategory.Representation, [AttachmentDocumentType.Receipt], On));
         Assert.Null(CategoryDocumentRules.LineProblem(ExpenseCategory.Representation, [AttachmentDocumentType.FoodReceipt], On));
         Assert.Null(CategoryDocumentRules.LineProblem(ExpenseCategory.Representation, [], On with { RepresentationRequiresDocument = false }));
+        Assert.Equal(
+            ["A Representation line needs a food or meal receipt attached. Upload it under Receipts as \"Food receipt\"."],
+            CategoryDocumentRules.FilingProblems([ExpenseCategory.Representation], [], On));
     }
 
     [Fact]

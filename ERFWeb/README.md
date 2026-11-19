@@ -18,6 +18,8 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-19
 
+- **Wording fix** (PR #57). The filing message for a missing document says "a food or meal receipt", not
+  "an food or meal receipt" (`CategoryDocumentRules` picks a or an from the document's label). Same release.
 - **Job grade is a required dropdown** (PR #57). Creating or editing a user needs one of three job
   grades: Staff, Specialists/Engineers, or Team Leaders/Supervisors/Assistant Managers (Domain `JobGrades`). The
   short code (`Staff`, `Specialist`, `Supervisor`) is stored in `users.job_grade`; screens show the label. A

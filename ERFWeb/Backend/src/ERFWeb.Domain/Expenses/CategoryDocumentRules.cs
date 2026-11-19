@@ -102,7 +102,7 @@ public static class CategoryDocumentRules
 
         foreach (var doc in Required(rules).Where(d => categories.Contains(d.Category) && !attached.Contains(d.DocumentType)))
         {
-            problems.Add($"A {doc.Category} line needs an {doc.Label} attached. Upload it under Receipts as \"{TypeName(doc.DocumentType)}\".");
+            problems.Add($"A {doc.Category} line needs {Article(doc.Label)} {doc.Label} attached. Upload it under Receipts as \"{TypeName(doc.DocumentType)}\".");
         }
 
         return problems;
@@ -141,6 +141,8 @@ public static class CategoryDocumentRules
         AttachmentDocumentType.LodgingReceipt => "Lodging receipt",
         _ => "Receipt",
     };
+
+    private static string Article(string label) => label.Length > 0 && "aeiouAEIOU".Contains(label[0]) ? "an" : "a";
 
     private static RequiredDocument Doc(ExpenseCategory category, AttachmentDocumentType type) => new(category, type, DocumentLabel(type));
 }
