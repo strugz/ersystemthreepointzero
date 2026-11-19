@@ -30,6 +30,10 @@ section of the root `CLAUDE.md`) in the same change.
   includes `028_job_grades.sql`; **Backups and monitoring** names the backup folder as `<BACKUP FOLDER>` (live
   server `C:\ERFWeb-Backups`) and explains that on a workgroup server the tasks must run as a local backup account
   with a saved share login, since SYSTEM gets "Access is denied" on the share. No version change.
+- **Docs: setting the backup task's account by hand** (not yet committed). **Backups and monitoring** and
+  `Backend/tools/README.txt` explain how to run **ERFWeb Database Backup** as an account with a saved share login
+  from Task Scheduler (as on the live server), what breaks it, and a logon-failure troubleshooting row. No version
+  change.
 - **Job grades are master data** (PR #58). The System Administrator adds and renames grades on
   **Master data → Job grades** (`GET/POST/PUT /api/admin/master-data/job-grades`, table `job_grades`, script `028`,
   `SchemaVersion.Required` 28). Script `028` seeds the first three (`Staff`, `Specialist`, `Supervisor`). A grade's
@@ -1554,6 +1558,28 @@ email alerts to `-AlertTo` (default jca.mdmpi@marsmandrysdale.com).
 then read `<BACKUP FOLDER>\backup-log.txt`: the last line should be `Backup OK: …` and the share should hold the
 same file. Running the installer again replaces both tasks; `-Uninstall` removes them and keeps the backups.
 
+**Setting the backup task's account by hand.** Instead of `-RunAsUser`, the account can be set in Task Scheduler,
+as on the live server, where the backup task runs as an existing administrator account that has the share login
+saved:
+
+1. Sign in to the API server as that account and check the share login is saved (`cmdkey /list` lists the share
+   PC, or it was saved with "Remember my credentials" in Explorer). Test a write to the share.
+2. Task Scheduler → **ERFWeb Database Backup** → **Properties** → **General** → **Change User or Group…**, enter
+   the account, **Check Names**, **OK**.
+3. Tick **Run whether user is logged on or not** and **Run with highest privileges**. Leave **Do not store
+   password** unticked: with it ticked the task cannot reach the share.
+4. **OK**, type the account's Windows password, then right-click the task → **Run**. The log should show
+   `Backup OK` and then `Copied to \\…`.
+
+Leave **ERFWeb Health Check** on SYSTEM; it only reads the local backup folder. What breaks it:
+
+* The account's Windows password changes: the task fails with a logon failure. Open it, **OK**, type the new
+  password.
+* The share login changes or is removed: "Access is denied" again. Run `cmdkey` again as that account.
+* The account is disabled or removed: backups stop. A dedicated backup account avoids this.
+* Running `Install-ErfWebMaintenance.cmd` again resets both tasks to `RUN_AS_USER`, which is `SYSTEM` when empty.
+  Set `RUN_AS_USER` to the account first, or set the account here again afterwards.
+
 **Limits:** the monitor runs on the API server, so it cannot report that whole server being off (IT's own
 monitoring should). Email goes through `System.Net.Mail`, which supports STARTTLS (`Security: StartTls`, as the
 company mail server uses) but not `SslOnConnect`.
@@ -1633,6 +1659,7 @@ Every log line written for that request carries the same id.
 | An image or link loads the website page instead | The frontend builds that address without `VITE_API_BASE_URL` | Use `apiUrl(...)` from `shared/api/client.ts` for every API address |
 | Email not sent | `Smtp` settings wrong, or the server cannot reach the mail server | `email_deliveries.status` and `smtp_status_code` in the database, and the log file |
 | Backup failure email, or "Database backup is MISSING" | `pg_dump` not installed or older than the database server, share not writable (see **Backups and monitoring → Before installing**), or the task did not run | `<BACKUP FOLDER>\backup-log.txt`, then Task Scheduler → **ERFWeb Database Backup** → History |
+| Backup task does not run; Task Scheduler shows a logon failure | The task account's Windows password changed, or the account is disabled | Open the task, **OK**, type the current password; or set another account (**Setting the backup task's account by hand**) |
 | No SLA reminders | `Reminders:Enabled` is not `true`, SLA days are 0, or nothing is overdue yet | The log line `SLA reminders are off` or `SLA reminder run: …`, and `reminder_deliveries` |
 
 ### Local development against the live API

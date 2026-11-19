@@ -132,6 +132,7 @@ Skip this step for backups on this server only; you can add the share later.
             New-Item "<SHARE>\test.txt" -ItemType File -Force; Remove-Item "<SHARE>\test.txt"
           No red error = OK.
        d. In Step 6 add:  -RunAsUser "<SERVER NAME>\<LOCAL USER>"
+          or set that account by hand after Step 6 (SET THE TASK ACCOUNT BY HAND, below).
 
 
 ====================================================================================
@@ -224,6 +225,32 @@ Task Scheduler Library > "ERFWeb Database Backup" > History.
 From then on it runs by itself. You only hear from it when something is wrong.
 
 
+SET THE TASK ACCOUNT BY HAND
+----------------------------
+Instead of -RunAsUser, set the account in Task Scheduler (the live server does this: the
+backup task runs as an existing administrator account that has the share login saved).
+
+  1. Sign in as that account. Check the share login is saved (cmdkey /list shows the share
+     PC, or "Remember my credentials" was ticked in Explorer) and test a write (Step 5c).
+  2. Task Scheduler > "ERFWeb Database Backup" > Properties > General >
+     Change User or Group... > type the account > Check Names > OK.
+  3. Tick "Run whether user is logged on or not" and "Run with highest privileges".
+     Leave "Do not store password" UNticked; with it ticked the task cannot reach the share.
+  4. OK, type the account's Windows password.
+  5. Right-click the task > Run, then Step 8: expect "Backup OK" and "Copied to ...".
+
+Leave "ERFWeb Health Check" on SYSTEM; it only reads the local backup folder.
+
+What breaks it:
+  - The account's Windows password changes: logon failure. Open the task, OK, type the
+    new password.
+  - The share login changes or is removed: "Access is denied" again. Run cmdkey again
+    as that account.
+  - The account is disabled or removed: backups stop. A dedicated backup account avoids it.
+  - Running Install-ErfWebMaintenance again resets both tasks to RUN_AS_USER (SYSTEM when
+    empty). Set RUN_AS_USER to the account first, or set it here again afterwards.
+
+
 CHANGE SETTINGS / REMOVE
 ------------------------
 Change: run Step 6 again with the new options. It replaces both tasks.
@@ -244,6 +271,10 @@ TROUBLESHOOTING
     The local backup is fine; only the copy to the share failed. See Step 5, or run
     Step 6 without -CopyTo for now. While the copy keeps failing, every night sends a
     FAILED email and old backups are not deleted.
+
+Task does not run; Task Scheduler History shows a logon failure
+    The task account's password changed or the account is disabled. See SET THE TASK
+    ACCOUNT BY HAND.
 
 "password authentication failed" / cannot connect
     Check ConnectionStrings:Postgres in <API FOLDER>\appsettings.json.
