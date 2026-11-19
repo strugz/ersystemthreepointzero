@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import type { CreateUserInput, CrmEmployee, Department, UserDetail, UserProfileInput } from '../types';
+import { isJobGrade, jobGradeOptions } from '@/shared/jobGrades';
 import CrmEmployeePicker from './CrmEmployeePicker.vue';
 
 /**
@@ -130,6 +131,7 @@ const emailInvalid = computed(() => form.email !== '' && !/^[^\s@]+@[^\s@]+\.[^\
 const canSubmit = computed(() => {
   if (props.saving || props.disabled) return false;
   if (!form.fullName.trim()) return false;
+  if (!isJobGrade(form.jobGrade)) return false;
   if (emailInvalid.value) return false;
   if (isCreate.value) {
     return form.username.trim() !== '' && form.password.length >= 8 && form.password === form.confirmPassword;
@@ -224,7 +226,12 @@ defineExpose({ isDirty });
         <v-text-field v-model="form.position" label="Position" maxlength="100" :error-messages="fieldErrors('position')" />
       </v-col>
       <v-col cols="12" sm="6">
-        <v-text-field v-model="form.jobGrade" label="Job grade" maxlength="20" :error-messages="fieldErrors('jobGrade')" />
+        <v-select
+          v-model="form.jobGrade"
+          :items="jobGradeOptions"
+          label="Job grade *"
+          :error-messages="fieldErrors('jobGrade')"
+        />
       </v-col>
       <v-col cols="12" sm="6">
         <div class="d-flex ga-2">

@@ -156,7 +156,7 @@ public sealed class UserAdminService(
                 PasswordHash = Pbkdf2PasswordHasher.Hash(request.Password),
                 FullName = request.FullName.Trim(),
                 Position = Clean(request.Position),
-                JobGrade = Clean(request.JobGrade),
+                JobGrade = JobGrades.Normalize(request.JobGrade),
                 Email = Clean(request.Email),
                 MobileNo = Clean(request.MobileNo),
                 DepartmentId = request.DepartmentId,
@@ -213,7 +213,7 @@ public sealed class UserAdminService(
             var before = Snapshot(entity);
             entity.FullName = request.FullName.Trim();
             entity.Position = Clean(request.Position);
-            entity.JobGrade = Clean(request.JobGrade);
+            entity.JobGrade = JobGrades.Normalize(request.JobGrade);
             entity.Email = Clean(request.Email);
             entity.MobileNo = Clean(request.MobileNo);
             entity.DepartmentId = request.DepartmentId;
@@ -433,9 +433,9 @@ public sealed class UserAdminService(
             errors["position"] = [$"Position must be at most {MaxTextLength} characters."];
         }
 
-        if (jobGrade is { Length: > 32 })
+        if (JobGrades.Normalize(jobGrade) is null)
         {
-            errors["jobGrade"] = ["Job grade must be at most 32 characters."];
+            errors["jobGrade"] = [JobGrades.Problem];
         }
 
         if (!string.IsNullOrWhiteSpace(email) && (email.Length > MaxTextLength || !email.Contains('@')))

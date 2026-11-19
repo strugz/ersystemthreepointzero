@@ -367,6 +367,9 @@ public class ReceiptAttachment
 
     /// <summary>What the file is (Finance rules: Sponsorship and Demo need a document); null is a receipt.</summary>
     public AttachmentDocumentType? DocumentType { get; set; }
+
+    /// <summary>For an ISO attendance sheet: the Demo form code was found in it or confirmed by the uploader (script 027).</summary>
+    public FormCodeCheck? FormCodeCheck { get; set; }
 }
 
 public class ReminderDelivery

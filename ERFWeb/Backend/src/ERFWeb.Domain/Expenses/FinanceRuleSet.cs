@@ -12,6 +12,16 @@ public enum LateFilingHandling
     FlagForFinance,
 }
 
+/// <summary>Where the lodging rate comes from (Finance question 5).</summary>
+public enum LodgingRateBasis
+{
+    /// <summary>The Lodging line of the claimant's rate profile in force on the expense date.</summary>
+    RateProfile,
+
+    /// <summary>One amount per night for everyone (<see cref="FinanceRuleSet.LodgingFlatRate"/>).</summary>
+    Flat,
+}
+
 /// <summary>
 /// The Finance rules the System Administrator sets on the Rules page (Finance requirements of 2026-11-11), stored
 /// as one JSON row. Every property has a default, so JSON saved before a rule existed still loads with that
@@ -44,13 +54,30 @@ public sealed record FinanceRuleSet
     /// <summary>A report with a Demo line cannot be filed without an ISO-registered attendance sheet attachment.</summary>
     public bool DemoRequiresDocument { get; init; } = true;
 
+    /// <summary>Document code of the ISO attendance sheet (printed in its header); an upload must show it or be confirmed.</summary>
+    public string DemoFormCode { get; init; } = "R94";
+
     /// <summary>A Representation line needs the food or meal receipt attached (Representation cannot be switched off).</summary>
     public bool RepresentationRequiresDocument { get; init; } = true;
+
+    /// <summary>Employees may claim Lodging.</summary>
+    public bool LodgingEnabled { get; init; } = true;
+
+    public LodgingRateBasis LodgingRateBasis { get; init; } = LodgingRateBasis.RateProfile;
+
+    /// <summary>Per-night amount when <see cref="LodgingRateBasis"/> is Flat.</summary>
+    public decimal LodgingFlatRate { get; init; }
+
+    /// <summary>A per-night amount above the lodging rate is refused (no rate set means no cap).</summary>
+    public bool LodgingCapAtRate { get; init; } = true;
 }
 
 /// <summary>Validation of the Finance rules the administrator saves; field names match the Rules page.</summary>
 public static class FinanceRuleSetRules
 {
+    public const decimal MaxLodgingFlatRate = 1_000_000m;
+    public const int MaxFormCodeLength = 20;
+
     /// <summary>Field errors keyed <c>financeRules.&lt;property&gt;</c>; empty when the rules can be saved.</summary>
     public static IReadOnlyDictionary<string, string> Validate(FinanceRuleSet rules)
     {
@@ -70,6 +97,26 @@ public static class FinanceRuleSetRules
         if (!Enum.IsDefined(rules.LateHandling))
         {
             errors["financeRules.lateHandling"] = "Choose Notice only or Flag for Finance.";
+        }
+
+        if (!Enum.IsDefined(rules.LodgingRateBasis))
+        {
+            errors["financeRules.lodgingRateBasis"] = "Choose Rate profile or Flat amount.";
+        }
+
+        if (rules.LodgingFlatRate is < 0 or > MaxLodgingFlatRate)
+        {
+            errors["financeRules.lodgingFlatRate"] = "Enter an amount from 0 to 1,000,000.";
+        }
+        else if (rules.LodgingRateBasis == LodgingRateBasis.Flat && rules.LodgingFlatRate == 0)
+        {
+            errors["financeRules.lodgingFlatRate"] = "Enter the flat amount per night.";
+        }
+
+        var code = rules.DemoFormCode?.Trim() ?? string.Empty;
+        if (code.Length == 0 || code.Length > MaxFormCodeLength || !code.All(c => char.IsAsciiLetterOrDigit(c) || c == '-'))
+        {
+            errors["financeRules.demoFormCode"] = "Enter the form code, for example R94 (letters, digits and -, up to 20).";
         }
 
         return errors;

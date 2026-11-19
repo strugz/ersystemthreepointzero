@@ -46,6 +46,14 @@ function onDrop(event: DragEvent) {
   }
 }
 
+// Form code check of an attendance sheet (R94): Finance looks closer at the ones the employee only confirmed.
+const formCodeText = { Found: 'Code found', Confirmed: 'Confirmed by employee', None: 'Not checked' } as const;
+const formCodeTitle = {
+  Found: 'The form code was found in the PDF.',
+  Confirmed: 'A photo or scan: the employee confirmed it is the form.',
+  None: 'Uploaded before the form code check; upload it again for a Demo line.',
+} as const;
+
 function icon(contentType: string): string {
   return contentType === 'application/pdf' ? 'mdi-file-pdf-box' : 'mdi-file-image-outline';
 }
@@ -66,6 +74,14 @@ function icon(contentType: string): string {
           {{ a.fileName }}
         </a>
         <span v-if="a.documentType && a.documentType !== 'Receipt'" class="pill pill--neutral">{{ documentTypeLabel[a.documentType] }}</span>
+        <span
+          v-if="a.documentType === 'IsoAttendanceSheet'"
+          class="pill"
+          :class="a.formCodeCheck === 'Found' ? 'pill--success' : 'pill--warning'"
+          :title="formCodeTitle[a.formCodeCheck ?? 'None']"
+        >
+          {{ formCodeText[a.formCodeCheck ?? 'None'] }}
+        </span>
         <span class="file__size mono">{{ formatBytes(a.sizeBytes) }}</span>
         <v-btn
           v-if="editable"

@@ -129,6 +129,9 @@ public enum ExpenseCategory
 
     /// <summary>Finance rule: needs an ISO-registered attendance sheet attachment. Prints under OTHERS.</summary>
     Demo,
+
+    /// <summary>Finance rule: a per-night amount times the nights (the multiplier), capped at the lodging rate. Prints under OTHERS.</summary>
+    Lodging,
 }
 
 /// <summary>What an uploaded file is. A file uploaded without a type is a receipt.</summary>
@@ -140,6 +143,16 @@ public enum AttachmentDocumentType
 
     /// <summary>The official receipt for the food served; a Representation line needs it.</summary>
     FoodReceipt,
+}
+
+/// <summary>How an ISO attendance sheet upload was matched to the Demo form code (e.g. R94).</summary>
+public enum FormCodeCheck
+{
+    /// <summary>The code was found in the PDF's text.</summary>
+    Found,
+
+    /// <summary>A photo, a scan or a PDF without the code: the employee confirmed it is the form.</summary>
+    Confirmed,
 }
 
 /// <summary>How a scope assignment selects the employees a signatory signs for (RBAC v0.6 section 4).</summary>

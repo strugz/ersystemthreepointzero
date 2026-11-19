@@ -94,7 +94,8 @@ public sealed record AttachmentDto(
     long SizeBytes,
     string UploadedBy,
     DateTimeOffset UploadedAt,
-    AttachmentDocumentType DocumentType = AttachmentDocumentType.Receipt);
+    AttachmentDocumentType DocumentType = AttachmentDocumentType.Receipt,
+    FormCodeCheck? FormCodeCheck = null);
 
 /// <summary>The full editor model for one report. <see cref="CanEdit"/> is computed server-side.</summary>
 public sealed record ExpenseReportDetailDto(
@@ -210,7 +211,8 @@ public sealed record UploadAttachmentRequest(
     string FileName,
     string ContentType,
     byte[] Content,
-    AttachmentDocumentType DocumentType = AttachmentDocumentType.Receipt);
+    AttachmentDocumentType DocumentType = AttachmentDocumentType.Receipt,
+    bool FormCodeConfirmed = false);
 
 // ---------------------------------------------------------------------------------
 // Use-case interfaces (implemented in Infrastructure with EF Core + LINQ)

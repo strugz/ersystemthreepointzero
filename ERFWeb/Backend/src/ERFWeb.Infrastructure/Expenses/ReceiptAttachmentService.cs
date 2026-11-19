@@ -1,9 +1,12 @@
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Application.Features.Reporting;
 using ERFWeb.Domain;
+using ERFWeb.Domain.Expenses;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace ERFWeb.Infrastructure.Expenses;
@@ -20,7 +23,9 @@ public sealed class ReceiptAttachmentService(
     ReportEditGate gate,
     IReportAccessPolicy access,
     ExpenseReportDetailLoader loader,
-    IOptions<AttachmentOptions> options) : IReceiptAttachmentService
+    ISystemSettingsService settings,
+    IOptions<AttachmentOptions> options,
+    ILogger<ReceiptAttachmentService> logger) : IReceiptAttachmentService
 {
     private readonly AttachmentOptions _options = options.Value;
 
@@ -34,6 +39,7 @@ public sealed class ReceiptAttachmentService(
     {
         ArgumentNullException.ThrowIfNull(request);
         Validate(request);
+        var formCodeCheck = await CheckFormCodeAsync(request, ct);
 
         var id = await tx.ExecuteAsync(async token =>
         {
@@ -55,6 +61,7 @@ public sealed class ReceiptAttachmentService(
                 UploadedByUserId = user.UserId,
                 UploadedAt = clock.UtcNow,
                 DocumentType = request.DocumentType == AttachmentDocumentType.Receipt ? null : request.DocumentType,
+                FormCodeCheck = formCodeCheck,
             };
             db.ReceiptAttachments.Add(attachment);
             report.UpdatedAt = attachment.UploadedAt;
@@ -117,6 +124,28 @@ public sealed class ReceiptAttachmentService(
         {
             throw new ValidationException(errors);
         }
+    }
+
+    /// <summary>
+    /// Finance rules (Demo): an ISO attendance sheet must be the form whose code is set on the Rules page (R94).
+    /// A PDF with the code in its text is Found; anything else needs the employee's confirmation or is refused.
+    /// Only the outcome is logged, never the file or its name.
+    /// </summary>
+    private async Task<FormCodeCheck?> CheckFormCodeAsync(UploadAttachmentRequest request, CancellationToken ct)
+    {
+        if (request.DocumentType != AttachmentDocumentType.IsoAttendanceSheet)
+        {
+            return null;
+        }
+
+        var rules = await settings.GetFinanceRulesAsync(ct);
+        var isPdf = string.Equals(request.ContentType.Trim(), "application/pdf", StringComparison.OrdinalIgnoreCase);
+        FormCodeCheck? check = isPdf && PdfFormCodeReader.Contains(request.Content, rules.DemoFormCode)
+            ? FormCodeCheck.Found
+            : request.FormCodeConfirmed ? FormCodeCheck.Confirmed : null;
+        logger.LogInformation("Attendance sheet form code check: {Outcome}", check?.ToString() ?? "Refused");
+
+        return check ?? throw new ValidationException("formCodeConfirmed", CategoryDocumentRules.FormCodeNotFound(rules));
     }
 
     private async Task EnsureCanViewAsync(Guid reportId, CancellationToken ct)

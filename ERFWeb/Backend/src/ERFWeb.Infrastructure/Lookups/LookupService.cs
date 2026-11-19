@@ -60,8 +60,12 @@ public sealed class LookupService(
             .ToListAsync(ct);
 
     /// <summary>The rates in force on the expense date (spec section 5); today when no date is given.</summary>
-    public Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, CancellationToken ct = default) =>
-        rates.EditorRatesAsync(user.UserId, date ?? calendar.Today, ct);
+    public async Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, CancellationToken ct = default)
+    {
+        var editorRates = await rates.EditorRatesAsync(user.UserId, date ?? calendar.Today, ct);
+        var financeRules = await settings.GetFinanceRulesAsync(ct);
+        return editorRates with { LodgingRate = LodgingRules.Rate(financeRules, editorRates.LodgingRate) };
+    }
 
     public async Task<MyFilingReadinessDto> MyFilingReadinessAsync(CancellationToken ct = default)
     {

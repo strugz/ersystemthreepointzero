@@ -142,7 +142,7 @@ function applyCategoryDefaults() {
   if (defaults.fareLeg && form.transports.length === 0) {
     form.transports.push(newLeg());
   }
-  syncMealAmount();
+  syncRateAmount();
 }
 
 /** Clears the form for the next line (date follows `defaultDate`) and puts the cursor back on Date. */
@@ -254,13 +254,20 @@ const rateFor: Record<string, keyof EmployeeRates> = {
 const suggestedMealAmount = computed(() =>
   props.rates ? selectedMeals.value.reduce((sum, m) => sum + (props.rates?.[rateFor[m]] ?? 0), 0) : 0,
 );
+/** Lodging: the per-night rate from the rate profile or the Finance rules' flat amount (0 when none is set). */
+const lodgingRate = computed(() => props.rates?.lodgingRate ?? 0);
+const suggestedAmount = computed(() => {
+  if (form.category === 'Meals') return suggestedMealAmount.value;
+  if (form.category === 'Lodging') return lodgingRate.value;
+  return 0;
+});
 /**
- * Offers the meal rates as the amount: when the amount is empty, or (on a new line) still the rate total
- * filled in earlier. Re-runs when the chips change and when the rates arrive for the expense date.
+ * Offers the meal rates (or the lodging rate) as the amount: when the amount is empty, or (on a new line) still
+ * the rate filled in earlier. Re-runs when the chips change and when the rates arrive for the expense date.
  */
-function syncMealAmount() {
-  const suggested = suggestedMealAmount.value;
-  if (form.category !== 'Meals' || suggested <= 0) {
+function syncRateAmount() {
+  const suggested = suggestedAmount.value;
+  if (suggested <= 0) {
     return;
   }
   const amount = Number(form.amount) || 0;
@@ -271,9 +278,9 @@ function syncMealAmount() {
 }
 watch(selectedMeals, (types) => {
   form.meals = types.map((mealType) => form.meals.find((m) => m.mealType === mealType) ?? { mealType, paidFor: null, paidEmployeeId: null });
-  syncMealAmount();
+  syncRateAmount();
 });
-watch(suggestedMealAmount, syncMealAmount);
+watch(suggestedAmount, syncRateAmount);
 
 // Transportation: optional fare legs; their sum is offered as the amount. Each leg names how it was
 // travelled. A new leg starts where the previous one ended, by the same mode, since most trips repeat it.
@@ -418,7 +425,13 @@ const categoryIcon: Record<ExpenseCategory, string> = {
   Representation: 'mdi-account-tie-outline',
   Sponsorship: 'mdi-handshake-outline',
   Demo: 'mdi-presentation',
+  Lodging: 'mdi-bed-outline',
 };
+
+const amountLabel = computed(() => {
+  if (form.isPerdiem) return 'Daily amount';
+  return form.category === 'Lodging' ? 'Per night' : 'Amount';
+});
 
 const shownCategories = computed(() =>
   categoryOptions.filter((c) => !props.unavailableCategories.includes(c.value) || c.value === form.category),
@@ -741,12 +754,14 @@ function close() {
                 type="number"
                 min="0"
                 step="0.01"
-                :label="form.isPerdiem ? 'Daily amount' : 'Amount'"
+                :label="amountLabel"
                 prefix="₱"
+                :hint="form.category === 'Lodging' && lodgingRate > 0 ? `Lodging rate ${formatMoney(lodgingRate)} a night` : undefined"
+                :persistent-hint="form.category === 'Lodging' && lodgingRate > 0"
                 hide-details="auto"
                 :error-messages="fieldErrors('amount')"
               />
-              <v-text-field v-if="!form.isPerdiem" v-model.number="form.multiplier" type="number" min="1" step="1" label="Multiplier" hide-details="auto" />
+              <v-text-field v-if="!form.isPerdiem" v-model.number="form.multiplier" type="number" min="1" step="1" :label="form.category === 'Lodging' ? 'Nights' : 'Multiplier'" hide-details="auto" />
               <template v-else>
                 <v-text-field v-model.number="form.totalDays" type="number" min="1" step="1" label="# of days" hide-details="auto" :error-messages="fieldErrors('totalDays')" />
                 <v-text-field

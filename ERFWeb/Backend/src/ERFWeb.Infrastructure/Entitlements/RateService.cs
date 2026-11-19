@@ -3,6 +3,7 @@ using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Domain;
+using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Rates;
 using ERFWeb.Domain.Scope;
 using ERFWeb.Infrastructure.Persistence;
@@ -536,7 +537,8 @@ public sealed class RateService(
             Amount(ExpenseCategory.Meals, MealSubCategories.Breakfast),
             Amount(ExpenseCategory.Meals, MealSubCategories.Lunch),
             Amount(ExpenseCategory.Meals, MealSubCategories.Dinner),
-            Amount(ExpenseCategory.Meals, MealSubCategories.OtMeal));
+            Amount(ExpenseCategory.Meals, MealSubCategories.OtMeal),
+            Amount(ExpenseCategory.Lodging, null));
     }
 
     // ---------- Rules and helpers ----------
@@ -606,6 +608,11 @@ public sealed class RateService(
     private static RateTarget ValidTarget(RateTargetType type, long? userId, string? jobGrade, long? departmentId)
     {
         var grade = string.IsNullOrWhiteSpace(jobGrade) ? null : jobGrade.Trim();
+        if (type == RateTargetType.Grade && grade is not null)
+        {
+            grade = JobGrades.Normalize(grade) ?? throw new ValidationException("jobGrade", JobGrades.Problem);
+        }
+
         return type switch
         {
             RateTargetType.Individual when userId is not null && grade is null && departmentId is null => new RateTarget(type, userId, null, null),

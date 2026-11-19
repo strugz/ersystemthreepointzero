@@ -54,10 +54,11 @@ export const expensesApi = {
   removeCashAdvance: (id: string, lineId: number) => api.del<void>(`${r(id)}/cash-advances/${lineId}`),
 
   attachments: (id: string) => api.get<Attachment[]>(`${r(id)}/attachments`),
-  upload: (id: string, file: File, documentType: AttachmentDocumentType = 'Receipt') => {
+  upload: (id: string, file: File, documentType: AttachmentDocumentType = 'Receipt', formCodeConfirmed = false) => {
     const form = new FormData();
     form.append('file', file, file.name);
     form.append('documentType', documentType);
+    if (formCodeConfirmed) form.append('formCodeConfirmed', 'true');
     return api.postForm<Attachment>(`${r(id)}/attachments`, form);
   },
   attachmentUrl: (id: string, attachmentId: number, download = false) =>

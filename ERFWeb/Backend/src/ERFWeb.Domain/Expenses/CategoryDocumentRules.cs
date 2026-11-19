@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace ERFWeb.Domain.Expenses;
 
 /// <summary>A category whose lines need a document of one type attached to the report.</summary>
@@ -8,7 +10,8 @@ public sealed record RequiredDocument(ExpenseCategory Category, AttachmentDocume
 /// and 8, confirmed with Finance on 2026-11-11): Sponsorship needs an approved Activity Request Form, Demo an
 /// ISO-registered attendance sheet, Representation the food or meal receipt. A document is
 /// any attachment of the report with that type. It must be attached before such a line can be added (or changed);
-/// filing checks again in case it was deleted afterwards.
+/// filing checks again in case it was deleted afterwards. An attendance sheet counts only when its upload showed
+/// the form code (<see cref="FinanceRuleSet.DemoFormCode"/>, R94) or the employee confirmed it.
 /// </summary>
 public static class CategoryDocumentRules
 {
@@ -27,6 +30,7 @@ public static class CategoryDocumentRules
         {
             ExpenseCategory.Sponsorship => rules.SponsorshipEnabled,
             ExpenseCategory.Demo => rules.DemoEnabled,
+            ExpenseCategory.Lodging => rules.LodgingEnabled,
             _ => true,
         };
     }
@@ -47,7 +51,10 @@ public static class CategoryDocumentRules
 
         if (rules.DemoEnabled && rules.DemoRequiresDocument)
         {
-            required.Add(Doc(ExpenseCategory.Demo, AttachmentDocumentType.IsoAttendanceSheet));
+            required.Add(new RequiredDocument(
+                ExpenseCategory.Demo,
+                AttachmentDocumentType.IsoAttendanceSheet,
+                $"{DocumentLabel(AttachmentDocumentType.IsoAttendanceSheet)} (form {rules.DemoFormCode.Trim()})"));
         }
 
         if (rules.RepresentationRequiresDocument)
@@ -92,6 +99,30 @@ public static class CategoryDocumentRules
         }
 
         return problems;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="text"/> (a PDF's extracted text) shows <paramref name="code"/> as a word of its own, any
+    /// case, allowing spaces or a hyphen between its characters ("R94", "r 94", "R-94"; not "FR94" or "R945").
+    /// </summary>
+    public static bool ContainsFormCode(string? text, string? code)
+    {
+        var trimmed = code?.Trim();
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(trimmed))
+        {
+            return false;
+        }
+
+        var pattern = "(?<![A-Za-z0-9])" + string.Join(@"[\s-]*", trimmed.Select(c => Regex.Escape(c.ToString()))) + "(?![A-Za-z0-9])";
+        return Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+    }
+
+    /// <summary>Why an attendance sheet upload is refused: the code was not found and the employee did not confirm it.</summary>
+    public static string FormCodeNotFound(FinanceRuleSet rules)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        var code = rules.DemoFormCode.Trim();
+        return $"This file does not show form {code}. Upload the {code} attendance sheet, or confirm that this file is form {code}.";
     }
 
     /// <summary>The name the upload picker shows for a document type.</summary>

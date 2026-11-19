@@ -2,6 +2,7 @@
 import { computed, reactive, watch } from 'vue';
 import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { addDaysIso, todayIso } from '@/shared/format';
+import { isJobGrade, jobGradeOptions } from '@/shared/jobGrades';
 import { fieldErrors, personItems, textOrNull } from '../forms';
 import type { FieldErrors } from '../forms';
 import { targetTypeOptions } from '../labels';
@@ -158,7 +159,7 @@ const targetChosen = computed(() => {
     case 'Individual':
       return form.userId !== null;
     case 'Grade':
-      return form.jobGrade.trim() !== '';
+      return isJobGrade(form.jobGrade);
     case 'Department':
       return form.departmentId !== null;
     default:
@@ -234,13 +235,11 @@ function close() {
               label="Person *"
               :error-messages="err('userId')"
             />
-            <v-text-field
+            <v-select
               v-else-if="form.targetType === 'Grade'"
               v-model="form.jobGrade"
+              :items="jobGradeOptions"
               label="Job grade *"
-              maxlength="20"
-              hint="As recorded on the employee's profile"
-              persistent-hint
               :error-messages="err('jobGrade')"
             />
             <v-autocomplete
