@@ -1,17 +1,20 @@
-// Job grades (Domain JobGrades): the code is stored, the label is shown.
+// Job grades from Master data -> Job grades: the code is stored, the name is shown.
 
-export const jobGradeOptions = [
-  { value: 'Staff', title: 'Staff' },
-  { value: 'Specialist', title: 'Specialists/Engineers' },
-  { value: 'Supervisor', title: 'Team Leaders/Supervisors/Assistant Managers' },
-] as const;
-
-/** A code -> its label; an older free-text grade shows as typed. */
-export function jobGradeLabel(value: string | null | undefined): string {
-  if (!value) return '';
-  return jobGradeOptions.find((o) => o.value === value)?.title ?? value;
+export interface JobGradeOption {
+  code: string;
+  name: string;
+  isActive: boolean;
 }
 
-export function isJobGrade(value: string | null | undefined): boolean {
-  return jobGradeOptions.some((o) => o.value === value);
+/** Dropdown items: the active grades, plus `current` when its grade was deactivated since, so the record keeps it. */
+export function jobGradeItems(grades: JobGradeOption[], current?: string | null): { value: string; title: string }[] {
+  return grades
+    .filter((g) => g.isActive || g.code === current)
+    .map((g) => ({ value: g.code, title: g.isActive ? g.name : `${g.name} (inactive)` }));
+}
+
+/** A code -> its name; a code not in the list (an older free-text grade) shows as typed. */
+export function jobGradeName(grades: JobGradeOption[], code: string | null | undefined): string {
+  if (!code) return '';
+  return grades.find((g) => g.code === code)?.name ?? code;
 }

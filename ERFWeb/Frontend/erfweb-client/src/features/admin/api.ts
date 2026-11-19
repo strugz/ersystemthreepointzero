@@ -25,6 +25,8 @@ import type {
   SetActiveInput,
   Site,
   SiteInput,
+  JobGrade,
+  JobGradeInput,
   SystemSettings,
   SystemSettingsInput,
   UpdateUserInput,
@@ -89,6 +91,10 @@ export const adminApi = {
   sites: (includeInactive = true) => api.get<Site[]>(`${md}/sites${qs({ includeInactive })}`),
   createSite: (input: SiteInput) => api.post<Site>(`${md}/sites`, input),
   updateSite: (id: number, input: SiteInput) => api.put<Site>(`${md}/sites/${id}`, input),
+
+  jobGrades: (includeInactive = true) => api.get<JobGrade[]>(`${md}/job-grades${qs({ includeInactive })}`),
+  createJobGrade: (input: JobGradeInput) => api.post<JobGrade>(`${md}/job-grades`, input),
+  updateJobGrade: (id: number, input: JobGradeInput) => api.put<JobGrade>(`${md}/job-grades/${id}`, input),
 
   fareModes: (includeInactive = true) => api.get<FareMode[]>(`${md}/fare-modes${qs({ includeInactive })}`),
   createFareMode: (input: FareModeInput) => api.post<FareMode>(`${md}/fare-modes`, input),

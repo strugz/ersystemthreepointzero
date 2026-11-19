@@ -320,6 +320,22 @@ export interface SiteInput {
   rowVersion?: number;
 }
 
+/** A job grade; users and Grade rate assignments store the code, which never changes. */
+export interface JobGrade {
+  id: number;
+  code: string;
+  name: string;
+  isActive: boolean;
+  rowVersion: number;
+}
+
+export interface JobGradeInput {
+  code: string;
+  name: string;
+  isActive: boolean;
+  rowVersion?: number;
+}
+
 /** How a fare leg was travelled (Taxi, Grab, Jeepney, ...); "Others" asks the employee to type the mode. */
 export interface FareMode {
   id: number;

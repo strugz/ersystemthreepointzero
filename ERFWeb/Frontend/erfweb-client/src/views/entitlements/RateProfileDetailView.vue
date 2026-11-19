@@ -11,6 +11,8 @@ import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
 import { describeError, useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { entitlementLookupsApi, ratesApi, scopeApi } from '@/features/entitlements/api';
+import { adminApi } from '@/features/admin/api';
+import type { JobGradeOption } from '@/shared/jobGrades';
 import { hasAnyRole, rateWriterRoles } from '@/features/entitlements/access';
 import { fieldErrors, peopleFromCoverage } from '@/features/entitlements/forms';
 import { rateKeyLabel } from '@/features/entitlements/labels';
@@ -66,14 +68,21 @@ async function load() {
 
 const people = ref<PersonOption[]>([]);
 const departments = ref<DepartmentOption[]>([]);
+const jobGrades = ref<JobGradeOption[]>([]);
 
 async function loadLookups() {
   // Pickers are optional: the profile still renders without them.
-  const [c, d] = await Promise.allSettled([scopeApi.coverage(), canWrite.value ? entitlementLookupsApi.departments() : Promise.resolve([])]);
+  const [c, d, g] = await Promise.allSettled([
+    scopeApi.coverage(),
+    canWrite.value ? entitlementLookupsApi.departments() : Promise.resolve([]),
+    canWrite.value ? adminApi.jobGrades() : Promise.resolve([]),
+  ]);
   if (c.status === 'fulfilled') people.value = peopleFromCoverage(c.value);
   else snack.fromError(c.reason, 'Unable to load the people list.');
   if (d.status === 'fulfilled') departments.value = d.value;
   else snack.fromError(d.reason, 'Unable to load departments.');
+  if (g.status === 'fulfilled') jobGrades.value = g.value;
+  else snack.fromError(g.reason, 'Unable to load job grades.');
 }
 
 onMounted(async () => {
@@ -379,6 +388,7 @@ async function resolve(userId: number, date: string) {
           :profile-name="profile.name"
           :people="people"
           :departments="departments"
+          :job-grades="jobGrades"
           :existing="existingAssignments"
           :editing="assignEditing"
           :saving="savingAssignment"

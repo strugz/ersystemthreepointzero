@@ -15,6 +15,7 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
     public DbSet<CostCenterBudget> CostCenterBudgets => Set<CostCenterBudget>();
     public DbSet<Currency> Currencies => Set<Currency>();
     public DbSet<Site> Sites => Set<Site>();
+    public DbSet<JobGrade> JobGrades => Set<JobGrade>();
     public DbSet<FareMode> FareModes => Set<FareMode>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
     public DbSet<User> Users => Set<User>();
@@ -110,6 +111,16 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
         b.Entity<Site>(e =>
         {
             e.ToTable("sites");
+            e.Property(x => x.Code).HasMaxLength(32);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Code).IsUnique();
+            e.Property(x => x.IsActive).HasDefaultValue(true);
+            AddConcurrencyToken(e);
+        });
+
+        b.Entity<JobGrade>(e =>
+        {
+            e.ToTable("job_grades");
             e.Property(x => x.Code).HasMaxLength(32);
             e.Property(x => x.Name).HasMaxLength(200);
             e.HasIndex(x => x.Code).IsUnique();

@@ -149,6 +149,7 @@ public sealed class UserAdminService(
 
             await EnsureReferencesAsync(request.DepartmentId, request.CostCenterId, token);
             await EnsureCrmLinkFreeAsync(crmEmployeeId, null, token);
+            var jobGrade = await JobGradeCheck.RequireAsync(db, request.JobGrade, null, token);
 
             var entity = new User
             {
@@ -156,7 +157,7 @@ public sealed class UserAdminService(
                 PasswordHash = Pbkdf2PasswordHasher.Hash(request.Password),
                 FullName = request.FullName.Trim(),
                 Position = Clean(request.Position),
-                JobGrade = JobGrades.Normalize(request.JobGrade),
+                JobGrade = jobGrade,
                 Email = Clean(request.Email),
                 MobileNo = Clean(request.MobileNo),
                 DepartmentId = request.DepartmentId,
@@ -213,7 +214,7 @@ public sealed class UserAdminService(
             var before = Snapshot(entity);
             entity.FullName = request.FullName.Trim();
             entity.Position = Clean(request.Position);
-            entity.JobGrade = JobGrades.Normalize(request.JobGrade);
+            entity.JobGrade = await JobGradeCheck.RequireAsync(db, request.JobGrade, entity.JobGrade, token);
             entity.Email = Clean(request.Email);
             entity.MobileNo = Clean(request.MobileNo);
             entity.DepartmentId = request.DepartmentId;
@@ -433,9 +434,9 @@ public sealed class UserAdminService(
             errors["position"] = [$"Position must be at most {MaxTextLength} characters."];
         }
 
-        if (JobGrades.Normalize(jobGrade) is null)
+        if (string.IsNullOrWhiteSpace(jobGrade))
         {
-            errors["jobGrade"] = [JobGrades.Problem];
+            errors["jobGrade"] = ["Job grade is required."];
         }
 
         if (!string.IsNullOrWhiteSpace(email) && (email.Length > MaxTextLength || !email.Contains('@')))

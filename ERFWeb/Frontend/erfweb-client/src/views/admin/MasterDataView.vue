@@ -11,19 +11,20 @@ import { formatMoney } from '@/shared/format';
 import { adminApi } from '@/features/admin/api';
 import MasterDataTable from '@/features/admin/components/MasterDataTable.vue';
 import type { Draft, MasterDataColumn, MasterDataField } from '@/features/admin/components/MasterDataTable.vue';
-import type { CostCenter, Currency, Department, ExpenseCategoryInfo, FareMode, Site } from '@/features/admin/types';
+import type { CostCenter, Currency, Department, ExpenseCategoryInfo, FareMode, JobGrade, Site } from '@/features/admin/types';
 
 const route = useRoute();
 const router = useRouter();
 const snack = useSnackbar();
 const { compact } = useLayoutMode();
 
-type Tab = 'departments' | 'cost-centers' | 'currencies' | 'sites' | 'fare-modes' | 'categories';
+type Tab = 'departments' | 'cost-centers' | 'currencies' | 'sites' | 'job-grades' | 'fare-modes' | 'categories';
 const tabs: { value: Tab; title: string; icon: string }[] = [
   { value: 'departments', title: 'Departments', icon: 'mdi-office-building-outline' },
   { value: 'cost-centers', title: 'Cost centers', icon: 'mdi-sitemap-outline' },
   { value: 'currencies', title: 'Currencies', icon: 'mdi-currency-usd' },
   { value: 'sites', title: 'Sites', icon: 'mdi-map-marker-outline' },
+  { value: 'job-grades', title: 'Job grades', icon: 'mdi-badge-account-horizontal-outline' },
   { value: 'fare-modes', title: 'Fare modes', icon: 'mdi-taxi' },
   { value: 'categories', title: 'Expense categories', icon: 'mdi-shape-outline' },
 ];
@@ -59,10 +60,11 @@ const departments = useEntity<Department>(() => adminApi.departments());
 const costCenters = useEntity<CostCenter>(() => adminApi.costCenters());
 const currencies = useEntity<Currency>(() => adminApi.currencies());
 const sites = useEntity<Site>(() => adminApi.sites());
+const jobGrades = useEntity<JobGrade>(() => adminApi.jobGrades());
 const fareModes = useEntity<FareMode>(() => adminApi.fareModes());
 const categories = useEntity<ExpenseCategoryInfo>(() => adminApi.expenseCategories());
 
-const entityFor = { departments, 'cost-centers': costCenters, currencies, sites, 'fare-modes': fareModes, categories } as const;
+const entityFor = { departments, 'cost-centers': costCenters, currencies, sites, 'job-grades': jobGrades, 'fare-modes': fareModes, categories } as const;
 
 // Load lazily on first visit of each tab; departments are also needed for the cost-center form.
 watch(
@@ -283,6 +285,31 @@ function saveSite(draft: Draft, existing: Site | null) {
   );
 }
 
+// ---- job grades -------------------------------------------------------------
+// Users and Grade rate assignments store the code, so it cannot change once created.
+const jobGradesTable = ref<{ close: () => void } | null>(null);
+const jobGradeColumns: MasterDataColumn<JobGrade>[] = [
+  { key: 'code', label: 'Code', mono: true },
+  { key: 'name', label: 'Name' },
+];
+const jobGradeFields: MasterDataField[] = [
+  { key: 'code', label: 'Code', type: 'text', required: true, maxlength: 32, readonlyOnEdit: true, hint: 'Stored on users and rates; cannot change later' },
+  { key: 'name', label: 'Name', type: 'text', required: true, maxlength: 200 },
+  { key: 'isActive', label: 'Active', type: 'switch' },
+];
+const jobGradeDraft = (g: JobGrade): Draft => ({ code: g.code, name: g.name, isActive: g.isActive });
+function saveJobGrade(draft: Draft, existing: JobGrade | null) {
+  const input = { code: str(draft, 'code').trim(), name: str(draft, 'name'), isActive: bool(draft, 'isActive') };
+  void runSave(
+    jobGrades,
+    jobGradesTable.value,
+    existing,
+    () => (existing ? adminApi.updateJobGrade(existing.id, { ...input, rowVersion: existing.rowVersion }) : adminApi.createJobGrade(input)),
+    (a, b) => a.id === b.id,
+    'Job grade',
+  );
+}
+
 // ---- fare modes -------------------------------------------------------------
 // Sort order and the legacy tbFare id are typed as text; anything that is not a whole number is
 // sent as-is for the server to reject with a field error.
@@ -445,6 +472,27 @@ function saveFareMode(draft: Draft, existing: FareMode | null) {
           @deleted="sites.load"
           @retry="sites.load"
           @clear-errors="sites.errors.value = null"
+        />
+      </v-window-item>
+
+      <v-window-item value="job-grades">
+        <MasterDataTable
+          ref="jobGradesTable"
+          title="Job grades"
+          singular="job grade"
+          :items="jobGrades.items.value"
+          :columns="jobGradeColumns"
+          :fields="jobGradeFields"
+          :key-of="(g: JobGrade) => g.id"
+          :to-draft="jobGradeDraft"
+          :loading="jobGrades.loading.value"
+          :error="jobGrades.error.value"
+          :saving="jobGrades.saving.value"
+          :errors="jobGrades.errors.value"
+          empty-icon="mdi-badge-account-horizontal-outline"
+          @save="saveJobGrade"
+          @retry="jobGrades.load"
+          @clear-errors="jobGrades.errors.value = null"
         />
       </v-window-item>
 

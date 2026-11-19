@@ -6,12 +6,13 @@ import { useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { adminApi } from '@/features/admin/api';
 import UserForm from '@/features/admin/components/UserForm.vue';
-import type { CreateUserInput, Department } from '@/features/admin/types';
+import type { CreateUserInput, Department, JobGrade } from '@/features/admin/types';
 
 const router = useRouter();
 const snack = useSnackbar();
 
 const departments = ref<Department[]>([]);
+const jobGrades = ref<JobGrade[]>([]);
 /** Undefined until the settings load; the form then falls back to its default domain. */
 const emailDomains = ref<string[] | undefined>(undefined);
 const lookupsLoading = ref(true);
@@ -19,10 +20,12 @@ const saving = ref(false);
 const errors = ref<Record<string, string[]> | null>(null);
 
 onMounted(async () => {
-  const [d, s] = await Promise.allSettled([adminApi.departments(false), adminApi.settings()]);
+  const [d, s, g] = await Promise.allSettled([adminApi.departments(false), adminApi.settings(), adminApi.jobGrades(false)]);
   if (d.status === 'fulfilled') departments.value = d.value;
   // An API older than the domain list sends none; keep the form's default.
   if (s.status === 'fulfilled' && s.value.emailDomains?.length) emailDomains.value = s.value.emailDomains;
+  if (g.status === 'fulfilled') jobGrades.value = g.value;
+  else snack.fromError(g.reason, 'Unable to load job grades; an account cannot be created without one.');
   if (d.status === 'rejected') {
     snack.error('Some reference lists could not be loaded; you can still create the account.');
   }
@@ -61,6 +64,7 @@ async function create(input: CreateUserInput) {
       <UserForm
         mode="create"
         :departments="departments"
+        :job-grades="jobGrades"
         :email-domains="emailDomains"
         :saving="saving"
         :errors="errors"

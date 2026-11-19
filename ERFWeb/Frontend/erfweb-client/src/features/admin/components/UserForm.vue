@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import type { CreateUserInput, CrmEmployee, Department, UserDetail, UserProfileInput } from '../types';
-import { isJobGrade, jobGradeOptions } from '@/shared/jobGrades';
+import { jobGradeItems } from '@/shared/jobGrades';
+import type { JobGradeOption } from '@/shared/jobGrades';
 import CrmEmployeePicker from './CrmEmployeePicker.vue';
 
 /**
@@ -14,6 +15,7 @@ const props = withDefaults(
     mode: 'create' | 'edit';
     initial?: UserDetail | null;
     departments: Department[];
+    jobGrades: JobGradeOption[];
     /** Company email domains from the settings; the first is the default. */
     emailDomains?: string[];
     saving?: boolean;
@@ -128,10 +130,12 @@ function fieldErrors(field: string): string[] | undefined {
 const passwordMismatch = computed(() => isCreate.value && form.confirmPassword !== '' && form.password !== form.confirmPassword);
 const emailInvalid = computed(() => form.email !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email ?? ''));
 
+const gradeItems = computed(() => jobGradeItems(props.jobGrades, props.initial?.jobGrade));
+
 const canSubmit = computed(() => {
   if (props.saving || props.disabled) return false;
   if (!form.fullName.trim()) return false;
-  if (!isJobGrade(form.jobGrade)) return false;
+  if (!gradeItems.value.some((g) => g.value === form.jobGrade)) return false;
   if (emailInvalid.value) return false;
   if (isCreate.value) {
     return form.username.trim() !== '' && form.password.length >= 8 && form.password === form.confirmPassword;
@@ -228,7 +232,7 @@ defineExpose({ isDirty });
       <v-col cols="12" sm="6">
         <v-select
           v-model="form.jobGrade"
-          :items="jobGradeOptions"
+          :items="gradeItems"
           label="Job grade *"
           :error-messages="fieldErrors('jobGrade')"
         />

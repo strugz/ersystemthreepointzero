@@ -10,7 +10,7 @@ namespace ERFWeb.Infrastructure.Administration;
 
 /// <summary>
 /// Master data maintained by the System Administrator (departments, cost centers, currencies,
-/// sites). Rows are never deleted, only deactivated, because reports and users reference them.
+/// sites, job grades). Rows are never deleted, only deactivated, because reports and users reference them.
 /// A cost center also carries one overall budget per calendar year (monitoring only).
 /// Every change writes an <c>Admin.MasterDataChanged</c> audit row in the same transaction.
 /// </summary>
@@ -316,6 +316,61 @@ public sealed class MasterDataService(
         }, ct);
 
         return (await ListSitesAsync(true, ct)).First(s => s.Id == id);
+    }
+
+    // ---------- Job grades ----------
+
+    public Task<IReadOnlyList<JobGradeDto>> ListJobGradesAsync(bool includeInactive, CancellationToken ct = default) =>
+        Query(db.JobGrades.AsNoTracking().Where(g => includeInactive || g.IsActive).OrderBy(g => g.Id)
+            .Select(g => new JobGradeDto(g.Id, g.Code, g.Name, g.IsActive, EF.Property<uint>(g, DbContextExtensions.RowVersionProperty))), ct);
+
+    public async Task<JobGradeDto> CreateJobGradeAsync(SaveJobGradeRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateCodeName(request.Code, request.Name, codeRequired: true);
+        var code = request.Code.Trim();
+
+        var id = await tx.ExecuteAsync(async token =>
+        {
+            if (await db.JobGrades.AnyAsync(g => g.Code.ToLower() == code.ToLower(), token))
+            {
+                throw new ValidationException("code", "A job grade with that code already exists.");
+            }
+
+            var entity = new JobGrade { Code = code, Name = request.Name.Trim(), IsActive = request.IsActive };
+            db.JobGrades.Add(entity);
+            await db.SaveChangesAsync(token);
+            await AuditAsync("jobGrade", "created", entity.Id, new { entity.Code, entity.Name, entity.IsActive }, token);
+            return entity.Id;
+        }, ct);
+
+        return (await ListJobGradesAsync(true, ct)).First(g => g.Id == id);
+    }
+
+    /// <summary>Changes the label and active flag only: users and rate assignments store the code.</summary>
+    public async Task<JobGradeDto> UpdateJobGradeAsync(long id, SaveJobGradeRequest request, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateCodeName(request.Code, request.Name, codeRequired: true);
+
+        await tx.ExecuteAsync(async token =>
+        {
+            var entity = await db.JobGrades.FirstOrDefaultAsync(g => g.Id == id, token)
+                ?? throw new NotFoundException("Job grade not found.");
+            if (!string.Equals(entity.Code, request.Code.Trim(), StringComparison.Ordinal))
+            {
+                throw new ValidationException("code", "A job grade's code cannot change; users and rates keep it. Add a new grade instead.");
+            }
+
+            var before = new { entity.Name, entity.IsActive };
+            entity.Name = request.Name.Trim();
+            entity.IsActive = request.IsActive;
+            db.SetRowVersion(entity, request.RowVersion ?? throw new ValidationException("rowVersion", "rowVersion is required for an update."));
+            await db.SaveWithConcurrencyAsync(token);
+            await AuditAsync("jobGrade", "updated", id, new { entity.Code, before, after = new { entity.Name, entity.IsActive } }, token);
+        }, ct);
+
+        return (await ListJobGradesAsync(true, ct)).First(g => g.Id == id);
     }
 
     // ---------- Expense categories (fixed by the R47 form) ----------
