@@ -12,7 +12,7 @@ import { formatBytes, formatDate, formatDateTime, formatMoney } from '@/shared/f
 import { describeError, useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { expensesApi } from '@/features/expenses/api';
-import { categoryLabel, reportTypeLabel, usesCashAdvance, usesRevolvingFund } from '@/features/expenses/labels';
+import { categoryLabel, countedDocumentType, reportTypeLabel, usesCashAdvance, usesRevolvingFund } from '@/features/expenses/labels';
 import { lineSortOptions, sortedLineIds, type LineSort } from '@/features/expenses/lineOrder';
 import ReportStatusChip from '@/features/expenses/components/ReportStatusChip.vue';
 import ReportDetailsCard from '@/features/expenses/components/ReportDetailsCard.vue';
@@ -364,17 +364,45 @@ async function confirmRemoveCash() {
 const uploading = ref(false);
 const busyAttachmentId = ref<number | null>(null);
 
+// An attendance sheet whose form code (R94) is not in its PDF text waits here for the employee to confirm it.
+const formCodeDialog = ref(false);
+const formCodeMessage = ref('');
+const pendingSheet = ref<{ file: File; note: string } | null>(null);
+
 async function upload(picked: File, documentType: AttachmentDocumentType) {
   uploading.value = true;
   try {
     // Shrink phone photos in the browser before they leave the device; PDFs pass through.
     const { file, originalBytes, compressed } = await compressImage(picked);
-    await expensesApi.upload(reportId, file, documentType);
-    snack.success(
-      compressed
-        ? `Uploaded ${file.name} (${formatBytes(originalBytes)} → ${formatBytes(file.size)}).`
-        : `Uploaded ${file.name}.`,
-    );
+    const note = compressed ? ` (${formatBytes(originalBytes)} → ${formatBytes(file.size)})` : '';
+    try {
+      await expensesApi.upload(reportId, file, documentType);
+    } catch (err) {
+      const formCodeError = err instanceof ApiError && err.status === 400 ? err.problem?.errors?.formCodeConfirmed?.[0] : undefined;
+      if (!formCodeError) throw err;
+      formCodeMessage.value = formCodeError;
+      pendingSheet.value = { file, note };
+      formCodeDialog.value = true;
+      return;
+    }
+    snack.success(`Uploaded ${file.name}${note}.`);
+    await load();
+  } catch (err) {
+    await handleMutationError(err, 'Unable to upload the file.');
+  } finally {
+    uploading.value = false;
+  }
+}
+
+async function confirmFormCode() {
+  const sheet = pendingSheet.value;
+  if (!sheet) return;
+  uploading.value = true;
+  try {
+    await expensesApi.upload(reportId, sheet.file, 'IsoAttendanceSheet', true);
+    formCodeDialog.value = false;
+    pendingSheet.value = null;
+    snack.success(`Uploaded ${sheet.file.name}${sheet.note}.`);
     await load();
   } catch (err) {
     await handleMutationError(err, 'Unable to upload the file.');
@@ -448,7 +476,7 @@ const checklist = computed<ChecklistItem[]>(() => {
     // Finance rules: a Sponsorship or Demo line needs its document attached (CategoryDocumentRules).
     for (const doc of readiness.value.requiredDocuments ?? []) {
       if (!r.lines.some((l) => l.category === doc.category)) continue;
-      const attached = r.attachments.some((a) => a.documentType === doc.documentType);
+      const attached = r.attachments.some((a) => countedDocumentType(a) === doc.documentType);
       items.push({
         ok: attached,
         text: attached ? `${categoryLabel[doc.category]}: ${doc.label} attached` : `${categoryLabel[doc.category]} line: attach the ${doc.label}`,
@@ -681,7 +709,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :crm-available="!!readiness?.crmActivitiesAvailable"
         :unavailable-categories="readiness?.unavailableCategories ?? []"
         :required-documents="readiness?.requiredDocuments ?? []"
-        :attached-document-types="report?.attachments.map((a) => a.documentType ?? 'Receipt') ?? []"
+        :attached-document-types="report?.attachments.map(countedDocumentType) ?? []"
         :uploading-document="uploading"
         @upload-document="upload"
         @remove="removeFromDialog"
@@ -759,6 +787,15 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         confirm-color="warning"
         :loading="acting"
         @confirm="reopenReport"
+      />
+
+      <AppConfirmDialog
+        v-model="formCodeDialog"
+        title="Is this the attendance sheet?"
+        :message="`${formCodeMessage}\n\nPhotos and scans cannot be searched. Upload it only if it is the form; Finance checks it against the original.`"
+        confirm-text="Yes, it is the form"
+        :loading="uploading"
+        @confirm="confirmFormCode"
       />
 
       <AppConfirmDialog

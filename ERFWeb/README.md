@@ -16,6 +16,39 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-11-19
+
+- **Wording fix** (PR #57). The filing message for a missing document says "a food or meal receipt", not
+  "an food or meal receipt" (`CategoryDocumentRules` picks a or an from the document's label). Same release.
+- **Job grade is a required dropdown** (PR #57). Creating or editing a user needs one of three job
+  grades: Staff, Specialists/Engineers, or Team Leaders/Supervisors/Assistant Managers (Domain `JobGrades`). The
+  short code (`Staff`, `Specialist`, `Supervisor`) is stored in `users.job_grade`; screens show the label. A
+  **Grade** rate assignment uses the same list. Anything else is refused (400 on `jobGrade`). Users and grade
+  rate assignments with an older free-text grade keep it until edited, and a grade rate stops matching once its
+  people move to the new codes, so fix those first. No database script. Same release as Lodging (API 0.6.0,
+  SPA 0.9.0).
+- **Demo attendance sheet must be form R94** (PR #57). An upload marked **ISO attendance sheet** is
+  searched for the form code (the R94's header prints "Document Code: R94"): a PDF whose text shows it is saved as
+  **Code found**; a photo, a scan or a PDF without it asks the employee "Is this the attendance sheet?" and is saved
+  as **Confirmed by employee** only when they confirm, otherwise refused (400 on `formCodeConfirmed`). The Receipts
+  panel shows the result on each sheet so Finance knows which to check against the original. A Demo line, and
+  filing, count only sheets with a result, so sheets uploaded before this change must be uploaded again. The code is
+  set on **Rules → Filing and Finance → Finance rules → Demo** (`demoFormCode`, default `R94`). PDF text is read with
+  **PdfPig** (Apache-2.0, new dependency; see [PDF libraries](#pdf-libraries--which-one-to-use)); only the outcome is
+  logged. Script `027` (`receipt_attachments.form_code_check`, `SchemaVersion.Required` 27). Same release as
+  Lodging (API 0.6.0, SPA 0.9.0); apply `027`, deploy the backend, then the frontend.
+- **Lodging, Finance rules phase 5** (PR #57). New **Lodging** category, printed under OTHERS on the R47:
+  the employee enters the amount **Per night** and the **Nights** (the multiplier); the line computation reads
+  "(3 Nights) * 1500". **Rules → Filing and Finance → Finance rules → Lodging** switches it on or off and sets where
+  the rate comes from (Finance question 5): **Rate profile** (default: the Lodging line of the employee's rate
+  profile on the expense date, set on the Rates page) or **Flat amount** (one per-night amount for everyone).
+  The line dialog pre-fills the rate (`/api/lookups/my-rates` returns `lodgingRate`); with **Refuse an amount per
+  night above the lodging rate** on (default), the server refuses a higher amount (400 on `amount`); no rate set
+  means no limit. A Lodging line needs the official receipt from the hotel or lodging attached first (upload type
+  **Lodging receipt**; a plain Receipt does not count; checked again at filing), switched by **Lodging needs the
+  official receipt from the hotel or lodging** (default on). Rates by location are not supported. No database
+  script. API 0.6.0, SPA 0.9.0 (minor); deploy the backend before the frontend.
+
 ### 2026-11-12
 
 - **Approvals up front for signatories** (PR #55). A signatory's **Dashboard** shows a **For your approval**
@@ -402,6 +435,7 @@ psql -d erfweb -f Database/023_expense_line_crm_activities.sql # expense_lines.c
 psql -d erfweb -f Database/024_signature_approval.sql          # Finance approval of signature images (existing ones marked approved)
 psql -d erfweb -f Database/025_filing_cutoff.sql               # expense_reports.filed_late: filed after the weekly processing cutoff
 psql -d erfweb -f Database/026_attachment_document_type.sql    # receipt_attachments.document_type: Activity Request Form, ISO attendance sheet
+psql -d erfweb -f Database/027_attachment_form_code_check.sql  # receipt_attachments.form_code_check: attendance sheet form code (R94) found or confirmed
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -656,6 +690,7 @@ Domain, Application, the API and the SPA never reference either. QuestPDF is nev
 | **R47**: chosen on the Rules page (**Format of the R47 → PDF engine**; until saved, `R47Report:Engine`) | `QuestPdf` (default): `R47Document`. `PdfSharp`: `R47PdfSharpDocument`. Both draw the same shapes laid out once by `R47Composer` from the R47 design and the Domain layout (`R47Design`, `R47Layout`, `R47Signatures`, `R47TextMetrics`) |
 | **Summary and list exports** (`ExportPdfDocument`) and any new printed form or report | **QuestPDF** |
 | **Work on PDF files that already exist**: merge or append (e.g. an R47 plus PDF receipts), split, import or reorder pages, overlay on a page ERFWeb did not make, page count | **PDFsharp** (QuestPDF cannot open existing PDFs) |
+| **Read the text of an uploaded PDF** (only the attendance sheet's form code, `Infrastructure/Expenses/PdfFormCodeReader`) | **PdfPig** (Apache-2.0); PDFsharp cannot extract text |
 
 Switching the R47 engine: **Rules → Expense report (R47) → Format of the R47 → PDF engine**, then **Save rules**; the
 next R47 uses it, with no restart. Nothing else changes: same URL, same layout and pagination, same signature rule.
@@ -700,7 +735,7 @@ trigger stamps `record_history.changed_by`.
 | `PUT /api/reports/{id}/lines/order` | Body `{ lineIds }`: every active line once, in the order the R47 prints them (saved as `sort_order`). A list that no longer matches the report's lines → 409. The editor's **Sort** menu (date or total) calls it |
 | `GET /api/lookups/fare-modes` | Active fare modes for the fare-leg picker, in sort order |
 | `POST /api/reports/{id}/cash-advances` · `PUT/DELETE …/cash-advances/{lineId}` | Rows of the CASH ADVANCE RECEIVED block (Liquidation of Cash Advance only); the R47 reconciles against their total |
-| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`, optional `documentType`: `Receipt`, `ActivityRequestForm`, `IsoAttendanceSheet`, `FoodReceipt`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller). On phones and tablets **Take photo** opens the in-app camera (`AppCameraCapture`) |
+| `GET/POST /api/reports/{id}/attachments` · `GET …/{aid}/content` · `DELETE …/{aid}` | Receipt scans (`multipart/form-data`, field `file`, optional `documentType`: `Receipt`, `ActivityRequestForm`, `IsoAttendanceSheet`, `FoodReceipt`, `LodgingReceipt`); stored as `bytea` in `receipt_attachments`, not on disk. The browser shrinks JPEG/PNG photos first (`src/shared/images.ts`: longest side 1600 px, JPEG 80 %, EXIF orientation applied, PDFs untouched, original kept if not smaller). On phones and tablets **Take photo** opens the in-app camera (`AppCameraCapture`) |
 | `POST /api/reports/{id}/file` | File / re-file → `ForApproval`; snapshots the approval route into `approval_steps` |
 | `POST /api/reports/{id}/reopen` | Pull a `ForApproval`/`Approved` report back to `New` (supersedes the cycle) |
 | `GET /api/lookups/work-with` · `my-rates` · `my-filing-readiness` | Editor lookups (`crmActivitiesAvailable` turns on **From CRM**) |
@@ -735,7 +770,7 @@ stored JSON keeps its default), audited `SettingsChanged`, read at filing time, 
 before a line can be added (confirmed with Finance on 2026-11-11): an approved Activity Request Form for Sponsorship
 (new category), an ISO-registered attendance sheet for Demo (new category), the food or meal receipt for
 Representation. When uploading under **Receipts** the employee picks what the file is (**This file is a**: Receipt,
-Activity Request Form, ISO attendance sheet or Food receipt;
+Activity Request Form, ISO attendance sheet, Food receipt or Lodging receipt;
 `documentType` in the upload form, stored in `receipt_attachments.document_type`, NULL for older files = Receipt).
 The document comes first: choosing Sponsorship or Demo in the line dialog shows an amber note with **Upload** until
 the report has that document, **Save** stays off, and the server refuses the line (400 on `category`). Filing checks
@@ -745,6 +780,17 @@ again (checklist item and blocker) in case the document was deleted afterwards (
 category switched off is hidden in the line dialog (`my-filing-readiness` returns `unavailableCategories` and
 `requiredDocuments`), refused when a line is saved, and blocks filing a report that still has one. Both categories
 print under OTHERS (Foreign: Other Exp.).
+
+**Lodging (Finance rules).** A Lodging line is an amount per night times the nights (the line multiplier, labelled
+**Nights** in the dialog; computation "(n Nights) * amount"). The per-night rate (Domain `LodgingRules`) comes from
+**Rules → Finance rules → Lodging**: `lodgingRateBasis` `RateProfile` (default, the claimant's rate profile Lodging
+line in force on the expense date, so per employee, grade, department or company) or `Flat` (`lodgingFlatRate`,
+required above 0). `my-rates` returns it as `lodgingRate` and the dialog pre-fills it on a new line. With
+`lodgingCapAtRate` (default on) a per-night amount above the rate is refused when the line is saved; no rate set
+means no limit. `lodgingEnabled` switches the category like Sponsorship and Demo. With `lodgingRequiresDocument`
+(default on) a Lodging line needs a `LodgingReceipt` attachment (the official receipt from the hotel or lodging)
+before it is saved and at filing, like Representation's food receipt. Lodging prints under OTHERS
+(Foreign: Other Exp.). Location-based rates are not supported.
 
 **ERF reference number.** Issued by the system on **first filing** as a yearly series
 `ERF-2026-000142` (`ReferenceNumberFormat` + `ReferenceNumberGenerator`): one counter row per
@@ -827,6 +873,10 @@ Rules enforced by the API (Domain `RoleRules` / `AccountRules`, unit-tested):
 | `GET /api/signatures?status=Pending\|Approved` · `GET …/{userId}/image` · `POST …/{userId}/approve` · `POST …/{userId}/reject` (Finance) | Finance's review of signature images. Approve and reject send `{ uploadedAt, note? }` (the upload reviewed; a newer one answers 409). Rejecting removes the image. Your own signature answers 403 |
 | `GET /api/admin/crm/employees?search&includeInactive` · `GET …/{employeeId}` (SystemAdministrator) | CRM employee lookup for the user form (see CRM employee link) |
 | `GET /api/admin/audit?event&actorUserId&from&to` (SystemAdministrator, Finance) | Append-only audit trail |
+
+**Job grade** is required on every account and picked from a fixed list (Domain `JobGrades`): `Staff`,
+`Specialist` (Specialists/Engineers) and `Supervisor` (Team Leaders/Supervisors/Assistant Managers). The code is
+stored; the screens show the label. Grade rate assignments use the same codes.
 
 First-time setup (plan flow 1): sign in as `admin`, create accounts and master data, set the rules, grant the
 signatory roles, then give each signatory a scope (Scope page) so reports route to them.

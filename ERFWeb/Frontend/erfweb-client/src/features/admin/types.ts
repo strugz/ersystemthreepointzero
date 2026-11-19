@@ -366,6 +366,7 @@ export function rulesSectionOf(field: string): RulesSection {
 
 export type CutoffWeekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
 export type LateFilingHandling = 'NoticeOnly' | 'FlagForFinance';
+export type LodgingRateBasis = 'RateProfile' | 'Flat';
 
 /** Finance rules (Rules page, one JSON row on the server). Each rule answers an open Finance question. */
 export interface FinanceRules {
@@ -382,8 +383,19 @@ export interface FinanceRules {
   /** Employees may claim Demo; filing needs an ISO attendance sheet when required. */
   demoEnabled: boolean;
   demoRequiresDocument: boolean;
+  /** Document code of the attendance sheet (R94); an upload must show it or the employee confirms it. */
+  demoFormCode: string;
   /** A Representation line needs the food or meal receipt attached first. */
   representationRequiresDocument: boolean;
+  /** Employees may claim Lodging (per night × nights). */
+  lodgingEnabled: boolean;
+  /** Where the per-night rate comes from: the claimant's rate profile or one flat amount. */
+  lodgingRateBasis: LodgingRateBasis;
+  lodgingFlatRate: number;
+  /** A per-night amount above the rate is refused; no rate set means no cap. */
+  lodgingCapAtRate: boolean;
+  /** A Lodging line needs the official receipt from the hotel or lodging attached first. */
+  lodgingRequiresDocument: boolean;
 }
 
 export interface SystemSettingsInput {

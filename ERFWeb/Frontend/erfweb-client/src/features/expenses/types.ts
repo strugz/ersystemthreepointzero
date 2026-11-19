@@ -6,10 +6,12 @@ export type ReportStatus = 'New' | 'ForApproval' | 'Returned' | 'Approved' | 'Re
 export type ApprovalStatus = 'Pending' | 'Approved' | 'Returned' | 'Superseded' | 'Rejected' | 'Overridden';
 export type FinanceStatus = 'Pending' | 'ReceiptsIncomplete' | 'ReceiptsReceived' | 'ClearedForPayment';
 export type ExpenseType = 'Local' | 'Foreign';
-export type ExpenseCategory = 'Meals' | 'Transportation' | 'Toll' | 'Parking' | 'Others' | 'Representation' | 'Sponsorship' | 'Demo';
+export type ExpenseCategory = 'Meals' | 'Transportation' | 'Toll' | 'Parking' | 'Others' | 'Representation' | 'Sponsorship' | 'Demo' | 'Lodging';
 
-/** What an uploaded file is; Sponsorship and Demo lines need their document attached before filing. */
-export type AttachmentDocumentType = 'Receipt' | 'ActivityRequestForm' | 'IsoAttendanceSheet' | 'FoodReceipt';
+/** What an uploaded file is; Sponsorship, Demo, Representation and Lodging lines need their document attached first. */
+export type AttachmentDocumentType = 'Receipt' | 'ActivityRequestForm' | 'IsoAttendanceSheet' | 'FoodReceipt' | 'LodgingReceipt';
+/** How an ISO attendance sheet matched the Demo form code (R94): found in the PDF text, or confirmed by the employee. */
+export type FormCodeCheck = 'Found' | 'Confirmed';
 
 export interface PagedResult<T> {
   items: T[];
@@ -158,6 +160,8 @@ export interface Attachment {
   uploadedAt: string;
   /** Absent from an API older than document types: a receipt. */
   documentType?: AttachmentDocumentType;
+  /** Attendance sheets only; absent for sheets uploaded before the R94 check, which no longer count. */
+  formCodeCheck?: FormCodeCheck | null;
 }
 
 export interface ExpenseReportDetail {
@@ -255,6 +259,8 @@ export interface EmployeeRates {
   lunchRate: number;
   dinnerRate: number;
   otMealRate: number;
+  /** Per night, from the rate profile or the Finance rules' flat amount; 0 when none is set. */
+  lodgingRate: number;
 }
 
 export interface FilingReadiness {

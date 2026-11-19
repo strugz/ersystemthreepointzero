@@ -9,6 +9,7 @@ import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import type { Crumb } from '@/layouts/AuthenticatedLayout.vue';
 import AppConfirmDialog from '@/shared/ui/AppConfirmDialog.vue';
 import { formatDateTime } from '@/shared/format';
+import { jobGradeLabel } from '@/shared/jobGrades';
 import { useSnackbar } from '@/shared/composables/useSnackbar';
 import { ApiError } from '@/shared/api/client';
 import { adminApi } from '@/features/admin/api';
@@ -291,7 +292,7 @@ async function revoke(grant: RoleGrant, note: string | null) {
               <div class="field"><span class="lbl">Full name</span><span class="val">{{ user.fullName }}</span></div>
               <div class="field"><span class="lbl">Username</span><span class="val mono">{{ user.username }}</span></div>
               <div class="field"><span class="lbl">Position</span><span class="val" :class="{ muted: !user.position }">{{ user.position || '—' }}</span></div>
-              <div class="field"><span class="lbl">Job grade</span><span class="val" :class="{ muted: !user.jobGrade }">{{ user.jobGrade || '—' }}</span></div>
+              <div class="field"><span class="lbl">Job grade</span><span class="val" :class="{ muted: !user.jobGrade }">{{ jobGradeLabel(user.jobGrade) || '—' }}</span></div>
               <div class="field"><span class="lbl">Email</span><span class="val" :class="{ muted: !user.email }">{{ user.email || '—' }}</span></div>
               <div class="field"><span class="lbl">Mobile no.</span><span class="val" :class="{ muted: !user.mobileNo }">{{ user.mobileNo || '—' }}</span></div>
               <div class="field"><span class="lbl">Department</span><span class="val" :class="{ muted: !user.departmentName }">{{ user.departmentName || '—' }}</span></div>

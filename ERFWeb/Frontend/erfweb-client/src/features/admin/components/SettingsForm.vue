@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import type { FinanceRules, R47Format, RulesSection, SystemSettings, SystemSettingsInput } from '../types';
+import type { FinanceRules, LodgingRateBasis, R47Format, RulesSection, SystemSettings, SystemSettingsInput } from '../types';
 
 /** Workflow rules (approval thresholds, SLAs, filing cut-off, Finance rules, R47 reviewer and format, notifications, sign-in lockout). The parent owns the save. */
 const props = withDefaults(
@@ -50,11 +50,21 @@ function blankFinanceRules(): FinanceRules {
     sponsorshipRequiresDocument: true,
     demoEnabled: true,
     demoRequiresDocument: true,
+    demoFormCode: 'R94',
     representationRequiresDocument: true,
+    lodgingEnabled: true,
+    lodgingRateBasis: 'RateProfile',
+    lodgingFlatRate: 0,
+    lodgingCapAtRate: true,
+    lodgingRequiresDocument: true,
   };
 }
 
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
+const LODGING_RATE_BASES: { value: LodgingRateBasis; title: string }[] = [
+  { value: 'RateProfile', title: 'Rate profile' },
+  { value: 'Flat', title: 'Flat amount' },
+];
 
 // Same limits and defaults as the server (Domain LoginLockoutRules).
 const LOCKOUT = {
@@ -202,7 +212,12 @@ function submit() {
   out.emailDomains = [...new Set(form.emailDomains.map(cleanDomain).filter(Boolean))];
   out.r47ReviewedBy = form.r47ReviewedBy.trim();
   out.r47Format = { ...form.r47Format };
-  out.financeRules = { ...form.financeRules, cutoffTime: form.financeRules.cutoffTime.trim() };
+  out.financeRules = {
+    ...form.financeRules,
+    cutoffTime: form.financeRules.cutoffTime.trim(),
+    demoFormCode: form.financeRules.demoFormCode.trim().toUpperCase(),
+    lodgingFlatRate: Number(form.financeRules.lodgingFlatRate) || 0,
+  };
   for (const f of FORMAT_FIELDS) {
     out.r47Format[f.key] = form.r47Format[f.key].trim();
   }
@@ -403,6 +418,17 @@ defineExpose({ isDirty });
               label="Needs an ISO-registered attendance sheet"
               hide-details
             />
+            <v-text-field
+              v-model="form.financeRules.demoFormCode"
+              :disabled="!form.financeRules.demoEnabled || !form.financeRules.demoRequiresDocument"
+              label="Attendance sheet form code"
+              hint="Searched for in an uploaded PDF; a photo or scan needs the employee's confirmation."
+              persistent-hint
+              density="compact"
+              maxlength="20"
+              class="mt-2"
+              :error-messages="fieldErrors('financeRules.demoFormCode')"
+            />
           </v-col>
           <v-col cols="12" sm="6">
             <v-checkbox
@@ -414,6 +440,55 @@ defineExpose({ isDirty });
             />
           </v-col>
         </v-row>
+
+        <v-divider class="my-5" />
+        <div class="text-subtitle-2 mb-1">Lodging</div>
+        <div class="text-caption text-medium-emphasis mb-2">
+          The employee enters the amount per night and the nights; the line total is the two multiplied. Lodging prints under OTHERS on the R47.
+          Rates by location are not supported.
+        </div>
+        <v-switch v-model="form.financeRules.lodgingEnabled" color="primary" label="Employees may claim Lodging" hide-details />
+        <v-row dense class="mt-2">
+          <v-col cols="12" sm="6">
+            <v-select
+              v-model="form.financeRules.lodgingRateBasis"
+              :items="LODGING_RATE_BASES"
+              label="Lodging rate"
+              :disabled="!form.financeRules.lodgingEnabled"
+              hint="Finance question 5: Rate profile uses the Lodging line of the employee's rate profile (Rates page)"
+              persistent-hint
+              :error-messages="fieldErrors('financeRules.lodgingRateBasis')"
+            />
+          </v-col>
+          <v-col v-if="form.financeRules.lodgingRateBasis === 'Flat'" cols="12" sm="6">
+            <v-text-field
+              v-model.number="form.financeRules.lodgingFlatRate"
+              type="number"
+              min="0"
+              step="0.01"
+              prefix="₱"
+              label="Flat amount per night"
+              :disabled="!form.financeRules.lodgingEnabled"
+              :error-messages="fieldErrors('financeRules.lodgingFlatRate')"
+            />
+          </v-col>
+        </v-row>
+        <v-checkbox
+          v-model="form.financeRules.lodgingCapAtRate"
+          :disabled="!form.financeRules.lodgingEnabled"
+          color="primary"
+          density="compact"
+          label="Refuse an amount per night above the lodging rate (no rate set: no limit)"
+          hide-details
+        />
+        <v-checkbox
+          v-model="form.financeRules.lodgingRequiresDocument"
+          :disabled="!form.financeRules.lodgingEnabled"
+          color="primary"
+          density="compact"
+          label="Lodging needs the official receipt from the hotel or lodging"
+          hide-details
+        />
       </div>
     </v-card>
 

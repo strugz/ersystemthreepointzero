@@ -330,6 +330,7 @@ public sealed class MasterDataService(
         new(ExpenseCategory.Representation, "Representation", "Representation"),
         new(ExpenseCategory.Sponsorship, "Sponsorship", "OTHERS"),
         new(ExpenseCategory.Demo, "Demo", "OTHERS"),
+        new(ExpenseCategory.Lodging, "Lodging", "OTHERS"),
     ];
 
     // ---------- Helpers ----------

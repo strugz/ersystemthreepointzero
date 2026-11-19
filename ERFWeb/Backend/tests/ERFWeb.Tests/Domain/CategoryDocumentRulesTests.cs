@@ -9,7 +9,7 @@ public class CategoryDocumentRulesTests
     private static readonly FinanceRuleSet On = FinanceRuleSet.Default;
 
     [Fact]
-    public void Default_RequiresTheThreeDocuments()
+    public void Default_RequiresTheFourDocuments()
     {
         var required = CategoryDocumentRules.Required(On);
 
@@ -18,6 +18,7 @@ public class CategoryDocumentRulesTests
                 (ExpenseCategory.Sponsorship, AttachmentDocumentType.ActivityRequestForm),
                 (ExpenseCategory.Demo, AttachmentDocumentType.IsoAttendanceSheet),
                 (ExpenseCategory.Representation, AttachmentDocumentType.FoodReceipt),
+                (ExpenseCategory.Lodging, AttachmentDocumentType.LodgingReceipt),
             ],
             required.Select(r => (r.Category, r.DocumentType)));
         Assert.Empty(CategoryDocumentRules.Disabled(On));
@@ -35,8 +36,39 @@ public class CategoryDocumentRulesTests
     {
         var problems = CategoryDocumentRules.FilingProblems([ExpenseCategory.Demo], [AttachmentDocumentType.ActivityRequestForm], On);
 
-        Assert.Equal(["A Demo line needs an ISO-registered attendance sheet attached. Upload it under Receipts as \"ISO attendance sheet\"."], problems);
+        Assert.Equal(["A Demo line needs an ISO-registered attendance sheet (form R94) attached. Upload it under Receipts as \"ISO attendance sheet\"."], problems);
     }
+
+    [Theory]
+    [InlineData("Document Code: R94 Page No. 1", true)]
+    [InlineData("document code r94", true)]
+    [InlineData("Code R 94", true)]
+    [InlineData("Code R-94", true)]
+    [InlineData("Code FR94", false)]
+    [InlineData("Code R945", false)]
+    [InlineData("Control no. 016319400", false)]
+    [InlineData("", false)]
+    public void ContainsFormCode_MatchesTheCodeAsAWord(string text, bool expected) =>
+        Assert.Equal(expected, CategoryDocumentRules.ContainsFormCode(text, "R94"));
+
+    [Fact]
+    public void FormCode_FollowsTheRule()
+    {
+        var rules = On with { DemoFormCode = "R95" };
+
+        Assert.Equal("ISO-registered attendance sheet (form R95)", CategoryDocumentRules.Required(rules).Single(r => r.Category == ExpenseCategory.Demo).Label);
+        Assert.Equal("This file does not show form R95. Upload the R95 attendance sheet, or confirm that this file is form R95.",
+            CategoryDocumentRules.FormCodeNotFound(rules));
+    }
+
+    [Theory]
+    [InlineData("R94", true)]
+    [InlineData("F-R94", true)]
+    [InlineData("", false)]
+    [InlineData("R 94", false)]
+    [InlineData("R94R94R94R94R94R94R94", false)]
+    public void DemoFormCode_IsValidated(string code, bool valid) =>
+        Assert.Equal(valid, !FinanceRuleSetRules.Validate(On with { DemoFormCode = code }).ContainsKey("financeRules.demoFormCode"));
 
     [Fact]
     public void LineProblem_NeedsTheDocumentBeforeTheLine()
@@ -58,6 +90,22 @@ public class CategoryDocumentRulesTests
             CategoryDocumentRules.LineProblem(ExpenseCategory.Representation, [AttachmentDocumentType.Receipt], On));
         Assert.Null(CategoryDocumentRules.LineProblem(ExpenseCategory.Representation, [AttachmentDocumentType.FoodReceipt], On));
         Assert.Null(CategoryDocumentRules.LineProblem(ExpenseCategory.Representation, [], On with { RepresentationRequiresDocument = false }));
+        Assert.Equal(
+            ["A Representation line needs a food or meal receipt attached. Upload it under Receipts as \"Food receipt\"."],
+            CategoryDocumentRules.FilingProblems([ExpenseCategory.Representation], [], On));
+    }
+
+    [Fact]
+    public void Lodging_NeedsTheLodgingReceipt_NotAPlainReceipt()
+    {
+        Assert.Equal(
+            "Attach the official receipt from the hotel or lodging under Receipts (as \"Lodging receipt\") before adding a Lodging line.",
+            CategoryDocumentRules.LineProblem(ExpenseCategory.Lodging, [AttachmentDocumentType.Receipt], On));
+        Assert.Null(CategoryDocumentRules.LineProblem(ExpenseCategory.Lodging, [AttachmentDocumentType.LodgingReceipt], On));
+        Assert.Null(CategoryDocumentRules.LineProblem(ExpenseCategory.Lodging, [], On with { LodgingRequiresDocument = false }));
+        Assert.Equal(
+            ["A Lodging line needs an official receipt from the hotel or lodging attached. Upload it under Receipts as \"Lodging receipt\"."],
+            CategoryDocumentRules.FilingProblems([ExpenseCategory.Lodging], [AttachmentDocumentType.Receipt], On));
     }
 
     [Fact]
@@ -82,6 +130,17 @@ public class CategoryDocumentRulesTests
         Assert.DoesNotContain(CategoryDocumentRules.Required(rules), r => r.Category == ExpenseCategory.Demo);
         Assert.Equal(["Demo claims are switched off. Remove or change those lines."],
             CategoryDocumentRules.FilingProblems([ExpenseCategory.Demo], [AttachmentDocumentType.IsoAttendanceSheet], rules));
+    }
+
+    [Fact]
+    public void LodgingOff_IsDisabled_AndBlocksFiling()
+    {
+        var rules = On with { LodgingEnabled = false };
+
+        Assert.Equal([ExpenseCategory.Lodging], CategoryDocumentRules.Disabled(rules));
+        Assert.DoesNotContain(CategoryDocumentRules.Required(rules), r => r.Category == ExpenseCategory.Lodging);
+        Assert.Equal(["Lodging claims are switched off. Remove or change those lines."],
+            CategoryDocumentRules.FilingProblems([ExpenseCategory.Lodging], [], rules));
     }
 
     [Fact]

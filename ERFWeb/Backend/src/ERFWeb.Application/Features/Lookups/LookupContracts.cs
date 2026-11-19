@@ -5,13 +5,17 @@ namespace ERFWeb.Application.Features.Lookups;
 /// <summary>A colleague selectable in the "Work With" picker.</summary>
 public sealed record WorkWithOptionDto(long UserId, string FullName, string? Position, string? Department);
 
-/// <summary>The signed-in employee's configured per-diem / transport rates.</summary>
+/// <summary>
+/// The signed-in employee's configured per-diem / transport rates. <see cref="LodgingRate"/>: per night, from the
+/// rate profile or the Finance rules' flat amount (0 when none is set).
+/// </summary>
 public sealed record EmployeeRatesDto(
     decimal TransportRate,
     decimal BreakfastRate,
     decimal LunchRate,
     decimal DinnerRate,
-    decimal OtMealRate);
+    decimal OtMealRate,
+    decimal LodgingRate = 0m);
 
 /// <summary>
 /// Whether the signed-in employee can file (signature on record, approvers configured, cooling period over).

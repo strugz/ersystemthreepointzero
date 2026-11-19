@@ -1,5 +1,6 @@
 using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Administration;
+using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Expenses;
@@ -20,7 +21,8 @@ public sealed class ExpenseLineService(
     ReportEditGate gate,
     ExpenseReportDetailLoader loader,
     CrmActivityClaimCheck crmClaims,
-    ISystemSettingsService settings) : IExpenseLineService
+    ISystemSettingsService settings,
+    IRateService rates) : IExpenseLineService
 {
     public async Task<ExpenseLineDto> AddAsync(Guid reportId, SaveExpenseLineRequest request, CancellationToken ct = default)
     {
@@ -164,8 +166,8 @@ public sealed class ExpenseLineService(
             errors["meals"] = ["Each meal item needs a meal type (Breakfast, Lunch, Dinner, OT)."];
         }
 
-        // Finance rules: a category switched off on the Rules page cannot be claimed, and Sponsorship and Demo need
-        // their document attached to the report first.
+        // Finance rules: a category switched off on the Rules page cannot be claimed, Sponsorship and Demo need
+        // their document attached to the report first, and Lodging may be capped at the claimant's lodging rate.
         var financeRules = await settings.GetFinanceRulesAsync(ct);
         if (!CategoryDocumentRules.IsEnabled(financeRules, r.Category))
         {
@@ -174,13 +176,22 @@ public sealed class ExpenseLineService(
         else if (CategoryDocumentRules.Required(financeRules).Any(d => d.Category == r.Category))
         {
             var attached = await db.ReceiptAttachments.AsNoTracking()
-                .Where(a => a.ReportId == report.Id)
+                .Where(a => a.ReportId == report.Id && (a.DocumentType != AttachmentDocumentType.IsoAttendanceSheet || a.FormCodeCheck != null))
                 .Select(a => a.DocumentType ?? AttachmentDocumentType.Receipt)
                 .Distinct()
                 .ToListAsync(ct);
             if (CategoryDocumentRules.LineProblem(r.Category, attached, financeRules) is { } documentProblem)
             {
                 errors["category"] = [documentProblem];
+            }
+        }
+        else if (r.Category == ExpenseCategory.Lodging && financeRules.LodgingCapAtRate)
+        {
+            var profileRates = await rates.EditorRatesAsync(report.EmployeeUserId, r.TransactionDate, ct);
+            var rate = LodgingRules.Rate(financeRules, profileRates.LodgingRate);
+            if (LodgingRules.AmountProblem(r.Amount, rate, financeRules) is { } lodgingProblem)
+            {
+                errors["amount"] = [lodgingProblem];
             }
         }
 
@@ -226,6 +237,10 @@ public sealed class ExpenseLineService(
             var allowance = AllowanceCalculator.Compute(totalDays, r.MinusDays ?? 0, r.Amount);
             multiplier = allowance.Multiplier;
             computation = allowance.ComputationText;
+        }
+        else if (r.Category == ExpenseCategory.Lodging && multiplier > 1)
+        {
+            computation = LodgingRules.ComputationText(multiplier, r.Amount);
         }
 
         line.TransactionDate = r.TransactionDate;

@@ -21,7 +21,9 @@ public sealed class AttachmentsController(IReceiptAttachmentService attachments)
 
     /// <summary>
     /// Uploads one file (multipart/form-data, field name <c>file</c>, optional <c>documentType</c>: Receipt,
-    /// ActivityRequestForm or IsoAttendanceSheet). Limits come from <c>Attachments</c> in appsettings.json.
+    /// ActivityRequestForm, IsoAttendanceSheet, FoodReceipt or LodgingReceipt). An IsoAttendanceSheet must show the Demo form code
+    /// (R94) in its PDF text or come with <c>formCodeConfirmed=true</c>; otherwise 400 with a <c>formCodeConfirmed</c>
+    /// error. Limits come from <c>Attachments</c> in appsettings.json.
     /// </summary>
     [HttpPost]
     [Consumes("multipart/form-data")]
@@ -31,7 +33,8 @@ public sealed class AttachmentsController(IReceiptAttachmentService attachments)
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AttachmentDto>> Upload(
-        Guid reportId, IFormFile? file, [FromForm] AttachmentDocumentType? documentType, CancellationToken ct)
+        Guid reportId, IFormFile? file, [FromForm] AttachmentDocumentType? documentType,
+        [FromForm] bool? formCodeConfirmed, CancellationToken ct)
     {
         if (file is null || file.Length == 0)
         {
@@ -45,7 +48,7 @@ public sealed class AttachmentsController(IReceiptAttachmentService attachments)
             content = stream.ToArray();
         }
 
-        var saved = await attachments.UploadAsync(reportId, new UploadAttachmentRequest(file.FileName, file.ContentType, content, documentType ?? AttachmentDocumentType.Receipt), ct);
+        var saved = await attachments.UploadAsync(reportId, new UploadAttachmentRequest(file.FileName, file.ContentType, content, documentType ?? AttachmentDocumentType.Receipt, formCodeConfirmed == true), ct);
         return Created($"/api/reports/{reportId}/attachments/{saved.Id}/content", saved);
     }
 
