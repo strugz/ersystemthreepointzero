@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-19
 
-- **Verification card reads as a conversation** (not yet committed). Each request on the review and report
+- **Verification card reads as a conversation** (PR #60). Each request on the review and report
   pages shows a step bar (Asked, Picked up, finding, and Sent to Level 2 / decision when needed), then a thread:
   automatic requests as "Opened automatically when <approver> gave final approval" with the Finance rule, the
   verifier picking it up, the finding, Finance's query to Level 2 and Level 2's decision, each with name, role and
