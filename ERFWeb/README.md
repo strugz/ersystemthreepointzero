@@ -18,6 +18,11 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-19
 
+- **Test mode sends every SMS and email to one account** (branch `feat/erfweb-gas-medical`, same release as phase 6, API
+  0.8.0). With `App:Mode` `Test`, the SMS and email gateways (`TestModeSmsGateway`, `TestModeEmailGateway`) send
+  everything (workflow and verification notices, Email R47, SLA reminders) to the user named by the new
+  `App:TestRecipient` (username) instead of the real recipients, marked `[TEST]`; an email says how many recipients
+  it was meant for. With no such active user, mobile number or email, nothing is sent. No database script.
 - **Gas and Medical verification, Finance rules phase 6** (not yet committed). New **Gas** and **Medical**
   categories, printed under OTHERS on the R47. **Rules → Filing and Finance → Finance rules → Gas and Medical**
   switches each on or off and sets how it is verified (Finance questions 6 and 7): **Expense Verifier after
@@ -414,7 +419,8 @@ else. A missing required key stops startup with a clear error naming the key.
 | `Crm:*` (optional) | CRM employee and activity lookups: `BaseUrl` (e.g. `https://<crm-host>/api2/erf/v1`), `ApiKey`, `ApiKeyHeaderName` (`X-Api-Key`), `TimeoutSeconds`. Without it the Add User CRM search answers 503, accounts save unlinked, and the line editor hides **From CRM** |
 | `Smtp:*` (optional) | Mail server, sender mailbox and login for report email (see Report email) |
 | `Reminders:Enabled` / `RunAt` (optional) | Daily SLA approval reminders; off unless `Enabled` is `true`, run at `RunAt` (`HH:mm`, business time, default `08:00`) on working days (see SLA reminders) |
-| `App:Mode` (optional, default `Production`) | `Test` lets the System Administrator hard-delete test data (see Test mode); anything else is production |
+| `App:Mode` (optional, default `Production`) | `Test` lets the System Administrator hard-delete test data and sends every SMS and email to `App:TestRecipient` (see Test mode); anything else is production |
+| `App:TestRecipient` (optional) | Username of the account that receives every SMS and email when `App:Mode` is `Test`; empty means nothing is sent |
 | `Kestrel:*` (server) | Endpoint the API listens on behind nginx |
 | `RateLimiting:SignInPerMinute` (optional, default 30) | Sign-in and password-change attempts allowed per client address per minute (429 `rate_limited` beyond) |
 | `RateLimiting:ApiPerMinute` (optional, default 1200) | All other API requests per client address per minute; only stops runaway clients |
@@ -1340,7 +1346,9 @@ and result. "No run recorded yet" until the first run after this was deployed.
 For cleaning up records made while testing. Two switches, both off by default:
 
 - **API:** `"App": { "Mode": "Test" }` in the server's `appsettings.json`. Without it, or with `Production`,
-  `DELETE /api/test-data/...` answers 403 and nothing can be deleted.
+  `DELETE /api/test-data/...` answers 403 and nothing can be deleted. In `Test` mode every SMS and email goes to
+  the account named by `"TestRecipient": "<username>"` in the same section (its mobile number and email, message
+  marked `[TEST]`); without it, or when that account has no number or email, nothing is sent at all.
 - **SPA:** `VITE_APP_MODE=test` at build time. Without it the Delete buttons and the TEST chip are not shown.
 
 `DELETE /api/test-data/{kind}/{id}` is for the System Administrator only (`TestDataController`,

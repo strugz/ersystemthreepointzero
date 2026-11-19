@@ -1,4 +1,5 @@
 using ERFWeb.Application.Features.Notifications;
+using ERFWeb.Infrastructure.Notifications;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
