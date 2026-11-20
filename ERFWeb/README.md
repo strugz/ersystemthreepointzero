@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
-- **Same visit, other expense** (not yet committed). After **Add line** the line dialog offers **Same visit, other
+- **Same visit, other expense** (PR #65). After **Add line** the line dialog offers **Same visit, other
   expense**: the next line keeps the date, expense type, Location, Work with, service details, remarks and CRM
   links of the line just added, and only category, particulars, amount, VAT and Invoice/OR start over (e.g. Parking
   and Toll at one place). Frontend only, SPA 0.15.0 (minor); no database script.
