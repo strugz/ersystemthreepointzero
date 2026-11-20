@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
-- **Fleet card rule for Gas** (not yet committed). An employee with a company fleet card (new **Has a fleet card**
+- **Fleet card rule for Gas** (PR #62). An employee with a company fleet card (new **Has a fleet card**
   switch on the user form, `users.has_fleet_card`, script `031`, `SchemaVersion.Required` 31) is reimbursed for Gas
   only when the card could not be used: the Reason on their Gas line must be one of the reasons on **Rules → Filing
   and Finance → Finance rules → Fleet card** (on by default, 11 suggested reasons such as "Fleet card offline or
