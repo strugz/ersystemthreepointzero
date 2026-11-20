@@ -11,11 +11,13 @@
 --  * 'admin'                                                  kept, with its own roles (re-marked as
 --                                                             bootstrap, grantor fields cleared), its
 --                                                             department, no cost center
---  * Departments other than admin's, cost centers, sites, app_settings,
---    department_signatories, currencies other than PHP                            deleted
+--  * Departments other than admin's, cost centers and their budgets, sites,
+--    app_settings, department_signatories, currencies other than PHP              deleted
 --  * PHP currency                                             kept, made the active default
 --  * fare_modes                                               kept: the 016 list is master data that
 --                                                             the line editor needs
+--  * job_grades                                               kept: the 028 list is master data that
+--                                                             the user form needs
 --  * workflow_audit, record_history                           emptied (the deletes above write
 --                                                             history rows; they go too), then one
 --                                                             Data.ResetByScript event is added
@@ -75,6 +77,7 @@ UPDATE user_roles
 SET granted_by_user_id = NULL, countersigned_by_user_id = NULL, revoked_by_user_id = NULL, is_bootstrap = true;
 DELETE FROM users WHERE username <> 'admin';
 UPDATE users SET cost_center_id = NULL;
+DELETE FROM cost_center_budgets;
 DELETE FROM cost_centers;
 DELETE FROM departments WHERE id IS DISTINCT FROM (SELECT department_id FROM users WHERE username = 'admin');
 
