@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
-- **CRM calendar on the review page** (not yet committed). A signatory reviewing someone's report sees a **CRM
+- **CRM calendar on the review page** (PR #64). A signatory reviewing someone's report sees a **CRM
   calendar** card under **Expense lines**: one row per day of the report period with the claimant's CRM activities
   (time, customer, type, service no., instrument and serial, Lead or Companion, work with; Open and Cancelled greyed;
   **On this report** when a line uses it), and a warning on a day that has expense lines but no CRM activity. The
