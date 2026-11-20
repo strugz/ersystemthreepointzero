@@ -209,8 +209,27 @@ const nextDateOffer = ref<{ added: string; next: string } | null>(null);
 function answerNextDate(goNext: boolean) {
   const offer = nextDateOffer.value;
   nextDateOffer.value = null;
+  sameVisit.value = null;
   if (goNext && offer) form.transactionDate = offer.next;
 }
+
+// After Add line, the dialog also offers another expense of the same visit (e.g. Parking, then Toll at the same
+// place): the next line keeps the date, place, people, service details and CRM links; category and amount start over.
+type VisitFields = Pick<
+  SaveExpenseLineInput,
+  'transactionDate' | 'expenseType' | 'location' | 'workWith' | 'serviceNumber' | 'instrument' | 'serialNumber' | 'remarks' | 'crmActivityIds'
+>;
+const sameVisit = ref<{ fields: VisitFields; activities: CrmActivityOption[] } | null>(null);
+function useSameVisit() {
+  const visit = sameVisit.value;
+  sameVisit.value = null;
+  nextDateOffer.value = null;
+  if (!visit) return;
+  Object.assign(form, { ...visit.fields, crmActivityIds: [...visit.fields.crmActivityIds] });
+  pickedActivities.value = visit.activities;
+  fillLegFromActivity();
+}
+
 watch(
   () => form.transactionDate,
   (date) => {
@@ -220,9 +239,21 @@ watch(
 
 /**
  * Clears the form for the next line (date follows `defaultDate`) and puts the cursor back on Date. With the date of
- * the line just added, it asks whether the next line goes on the next date.
+ * the line just added, it asks whether the next line goes on the next date or is another expense of the same visit.
  */
 function reset(addedDate?: string) {
+  const visit: VisitFields = {
+    transactionDate: form.transactionDate,
+    expenseType: form.expenseType,
+    location: form.location,
+    workWith: form.workWith,
+    serviceNumber: form.serviceNumber,
+    instrument: form.instrument,
+    serialNumber: form.serialNumber,
+    remarks: form.remarks,
+    crmActivityIds: [...form.crmActivityIds],
+  };
+  const visitActivities = pickedActivities.value;
   Object.assign(form, blank());
   Object.assign(auto, { particulars: '', amount: 0 });
   Object.assign(vehicle, { reason: '', model: '', plate: '' });
@@ -232,6 +263,7 @@ function reset(addedDate?: string) {
   applyCategoryDefaults();
   const next = addedDate ? addDaysIso(addedDate, 1) : null;
   nextDateOffer.value = addedDate && next && inPeriod(next) === next ? { added: form.transactionDate, next } : null;
+  sameVisit.value = addedDate ? { fields: { ...visit, transactionDate: addedDate }, activities: visitActivities } : null;
   requestAnimationFrame(() => dateInput.value?.querySelector('input')?.focus());
 }
 
@@ -244,6 +276,7 @@ watch(
       return;
     }
     nextDateOffer.value = null;
+    sameVisit.value = null;
     const l = props.line;
     Object.assign(form, blank());
     if (l) {
@@ -648,13 +681,16 @@ function close() {
         <v-form :disabled="saving" @submit.prevent="save">
           <!-- When and what -->
           <section class="eline__section">
-            <v-alert v-if="nextDateOffer" type="success" variant="tonal" density="compact" class="mb-3" role="status">
+            <v-alert v-if="nextDateOffer || sameVisit" type="success" variant="tonal" density="compact" class="mb-3" role="status">
               <div class="d-flex flex-wrap align-center ga-2">
-                <span class="flex-grow-1">Line added. Is the next line on the next date?</span>
-                <v-btn size="small" variant="text" class="press" @click="answerNextDate(false)">
+                <span class="flex-grow-1">{{ nextDateOffer ? 'Line added. What is the next line?' : 'Line added.' }}</span>
+                <v-btn v-if="sameVisit" size="small" variant="tonal" color="primary" class="press" prepend-icon="mdi-content-copy" @click="useSameVisit">
+                  Same visit, other expense
+                </v-btn>
+                <v-btn v-if="nextDateOffer" size="small" variant="text" class="press" @click="answerNextDate(false)">
                   Stay on {{ formatDate(nextDateOffer.added) }}
                 </v-btn>
-                <v-btn size="small" color="primary" variant="flat" class="press" @click="answerNextDate(true)">
+                <v-btn v-if="nextDateOffer" size="small" color="primary" variant="flat" class="press" @click="answerNextDate(true)">
                   Go to {{ formatDate(nextDateOffer.next) }}
                 </v-btn>
               </div>

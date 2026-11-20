@@ -18,6 +18,10 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
+- **Same visit, other expense** (not yet committed). After **Add line** the line dialog offers **Same visit, other
+  expense**: the next line keeps the date, expense type, Location, Work with, service details, remarks and CRM
+  links of the line just added, and only category, particulars, amount, VAT and Invoice/OR start over (e.g. Parking
+  and Toll at one place). Frontend only, SPA 0.15.0 (minor); no database script.
 - **CRM calendar on the review page** (PR #64). A signatory reviewing someone's report sees a **CRM
   calendar** card under **Expense lines**: one row per day of the report period with the claimant's CRM activities
   (time, customer, type, service no., instrument and serial, Lead or Companion, work with; Open and Cancelled greyed;
@@ -828,9 +832,14 @@ trigger stamps `record_history.changed_by`.
 **Line date and the report period.** A line's date must fall in the report period (`ExpenseLineRules.Validate`,
 400 on `transactionDate`). The line dialog's **Date** picker offers only the period's days, says "Report period:
 <from> to <to>" under the field, starts a new line on a date inside it, and refuses a date typed outside it before
-saving (`ExpenseLineDialog.vue`). After **Add line** the dialog stays open on the same date and asks "Line added. Is
-the next line on the next date?" with **Stay on <date>** and **Go to <next date>**; it does not ask on the period's
-last day, and changing the date by hand dismisses it.
+saving (`ExpenseLineDialog.vue`). After **Add line** the dialog stays open on the same date and asks "Line added. What
+is the next line?" with **Stay on <date>** and **Go to <next date>**; it does not ask on the period's last day, and
+changing the date by hand dismisses those two.
+
+**Same visit, other expense.** The same banner offers **Same visit, other expense** (also on the period's last day)
+for another expense at the same place, e.g. Parking and then Toll: the next line keeps the date of the line just
+added, its expense type, Location, Work with, service no., instrument, serial, remarks and linked CRM activities;
+category, particulars, amount, VAT and Invoice/OR start over. Each line is still saved and checked on its own.
 
 **Each meal once a day.** An employee claims Breakfast, Lunch, Dinner and OT meal at most once a day, across this
 report and their other reports that are not Rejected (Domain `DuplicateMealRules`, `DuplicateMealCheck`; "OT Meal"
