@@ -18,6 +18,14 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
+- **CRM calendar on the review page** (PR #64). A signatory reviewing someone's report sees a **CRM
+  calendar** card under **Expense lines**: one row per day of the report period with the claimant's CRM activities
+  (time, customer, type, service no., instrument and serial, Lead or Companion, work with; Open and Cancelled greyed;
+  **On this report** when a line uses it), and a warning on a day that has expense lines but no CRM activity. The
+  server reads the claimant's CRM link (`users.crm_employee_id`) and calls the CRM activity API, so nobody signs in
+  to FWMS (`GET /api/reports/{id}/crm-calendar`, Approver policy plus report view access; Domain
+  `CrmCalendarRules`). The CRM activity's start time is now read too. No database script. API 0.11.0, SPA 0.14.0
+  (minor); deploy the backend before the frontend.
 - **Fleet card rule for Gas** (PR #62). An employee with a company fleet card (new **Has a fleet card**
   switch on the user form, `users.has_fleet_card`, script `031`, `SchemaVersion.Required` 31) is reimbursed for Gas
   only when the card could not be used: the Reason on their Gas line must be one of the reasons on **Rules → Filing
@@ -1113,6 +1121,27 @@ Activity API for ERFWeb".
   linked employee ID (relink the account); 503 `crm_not_configured` / `crm_unavailable` as for the lookup.
 - **Not used yet.** `distanceKm`, `isOutOfTown` and the customer branch/city are always null in the CRM for
   now; the "claimed" callback to the CRM is not built.
+
+### CRM calendar on the review page
+
+A signatory reviewing another employee's report sees a **CRM calendar** card under **Expense lines** (open on
+desktop, folded on phones; `features/approvals/components/CrmCalendarCard.vue`). It lists every day of the report
+period with the claimant's CRM activities that day, ordered by start time: time from and to (Philippine time),
+customer, activity type, service no., instrument and serial, Lead or Companion, and who they worked with (ERFWeb
+names where linked). Open and Cancelled activities are greyed out; **On this report** marks an activity a line of
+this report uses; a day with expense lines but no CRM activity shows a warning. A multi-day activity shows on every
+day from its date to the day it ended (Domain `CrmCalendarRules`).
+
+- **Server.** `GET /api/reports/{id}/crm-calendar` (`CrmCalendarController`, `CrmCalendarService`) needs the
+  Approver policy (Signatory Level 1 or 2) and view access to the report (`ReportAccessPolicy`); Finance and Expense
+  Verifiers get 403. The CRM employee ID comes from the claimant's account, never from the browser. The service calls
+  `GET /activities` once per status (Completed, Open, Cancelled) for the whole period, paging by 100.
+- **Limits.** At most 62 days (the CRM's range; a longer period answers 400). No CRM link on the claimant: the card
+  says so. CRM down or not configured: 503 and the card offers **Try again**; the review and approval still work.
+  Logs carry only HTTP status.
+- **Not shown yet.** Leave, planned visits without a report, call-center sessions and check-in times are not in the
+  CRM activity API. The CRM team plans a calendar endpoint (`/api2/erf/v1/calendar/{employeeId}`); the card can switch
+  to it when it exists.
 
 ### Account email domains
 

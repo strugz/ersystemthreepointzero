@@ -101,7 +101,8 @@ public sealed class CrmActivityDirectory(HttpClient http, IOptions<CrmOptions> o
             (a.Companions ?? []).Select(Person).OfType<CrmActivityPersonDto>().ToList(),
             Clean(a.Travel?.Origin),
             Clean(a.Travel?.Destination),
-            a.Travel?.IsOvernight ?? false);
+            a.Travel?.IsOvernight ?? false,
+            a.StartAt);
     }
 
     private static CrmActivityPersonDto? Person(CrmPerson? p) =>
@@ -116,6 +117,7 @@ public sealed class CrmActivityDirectory(HttpClient http, IOptions<CrmOptions> o
         string? ActivityType,
         string? Status,
         DateOnly? ActivityDate,
+        DateTimeOffset? StartAt,
         DateTimeOffset? EndAt,
         string? Subject,
         string? ServiceNumber,

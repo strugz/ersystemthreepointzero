@@ -25,6 +25,7 @@ import { approvalsApi } from '@/features/approvals/api';
 import { approvalActionCopy } from '@/features/approvals/labels';
 import ApprovalActionDialog from '@/features/approvals/components/ApprovalActionDialog.vue';
 import AdjustLineDialog from '@/features/approvals/components/AdjustLineDialog.vue';
+import CrmCalendarCard from '@/features/approvals/components/CrmCalendarCard.vue';
 import type { ApprovalActionKind } from '@/features/approvals/types';
 import { verificationApi } from '@/features/verification/api';
 import VerificationCard from '@/features/verification/components/VerificationCard.vue';
@@ -48,6 +49,8 @@ const report = ref<ExpenseReportDetail | null>(null);
 const loading = ref(true);
 const loadError = ref<string | null>(null);
 const detailsOpen = ref(false);
+// The claimant's CRM calendar is for signatories; the API refuses everyone else.
+const isSignatory = computed(() => session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2'));
 
 async function load() {
   loading.value = true;
@@ -325,6 +328,8 @@ async function saveAdjust(amount: number, reason: string) {
             @adjust="startAdjust"
           />
         </v-card>
+
+        <CrmCalendarCard v-if="isSignatory && !isOwnReport" :report-id="report.id" :start-open="!compact" />
 
         <VerificationCard
           v-if="report.verification"

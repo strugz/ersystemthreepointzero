@@ -1,6 +1,6 @@
 import { api } from '@/shared/api/client';
 import type { ExpenseReportDetail, PagedResult } from '@/features/expenses/types';
-import type { ApprovalActionKind, ApprovalActionResult, ApprovalInboxItem, ApprovalInboxQuery } from './types';
+import type { ApprovalActionKind, ApprovalActionResult, ApprovalInboxItem, ApprovalInboxQuery, CrmCalendar } from './types';
 
 const a = (id: string) => `/approvals/${encodeURIComponent(id)}`;
 
@@ -22,4 +22,6 @@ export const approvalsApi = {
   /** Lowers one line before the first approval. rowVersion is the line's. */
   adjustLine: (id: string, lineId: number, amount: number, reason: string, rowVersion: number) =>
     api.put<ExpenseReportDetail>(`${a(id)}/lines/${lineId}`, { amount, reason, rowVersion }),
+  /** The claimant's CRM activities on each day of the report period (signatories; the server calls the CRM). */
+  crmCalendar: (id: string) => api.get<CrmCalendar>(`/reports/${encodeURIComponent(id)}/crm-calendar`),
 };

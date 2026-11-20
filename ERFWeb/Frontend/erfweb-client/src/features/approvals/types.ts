@@ -44,3 +44,36 @@ export interface ApprovalActionResult {
   nextApproverName: string | null;
   report: ExpenseReportDetail;
 }
+
+/** One CRM activity on a day of the claimant's calendar (GET /reports/{id}/crm-calendar). */
+export interface CrmCalendarEntry {
+  activityId: string;
+  activityType: string | null;
+  status: string | null;
+  completed: boolean;
+  startAt: string | null;
+  endAt: string | null;
+  subject: string | null;
+  serviceNumber: string | null;
+  customerName: string | null;
+  instrumentName: string | null;
+  serialNumber: string | null;
+  role: string;
+  workWith: string | null;
+  claimedOnThisReport: boolean;
+}
+
+export interface CrmCalendarDay {
+  date: string;
+  expenseLineCount: number;
+  entries: CrmCalendarEntry[];
+}
+
+/** The claimant's CRM calendar over the report period; linked is false when the account has no CRM link. */
+export interface CrmCalendar {
+  linked: boolean;
+  employeeName: string;
+  dateFrom: string | null;
+  dateTo: string | null;
+  days: CrmCalendarDay[];
+}
