@@ -324,9 +324,10 @@ async function saveLine(input: SaveExpenseLineInput) {
       await expensesApi.addLine(reportId, input);
       snack.success('Expense line added.');
       offerVehicle(input);
-      // Stay open for the next line: reload first so the default date follows the line just added.
+      // Stay open for the next line: reload first so the default date follows the line just added; the dialog then
+      // asks whether the next line goes on the next date.
       await load();
-      lineDialogRef.value?.reset();
+      lineDialogRef.value?.reset(input.transactionDate);
     }
   } catch (err) {
     if (err instanceof ApiError && err.status === 400 && err.problem?.errors) {

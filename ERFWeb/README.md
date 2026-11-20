@@ -18,6 +18,17 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
+- **Category tiles grouped by kind** (not yet committed, same PR as phase 7). The line dialog lists Meals,
+  Lodging, Transportation, Gas, Toll, Parking, Vehicle emergency, Representation, Sponsorship, Demo, then Others
+  last. Frontend only, in SPA 0.12.0.
+- **Each meal once a day** (not yet committed, same PR as phase 7). A Meals line that repeats a meal the same
+  employee already claimed that day (this report or another report that is not Rejected) is refused, with the
+  message under the meal chips; filing checks again. In API 0.9.0.
+- **Line date stays in the report period** (not yet committed, same PR as phase 7). The **Add expense line** Date
+  picker offers only the report period's days, shows "Report period: <from> to <to>" under it, starts on a date
+  inside the period, and a date typed outside it shows an error and cannot be saved. The server already refused
+  such dates. After **Add line** the dialog asks whether the next line is on the next date (**Stay on** / **Go to**),
+  except on the period's last day. Frontend only, in SPA 0.12.0.
 - **Reason choices when lowering a line** (not yet committed, same PR as phase 7). The approver's **Lower this
   amount** dialog offers common reasons as chips; a pick fills the reason, which stays editable. On a line someone
   else paid for as Work With, **Paid by Work With** names them, the meal and their report. Frontend only, in SPA
@@ -797,6 +808,19 @@ Employees create, edit, and file their own ERFs; everything is EF Core + LINQ in
 acting user to PostgreSQL (`set_config('app.current_user_id', …, true)`) so the `fn_record_history`
 trigger stamps `record_history.changed_by`.
 
+**Line date and the report period.** A line's date must fall in the report period (`ExpenseLineRules.Validate`,
+400 on `transactionDate`). The line dialog's **Date** picker offers only the period's days, says "Report period:
+<from> to <to>" under the field, starts a new line on a date inside it, and refuses a date typed outside it before
+saving (`ExpenseLineDialog.vue`). After **Add line** the dialog stays open on the same date and asks "Line added. Is
+the next line on the next date?" with **Stay on <date>** and **Go to <next date>**; it does not ask on the period's
+last day, and changing the date by hand dismisses it.
+
+**Each meal once a day.** An employee claims Breakfast, Lunch, Dinner and OT meal at most once a day, across this
+report and their other reports that are not Rejected (Domain `DuplicateMealRules`, `DuplicateMealCheck`; "OT Meal"
+and "OTMeal" alike; a Meals line without a meal type is not compared). A Meals line repeating a meal is refused on
+save (400 on `meals`, shown under the meal chips: "You already claimed Lunch on 17 Nov 2026 on this report.", or the
+other report's ERF number), and filing checks again (`ReportWorkflowRules.FilingBlockers`).
+
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /api/reports` | My reports, paged (`page`, `pageSize`, `sort`, `direction`, `status`, `search`) |
@@ -870,7 +894,9 @@ itself contain " - "); the line dialog shows Reason, Vehicle model and Plate no.
 picked from suggested reasons per category (`vehicleReasons` in `features/expenses/labels.ts`, e.g. Client visit,
 Flat tire) or typed. Reason and **Work with** use `shared/ui/AppPickerField.vue` instead of a dropdown: tapping the
 field opens a pop-up list (full screen on phones and tablets) with a search box, one tap for Reason, tick boxes and
-**Done** for Work with, and "Use “…”" for a typed entry. The line dialog's category tiles are all one height (labels
+**Done** for Work with, and "Use “…”" for a typed entry. The line dialog's category tiles are grouped by kind
+(Meals, Lodging, Transportation, Gas, Toll, Parking, Vehicle emergency, Representation, Sponsorship, Demo, Others
+last; `TILE_ORDER` in `ExpenseLineDialog.vue`, the rate pages keep their own order) and are all one height (labels
 at most two lines; the Vehicle emergency purchase tile reads "Vehicle emergency") and Local / Foreign is as tall as
 the Date field. Lines are
 verified as **Rules → Finance rules → Gas and Vehicle emergency purchase** says (`gasVerification`,
