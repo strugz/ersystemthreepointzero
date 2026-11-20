@@ -22,6 +22,7 @@ public sealed class ExpenseLineService(
     ExpenseReportDetailLoader loader,
     CrmActivityClaimCheck crmClaims,
     WorkWithMealCheck workWithMeals,
+    DuplicateMealCheck duplicateMeals,
     ISystemSettingsService settings,
     IRateService rates) : IExpenseLineService
 {
@@ -208,6 +209,12 @@ public sealed class ExpenseLineService(
         if (await workWithMeals.LineProblemAsync(report.EmployeeUserId, new WorkWithClaim(r.TransactionDate, r.Category, mealTypes), financeRules, ct) is { } workWithProblem)
         {
             errors[r.Category == ExpenseCategory.Meals && financeRules.WorkWithScope == WorkWithScope.MealsOnly ? "meals" : "transactionDate"] = [workWithProblem];
+        }
+
+        // Each meal is claimed once a day by the same employee, across their reports.
+        if (!errors.ContainsKey("meals") && await duplicateMeals.LineProblemAsync(report, lineId, r.TransactionDate, mealTypes, ct) is { } duplicateProblem)
+        {
+            errors["meals"] = [duplicateProblem];
         }
 
         IReadOnlyDictionary<long, FareModeRule> modes = new Dictionary<long, FareModeRule>();

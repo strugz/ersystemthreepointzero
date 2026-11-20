@@ -124,6 +124,7 @@ public static class DependencyInjection
             client.Timeout = TimeSpan.FromSeconds(Math.Max(1, sp.GetRequiredService<IOptions<CrmOptions>>().Value.TimeoutSeconds)));
         services.AddScoped<CrmActivityClaimCheck>();
         services.AddScoped<WorkWithMealCheck>();
+        services.AddScoped<DuplicateMealCheck>();
         services.AddScoped<ICrmActivityPickService, CrmActivityPickService>();
 
         // Report email over SMTP (MailKit); host, sender and login come from appsettings.json.

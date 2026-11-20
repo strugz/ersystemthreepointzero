@@ -46,7 +46,8 @@ public static class ReportWorkflowRules
         bool coolingPeriodElapsed = true,
         string? routingProblem = null,
         IReadOnlyList<string>? categoryProblems = null,
-        IReadOnlyList<string>? workWithProblems = null)
+        IReadOnlyList<string>? workWithProblems = null,
+        IReadOnlyList<string>? mealProblems = null)
     {
         var reasons = new List<string>();
 
@@ -95,6 +96,12 @@ public static class ReportWorkflowRules
         if (workWithProblems is not null)
         {
             reasons.AddRange(workWithProblems);
+        }
+
+        // A meal claimed twice on one day (DuplicateMealRules).
+        if (mealProblems is not null)
+        {
+            reasons.AddRange(mealProblems);
         }
 
         return reasons;

@@ -27,6 +27,7 @@ public sealed class ReportFilingService(
     ReportEditGate gate,
     ExpenseReportDetailLoader loader,
     WorkWithMealCheck workWithMeals,
+    DuplicateMealCheck duplicateMeals,
     ISystemSettingsService settings,
     IApprovalRouter router,
     Entitlements.EntitlementContext calendar,
@@ -65,10 +66,11 @@ public sealed class ReportFilingService(
             var financeRules = await settings.GetFinanceRulesAsync(token);
             var categoryProblems = CategoryDocumentRules.FilingProblems(lineCategories, attachedTypes, financeRules);
             var workWithProblems = await workWithMeals.ReportProblemsAsync(reportId, financeRules, token);
+            var mealProblems = await duplicateMeals.ReportProblemsAsync(reportId, report.EmployeeUserId, token);
 
             var blockers = ReportWorkflowRules.FilingBlockers(
                 report.Status, lineCount, route.Count, report.Purpose, report.ReportType, cashAmount, report.RevolvingFundAmount,
-                coolingElapsed, routing.Problem, categoryProblems, workWithProblems);
+                coolingElapsed, routing.Problem, categoryProblems, workWithProblems, mealProblems);
             if (blockers.Count > 0)
             {
                 throw new ValidationException(new Dictionary<string, string[]> { ["report"] = blockers.ToArray() });
