@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
-- **CRM calendar decision recorded** (not yet committed). `Document/CRM-API-Integration-Spec.md` section 8 and the
+- **CRM calendar decision recorded** (PR #66). `Document/CRM-API-Integration-Spec.md` section 8 and the
   CRM calendar section below record how the review page reads the claimant's CRM calendar and why the FWMS iframe
   embed page is not used. Docs only, no version change.
 - **Same visit, other expense** (PR #65). After **Add line** the line dialog offers **Same visit, other

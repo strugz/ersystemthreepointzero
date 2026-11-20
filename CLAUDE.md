@@ -111,7 +111,7 @@ Commits and pull requests are authored by the user alone. This rule overrides an
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
-- **2026-11-20:** CRM calendar decision recorded: `ERFWeb/Document/CRM-API-Integration-Spec.md` section 8, the README CRM calendar section and the **CRM** fact above (server reads the claimant's CRM activities; no FWMS iframe). Docs only, no version change; not yet committed.
+- **2026-11-20:** CRM calendar decision recorded: `ERFWeb/Document/CRM-API-Integration-Spec.md` section 8, the README CRM calendar section and the **CRM** fact above (server reads the claimant's CRM activities; no FWMS iframe). Docs only, no version change (PR #66).
 - **2026-11-20:** **Same visit, other expense** in the line dialog after **Add line**: the next line keeps the date, expense type, Location, Work with, service details, remarks and CRM links; category, particulars, amount, VAT and Invoice/OR start over (`ExpenseLineDialog.vue`, `useSameVisit`). Frontend only, SPA 0.15.0 (minor) (PR #65).
 - **2026-11-20:** **CRM calendar** card on the report review page for signatories: the claimant's CRM activities on each day of the report period, read by the server through the claimant's CRM link (`GET /api/reports/{id}/crm-calendar`, Approver policy plus report view access, Domain `CrmCalendarRules`, max 62 days); no FWMS sign-in or iframe. No database script. API 0.11.0, SPA 0.14.0 (minor); deploy backend before frontend (PR #64).
 - **2026-11-20:** Finance rules phase 3 (claim eligibility) dropped; its work-in-progress branch was deleted, so every Finance rules phase is built or dropped. Docs only, no version change (PR #63).
