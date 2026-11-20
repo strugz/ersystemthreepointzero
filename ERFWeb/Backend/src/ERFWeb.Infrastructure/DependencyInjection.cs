@@ -126,6 +126,7 @@ public static class DependencyInjection
         services.AddScoped<WorkWithMealCheck>();
         services.AddScoped<DuplicateMealCheck>();
         services.AddScoped<ICrmActivityPickService, CrmActivityPickService>();
+        services.AddScoped<ICrmCalendarService, CrmCalendarService>();
 
         // Report email over SMTP (MailKit); host, sender and login come from appsettings.json.
         services.AddOptions<SmtpOptions>();

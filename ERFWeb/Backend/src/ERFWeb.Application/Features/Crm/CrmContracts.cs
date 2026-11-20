@@ -64,7 +64,8 @@ public sealed record CrmActivityDto(
     IReadOnlyList<CrmActivityPersonDto> Companions,
     string? TravelOrigin,
     string? TravelDestination,
-    bool IsOvernight)
+    bool IsOvernight,
+    DateTimeOffset? StartAt = null)
 {
     public const string CompletedStatus = "Completed";
 

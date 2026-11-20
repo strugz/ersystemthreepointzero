@@ -42,6 +42,7 @@ public class CrmActivityDirectoryTests
         var a = Assert.Single(result!.Items);
         Assert.Equal("SR-2026-004512", a.ActivityId);
         Assert.Equal(new DateOnly(2026, 10, 6), a.ActivityDate);
+        Assert.Equal(new DateTimeOffset(2026, 10, 6, 8, 0, 0, TimeSpan.FromHours(8)), a.StartAt);
         Assert.Equal("St. Luke's", a.CustomerName);
         Assert.Equal("Sysmex XN-1000", a.InstrumentName);
         Assert.Equal("XN123", a.SerialNumber);
