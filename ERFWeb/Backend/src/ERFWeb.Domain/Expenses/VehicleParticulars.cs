@@ -28,6 +28,13 @@ public static class VehicleParticulars
             : "Particulars must read: reason - vehicle model - plate no., e.g. Client visit - Toyota Vios - ABC 1234.";
     }
 
+    /// <summary>The reason part of the Particulars (everything before the model and plate), trimmed; empty when there is none.</summary>
+    public static string Reason(string? particulars)
+    {
+        var parts = (particulars ?? string.Empty).Split(Separator);
+        return (parts.Length < 3 ? parts[0] : string.Join(Separator, parts[..^2])).Trim();
+    }
+
     /// <summary>A plate number as saved: trimmed, upper-case, single spaces ("abc  1234" → "ABC 1234").</summary>
     public static string? NormalizePlate(string? plate) =>
         string.IsNullOrWhiteSpace(plate) ? null : string.Join(' ', plate.Trim().ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));

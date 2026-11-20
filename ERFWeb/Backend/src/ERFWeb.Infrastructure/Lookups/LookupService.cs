@@ -74,7 +74,7 @@ public sealed class LookupService(
     {
         var account = await db.Users.AsNoTracking()
             .Where(u => u.Id == user.UserId)
-            .Select(u => new { HasSignature = u.Signature != null && u.Signature.Length > 0, u.CreatedAt, u.CrmEmployeeId })
+            .Select(u => new { HasSignature = u.Signature != null && u.Signature.Length > 0, u.CreatedAt, u.CrmEmployeeId, u.HasFleetCard })
             .FirstOrDefaultAsync(ct);
         var hasSignature = account?.HasSignature ?? false;
 
@@ -94,7 +94,8 @@ public sealed class LookupService(
             .ToList();
         return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt, routing.Problem, crmAvailable,
             cutoff?.ProcessingDate, cutoff?.IsLate ?? false, cutoff?.CutoffText, CategoryDocumentRules.Disabled(financeRules), documents,
-            WorkWithMealRules.Notice(financeRules));
+            WorkWithMealRules.Notice(financeRules), FleetCardRules.ReasonsFor(financeRules, account?.HasFleetCard ?? false),
+            financeRules.FleetCardOtherReasonAllowed);
     }
 
     public async Task<MyVehicleDto> MyVehicleAsync(CancellationToken ct = default) =>

@@ -163,6 +163,7 @@ public sealed class UserAdminService(
                 DepartmentId = request.DepartmentId,
                 CostCenterId = request.CostCenterId,
                 WorkWithEnabled = request.WorkWithEnabled,
+                HasFleetCard = request.HasFleetCard,
                 CrmEmployeeId = crmEmployeeId,
                 R47ReviewedBy = Clean(request.R47ReviewedBy),
                 IsActive = true,
@@ -226,6 +227,11 @@ public sealed class UserAdminService(
             if (request.R47ReviewedBy is not null)
             {
                 entity.R47ReviewedBy = Clean(request.R47ReviewedBy);
+            }
+
+            if (request.HasFleetCard is { } hasFleetCard)
+            {
+                entity.HasFleetCard = hasFleetCard;
             }
 
             db.SetRowVersion(entity, request.RowVersion);
@@ -475,6 +481,7 @@ public sealed class UserAdminService(
         u.DepartmentId,
         u.CostCenterId,
         u.WorkWithEnabled,
+        u.HasFleetCard,
         u.CrmEmployeeId,
         u.R47ReviewedBy,
     };

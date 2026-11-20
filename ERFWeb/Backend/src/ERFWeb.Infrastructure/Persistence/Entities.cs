@@ -127,6 +127,9 @@ public class User
     public DateTimeOffset? SignatureApprovedAt { get; set; }
     public long? SignatureApprovedByUserId { get; set; }
     public bool WorkWithEnabled { get; set; }
+
+    /// <summary>Has a company fleet card: with the Fleet card rule on, Gas only for the listed reasons (script 031).</summary>
+    public bool HasFleetCard { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
 

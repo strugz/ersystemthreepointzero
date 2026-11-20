@@ -204,6 +204,16 @@ public sealed class ExpenseLineService(
             }
         }
 
+        // Fleet card holders claim Gas only when the card could not be used (a listed reason).
+        if (!errors.ContainsKey("particulars") && r.Category == ExpenseCategory.Gas)
+        {
+            var hasFleetCard = await db.Users.AsNoTracking().Where(u => u.Id == report.EmployeeUserId).Select(u => u.HasFleetCard).FirstOrDefaultAsync(ct);
+            if (FleetCardRules.LineProblem(r.Category, r.Particulars, financeRules, hasFleetCard) is { } fleetCardProblem)
+            {
+                errors["particulars"] = [fleetCardProblem];
+            }
+        }
+
         // Finance requirement 2: another employee's filed line that tags this claimant covers this meal (or day).
         var mealTypes = r.Category == ExpenseCategory.Meals ? (r.Meals ?? []).Select(m => m.MealType ?? string.Empty).ToList() : [];
         if (await workWithMeals.LineProblemAsync(report.EmployeeUserId, new WorkWithClaim(r.TransactionDate, r.Category, mealTypes), financeRules, ct) is { } workWithProblem)

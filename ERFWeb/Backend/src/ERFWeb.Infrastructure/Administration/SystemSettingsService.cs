@@ -190,7 +190,11 @@ public sealed class SystemSettingsService(
         // And one that predates the Finance rules.
         if (request.FinanceRules is { } financeRules)
         {
-            incoming[SystemSettingKeys.FinanceRules] = FinanceRulesJson.Serialize(financeRules with { CutoffTime = financeRules.CutoffTime.Trim() });
+            incoming[SystemSettingKeys.FinanceRules] = FinanceRulesJson.Serialize(financeRules with
+            {
+                CutoffTime = financeRules.CutoffTime.Trim(),
+                FleetCardGasReasons = FleetCardRules.NormalizeReasons(financeRules.FleetCardGasReasons),
+            });
         }
 
         await tx.ExecuteAsync(async token =>

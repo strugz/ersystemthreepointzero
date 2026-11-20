@@ -70,7 +70,8 @@ public sealed record UserDetailDto(
     string? R47ReviewedBy = null,
     SignatureStatus SignatureStatus = SignatureStatus.None,
     DateTimeOffset? SignatureApprovedAt = null,
-    string? SignatureApprovedByName = null);
+    string? SignatureApprovedByName = null,
+    bool HasFleetCard = false);
 
 public sealed record UserListQuery : PagedRequest
 {
@@ -92,7 +93,8 @@ public sealed record CreateUserRequest(
     long? CostCenterId,
     bool WorkWithEnabled,
     string? CrmEmployeeId = null,
-    string? R47ReviewedBy = null);
+    string? R47ReviewedBy = null,
+    bool HasFleetCard = false);
 
 public sealed record UpdateUserRequest(
     string FullName,
@@ -105,7 +107,8 @@ public sealed record UpdateUserRequest(
     bool WorkWithEnabled,
     uint RowVersion,
     string? CrmEmployeeId = null,
-    string? R47ReviewedBy = null);
+    string? R47ReviewedBy = null,
+    bool? HasFleetCard = null);
 
 public sealed record SetUserActiveRequest(bool IsActive, uint RowVersion);
 

@@ -18,6 +18,14 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
+- **Fleet card rule for Gas** (not yet committed). An employee with a company fleet card (new **Has a fleet card**
+  switch on the user form, `users.has_fleet_card`, script `031`, `SchemaVersion.Required` 31) is reimbursed for Gas
+  only when the card could not be used: the Reason on their Gas line must be one of the reasons on **Rules → Filing
+  and Finance → Finance rules → Fleet card** (on by default, 11 suggested reasons such as "Fleet card offline or
+  system down", "No Shell station in the area", "Coding: issued vehicle coded, used another vehicle"; editable; an
+  optional switch lets holders type another reason). Refused on save (400 on `particulars`) and at filing; the line
+  dialog offers only those reasons with a note. Employees without a card and vehicle emergency purchases are
+  unchanged. API 0.10.0, SPA 0.13.0 (minor); apply `031`, deploy backend before frontend.
 - **Category tiles grouped by kind** (PR #61). The line dialog lists Meals,
   Lodging, Transportation, Gas, Toll, Parking, Vehicle emergency, Representation, Sponsorship, Demo, then Others
   last. Frontend only, in SPA 0.12.0.
@@ -517,6 +525,7 @@ psql -d erfweb -f Database/027_attachment_form_code_check.sql  # receipt_attachm
 psql -d erfweb -f Database/028_job_grades.sql                  # job_grades master data (Staff, Specialist, Supervisor)
 psql -d erfweb -f Database/029_user_vehicle.sql                # users.vehicle_model / vehicle_plate_no: the employee's saved vehicle
 psql -d erfweb -f Database/030_expense_line_work_with_user_ids.sql # expense_lines.work_with_user_ids: accounts a line tags as Work With
+psql -d erfweb -f Database/031_user_fleet_card.sql             # users.has_fleet_card: Gas only for the fleet card reasons
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -918,6 +927,19 @@ Domain `VehicleParticulars.VehicleProblems`: both or neither, model up to 60 and
 saved with a model and plate that differ from the saved ones (or none is saved), the report editor asks **Save your
 vehicle?** (or offers to replace it); **Save to my details** calls `PUT /api/lookups/my-vehicle`, **Cancel**
 remembers that plate in the browser so it is not offered again. There is no vehicle field on the admin user page.
+
+**Fleet card (Finance rules).** The System Administrator marks an employee who has a company fleet card with **Has a
+fleet card** on the user form (`users.has_fleet_card`, script `031`; `hasFleetCard` on the user DTOs, an update
+without it leaves it as it is; audited in `Admin.UserUpdated`). With **Rules → Finance rules → Fleet card** on
+(`fleetCardRuleEnabled`, default on), such an employee is reimbursed for Gas only when the card could not be used: the
+Reason part of their Gas line's Particulars (Domain `VehicleParticulars.Reason`) must match one of
+`fleetCardGasReasons` (ignoring case and extra spaces; up to 30 reasons of at most 80 characters, no " - "; 11
+defaults in Domain `FleetCardRules.DefaultReasons`). `ExpenseLineService` refuses another reason (400 on
+`particulars`) and filing lists every Gas line whose reason is not on the list (lines saved before the card or a
+renamed reason). `my-filing-readiness` returns the list as `fleetCardGasReasons` (null for employees without a card
+or with the rule off) and the line dialog offers only those reasons, with a note. With
+`fleetCardOtherReasonAllowed` the holder may type another reason and nothing is refused. Vehicle emergency purchases
+and employees without a card are not affected.
 
 **Work With meals (Finance rules, requirement 2).** The employee who tags someone as Work With is liable for their
 meal, so the tagged person cannot claim it. When a line is saved, `WorkWithMealCheck` matches each Work With name
