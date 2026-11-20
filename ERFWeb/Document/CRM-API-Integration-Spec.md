@@ -133,7 +133,7 @@ not tied to a specific activity.
 | `activityType` | string | **yes** | 50 | part of Particulars | e.g. Corrective Maintenance, Preventive Maintenance, Installation, Training, Sales Call, Demo. Please send the full list of values. |
 | `status` | string | **yes** | 20 | filter | `Completed`, `Cancelled`, `Open`. Only `Completed` is claimable. |
 | `activityDate` | date | **yes** | | Transaction Date | Must fall inside the report's Date From/To. |
-| `startAt`, `endAt` | date-time | recommended | | meal per-diem eligibility | Lets ERFWeb suggest breakfast/lunch/dinner/OT meal. |
+| `startAt`, `endAt` | date-time | recommended | | CRM calendar times; meal per-diem eligibility | Shown as the activity's time on the review page's CRM calendar (section 8); `endAt` also sets the last day of multi-day work. |
 | `subject` | string | **yes** | 150 | Particulars | ERFWeb line limit is 200 chars incl. activity type. |
 | `serviceNumber` | string | recommended | 100 | Service Number | Service report / ticket number printed on R47. |
 | `customer.customerId` | string | **yes** | 50 | (reference) | |
@@ -201,3 +201,21 @@ Still open:
 
 The employee lookup returns `mobileNumber` (the CRM `CNTNUM` column, `null` once the person has left).
 ERFWeb copies it into an empty Mobile No. on the Add User screen, for SMS notifications.
+
+## 8. The claimant's CRM calendar on the review page
+
+Since API 0.11.0 (PR #64, 2026-11-20), a signatory reviewing a report sees the claimant's CRM activities for each
+day of the report period. The ERFWeb server reads the claimant's `employeeId` from their ERFWeb account and calls
+section 3.1 once per status (`Completed`, `Open`, `Cancelled`) over the whole period (at most 62 days, `pageSize`
+100). One review therefore makes at least three calls, well under the 300-a-minute limit. Nothing new is needed from
+the CRM for this; ERFWeb now also reads `startAt`.
+
+**FWMS embed page not used (decided 2026-11-20).** The FWMS team built a calendar page for an ERFWeb iframe
+(`#/embed/calendar`, their plan `docs/plans/erfweb-shared-calendar-plan.md`, Phase 0). ERFWeb does not use it: it needs
+an FWMS sign-in in the same browser, that sign-in does not reach a frame from the Render site, and it shows the
+head's department viewer instead of the claimant's days. The page was removed before it was committed, and no nginx
+`frame-ancestors` change is needed.
+
+**Still wanted from the CRM:** the calendar endpoint the FWMS team plans (`GET /api2/erf/v1/calendar/{employeeId}`,
+their plan Phase 1), for leave, planned service visits without a report, call-center sessions and check-in times,
+which section 3.1 does not return. ERFWeb's calendar card switches to it once the contract is agreed.
