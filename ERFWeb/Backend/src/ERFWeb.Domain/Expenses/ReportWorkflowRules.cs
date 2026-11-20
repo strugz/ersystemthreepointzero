@@ -45,7 +45,8 @@ public static class ReportWorkflowRules
         decimal revolvingFundAmount,
         bool coolingPeriodElapsed = true,
         string? routingProblem = null,
-        IReadOnlyList<string>? categoryProblems = null)
+        IReadOnlyList<string>? categoryProblems = null,
+        IReadOnlyList<string>? workWithProblems = null)
     {
         var reasons = new List<string>();
 
@@ -88,6 +89,12 @@ public static class ReportWorkflowRules
         if (categoryProblems is not null)
         {
             reasons.AddRange(categoryProblems);
+        }
+
+        // Finance requirement 2: lines another employee's filed Work With tag already covers (WorkWithMealRules).
+        if (workWithProblems is not null)
+        {
+            reasons.AddRange(workWithProblems);
         }
 
         return reasons;

@@ -93,6 +93,7 @@ function adjustmentNote(line: ExpenseLine): string | null {
               {{ [phoneDetail(line), line.invoiceOrNo ? `OR ${line.invoiceOrNo}` : null, subline(line)].filter(Boolean).join(' · ') }}
             </span>
             <span v-if="line.adjustment" class="adj">{{ adjustmentNote(line) }}</span>
+            <span v-for="(w, wi) in line.workWithWarnings ?? []" :key="wi" class="adj">{{ w }}</span>
           </button>
           <!-- Removing is in the line dialog on phones: an ✕ beside the amount was too easy to hit. The trailing icon
                says the row opens: a chevron to edit, the lower-amount arrow for the approver. -->
@@ -145,6 +146,9 @@ function adjustmentNote(line: ExpenseLine): string | null {
                 </div>
                 <div v-if="subline(line)" class="text-caption text-medium-emphasis">{{ subline(line) }}</div>
                 <div v-if="line.adjustment" class="adj">{{ adjustmentNote(line) }}</div>
+                <div v-for="(w, wi) in line.workWithWarnings ?? []" :key="wi" class="adj" role="note">
+                  <v-icon icon="mdi-alert-outline" size="14" /> {{ w }}
+                </div>
               </td>
               <td class="mono text-medium-emphasis">{{ line.invoiceOrNo || '—' }}</td>
               <td v-if="!smAndDown">

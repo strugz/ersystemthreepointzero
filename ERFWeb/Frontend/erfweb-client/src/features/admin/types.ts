@@ -385,6 +385,8 @@ export type LateFilingHandling = 'NoticeOnly' | 'FlagForFinance';
 export type LodgingRateBasis = 'RateProfile' | 'Flat';
 /** How Gas and Vehicle emergency purchase lines are verified: a verifier after approval, a document before filing, both, or neither. */
 export type CategoryVerification = 'None' | 'Person' | 'Document' | 'Both';
+/** What a Work With tag stops the tagged employee claiming that date: the same meals, or every expense. */
+export type WorkWithScope = 'MealsOnly' | 'AllExpenses';
 
 /** Finance rules (Rules page, one JSON row on the server). Each rule answers an open Finance question. */
 export interface FinanceRules {
@@ -420,6 +422,9 @@ export interface FinanceRules {
   vehicleEmergencyVerification: CategoryVerification;
   /** Code an uploaded Job Order (JO) must show, e.g. R42; a photo or scan needs the employee's confirmation. */
   jobOrderFormCode: string;
+  /** A filed Work With tag stops the tagged employee claiming what the filer is liable for. */
+  workWithMealsEnabled: boolean;
+  workWithScope: WorkWithScope;
 }
 
 export interface SystemSettingsInput {

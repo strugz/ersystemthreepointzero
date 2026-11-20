@@ -36,7 +36,8 @@ public sealed record MyFilingReadinessDto(
     bool PastFilingCutoff = false,
     string? FilingCutoffText = null,
     IReadOnlyList<ExpenseCategory>? UnavailableCategories = null,
-    IReadOnlyList<RequiredDocumentDto>? RequiredDocuments = null);
+    IReadOnlyList<RequiredDocumentDto>? RequiredDocuments = null,
+    string? WorkWithNotice = null);
 
 /// <summary>A category whose lines need a document of <see cref="DocumentType"/> attached before filing (Finance rules).</summary>
 public sealed record RequiredDocumentDto(ExpenseCategory Category, AttachmentDocumentType DocumentType, string Label);

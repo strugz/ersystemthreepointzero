@@ -66,6 +66,8 @@ const props = withDefaults(
     uploadingDocument?: boolean;
     /** The employee's saved vehicle; fills Vehicle model and Plate no. on a new Gas or Vehicle emergency purchase line. */
     savedVehicle?: MyVehicle | null;
+    /** Finance rules: what the people tagged as Work With can no longer claim; null when the rule is off. */
+    workWithNotice?: string | null;
   }>(),
   {
     line: null,
@@ -83,6 +85,7 @@ const props = withDefaults(
     attachedDocumentTypes: () => [],
     uploadingDocument: false,
     savedVehicle: null,
+    workWithNotice: null,
     crmError: null,
     periodFrom: null,
     periodTo: null,
@@ -756,6 +759,9 @@ function close() {
                 multiple
               />
             </div>
+            <v-alert v-if="workWithNotice && workWithList.length > 0" type="info" variant="tonal" density="compact" class="mt-2">
+              {{ workWithNotice }}
+            </v-alert>
           </section>
 
           <!-- Meals -->
@@ -772,6 +778,7 @@ function close() {
                     <span v-if="rates && rates[rateFor[m]]" class="meal__rate">{{ formatMoney(rates[rateFor[m]]) }}</span>
                   </v-chip>
                 </v-chip-group>
+                <p v-if="fieldErrors('meals')" class="text-caption text-error mb-0" role="alert">{{ fieldErrors('meals')?.join(' ') }}</p>
               </div>
             </section>
           </v-expand-transition>

@@ -16,8 +16,30 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-11-20
+
+- **Reason choices when lowering a line** (not yet committed, same PR as phase 7). The approver's **Lower this
+  amount** dialog offers common reasons as chips; a pick fills the reason, which stays editable. On a line someone
+  else paid for as Work With, **Paid by Work With** names them, the meal and their report. Frontend only, in SPA
+  0.12.0.
+
 ### 2026-11-19
 
+- **Maintenance scripts brought up to date** (not yet committed). `delete_users_keep_admin.sql` clears
+  `cost_center_budgets.updated_by_user_id` (script `022`), without which its last `DELETE FROM users` failed and
+  rolled everything back, and removes deleted users from `expense_lines.work_with_user_ids` (script `030`).
+  `reset_data_keep_admins.sql` deletes the cost center budgets before the cost centers (it failed the same way) and
+  says it keeps the job grades. No version change.
+- **Work With meals, Finance rules phase 7** (not yet committed). Someone tagged as Work With on another
+  employee's report (draft or filed, never Rejected) can no longer claim the meal the filer claimed that day: their line is refused on save and their report
+  cannot be filed, with a message naming the filer, meal and date. **Rules → Finance rules → Work With meals** turns it
+  on or off (on) and sets what the tag covers (Finance question 3): **The same meal on that date** (default) or **Any
+  expense on that date**. The filer sees a notice under **Work with** while tagging. If
+  the tagged person claimed the meal first, the payer's line still saves (the one who paid claims it): both lines
+  show a warning naming the other person, report and state, for the approver (lower or return the line) and
+  Finance. No verification request: the Expense Verifier has no part in meals. Tags are the picked names matched
+  to accounts when the line is saved (`expense_lines.work_with_user_ids`, script `030`, `SchemaVersion.Required` 30);
+  older lines tag nobody. API 0.9.0, SPA 0.12.0 (minor); apply `030`, deploy backend before frontend.
 - **Verification card reads as a conversation** (PR #60). Each request on the review and report
   pages shows a step bar (Asked, Picked up, finding, and Sent to Level 2 / decision when needed), then a thread:
   automatic requests as "Opened automatically when <approver> gave final approval" with the Finance rule, the
@@ -483,6 +505,7 @@ psql -d erfweb -f Database/026_attachment_document_type.sql    # receipt_attachm
 psql -d erfweb -f Database/027_attachment_form_code_check.sql  # receipt_attachments.form_code_check: attendance sheet form code (R94) found or confirmed
 psql -d erfweb -f Database/028_job_grades.sql                  # job_grades master data (Staff, Specialist, Supervisor)
 psql -d erfweb -f Database/029_user_vehicle.sql                # users.vehicle_model / vehicle_plate_no: the employee's saved vehicle
+psql -d erfweb -f Database/030_expense_line_work_with_user_ids.sql # expense_lines.work_with_user_ids: accounts a line tags as Work With
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -493,7 +516,7 @@ against the same database unless you first baseline the migration history.
 
 **Starting over with the data (keeps the administrators).** `Database/maintenance/reset_data_keep_admins.sql` runs a
 `DELETE FROM` on every table and deletes every user except `admin` (`admin2` is deleted too). Only `admin` (with its System Administrator role),
-its department, the PHP currency, the fare modes and `schema_versions` stay. It runs as one transaction and stops without deleting anything if `admin` is missing. Create a second administrator again from the
+its department, the PHP currency, the fare modes, the job grades and `schema_versions` stay (cost centers go with their yearly budgets). It runs as one transaction and stops without deleting anything if `admin` is missing. Create a second administrator again from the
 administration console afterwards, since an administrator cannot change their own account. It is destructive and has no rollback, so
 take a `pg_dump` first:
 
@@ -870,6 +893,30 @@ saved with a model and plate that differ from the saved ones (or none is saved),
 vehicle?** (or offers to replace it); **Save to my details** calls `PUT /api/lookups/my-vehicle`, **Cancel**
 remembers that plate in the browser so it is not offered again. There is no vehicle field on the admin user page.
 
+**Work With meals (Finance rules, requirement 2).** The employee who tags someone as Work With is liable for their
+meal, so the tagged person cannot claim it. When a line is saved, `WorkWithMealCheck` matches each Work With name
+(split like the R47 initials, Domain `WorkWithMealRules.Names`) to an active Work With account by full name, ignoring
+case, and stores the matches in `expense_lines.work_with_user_ids` (script `030`; lines saved before it tag nobody).
+A typed name, or a name two accounts share, tags nobody. A tag counts as soon as the other employee's line is saved,
+on a draft too; a Rejected report never counts, and removing the line or deleting the draft frees the tagged person. **Rules → Finance rules → Work With meals**
+(`workWithMealsEnabled`, on; `workWithScope`, Finance question 3): **The same meal on that date** (`MealsOnly`,
+default: the filer's Meals line refuses the tagged person's Meals line on that date with a shared meal type, "OT Meal"
+and "OTMeal" alike; other meals that day are fine) or **Any expense on that date** (`AllExpenses`). The tagged person's
+line is refused on save (400 on `meals`, or `transactionDate` for All expenses, naming the filer, the meal and the
+date), and filing re-checks every line (`ReportWorkflowRules.FilingBlockers`), which catches a tag saved after the
+line was. While someone is picked under **Work with**, the line dialog shows the notice from
+`my-filing-readiness` (`workWithNotice`, null when the rule is off). The one who paid
+(who tagged) claims the meal, so a tag saved after the tagged person already claimed it is never refused; instead
+both lines carry a warning, worked out when the report is read (`WorkWithMealCheck.WarningsAsync`, line field
+`workWithWarnings`, shown under the line in the editor and on the review page): on the payer's line "<B> also claimed
+this Lunch on <date> (<ERF ref>, <state>). You paid as Work With, so you claim it; Finance sees both.", on the tagged
+person's line "<A> paid for this Lunch … <A> claims it; remove this line or lower it." The tagged person's approver
+can **Return** the report or lower the line (the **Paid by Work With** reason chip names A); the warnings stay even
+on a line lowered to 0.00, as the record, and Finance sees them on both reports. No verification request is opened:
+the Expense Verifier has no part in meals (Gas and Vehicle emergency purchase stay as phase 6 set them). If the
+tagged person was already paid, Finance settles it outside ERS (recover it, or lower the payer's line before it is
+approved).
+
 **ERF reference number.** Issued by the system on **first filing** as a yearly series
 `ERF-2026-000142` (`ReferenceNumberFormat` + `ReferenceNumberGenerator`): one counter row per
 `PREFIX-YYYY` in `reference_series`, incremented inside the filing transaction. Two filings racing for the
@@ -1098,7 +1145,10 @@ or `Overridden`.
 - **Override** (Level 2 only, reason required): approves past a pending Level 1, which is marked `Overridden`.
 - **Lower a line** (`PUT /api/approvals/{id}/lines/{lineId}`): only the current Level 1, only before the first
   approval, only downwards, with a reason. The filed amount is kept and shown to everyone. Amounts lock after
-  the first approval.
+  the first approval. The **Lower this amount** dialog offers common reasons as chips (Paid by Work With, Above the
+  allowed rate, No receipt or the receipt does not match, Not a company expense, Already claimed on another line or
+  report, Wrong amount entered); a pick fills the reason, which stays editable. On a line someone else paid for as
+  Work With, **Paid by Work With** names them, the meal and their report (`AdjustLineDialog.vue`, frontend only).
 
 Nobody acts on their own report (9.1). Each action sends the report's `rowVersion` (a line adjustment sends the
 line's), so a stale screen gets 409 and reloads. The employee can reopen a filed report only until an approver

@@ -789,6 +789,7 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :crm-available="!!readiness?.crmActivitiesAvailable"
         :unavailable-categories="readiness?.unavailableCategories ?? []"
         :required-documents="readiness?.requiredDocuments ?? []"
+        :work-with-notice="readiness?.workWithNotice ?? null"
         :attached-document-types="report?.attachments.map(countedDocumentType) ?? []"
         :uploading-document="uploading"
         :saved-vehicle="savedVehicle"

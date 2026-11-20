@@ -35,6 +35,22 @@ const amountError = computed(() => {
 });
 const reasonError = computed(() => (reason.value.trim() ? null : 'Say why the amount is lowered.'));
 
+// Common reasons; a pick fills the reason, which the approver can still edit. When a Work With colleague paid for this
+// meal, that choice comes first and names them, the meal and their report (the start of the line's warning).
+const COMMON_REASONS = [
+  'Above the allowed rate.',
+  'No receipt, or the receipt does not match.',
+  'Not a company expense.',
+  'Already claimed on another line or report.',
+  'Wrong amount entered.',
+];
+const reasonChoices = computed(() => {
+  const paidBy = props.line?.workWithWarnings?.find((w) => w.includes(' paid for '));
+  const end = paidBy?.indexOf('). ') ?? -1;
+  const workWith = paidBy && end > 0 ? `${paidBy.slice(0, end + 1)}.` : 'Paid by a Work With colleague.';
+  return [{ label: 'Paid by Work With', text: workWith }, ...COMMON_REASONS.map((text) => ({ label: text.slice(0, -1), text }))];
+});
+
 function save() {
   touched.value = true;
   if (amountError.value || reasonError.value || amount.value === null) return;
@@ -63,6 +79,19 @@ function save() {
           autofocus
           :error-messages="touched && amountError ? amountError : undefined"
         />
+        <div class="d-flex flex-wrap ga-2" role="group" aria-label="Common reasons">
+          <v-chip
+            v-for="c in reasonChoices"
+            :key="c.label"
+            size="small"
+            :variant="reason === c.text ? 'flat' : 'outlined'"
+            :color="reason === c.text ? 'primary' : undefined"
+            class="press"
+            @click="reason = c.text"
+          >
+            {{ c.label }}
+          </v-chip>
+        </div>
         <v-textarea
           v-model="reason"
           label="Reason (the employee sees this)"

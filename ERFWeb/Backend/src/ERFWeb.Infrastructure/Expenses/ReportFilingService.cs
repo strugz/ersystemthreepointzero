@@ -26,6 +26,7 @@ public sealed class ReportFilingService(
     IReferenceNumberGenerator referenceNumbers,
     ReportEditGate gate,
     ExpenseReportDetailLoader loader,
+    WorkWithMealCheck workWithMeals,
     ISystemSettingsService settings,
     IApprovalRouter router,
     Entitlements.EntitlementContext calendar,
@@ -61,11 +62,13 @@ public sealed class ReportFilingService(
             var attachedTypes = await db.ReceiptAttachments.AsNoTracking()
                 .Where(a => a.ReportId == reportId && ((a.DocumentType != AttachmentDocumentType.IsoAttendanceSheet && a.DocumentType != AttachmentDocumentType.JobOrder) || a.FormCodeCheck != null))
                 .Select(a => a.DocumentType ?? AttachmentDocumentType.Receipt).Distinct().ToListAsync(token);
-            var categoryProblems = CategoryDocumentRules.FilingProblems(lineCategories, attachedTypes, await settings.GetFinanceRulesAsync(token));
+            var financeRules = await settings.GetFinanceRulesAsync(token);
+            var categoryProblems = CategoryDocumentRules.FilingProblems(lineCategories, attachedTypes, financeRules);
+            var workWithProblems = await workWithMeals.ReportProblemsAsync(reportId, financeRules, token);
 
             var blockers = ReportWorkflowRules.FilingBlockers(
                 report.Status, lineCount, route.Count, report.Purpose, report.ReportType, cashAmount, report.RevolvingFundAmount,
-                coolingElapsed, routing.Problem, categoryProblems);
+                coolingElapsed, routing.Problem, categoryProblems, workWithProblems);
             if (blockers.Count > 0)
             {
                 throw new ValidationException(new Dictionary<string, string[]> { ["report"] = blockers.ToArray() });
@@ -105,7 +108,7 @@ public sealed class ReportFilingService(
             report.FiledAt = now;
 
             // Finance requirement 1: with "Flag for Finance", a report filed after the weekly cutoff is marked late.
-            report.FiledLate = FilingCutoffRules.FlagAsLate(now, calendar.UtcOffset, await settings.GetFinanceRulesAsync(token));
+            report.FiledLate = FilingCutoffRules.FlagAsLate(now, calendar.UtcOffset, financeRules);
             report.ApprovedAt = null;
             report.CancelNote = null;
             report.UpdatedAt = now;

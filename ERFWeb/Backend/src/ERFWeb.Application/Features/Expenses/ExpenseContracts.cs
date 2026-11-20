@@ -72,7 +72,8 @@ public sealed record ExpenseLineDto(
     IReadOnlyList<ExpenseMealItemDto> Meals,
     IReadOnlyList<ExpenseTransportItemDto> Transports,
     LineAdjustmentDto? Adjustment = null,
-    IReadOnlyList<string>? CrmActivityIds = null);
+    IReadOnlyList<string>? CrmActivityIds = null,
+    IReadOnlyList<string>? WorkWithWarnings = null);
 
 /// <summary>An approver lowered this line before the first approval; the original amount is kept.</summary>
 public sealed record LineAdjustmentDto(decimal OriginalAmount, decimal OriginalTotal, string? AdjustedByName, DateTimeOffset AdjustedAt, string? Reason);

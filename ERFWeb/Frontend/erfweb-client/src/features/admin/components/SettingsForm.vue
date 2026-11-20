@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import type { CategoryVerification, FinanceRules, LodgingRateBasis, R47Format, RulesSection, SystemSettings, SystemSettingsInput } from '../types';
+import type {
+  CategoryVerification,
+  FinanceRules,
+  LodgingRateBasis,
+  R47Format,
+  RulesSection,
+  SystemSettings,
+  SystemSettingsInput,
+  WorkWithScope,
+} from '../types';
 
 /** Workflow rules (approval thresholds, SLAs, filing cut-off, Finance rules, R47 reviewer and format, notifications, sign-in lockout). The parent owns the save. */
 const props = withDefaults(
@@ -62,6 +71,8 @@ function blankFinanceRules(): FinanceRules {
     vehicleEmergencyEnabled: true,
     vehicleEmergencyVerification: 'Both',
     jobOrderFormCode: 'R42',
+    workWithMealsEnabled: true,
+    workWithScope: 'MealsOnly',
   };
 }
 
@@ -75,6 +86,10 @@ const VERIFICATIONS: { value: CategoryVerification; title: string }[] = [
   { value: 'Document', title: 'Document attached before filing' },
   { value: 'Both', title: 'Both' },
   { value: 'None', title: 'No extra check' },
+];
+const WORK_WITH_SCOPES: { value: WorkWithScope; title: string }[] = [
+  { value: 'MealsOnly', title: 'The same meal on that date' },
+  { value: 'AllExpenses', title: 'Any expense on that date' },
 ];
 
 // Same limits and defaults as the server (Domain LoginLockoutRules).
@@ -546,6 +561,35 @@ defineExpose({ isDirty });
               maxlength="20"
               class="mt-2"
               :error-messages="fieldErrors('financeRules.jobOrderFormCode')"
+            />
+          </v-col>
+        </v-row>
+
+        <v-divider class="my-5" />
+        <div class="text-subtitle-2 mb-1">Work With meals</div>
+        <div class="text-caption text-medium-emphasis mb-2">
+          Finance question 3. The employee who tags someone as Work With is liable for their meal, so as soon as the line is saved (draft
+          or filed; a rejected report does not count) the tagged person cannot claim it: the same meal on the same date, or with All
+          expenses, nothing on that date. Only names picked from the list
+          count. The filer sees a notice while tagging. If the tagged person claimed first, the one who paid still claims and both lines
+          show a warning: the approver lowers or returns the line and Finance sees it. The Expense Verifier has no part in it.
+        </div>
+        <v-row dense>
+          <v-col cols="12" sm="6">
+            <v-switch
+              v-model="form.financeRules.workWithMealsEnabled"
+              color="primary"
+              label="Tagged people cannot claim the filer's meals"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-select
+              v-model="form.financeRules.workWithScope"
+              :items="WORK_WITH_SCOPES"
+              label="The tagged person cannot claim"
+              :disabled="!form.financeRules.workWithMealsEnabled"
+              :error-messages="fieldErrors('financeRules.workWithScope')"
             />
           </v-col>
         </v-row>

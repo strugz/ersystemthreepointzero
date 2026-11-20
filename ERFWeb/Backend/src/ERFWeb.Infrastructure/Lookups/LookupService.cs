@@ -93,7 +93,8 @@ public sealed class LookupService(
             .Select(d => new RequiredDocumentDto(d.Category, d.DocumentType, d.Label))
             .ToList();
         return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt, routing.Problem, crmAvailable,
-            cutoff?.ProcessingDate, cutoff?.IsLate ?? false, cutoff?.CutoffText, CategoryDocumentRules.Disabled(financeRules), documents);
+            cutoff?.ProcessingDate, cutoff?.IsLate ?? false, cutoff?.CutoffText, CategoryDocumentRules.Disabled(financeRules), documents,
+            WorkWithMealRules.Notice(financeRules));
     }
 
     public async Task<MyVehicleDto> MyVehicleAsync(CancellationToken ct = default) =>

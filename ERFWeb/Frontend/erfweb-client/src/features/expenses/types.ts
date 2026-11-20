@@ -118,6 +118,8 @@ export interface ExpenseLine {
   adjustment?: LineAdjustment | null;
   /** The CRM activities (ITI-/SR-) the line was pre-filled from; empty for a line typed by hand. */
   crmActivityIds?: string[] | null;
+  /** Finance rules: someone else paid for this meal as Work With, or the person tagged here claimed it too. */
+  workWithWarnings?: string[] | null;
 }
 
 export interface LineAdjustment {
@@ -299,6 +301,8 @@ export interface FilingReadiness {
   unavailableCategories?: ExpenseCategory[] | null;
   /** Categories whose lines need a document attached before filing. */
   requiredDocuments?: RequiredDocument[] | null;
+  /** Shown under Work with while someone is tagged; null when the Work With meals rule is off. */
+  workWithNotice?: string | null;
 }
 
 export interface RequiredDocument {
