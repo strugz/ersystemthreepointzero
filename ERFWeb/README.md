@@ -18,30 +18,30 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
-- **Category tiles grouped by kind** (not yet committed, same PR as phase 7). The line dialog lists Meals,
+- **Category tiles grouped by kind** (PR #61). The line dialog lists Meals,
   Lodging, Transportation, Gas, Toll, Parking, Vehicle emergency, Representation, Sponsorship, Demo, then Others
   last. Frontend only, in SPA 0.12.0.
-- **Each meal once a day** (not yet committed, same PR as phase 7). A Meals line that repeats a meal the same
+- **Each meal once a day** (PR #61). A Meals line that repeats a meal the same
   employee already claimed that day (this report or another report that is not Rejected) is refused, with the
   message under the meal chips; filing checks again. In API 0.9.0.
-- **Line date stays in the report period** (not yet committed, same PR as phase 7). The **Add expense line** Date
+- **Line date stays in the report period** (PR #61). The **Add expense line** Date
   picker offers only the report period's days, shows "Report period: <from> to <to>" under it, starts on a date
   inside the period, and a date typed outside it shows an error and cannot be saved. The server already refused
   such dates. After **Add line** the dialog asks whether the next line is on the next date (**Stay on** / **Go to**),
   except on the period's last day. Frontend only, in SPA 0.12.0.
-- **Reason choices when lowering a line** (not yet committed, same PR as phase 7). The approver's **Lower this
+- **Reason choices when lowering a line** (PR #61). The approver's **Lower this
   amount** dialog offers common reasons as chips; a pick fills the reason, which stays editable. On a line someone
   else paid for as Work With, **Paid by Work With** names them, the meal and their report. Frontend only, in SPA
   0.12.0.
 
 ### 2026-11-19
 
-- **Maintenance scripts brought up to date** (not yet committed). `delete_users_keep_admin.sql` clears
+- **Maintenance scripts brought up to date** (PR #61). `delete_users_keep_admin.sql` clears
   `cost_center_budgets.updated_by_user_id` (script `022`), without which its last `DELETE FROM users` failed and
   rolled everything back, and removes deleted users from `expense_lines.work_with_user_ids` (script `030`).
   `reset_data_keep_admins.sql` deletes the cost center budgets before the cost centers (it failed the same way) and
   says it keeps the job grades. No version change.
-- **Work With meals, Finance rules phase 7** (not yet committed). Someone tagged as Work With on another
+- **Work With meals, Finance rules phase 7** (PR #61). Someone tagged as Work With on another
   employee's report (draft or filed, never Rejected) can no longer claim the meal the filer claimed that day: their line is refused on save and their report
   cannot be filed, with a message naming the filer, meal and date. **Rules → Finance rules → Work With meals** turns it
   on or off (on) and sets what the tag covers (Finance question 3): **The same meal on that date** (default) or **Any
