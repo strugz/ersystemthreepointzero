@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { useLayoutMode } from '@/shared/composables/useLayoutMode';
-import { formatMoney, todayIso } from '@/shared/format';
+import { addDaysIso, formatDate, formatMoney, todayIso } from '@/shared/format';
 import { hasCamera } from '@/shared/images';
 import AppCameraCapture from '@/shared/ui/AppCameraCapture.vue';
 import AppPickerField from '@/shared/ui/AppPickerField.vue';
@@ -66,6 +66,8 @@ const props = withDefaults(
     uploadingDocument?: boolean;
     /** The employee's saved vehicle; fills Vehicle model and Plate no. on a new Gas or Vehicle emergency purchase line. */
     savedVehicle?: MyVehicle | null;
+    /** Finance rules: what the people tagged as Work With can no longer claim; null when the rule is off. */
+    workWithNotice?: string | null;
   }>(),
   {
     line: null,
@@ -83,6 +85,7 @@ const props = withDefaults(
     attachedDocumentTypes: () => [],
     uploadingDocument: false,
     savedVehicle: null,
+    workWithNotice: null,
     crmError: null,
     periodFrom: null,
     periodTo: null,
@@ -104,8 +107,15 @@ const emit = defineEmits<{
   remove: [line: ExpenseLine];
 }>();
 
+/** The date moved into the report period (ISO dates compare as text). */
+function inPeriod(date: string): string {
+  if (props.periodFrom && date < props.periodFrom) return props.periodFrom;
+  if (props.periodTo && date > props.periodTo) return props.periodTo;
+  return date;
+}
+
 const blank = (): SaveExpenseLineInput => ({
-  transactionDate: props.defaultDate ?? todayIso(),
+  transactionDate: inPeriod(props.defaultDate ?? todayIso()),
   particulars: '',
   workWith: '',
   invoiceOrNo: '',
@@ -185,8 +195,25 @@ function applyCategoryDefaults() {
   syncRateAmount();
 }
 
-/** Clears the form for the next line (date follows `defaultDate`) and puts the cursor back on Date. */
-function reset() {
+// After Add line, the dialog asks whether the next line is on the next date (none after the period's last day).
+const nextDateOffer = ref<{ added: string; next: string } | null>(null);
+function answerNextDate(goNext: boolean) {
+  const offer = nextDateOffer.value;
+  nextDateOffer.value = null;
+  if (goNext && offer) form.transactionDate = offer.next;
+}
+watch(
+  () => form.transactionDate,
+  (date) => {
+    if (nextDateOffer.value && date !== nextDateOffer.value.added) nextDateOffer.value = null;
+  },
+);
+
+/**
+ * Clears the form for the next line (date follows `defaultDate`) and puts the cursor back on Date. With the date of
+ * the line just added, it asks whether the next line goes on the next date.
+ */
+function reset(addedDate?: string) {
   Object.assign(form, blank());
   Object.assign(auto, { particulars: '', amount: 0 });
   Object.assign(vehicle, { reason: '', model: '', plate: '' });
@@ -194,6 +221,8 @@ function reset() {
   triedSave.value = false;
   pickedActivities.value = [];
   applyCategoryDefaults();
+  const next = addedDate ? addDaysIso(addedDate, 1) : null;
+  nextDateOffer.value = addedDate && next && inPeriod(next) === next ? { added: form.transactionDate, next } : null;
   requestAnimationFrame(() => dateInput.value?.querySelector('input')?.focus());
 }
 
@@ -205,6 +234,7 @@ watch(
     if (!open) {
       return;
     }
+    nextDateOffer.value = null;
     const l = props.line;
     Object.assign(form, blank());
     if (l) {
@@ -286,6 +316,12 @@ const perdiemText = computed(() => {
     : `(${form.totalDays}Days) × ${form.amount}`;
 });
 const perdiemInvalid = computed(() => form.isPerdiem && effectiveMultiplier.value < 1);
+
+// The date picker offers only the report period; a date typed outside it is caught here, before the server refuses it.
+const periodText = computed(() =>
+  props.periodFrom && props.periodTo ? `${formatDate(props.periodFrom)} to ${formatDate(props.periodTo)}` : null,
+);
+const dateOutsidePeriod = computed(() => !!form.transactionDate && form.transactionDate !== inPeriod(form.transactionDate));
 
 // Meals: chips pick the meal types; the sum of configured rates is offered as the amount.
 const rateFor: Record<string, keyof EmployeeRates> = {
@@ -481,8 +517,29 @@ const amountLabel = computed(() => {
   return form.category === 'Lodging' ? 'Per night' : 'Amount';
 });
 
+// Tiles grouped by kind: meals and lodging, travel and vehicle, client costs, then Others last. Only this dialog; rate
+// pages keep the category order of labels.ts. A category missing here goes before Others.
+const TILE_ORDER: ExpenseCategory[] = [
+  'Meals',
+  'Lodging',
+  'Transportation',
+  'Gas',
+  'Toll',
+  'Parking',
+  'VehicleEmergency',
+  'Representation',
+  'Sponsorship',
+  'Demo',
+  'Others',
+];
+const tileRank = (c: ExpenseCategory) => {
+  const i = TILE_ORDER.indexOf(c);
+  return i < 0 ? TILE_ORDER.length - 1.5 : i;
+};
 const shownCategories = computed(() =>
-  categoryOptions.filter((c) => !props.unavailableCategories.includes(c.value) || c.value === form.category),
+  categoryOptions
+    .filter((c) => !props.unavailableCategories.includes(c.value) || c.value === form.category)
+    .sort((x, y) => tileRank(x.value) - tileRank(y.value)),
 );
 
 /** How the footer total is made up, e.g. "150.00 × 2" or the per-diem days; empty when it is just the amount. */
@@ -527,6 +584,7 @@ const canSave = computed(
     (form.particulars ?? '').trim().length > 0 &&
     Number(form.amount) > 0 &&
     !perdiemInvalid.value &&
+    !dateOutsidePeriod.value &&
     !documentMissing.value &&
     !props.saving,
 );
@@ -581,14 +639,29 @@ function close() {
         <v-form :disabled="saving" @submit.prevent="save">
           <!-- When and what -->
           <section class="eline__section">
+            <v-alert v-if="nextDateOffer" type="success" variant="tonal" density="compact" class="mb-3" role="status">
+              <div class="d-flex flex-wrap align-center ga-2">
+                <span class="flex-grow-1">Line added. Is the next line on the next date?</span>
+                <v-btn size="small" variant="text" class="press" @click="answerNextDate(false)">
+                  Stay on {{ formatDate(nextDateOffer.added) }}
+                </v-btn>
+                <v-btn size="small" color="primary" variant="flat" class="press" @click="answerNextDate(true)">
+                  Go to {{ formatDate(nextDateOffer.next) }}
+                </v-btn>
+              </div>
+            </v-alert>
             <div class="eline__row eline__row--when">
               <v-text-field
                 ref="dateInput"
                 v-model="form.transactionDate"
                 type="date"
                 label="Date"
+                :min="periodFrom ?? undefined"
+                :max="periodTo ?? undefined"
+                :hint="periodText ? `Report period: ${periodText}` : undefined"
+                :persistent-hint="!!periodText"
                 hide-details="auto"
-                :error-messages="fieldErrors('transactionDate')"
+                :error-messages="dateOutsidePeriod ? [`Pick a date in the report period, ${periodText}.`] : fieldErrors('transactionDate')"
                 autofocus
               />
               <div class="seg" role="group" aria-label="Expense type">
@@ -756,6 +829,9 @@ function close() {
                 multiple
               />
             </div>
+            <v-alert v-if="workWithNotice && workWithList.length > 0" type="info" variant="tonal" density="compact" class="mt-2">
+              {{ workWithNotice }}
+            </v-alert>
           </section>
 
           <!-- Meals -->
@@ -772,6 +848,7 @@ function close() {
                     <span v-if="rates && rates[rateFor[m]]" class="meal__rate">{{ formatMoney(rates[rateFor[m]]) }}</span>
                   </v-chip>
                 </v-chip-group>
+                <p v-if="fieldErrors('meals')" class="text-caption text-error mb-0" role="alert">{{ fieldErrors('meals')?.join(' ') }}</p>
               </div>
             </section>
           </v-expand-transition>

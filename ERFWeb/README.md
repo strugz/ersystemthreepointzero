@@ -16,8 +16,41 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-11-20
+
+- **Category tiles grouped by kind** (PR #61). The line dialog lists Meals,
+  Lodging, Transportation, Gas, Toll, Parking, Vehicle emergency, Representation, Sponsorship, Demo, then Others
+  last. Frontend only, in SPA 0.12.0.
+- **Each meal once a day** (PR #61). A Meals line that repeats a meal the same
+  employee already claimed that day (this report or another report that is not Rejected) is refused, with the
+  message under the meal chips; filing checks again. In API 0.9.0.
+- **Line date stays in the report period** (PR #61). The **Add expense line** Date
+  picker offers only the report period's days, shows "Report period: <from> to <to>" under it, starts on a date
+  inside the period, and a date typed outside it shows an error and cannot be saved. The server already refused
+  such dates. After **Add line** the dialog asks whether the next line is on the next date (**Stay on** / **Go to**),
+  except on the period's last day. Frontend only, in SPA 0.12.0.
+- **Reason choices when lowering a line** (PR #61). The approver's **Lower this
+  amount** dialog offers common reasons as chips; a pick fills the reason, which stays editable. On a line someone
+  else paid for as Work With, **Paid by Work With** names them, the meal and their report. Frontend only, in SPA
+  0.12.0.
+
 ### 2026-11-19
 
+- **Maintenance scripts brought up to date** (PR #61). `delete_users_keep_admin.sql` clears
+  `cost_center_budgets.updated_by_user_id` (script `022`), without which its last `DELETE FROM users` failed and
+  rolled everything back, and removes deleted users from `expense_lines.work_with_user_ids` (script `030`).
+  `reset_data_keep_admins.sql` deletes the cost center budgets before the cost centers (it failed the same way) and
+  says it keeps the job grades. No version change.
+- **Work With meals, Finance rules phase 7** (PR #61). Someone tagged as Work With on another
+  employee's report (draft or filed, never Rejected) can no longer claim the meal the filer claimed that day: their line is refused on save and their report
+  cannot be filed, with a message naming the filer, meal and date. **Rules → Finance rules → Work With meals** turns it
+  on or off (on) and sets what the tag covers (Finance question 3): **The same meal on that date** (default) or **Any
+  expense on that date**. The filer sees a notice under **Work with** while tagging. If
+  the tagged person claimed the meal first, the payer's line still saves (the one who paid claims it): both lines
+  show a warning naming the other person, report and state, for the approver (lower or return the line) and
+  Finance. No verification request: the Expense Verifier has no part in meals. Tags are the picked names matched
+  to accounts when the line is saved (`expense_lines.work_with_user_ids`, script `030`, `SchemaVersion.Required` 30);
+  older lines tag nobody. API 0.9.0, SPA 0.12.0 (minor); apply `030`, deploy backend before frontend.
 - **Verification card reads as a conversation** (PR #60). Each request on the review and report
   pages shows a step bar (Asked, Picked up, finding, and Sent to Level 2 / decision when needed), then a thread:
   automatic requests as "Opened automatically when <approver> gave final approval" with the Finance rule, the
@@ -483,6 +516,7 @@ psql -d erfweb -f Database/026_attachment_document_type.sql    # receipt_attachm
 psql -d erfweb -f Database/027_attachment_form_code_check.sql  # receipt_attachments.form_code_check: attendance sheet form code (R94) found or confirmed
 psql -d erfweb -f Database/028_job_grades.sql                  # job_grades master data (Staff, Specialist, Supervisor)
 psql -d erfweb -f Database/029_user_vehicle.sql                # users.vehicle_model / vehicle_plate_no: the employee's saved vehicle
+psql -d erfweb -f Database/030_expense_line_work_with_user_ids.sql # expense_lines.work_with_user_ids: accounts a line tags as Work With
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -493,7 +527,7 @@ against the same database unless you first baseline the migration history.
 
 **Starting over with the data (keeps the administrators).** `Database/maintenance/reset_data_keep_admins.sql` runs a
 `DELETE FROM` on every table and deletes every user except `admin` (`admin2` is deleted too). Only `admin` (with its System Administrator role),
-its department, the PHP currency, the fare modes and `schema_versions` stay. It runs as one transaction and stops without deleting anything if `admin` is missing. Create a second administrator again from the
+its department, the PHP currency, the fare modes, the job grades and `schema_versions` stay (cost centers go with their yearly budgets). It runs as one transaction and stops without deleting anything if `admin` is missing. Create a second administrator again from the
 administration console afterwards, since an administrator cannot change their own account. It is destructive and has no rollback, so
 take a `pg_dump` first:
 
@@ -774,6 +808,19 @@ Employees create, edit, and file their own ERFs; everything is EF Core + LINQ in
 acting user to PostgreSQL (`set_config('app.current_user_id', …, true)`) so the `fn_record_history`
 trigger stamps `record_history.changed_by`.
 
+**Line date and the report period.** A line's date must fall in the report period (`ExpenseLineRules.Validate`,
+400 on `transactionDate`). The line dialog's **Date** picker offers only the period's days, says "Report period:
+<from> to <to>" under the field, starts a new line on a date inside it, and refuses a date typed outside it before
+saving (`ExpenseLineDialog.vue`). After **Add line** the dialog stays open on the same date and asks "Line added. Is
+the next line on the next date?" with **Stay on <date>** and **Go to <next date>**; it does not ask on the period's
+last day, and changing the date by hand dismisses it.
+
+**Each meal once a day.** An employee claims Breakfast, Lunch, Dinner and OT meal at most once a day, across this
+report and their other reports that are not Rejected (Domain `DuplicateMealRules`, `DuplicateMealCheck`; "OT Meal"
+and "OTMeal" alike; a Meals line without a meal type is not compared). A Meals line repeating a meal is refused on
+save (400 on `meals`, shown under the meal chips: "You already claimed Lunch on 17 Nov 2026 on this report.", or the
+other report's ERF number), and filing checks again (`ReportWorkflowRules.FilingBlockers`).
+
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /api/reports` | My reports, paged (`page`, `pageSize`, `sort`, `direction`, `status`, `search`) |
@@ -847,7 +894,9 @@ itself contain " - "); the line dialog shows Reason, Vehicle model and Plate no.
 picked from suggested reasons per category (`vehicleReasons` in `features/expenses/labels.ts`, e.g. Client visit,
 Flat tire) or typed. Reason and **Work with** use `shared/ui/AppPickerField.vue` instead of a dropdown: tapping the
 field opens a pop-up list (full screen on phones and tablets) with a search box, one tap for Reason, tick boxes and
-**Done** for Work with, and "Use “…”" for a typed entry. The line dialog's category tiles are all one height (labels
+**Done** for Work with, and "Use “…”" for a typed entry. The line dialog's category tiles are grouped by kind
+(Meals, Lodging, Transportation, Gas, Toll, Parking, Vehicle emergency, Representation, Sponsorship, Demo, Others
+last; `TILE_ORDER` in `ExpenseLineDialog.vue`, the rate pages keep their own order) and are all one height (labels
 at most two lines; the Vehicle emergency purchase tile reads "Vehicle emergency") and Local / Foreign is as tall as
 the Date field. Lines are
 verified as **Rules → Finance rules → Gas and Vehicle emergency purchase** says (`gasVerification`,
@@ -869,6 +918,30 @@ Domain `VehicleParticulars.VehicleProblems`: both or neither, model up to 60 and
 saved with a model and plate that differ from the saved ones (or none is saved), the report editor asks **Save your
 vehicle?** (or offers to replace it); **Save to my details** calls `PUT /api/lookups/my-vehicle`, **Cancel**
 remembers that plate in the browser so it is not offered again. There is no vehicle field on the admin user page.
+
+**Work With meals (Finance rules, requirement 2).** The employee who tags someone as Work With is liable for their
+meal, so the tagged person cannot claim it. When a line is saved, `WorkWithMealCheck` matches each Work With name
+(split like the R47 initials, Domain `WorkWithMealRules.Names`) to an active Work With account by full name, ignoring
+case, and stores the matches in `expense_lines.work_with_user_ids` (script `030`; lines saved before it tag nobody).
+A typed name, or a name two accounts share, tags nobody. A tag counts as soon as the other employee's line is saved,
+on a draft too; a Rejected report never counts, and removing the line or deleting the draft frees the tagged person. **Rules → Finance rules → Work With meals**
+(`workWithMealsEnabled`, on; `workWithScope`, Finance question 3): **The same meal on that date** (`MealsOnly`,
+default: the filer's Meals line refuses the tagged person's Meals line on that date with a shared meal type, "OT Meal"
+and "OTMeal" alike; other meals that day are fine) or **Any expense on that date** (`AllExpenses`). The tagged person's
+line is refused on save (400 on `meals`, or `transactionDate` for All expenses, naming the filer, the meal and the
+date), and filing re-checks every line (`ReportWorkflowRules.FilingBlockers`), which catches a tag saved after the
+line was. While someone is picked under **Work with**, the line dialog shows the notice from
+`my-filing-readiness` (`workWithNotice`, null when the rule is off). The one who paid
+(who tagged) claims the meal, so a tag saved after the tagged person already claimed it is never refused; instead
+both lines carry a warning, worked out when the report is read (`WorkWithMealCheck.WarningsAsync`, line field
+`workWithWarnings`, shown under the line in the editor and on the review page): on the payer's line "<B> also claimed
+this Lunch on <date> (<ERF ref>, <state>). You paid as Work With, so you claim it; Finance sees both.", on the tagged
+person's line "<A> paid for this Lunch … <A> claims it; remove this line or lower it." The tagged person's approver
+can **Return** the report or lower the line (the **Paid by Work With** reason chip names A); the warnings stay even
+on a line lowered to 0.00, as the record, and Finance sees them on both reports. No verification request is opened:
+the Expense Verifier has no part in meals (Gas and Vehicle emergency purchase stay as phase 6 set them). If the
+tagged person was already paid, Finance settles it outside ERS (recover it, or lower the payer's line before it is
+approved).
 
 **ERF reference number.** Issued by the system on **first filing** as a yearly series
 `ERF-2026-000142` (`ReferenceNumberFormat` + `ReferenceNumberGenerator`): one counter row per
@@ -1098,7 +1171,10 @@ or `Overridden`.
 - **Override** (Level 2 only, reason required): approves past a pending Level 1, which is marked `Overridden`.
 - **Lower a line** (`PUT /api/approvals/{id}/lines/{lineId}`): only the current Level 1, only before the first
   approval, only downwards, with a reason. The filed amount is kept and shown to everyone. Amounts lock after
-  the first approval.
+  the first approval. The **Lower this amount** dialog offers common reasons as chips (Paid by Work With, Above the
+  allowed rate, No receipt or the receipt does not match, Not a company expense, Already claimed on another line or
+  report, Wrong amount entered); a pick fills the reason, which stays editable. On a line someone else paid for as
+  Work With, **Paid by Work With** names them, the meal and their report (`AdjustLineDialog.vue`, frontend only).
 
 Nobody acts on their own report (9.1). Each action sends the report's `rowVersion` (a line adjustment sends the
 line's), so a stale screen gets 409 and reloads. The employee can reopen a filed report only until an approver

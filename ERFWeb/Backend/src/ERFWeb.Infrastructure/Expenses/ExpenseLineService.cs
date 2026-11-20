@@ -21,6 +21,8 @@ public sealed class ExpenseLineService(
     ReportEditGate gate,
     ExpenseReportDetailLoader loader,
     CrmActivityClaimCheck crmClaims,
+    WorkWithMealCheck workWithMeals,
+    DuplicateMealCheck duplicateMeals,
     ISystemSettingsService settings,
     IRateService rates) : IExpenseLineService
 {
@@ -35,6 +37,7 @@ public sealed class ExpenseLineService(
             var report = await gate.LoadEditableAsync(reportId, token);
             var modes = await ValidateAsync(request, report, null, token);
             await crmClaims.EnsureNotClaimedElsewhereAsync(report, activityIds, token);
+            var taggedUserIds = await workWithMeals.ResolveAsync(request.WorkWith, report.EmployeeUserId, token);
 
             var nextSort = await db.ExpenseLines
                 .Where(l => l.ReportId == reportId)
@@ -49,7 +52,7 @@ public sealed class ExpenseLineService(
                 CreatedAt = now,
                 UpdatedAt = now,
             };
-            Apply(line, request, activityIds, now);
+            Apply(line, request, activityIds, taggedUserIds, now);
             db.ExpenseLines.Add(line);
             await db.SaveChangesAsync(token);
 
@@ -82,13 +85,14 @@ public sealed class ExpenseLineService(
             var report = await gate.LoadEditableAsync(reportId, token);
             var modes = await ValidateAsync(request, report, lineId, token);
             await crmClaims.EnsureNotClaimedElsewhereAsync(report, activityIds, token);
+            var taggedUserIds = await workWithMeals.ResolveAsync(request.WorkWith, report.EmployeeUserId, token);
 
             var line = await db.ExpenseLines.FirstOrDefaultAsync(l => l.Id == lineId && l.ReportId == reportId && l.IsActive, token)
                 ?? throw new NotFoundException("Expense line not found.");
 
             db.SetRowVersion(line, request.RowVersion.Value);
             var now = clock.UtcNow;
-            Apply(line, request, activityIds, now);
+            Apply(line, request, activityIds, taggedUserIds, now);
 
             var existingMeals = await db.ExpenseMealItems.Where(m => m.ExpenseLineId == lineId).ToListAsync(token);
             var existingTransports = await db.ExpenseTransportItems.Where(t => t.ExpenseLineId == lineId).ToListAsync(token);
@@ -200,6 +204,19 @@ public sealed class ExpenseLineService(
             }
         }
 
+        // Finance requirement 2: another employee's filed line that tags this claimant covers this meal (or day).
+        var mealTypes = r.Category == ExpenseCategory.Meals ? (r.Meals ?? []).Select(m => m.MealType ?? string.Empty).ToList() : [];
+        if (await workWithMeals.LineProblemAsync(report.EmployeeUserId, new WorkWithClaim(r.TransactionDate, r.Category, mealTypes), financeRules, ct) is { } workWithProblem)
+        {
+            errors[r.Category == ExpenseCategory.Meals && financeRules.WorkWithScope == WorkWithScope.MealsOnly ? "meals" : "transactionDate"] = [workWithProblem];
+        }
+
+        // Each meal is claimed once a day by the same employee, across their reports.
+        if (!errors.ContainsKey("meals") && await duplicateMeals.LineProblemAsync(report, lineId, r.TransactionDate, mealTypes, ct) is { } duplicateProblem)
+        {
+            errors["meals"] = [duplicateProblem];
+        }
+
         IReadOnlyDictionary<long, FareModeRule> modes = new Dictionary<long, FareModeRule>();
         if (r.Transports is { Count: > 0 } legs)
         {
@@ -233,7 +250,7 @@ public sealed class ExpenseLineService(
     }
 
     /// <summary>Copies request fields onto the entity and derives multiplier, total and computation text.</summary>
-    private static void Apply(ExpenseLine line, SaveExpenseLineRequest r, List<string> activityIds, DateTimeOffset now)
+    private static void Apply(ExpenseLine line, SaveExpenseLineRequest r, List<string> activityIds, List<long> taggedUserIds, DateTimeOffset now)
     {
         var multiplier = r.Multiplier;
         string? computation = null;
@@ -251,6 +268,7 @@ public sealed class ExpenseLineService(
         line.TransactionDate = r.TransactionDate;
         line.Particulars = r.Particulars?.Trim();
         line.WorkWith = Clean(r.WorkWith);
+        line.WorkWithUserIds = taggedUserIds;
         line.InvoiceOrNo = Clean(r.InvoiceOrNo);
         line.ExpenseType = r.ExpenseType;
         line.Category = r.Category;

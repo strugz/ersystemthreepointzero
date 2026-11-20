@@ -32,6 +32,10 @@
 --                     granted_by / countersigned_by / revoked_by doomed -> NULL
 --  * app_settings.updated_by doomed                                           NULL
 --  * login_security   lockout rows of doomed usernames                        deleted
+--  * cost_center_budgets.updated_by doomed                                    NULL (budgets are kept)
+--  * users.signature_approved_by doomed (admin's own signature)               NULL, by its foreign key
+--  * expense_lines.work_with_user_ids on reports that stay                    doomed ids removed (no
+--                     foreign key; the Work With text is kept)
 --  * users            doomed                                                  deleted
 --  * workflow_audit (other rows) and record_history                           kept as the trail; they
 --                     hold user ids without a foreign key. One Users.DeletedByScript event is added.
@@ -159,6 +163,14 @@ WHERE revoked_by_user_id IN (SELECT id FROM doomed_users);
 UPDATE app_settings SET updated_by_user_id = NULL
 WHERE updated_by_user_id IN (SELECT id FROM doomed_users);
 DELETE FROM login_security WHERE username IN (SELECT username FROM doomed_users);
+UPDATE cost_center_budgets SET updated_by_user_id = NULL
+WHERE updated_by_user_id IN (SELECT id FROM doomed_users);
+
+-- ---------- Work With tags (script 030) on the lines that stay ----------
+UPDATE expense_lines l
+SET work_with_user_ids = ARRAY(SELECT t.id FROM unnest(l.work_with_user_ids) WITH ORDINALITY AS t(id, n)
+                               WHERE t.id NOT IN (SELECT id FROM doomed_users) ORDER BY t.n)
+WHERE l.work_with_user_ids && ARRAY(SELECT id FROM doomed_users);
 
 -- ---------- The users themselves ----------
 DELETE FROM users WHERE id IN (SELECT id FROM doomed_users);

@@ -38,6 +38,16 @@ public enum CategoryVerification
     Both,
 }
 
+/// <summary>What a Work With tag stops the tagged employee from claiming on that date (Finance question 3).</summary>
+public enum WorkWithScope
+{
+    /// <summary>The meals the filer claimed on the tagging Meals line.</summary>
+    MealsOnly,
+
+    /// <summary>Every expense on that date.</summary>
+    AllExpenses,
+}
+
 /// <summary>
 /// The Finance rules the System Administrator sets on the Rules page (Finance requirements of 2026-11-11), stored
 /// as one JSON row. Every property has a default, so JSON saved before a rule existed still loads with that
@@ -102,6 +112,11 @@ public sealed record FinanceRuleSet
 
     /// <summary>Document code of the ISO Job Order (JO); a Job Order upload must show it or be confirmed.</summary>
     public string JobOrderFormCode { get; init; } = "R42";
+
+    /// <summary>A filed Work With tag stops the tagged employee claiming what the filer is liable for (requirement 2).</summary>
+    public bool WorkWithMealsEnabled { get; init; } = true;
+
+    public WorkWithScope WorkWithScope { get; init; } = WorkWithScope.MealsOnly;
 }
 
 /// <summary>Validation of the Finance rules the administrator saves; field names match the Rules page.</summary>
@@ -153,6 +168,11 @@ public static class FinanceRuleSetRules
         if (!Enum.IsDefined(rules.VehicleEmergencyVerification))
         {
             errors["financeRules.vehicleEmergencyVerification"] = "Choose how a vehicle emergency purchase is verified.";
+        }
+
+        if (!Enum.IsDefined(rules.WorkWithScope))
+        {
+            errors["financeRules.workWithScope"] = "Choose Meals only or All expenses.";
         }
 
         if (!IsFormCode(rules.DemoFormCode))

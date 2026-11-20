@@ -14,7 +14,7 @@ namespace ERFWeb.Infrastructure.Expenses;
 /// LINQ read model for the report editor: header + employee, cash advance, active lines with
 /// their meal/transport children, approval steps of the current cycle, and attachment metadata.
 /// </summary>
-public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user, VerificationReader verification, IDelegationLookup delegations)
+public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user, VerificationReader verification, IDelegationLookup delegations, WorkWithMealCheck workWithMeals)
 {
     public async Task<ExpenseReportDetailDto> LoadAsync(Guid reportId, CancellationToken ct)
     {
@@ -128,11 +128,13 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
 
         var mealsByLine = meals.ToLookup(m => m.ExpenseLineId);
         var transportsByLine = transports.ToLookup(t => t.ExpenseLineId);
+        var warnings = await workWithMeals.WarningsAsync(reportId, ct);
 
         return lines.Select(x => ToDto(x.Line, x.RowVersion,
                 mealsByLine[x.Line.Id].Select(m => new ExpenseMealItemDto(m.MealType ?? string.Empty, m.PaidFor, m.PaidEmployeeId)).ToList(),
                 transportsByLine[x.Line.Id].Select(t => t.Leg).ToList(),
-                x.Line.AdjustedByUserId is { } by ? adjusters.GetValueOrDefault(by) : null))
+                x.Line.AdjustedByUserId is { } by ? adjusters.GetValueOrDefault(by) : null,
+                warnings.GetValueOrDefault(x.Line.Id)))
             .ToList();
     }
 
@@ -153,7 +155,8 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
             .Select(t => t.Leg)
             .ToListAsync(ct);
 
-        return ToDto(x.Line, x.RowVersion, meals, transports);
+        var warnings = await workWithMeals.WarningsAsync(x.Line.ReportId, ct);
+        return ToDto(x.Line, x.RowVersion, meals, transports, workWithWarnings: warnings.GetValueOrDefault(lineId));
     }
 
     /// <summary>Fare legs in entry order with their fare mode's code and name (none on legs saved before script 016).</summary>
@@ -197,7 +200,8 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
         uint rowVersion,
         IReadOnlyList<ExpenseMealItemDto> meals,
         IReadOnlyList<ExpenseTransportItemDto> transports,
-        string? adjustedByName = null) =>
+        string? adjustedByName = null,
+        IReadOnlyList<string>? workWithWarnings = null) =>
         new(l.Id, l.TransactionDate, l.Particulars, l.WorkWith, l.InvoiceOrNo, l.ExpenseType, l.Category,
             l.Amount, l.VatAmount, l.TotalAmount, l.Location, l.ServiceNumber, l.Instrument, l.SerialNumber,
             l.IsPerdiem, l.Multiplier, l.MinusDays, l.TotalDays, l.Computation, l.Remarks, l.SortOrder,
@@ -205,5 +209,6 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
             l.OriginalAmount is { } original && l.AdjustedAt is { } at
                 ? new LineAdjustmentDto(original, l.OriginalTotalAmount ?? l.TotalAmount, adjustedByName, at, l.AdjustmentReason)
                 : null,
-            l.CrmActivityIds);
+            l.CrmActivityIds,
+            workWithWarnings);
 }

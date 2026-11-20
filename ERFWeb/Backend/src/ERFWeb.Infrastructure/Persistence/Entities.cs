@@ -238,6 +238,9 @@ public class ExpenseLine
     /// <summary>The CRM activityIds (ITI-/SR-) the line was pre-filled from, in the order picked; empty for a line typed by hand.</summary>
     public List<string> CrmActivityIds { get; set; } = [];
 
+    /// <summary>The accounts the Work With names matched when the line was saved (one match per name only); see <c>WorkWithMealCheck</c>.</summary>
+    public List<long> WorkWithUserIds { get; set; } = [];
+
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
 

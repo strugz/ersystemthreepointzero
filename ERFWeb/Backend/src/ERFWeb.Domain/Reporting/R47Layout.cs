@@ -1,3 +1,5 @@
+using ERFWeb.Domain.Expenses;
+
 namespace ERFWeb.Domain.Reporting;
 
 /// <summary>
@@ -20,8 +22,6 @@ public static class R47Layout
     /// <summary>Printed height of a row whose tallest text wraps to <paramref name="lines"/> lines.</summary>
     public static float RowHeight(int lines) => R47GridMetrics.Standard.RowHeight(lines);
 
-    private static readonly char[] WorkWithSeparators = [',', '/', ';', '&'];
-
     /// <summary>
     /// Shortens the Work With text to initials: each name ("Jay C Abaoag", from the picker or a CRM
     /// activity's comma-separated list) becomes the first letter of each word ("JCA"), joined by "/".
@@ -29,13 +29,7 @@ public static class R47Layout
     /// </summary>
     public static string WorkWithInitials(string? workWith)
     {
-        if (string.IsNullOrWhiteSpace(workWith))
-        {
-            return string.Empty;
-        }
-
-        var names = workWith.Split(WorkWithSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .SelectMany(n => n.Split(" and ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        var names = WorkWithMealRules.Names(workWith)
             .Select(name =>
             {
                 var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
