@@ -51,6 +51,7 @@ const blank = (): FormState => ({
   workWithEnabled: true,
   crmEmployeeId: null,
   r47ReviewedBy: '',
+  hasFleetCard: false,
 });
 
 const form = reactive<FormState>(blank());
@@ -98,6 +99,7 @@ function load(value: UserDetail | null) {
       workWithEnabled: value.workWithEnabled,
       crmEmployeeId: value.crmEmployeeId,
       r47ReviewedBy: value.r47ReviewedBy ?? '',
+      hasFleetCard: value.hasFleetCard ?? false,
     });
   }
   splitEmail(form.email ?? '');
@@ -164,6 +166,7 @@ function submit() {
     workWithEnabled: form.workWithEnabled,
     crmEmployeeId: form.crmEmployeeId,
     r47ReviewedBy: form.r47ReviewedBy.trim(),
+    hasFleetCard: form.hasFleetCard,
   });
 }
 
@@ -286,6 +289,15 @@ defineExpose({ isDirty });
           label="Available as a “Work With” person on expense lines"
           hide-details
           :error-messages="fieldErrors('workWithEnabled')"
+        />
+      </v-col>
+      <v-col cols="12" sm="6" class="d-flex align-center">
+        <v-switch
+          v-model="form.hasFleetCard"
+          color="primary"
+          label="Has a fleet card (Gas only for the fleet card reasons on the Rules page)"
+          hide-details
+          :error-messages="fieldErrors('hasFleetCard')"
         />
       </v-col>
     </v-row>

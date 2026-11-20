@@ -86,6 +86,8 @@ export interface UserDetail {
   signatureStatus?: SignatureStatus;
   signatureApprovedAt?: string | null;
   signatureApprovedByName?: string | null;
+  /** Has a company fleet card: Gas only for the fleet card reasons (Finance rules). Absent from an older API. */
+  hasFleetCard?: boolean;
 }
 
 /** Where a signature image stands: none on file, waiting for Finance, or approved to print on the R47. */
@@ -196,6 +198,7 @@ export interface UserProfileInput {
   crmEmployeeId: string | null;
   /** Empty string clears it back to the department's reviewer. */
   r47ReviewedBy: string;
+  hasFleetCard: boolean;
 }
 
 /** A CRM user from the CRM employee lookup; only employeeId is stored, the rest is for display. */
@@ -425,6 +428,11 @@ export interface FinanceRules {
   /** A filed Work With tag stops the tagged employee claiming what the filer is liable for. */
   workWithMealsEnabled: boolean;
   workWithScope: WorkWithScope;
+  /** An employee with a fleet card claims Gas only for one of the fleet card reasons. */
+  fleetCardRuleEnabled: boolean;
+  fleetCardGasReasons: string[];
+  /** Fleet card holders may also type another reason (the list is then only suggested). */
+  fleetCardOtherReasonAllowed: boolean;
 }
 
 export interface SystemSettingsInput {

@@ -23,6 +23,8 @@ public sealed record EmployeeRatesDto(
 /// line editor offers CRM activities. <see cref="ProcessingDate"/>: the Friday a report filed now is processed in
 /// (null when the weekly cutoff is off); <see cref="PastFilingCutoff"/>: it missed this week's cutoff
 /// (<see cref="FilingCutoffText"/>, e.g. "Wednesday 12:00 PM"). A notice only; it never blocks filing.
+/// <see cref="FleetCardGasReasons"/>: the employee has a fleet card and the rule is on, so a Gas line's Reason is one
+/// of these (null otherwise); <see cref="FleetCardOtherReasonAllowed"/>: they may type another one.
 /// </summary>
 public sealed record MyFilingReadinessDto(
     bool HasSignature,
@@ -37,7 +39,9 @@ public sealed record MyFilingReadinessDto(
     string? FilingCutoffText = null,
     IReadOnlyList<ExpenseCategory>? UnavailableCategories = null,
     IReadOnlyList<RequiredDocumentDto>? RequiredDocuments = null,
-    string? WorkWithNotice = null);
+    string? WorkWithNotice = null,
+    IReadOnlyList<string>? FleetCardGasReasons = null,
+    bool FleetCardOtherReasonAllowed = false);
 
 /// <summary>A category whose lines need a document of <see cref="DocumentType"/> attached before filing (Finance rules).</summary>
 public sealed record RequiredDocumentDto(ExpenseCategory Category, AttachmentDocumentType DocumentType, string Label);

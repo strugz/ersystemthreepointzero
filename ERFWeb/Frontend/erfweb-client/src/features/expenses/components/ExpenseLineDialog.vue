@@ -68,6 +68,9 @@ const props = withDefaults(
     savedVehicle?: MyVehicle | null;
     /** Finance rules: what the people tagged as Work With can no longer claim; null when the rule is off. */
     workWithNotice?: string | null;
+    /** Finance rules: the employee has a fleet card, so a Gas line's Reason is one of these; null when it does not apply. */
+    fleetCardGasReasons?: string[] | null;
+    fleetCardOtherReasonAllowed?: boolean;
   }>(),
   {
     line: null,
@@ -86,6 +89,8 @@ const props = withDefaults(
     uploadingDocument: false,
     savedVehicle: null,
     workWithNotice: null,
+    fleetCardGasReasons: null,
+    fleetCardOtherReasonAllowed: false,
     crmError: null,
     periodFrom: null,
     periodTo: null,
@@ -154,6 +159,10 @@ const auto = reactive({ particulars: '', amount: 0 });
 // Reason is set by a picker; an older value may be null.
 const vehicle = reactive<{ reason: string | null; model: string; plate: string }>({ reason: '', model: '', plate: '' });
 const isVehicleLine = computed(() => isVehicleCategory(form.category));
+const fleetCardGas = computed(() => form.category === 'Gas' && !!props.fleetCardGasReasons);
+const reasonItems = computed(() =>
+  fleetCardGas.value ? (props.fleetCardGasReasons ?? []) : vehicleReasons[form.category === 'Gas' ? 'Gas' : 'VehicleEmergency'],
+);
 
 function loadVehicleFields() {
   const parts = vehicleParts(form.particulars ?? '');
@@ -794,11 +803,15 @@ function close() {
             </div>
             <p v-if="fieldErrors('crmActivityIds')" class="crmlink__error" role="alert">{{ fieldErrors('crmActivityIds')?.join(' ') }}</p>
             <template v-if="isVehicleLine">
+              <v-alert v-if="fleetCardGas" type="info" variant="tonal" density="compact">
+                You have a fleet card, so Gas is reimbursed only when the card could not be used. Pick the reason.
+              </v-alert>
               <AppPickerField
                 v-model="vehicle.reason"
-                :items="vehicleReasons[form.category === 'Gas' ? 'Gas' : 'VehicleEmergency']"
+                :items="reasonItems"
+                :allow-custom="!fleetCardGas || fleetCardOtherReasonAllowed"
                 label="Reason"
-                placeholder="Tap to pick or type your own"
+                :placeholder="!fleetCardGas || fleetCardOtherReasonAllowed ? 'Tap to pick or type your own' : 'Tap to pick'"
               />
               <div class="eline__row">
                 <v-text-field v-model="vehicle.model" label="Vehicle model" placeholder="e.g. Toyota Vios" hide-details="auto" />

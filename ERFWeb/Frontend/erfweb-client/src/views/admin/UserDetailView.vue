@@ -106,6 +106,7 @@ async function saveProfile(input: CreateUserInput) {
       workWithEnabled: input.workWithEnabled,
       crmEmployeeId: input.crmEmployeeId,
       r47ReviewedBy: input.r47ReviewedBy,
+      hasFleetCard: input.hasFleetCard,
       rowVersion: user.value.rowVersion,
     });
     editOpen.value = false;
@@ -308,6 +309,10 @@ async function revoke(grant: RoleGrant, note: string | null) {
                 <span class="val" :class="{ muted: !user.r47ReviewedBy }">{{ user.r47ReviewedBy || 'Department / Rules default' }}</span>
               </div>
               <div class="field"><span class="lbl">Work With</span><span class="val">{{ user.workWithEnabled ? 'Listed on expense lines' : 'Not listed' }}</span></div>
+              <div class="field">
+                <span class="lbl">Fleet card</span>
+                <span class="val" :class="{ muted: !user.hasFleetCard }">{{ user.hasFleetCard ? 'Yes: Gas only for fleet card reasons' : 'None' }}</span>
+              </div>
               <div class="field"><span class="lbl">Created</span><span class="val">{{ formatDateTime(user.createdAt) }}</span></div>
             </div>
           </v-card>

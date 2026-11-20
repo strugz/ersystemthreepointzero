@@ -117,6 +117,15 @@ public sealed record FinanceRuleSet
     public bool WorkWithMealsEnabled { get; init; } = true;
 
     public WorkWithScope WorkWithScope { get; init; } = WorkWithScope.MealsOnly;
+
+    /// <summary>An employee with a fleet card claims Gas only for one of <see cref="FleetCardGasReasons"/>.</summary>
+    public bool FleetCardRuleEnabled { get; init; } = true;
+
+    /// <summary>Why the fleet card could not be used; the Reason a fleet card holder may give on a Gas line.</summary>
+    public IReadOnlyList<string> FleetCardGasReasons { get; init; } = FleetCardRules.DefaultReasons;
+
+    /// <summary>A fleet card holder may also type a reason that is not on the list (the list is then only suggested).</summary>
+    public bool FleetCardOtherReasonAllowed { get; init; }
 }
 
 /// <summary>Validation of the Finance rules the administrator saves; field names match the Rules page.</summary>
@@ -183,6 +192,11 @@ public static class FinanceRuleSetRules
         if (!IsFormCode(rules.JobOrderFormCode))
         {
             errors["financeRules.jobOrderFormCode"] = "Enter the form code, for example R42 (letters, digits and -, up to 20).";
+        }
+
+        if (FleetCardRules.ReasonsProblem(rules.FleetCardGasReasons, rules.FleetCardRuleEnabled) is { } reasonsProblem)
+        {
+            errors["financeRules.fleetCardGasReasons"] = reasonsProblem;
         }
 
         return errors;

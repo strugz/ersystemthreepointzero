@@ -791,6 +791,8 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         :unavailable-categories="readiness?.unavailableCategories ?? []"
         :required-documents="readiness?.requiredDocuments ?? []"
         :work-with-notice="readiness?.workWithNotice ?? null"
+        :fleet-card-gas-reasons="readiness?.fleetCardGasReasons ?? null"
+        :fleet-card-other-reason-allowed="readiness?.fleetCardOtherReasonAllowed ?? false"
         :attached-document-types="report?.attachments.map(countedDocumentType) ?? []"
         :uploading-document="uploading"
         :saved-vehicle="savedVehicle"

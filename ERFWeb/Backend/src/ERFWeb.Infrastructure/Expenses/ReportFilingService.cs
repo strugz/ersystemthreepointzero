@@ -41,7 +41,7 @@ public sealed class ReportFilingService(
 
             var employee = await db.Users.AsNoTracking()
                 .Where(u => u.Id == report.EmployeeUserId)
-                .Select(u => new { u.FullName, u.CreatedAt, u.DepartmentId })
+                .Select(u => new { u.FullName, u.CreatedAt, u.DepartmentId, u.HasFleetCard })
                 .FirstAsync(token);
 
             // Spec 9.11: a newly registered employee files only after the cooling period.
@@ -64,7 +64,16 @@ public sealed class ReportFilingService(
                 .Where(a => a.ReportId == reportId && ((a.DocumentType != AttachmentDocumentType.IsoAttendanceSheet && a.DocumentType != AttachmentDocumentType.JobOrder) || a.FormCodeCheck != null))
                 .Select(a => a.DocumentType ?? AttachmentDocumentType.Receipt).Distinct().ToListAsync(token);
             var financeRules = await settings.GetFinanceRulesAsync(token);
-            var categoryProblems = CategoryDocumentRules.FilingProblems(lineCategories, attachedTypes, financeRules);
+            var categoryProblems = CategoryDocumentRules.FilingProblems(lineCategories, attachedTypes, financeRules).ToList();
+            if (FleetCardRules.Restricts(financeRules, employee.HasFleetCard) && lineCategories.Contains(ExpenseCategory.Gas))
+            {
+                var gasLines = await db.ExpenseLines.AsNoTracking()
+                    .Where(l => l.ReportId == reportId && l.IsActive && l.Category == ExpenseCategory.Gas)
+                    .Select(l => new GasLineReason(l.TransactionDate, l.Particulars))
+                    .ToListAsync(token);
+                categoryProblems.AddRange(FleetCardRules.FilingProblems(gasLines, financeRules, employee.HasFleetCard));
+            }
+
             var workWithProblems = await workWithMeals.ReportProblemsAsync(reportId, financeRules, token);
             var mealProblems = await duplicateMeals.ReportProblemsAsync(reportId, report.EmployeeUserId, token);
 

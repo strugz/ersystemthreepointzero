@@ -12,6 +12,14 @@ public class VehicleParticularsTests
     public void NormalizePlate_UpperCasesAndSingleSpaces(string plate, string? expected) =>
         Assert.Equal(expected, VehicleParticulars.NormalizePlate(plate));
 
+    [Theory]
+    [InlineData(" Client visit - Toyota Vios - ABC 1234", "Client visit")]
+    [InlineData("A - B - Toyota Vios - ABC 1234", "A - B")]
+    [InlineData("Client visit", "Client visit")]
+    [InlineData(null, "")]
+    public void Reason_IsEverythingBeforeModelAndPlate(string? particulars, string expected) =>
+        Assert.Equal(expected, VehicleParticulars.Reason(particulars));
+
     [Fact]
     public void Vehicle_BothOrNeither()
     {

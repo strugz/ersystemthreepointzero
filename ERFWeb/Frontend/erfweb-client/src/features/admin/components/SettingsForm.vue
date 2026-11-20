@@ -73,6 +73,21 @@ function blankFinanceRules(): FinanceRules {
     jobOrderFormCode: 'R42',
     workWithMealsEnabled: true,
     workWithScope: 'MealsOnly',
+    fleetCardRuleEnabled: true,
+    fleetCardGasReasons: [
+      'Fleet card offline or system down',
+      'Station card terminal offline',
+      'No Shell station in the area',
+      'Shell station out of fuel or closed',
+      'Coding: issued vehicle coded, used another vehicle',
+      'Fleet card limit reached',
+      'Fleet card lost or stolen (reported)',
+      'Fleet card expired or for renewal',
+      'Fleet card damaged or cannot be read',
+      'Vehicle not enrolled in the fleet card',
+      'Emergency refuel, no Shell station within range',
+    ],
+    fleetCardOtherReasonAllowed: false,
   };
 }
 
@@ -244,6 +259,7 @@ function submit() {
     demoFormCode: form.financeRules.demoFormCode.trim().toUpperCase(),
     jobOrderFormCode: form.financeRules.jobOrderFormCode.trim().toUpperCase(),
     lodgingFlatRate: Number(form.financeRules.lodgingFlatRate) || 0,
+    fleetCardGasReasons: [...new Set(form.financeRules.fleetCardGasReasons.map((r) => r.trim().replace(/\s+/g, ' ')).filter(Boolean))],
   };
   for (const f of FORMAT_FIELDS) {
     out.r47Format[f.key] = form.r47Format[f.key].trim();
@@ -564,6 +580,41 @@ defineExpose({ isDirty });
             />
           </v-col>
         </v-row>
+
+        <v-divider class="my-5" />
+        <div class="text-subtitle-2 mb-1">Fleet card</div>
+        <div class="text-caption text-medium-emphasis mb-2">
+          An employee with a fleet card (switched on in Users) is reimbursed for Gas only when the card could not be used: the Reason on
+          their Gas line must be one of these. Checked when the line is saved and again at filing. Employees without a card and vehicle
+          emergency purchases are not affected.
+        </div>
+        <v-switch
+          v-model="form.financeRules.fleetCardRuleEnabled"
+          color="primary"
+          label="Fleet card holders claim Gas only for these reasons"
+          hide-details
+        />
+        <v-combobox
+          v-model="form.financeRules.fleetCardGasReasons"
+          :disabled="!form.financeRules.fleetCardRuleEnabled"
+          label="Fleet card reasons"
+          placeholder="Type a reason and press Enter"
+          multiple
+          chips
+          closable-chips
+          class="mt-2"
+          hint="Up to 30 reasons of at most 80 characters, without &quot; - &quot;. Renaming one makes draft lines with the old wording pick again."
+          persistent-hint
+          :error-messages="fieldErrors('financeRules.fleetCardGasReasons')"
+        />
+        <v-switch
+          v-model="form.financeRules.fleetCardOtherReasonAllowed"
+          :disabled="!form.financeRules.fleetCardRuleEnabled"
+          color="primary"
+          density="compact"
+          label="Fleet card holders may type another reason (the list is then only suggested)"
+          hide-details
+        />
 
         <v-divider class="my-5" />
         <div class="text-subtitle-2 mb-1">Work With meals</div>

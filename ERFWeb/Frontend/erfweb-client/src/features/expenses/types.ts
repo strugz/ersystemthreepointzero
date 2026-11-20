@@ -303,6 +303,10 @@ export interface FilingReadiness {
   requiredDocuments?: RequiredDocument[] | null;
   /** Shown under Work with while someone is tagged; null when the Work With meals rule is off. */
   workWithNotice?: string | null;
+  /** The employee has a fleet card: a Gas line's Reason is one of these; null when the rule does not apply. */
+  fleetCardGasReasons?: string[] | null;
+  /** Fleet card holders may type another reason. */
+  fleetCardOtherReasonAllowed?: boolean;
 }
 
 export interface RequiredDocument {
