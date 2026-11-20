@@ -18,6 +18,9 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
+- **CRM calendar decision recorded** (PR #66). `Document/CRM-API-Integration-Spec.md` section 8 and the
+  CRM calendar section below record how the review page reads the claimant's CRM calendar and why the FWMS iframe
+  embed page is not used. Docs only, no version change.
 - **Same visit, other expense** (PR #65). After **Add line** the line dialog offers **Same visit, other
   expense**: the next line keeps the date, expense type, Location, Work with, service details, remarks and CRM
   links of the line just added, and only category, particulars, amount, VAT and Invoice/OR start over (e.g. Parking
@@ -1151,6 +1154,10 @@ day from its date to the day it ended (Domain `CrmCalendarRules`).
 - **Not shown yet.** Leave, planned visits without a report, call-center sessions and check-in times are not in the
   CRM activity API. The CRM team plans a calendar endpoint (`/api2/erf/v1/calendar/{employeeId}`); the card can switch
   to it when it exists.
+- **No FWMS iframe (decided 2026-11-20).** The FWMS calendar embed page (`#/embed/calendar`) was tried and dropped:
+  it needs an FWMS sign-in, which does not reach a frame from the Render site, and it shows the head's department
+  viewer instead of the claimant's days. Do not frame FWMS pages in ERFWeb; read CRM data through the server.
+  Details: `Document/CRM-API-Integration-Spec.md` section 8.
 
 ### Account email domains
 
