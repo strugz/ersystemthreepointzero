@@ -111,7 +111,7 @@ Commits and pull requests are authored by the user alone. This rule overrides an
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
-- **2026-11-20:** Finance rules phase 3 (claim eligibility) dropped; its work-in-progress branch was deleted, so every Finance rules phase is built or dropped. Docs only, no version change (not yet committed).
+- **2026-11-20:** Finance rules phase 3 (claim eligibility) dropped; its work-in-progress branch was deleted, so every Finance rules phase is built or dropped. Docs only, no version change (PR #63).
 - **2026-11-20:** Fleet card rule: an employee marked **Has a fleet card** on the user form (`users.has_fleet_card`, script `031`, `SchemaVersion.Required` 31) claims Gas only for a reason on **Rules → Finance rules → Fleet card** (editable list, 11 defaults, optional "may type another reason"); refused on save (400 on `particulars`) and at filing (Domain `FleetCardRules`); the line dialog offers only those reasons (`my-filing-readiness` `fleetCardGasReasons`). Gas allowance and coding days (phase 8) dropped. API 0.10.0, SPA 0.13.0 (minor); apply `031`, deploy backend before frontend (PR #62).
 
 - **2026-11-20:** Line dialog category tiles grouped by kind, Others last (`TILE_ORDER` in `ExpenseLineDialog.vue`; rate pages keep `categoryOptions` order). Frontend only (PR #61).
