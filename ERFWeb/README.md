@@ -18,6 +18,13 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
+- **Leave and other activities on the CRM calendar** (not yet committed). The review page's **CRM calendar** card
+  shows the claimant's VL, SL, Holiday, Convention, MDMPI Office, EnRoute and Others entries from the CRM calendar as
+  whole-day **Other activity** rows, and warns on a VL, SL or Holiday day that has expense lines (notice only). The
+  server asks the CRM activity API with the new `includeLeave=true` (CRM change on its own branch,
+  `feat/erf-activities-leave`); the line picker never does, and leave is never claimable. No database script. API
+  0.12.0, SPA 0.16.0 (minor); deploy the CRM and the backend before the frontend (any order works, leave just shows
+  once both are live).
 - **CRM calendar decision recorded** (PR #66). `Document/CRM-API-Integration-Spec.md` section 8 and the
   CRM calendar section below record how the review page reads the claimant's CRM calendar and why the FWMS iframe
   embed page is not used. Docs only, no version change.
@@ -1142,17 +1149,23 @@ period with the claimant's CRM activities that day, ordered by start time: time 
 customer, activity type, service no., instrument and serial, Lead or Companion, and who they worked with (ERFWeb
 names where linked). Open and Cancelled activities are greyed out; **On this report** marks an activity a line of
 this report uses; a day with expense lines but no CRM activity shows a warning. A multi-day activity shows on every
-day from its date to the day it ended (Domain `CrmCalendarRules`).
+day from its date to the day it ended (Domain `CrmCalendarRules`). The claimant's leave and other activities from the
+CRM calendar (VL, SL, Holiday, Convention, MDMPI Office, EnRoute, Others with the employee's own text) show first as
+whole-day **Other activity** rows, and a day with VL, SL or Holiday that has expense lines shows "Expense lines on a
+leave or holiday day." (`CrmCalendarRules.IsTimeOff`; a notice only, nothing is blocked).
 
 - **Server.** `GET /api/reports/{id}/crm-calendar` (`CrmCalendarController`, `CrmCalendarService`) needs the
   Approver policy (Signatory Level 1 or 2) and view access to the report (`ReportAccessPolicy`); Finance and Expense
   Verifiers get 403. The CRM employee ID comes from the claimant's account, never from the browser. The service calls
-  `GET /activities` once per status (Completed, Open, Cancelled) for the whole period, paging by 100.
+  `GET /activities` once per status (Completed, Open, Cancelled) for the whole period, paging by 100, with
+  `includeLeave=true` so the CRM adds its `LVEMST` entries (`LVE-` IDs, `workflow` `Leave`). The expense-line
+  **From CRM** picker never sends it, and the CRM answers 404 for an `LVE-` ID, so leave can never be claimed.
 - **Limits.** At most 62 days (the CRM's range; a longer period answers 400). No CRM link on the claimant: the card
   says so. CRM down or not configured: 503 and the card offers **Try again**; the review and approval still work.
   Logs carry only HTTP status.
-- **Not shown yet.** Leave, planned visits without a report, call-center sessions and check-in times are not in the
-  CRM activity API. The CRM team plans a calendar endpoint (`/api2/erf/v1/calendar/{employeeId}`); the card can switch
+- **Needs the CRM release with `includeLeave`.** An older CRM ignores the parameter; the card then shows no leave.
+- **Not shown yet.** Planned visits without a report, call-center sessions and check-in times are not in the CRM
+  activity API. The CRM team plans a calendar endpoint (`/api2/erf/v1/calendar/{employeeId}`); the card can switch
   to it when it exists.
 - **No FWMS iframe (decided 2026-11-20).** The FWMS calendar embed page (`#/embed/calendar`) was tried and dropped:
   it needs an FWMS sign-in, which does not reach a frame from the Render site, and it shows the head's department

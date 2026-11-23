@@ -36,6 +36,18 @@ public class CrmCalendarRulesTests
     public void OvernightActivity_CoversEveryDayToItsEnd() =>
         Assert.Equal([From.AddDays(2), From.AddDays(3)], CrmCalendarRules.DaysCovered(From.AddDays(2), From.AddDays(3), From, To));
 
+    [Theory]
+    [InlineData("VL", true)]
+    [InlineData("sl", true)]
+    [InlineData(" Holiday ", true)]
+    [InlineData("Convention", false)]
+    [InlineData("MDMPI Office", false)]
+    [InlineData("EnRoute", false)]
+    [InlineData("Others", false)]
+    [InlineData(null, false)]
+    public void IsTimeOff_OnlyForLeaveAndHolidays(string? activityType, bool expected) =>
+        Assert.Equal(expected, CrmCalendarRules.IsTimeOff(activityType));
+
     [Fact]
     public void ActivityRunningPastThePeriod_IsCutToThePeriod()
     {

@@ -42,7 +42,7 @@ public sealed class CrmActivityPickService(ErfDbContext db, ICurrentUser user, R
         var activities = new List<CrmActivityDto>();
         foreach (var status in Statuses)
         {
-            var page = await crm.ListAsync(employeeId, date, date, status, 1, PageSize, ct)
+            var page = await crm.ListAsync(employeeId, date, date, status, 1, PageSize, ct: ct)
                 ?? throw new ConflictException("The CRM no longer has your linked employee ID. Ask the system administrator to link your account again, or type the line instead.");
             activities.AddRange(page.Items.Where(a => activities.TrueForAll(seen => seen.ActivityId != a.ActivityId)));
         }

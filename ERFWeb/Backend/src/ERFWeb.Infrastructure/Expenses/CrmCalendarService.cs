@@ -11,7 +11,8 @@ namespace ERFWeb.Infrastructure.Expenses;
 /// <summary>
 /// The claimant's CRM activities over the report period, for the signatory reviewing the report. The server takes
 /// the CRM employee ID from the claimant's own account link; the caller never supplies one. Every status is listed
-/// (the CRM filters one status per call) and activities used on the report's lines are marked.
+/// (the CRM filters one status per call), leave and other activities included, and activities used on the report's
+/// lines are marked.
 /// </summary>
 public sealed class CrmCalendarService(ErfDbContext db, ICurrentUser user, IReportAccessPolicy access, ICrmActivityDirectory crm) : ICrmCalendarService
 {
@@ -85,7 +86,12 @@ public sealed class CrmCalendarService(ErfDbContext db, ICurrentUser user, IRepo
             .Select(day => new CrmCalendarDayDto(
                 day,
                 linesPerDay.GetValueOrDefault(day),
-                entriesByDay[day].OrderBy(e => e.StartAt ?? DateTimeOffset.MaxValue).ThenBy(e => e.ActivityId, StringComparer.Ordinal).ToList()))
+                entriesByDay[day]
+                    .OrderByDescending(e => e.IsLeave)
+                    .ThenBy(e => e.StartAt ?? DateTimeOffset.MaxValue)
+                    .ThenBy(e => e.ActivityId, StringComparer.Ordinal)
+                    .ToList(),
+                entriesByDay[day].Any(e => e.IsLeave && CrmCalendarRules.IsTimeOff(e.ActivityType))))
             .ToList();
 
         return new CrmCalendarDto(true, report.FullName, from, to, days);
@@ -99,7 +105,7 @@ public sealed class CrmCalendarService(ErfDbContext db, ICurrentUser user, IRepo
         {
             for (var page = 1; page <= MaxPages; page++)
             {
-                var result = await crm.ListAsync(employeeId, from, to, status, page, PageSize, ct)
+                var result = await crm.ListAsync(employeeId, from, to, status, page, PageSize, includeLeave: true, ct)
                     ?? throw new ConflictException("The CRM no longer has this employee's linked ID. Ask the system administrator to link the account again.");
                 activities.AddRange(result.Items.Where(a => seen.Add(a.ActivityId)));
                 if (result.Items.Count == 0 || page * PageSize >= result.Total)
@@ -127,6 +133,7 @@ public sealed class CrmCalendarService(ErfDbContext db, ICurrentUser user, IRepo
             a.CustomerName, a.InstrumentName, a.SerialNumber,
             isOwner ? "Lead" : "Companion",
             others.Count > 0 ? string.Join(", ", others) : null,
-            claimedHere.Contains(a.ActivityId));
+            claimedHere.Contains(a.ActivityId),
+            a.IsLeave);
     }
 }

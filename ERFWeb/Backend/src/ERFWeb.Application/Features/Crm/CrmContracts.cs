@@ -46,8 +46,9 @@ public interface ICrmEmployeeDirectory
 public sealed record CrmActivityPersonDto(string EmployeeId, string? Name, string? Role);
 
 /// <summary>
-/// One CRM activity as the CRM activity API returns it: a Sales itinerary visit (<c>ITI-</c>) or a PS/TSG
-/// service report (<c>SR-</c>). The CRM supplies what, where, when and with whom; ERFWeb keeps every amount.
+/// One CRM activity as the CRM activity API returns it: a Sales itinerary visit (<c>ITI-</c>), a PS/TSG
+/// service report (<c>SR-</c>) or, only when asked for, a leave or other activity (<c>LVE-</c>, <see cref="IsLeave"/>,
+/// never claimable). The CRM supplies what, where, when and with whom; ERFWeb keeps every amount.
 /// </summary>
 public sealed record CrmActivityDto(
     string ActivityId,
@@ -65,11 +66,15 @@ public sealed record CrmActivityDto(
     string? TravelOrigin,
     string? TravelDestination,
     bool IsOvernight,
-    DateTimeOffset? StartAt = null)
+    DateTimeOffset? StartAt = null,
+    string? Workflow = null)
 {
     public const string CompletedStatus = "Completed";
+    public const string LeaveWorkflow = "Leave";
 
     public bool IsCompleted => string.Equals(Status, CompletedStatus, StringComparison.OrdinalIgnoreCase);
+
+    public bool IsLeave => string.Equals(Workflow, LeaveWorkflow, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Whether the employee did this activity, as its owner or as a work-with companion.</summary>
     public bool Involves(string employeeId) =>
@@ -88,9 +93,10 @@ public interface ICrmActivityDirectory
 
     /// <summary>
     /// The employee's activities in <paramref name="status"/> (Completed, Open or Cancelled) from <paramref name="from"/>
-    /// to <paramref name="to"/> (at most 62 days); null when the CRM has no such employee.
+    /// to <paramref name="to"/> (at most 62 days); null when the CRM has no such employee. Leave and other activities
+    /// come only with <paramref name="includeLeave"/>, which only the review-page calendar sets.
     /// </summary>
-    Task<PagedResult<CrmActivityDto>?> ListAsync(string employeeId, DateOnly from, DateOnly to, string status, int page, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<CrmActivityDto>?> ListAsync(string employeeId, DateOnly from, DateOnly to, string status, int page, int pageSize, bool includeLeave = false, CancellationToken ct = default);
 
     /// <summary>The activity as its owner sees it, whatever its status, or null when the CRM has no such ID.</summary>
     Task<CrmActivityDto?> GetAsync(string activityId, CancellationToken ct = default);
