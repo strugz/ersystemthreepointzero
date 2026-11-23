@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-23
 
-- **Help page** (branch `feat/erfweb-help`, no PR yet). **Help** in the menu (`/help`, signed-in users) plays a narrated 6:45 video of
+- **Help page** (PR #67). **Help** in the menu (`/help`, signed-in users) plays a narrated 6:45 video of
   filing a report beside a searchable list of questions (creating a report, each of the 11 expense categories, From
   CRM, OR no. and VAT, cash advance, receipts, filing); selecting a question plays the video from that part and shows
   a written answer. A **?** in the expense line window opens the question for the picked category in a new tab. The
