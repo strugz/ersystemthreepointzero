@@ -49,8 +49,30 @@ public class CrmActivityDirectoryTests
         Assert.Equal("MDMPI", a.TravelOrigin);
         Assert.True(a.IsOvernight);
         Assert.True(a.IsCompleted);
+        Assert.False(a.IsLeave);
         Assert.True(a.Involves("cnt-002"));
         Assert.False(a.Involves("CNT-003"));
+    }
+
+    [Fact]
+    public async Task ListAsync_AsksForLeaveOnlyWhenTold_AndMarksIt()
+    {
+        const string leave = """
+            {"activityId":"LVE-41","activityType":"SL","status":"Completed","workflow":"Leave","activityDate":"2026-10-05",
+             "startAt":null,"endAt":null,"subject":"Sick leave","serviceNumber":null,"customer":null,"instrument":null,
+             "employee":{"employeeId":"CNT-001","name":"Juan Dela Cruz","role":"Lead"},"companions":[],
+             "travel":{"origin":null,"destination":null,"distanceKm":null,"isOutOfTown":null,"isOvernight":false}}
+            """;
+        var handler = new RecordingHandler(HttpStatusCode.OK, $$"""{"page":1,"pageSize":100,"totalCount":1,"items":[{{leave}}]}""");
+
+        var result = await Create(handler, Configured).ListAsync("CNT-001", new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 15), "Completed", 1, 100, includeLeave: true);
+
+        Assert.EndsWith("&page=1&pageSize=100&includeLeave=true", handler.Uri?.AbsoluteUri);
+        var a = Assert.Single(result!.Items);
+        Assert.True(a.IsLeave);
+        Assert.Equal("SL", a.ActivityType);
+        Assert.Equal("Sick leave", a.Subject);
+        Assert.Null(a.CustomerName);
     }
 
     [Fact]

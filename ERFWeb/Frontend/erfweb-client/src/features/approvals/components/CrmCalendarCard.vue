@@ -51,7 +51,7 @@ function details(e: CrmCalendarEntry): string {
     <div class="card-h">
       <div class="d-flex align-baseline ga-3 flex-wrap">
         <span class="card-t">CRM calendar</span>
-        <span v-if="calendar" class="card-meta">{{ calendar.employeeName }}'s activities in the CRM, day by day</span>
+        <span v-if="calendar" class="card-meta">{{ calendar.employeeName }}'s activities and other activities in the CRM, day by day</span>
       </div>
       <v-btn
         class="press"
@@ -90,21 +90,37 @@ function details(e: CrmCalendarEntry): string {
             {{ d.expenseLineCount > 0 ? 'No CRM activity on a day with expense lines.' : 'No CRM activity.' }}
           </div>
 
-          <ul v-else class="entries">
-            <li v-for="e in d.entries" :key="e.activityId" class="entry" :class="{ 'entry--muted': !e.completed }">
-              <div class="entry__time mono">{{ timeRange(e) ?? 'No time' }}</div>
-              <div class="entry__body">
-                <div class="entry__title">
-                  <span class="font-weight-medium">{{ e.customerName ?? e.subject ?? e.activityId }}</span>
-                  <span v-if="e.activityType" class="text-medium-emphasis"> · {{ e.activityType }}</span>
-                  <span v-if="!e.completed" class="pill entry__pill">{{ e.status ?? 'Not completed' }}</span>
-                  <span v-if="e.claimedOnThisReport" class="pill entry__pill entry__pill--claimed">On this report</span>
+          <div v-if="d.timeOff && d.expenseLineCount > 0" class="day__empty day__empty--warn mb-2">
+            <v-icon icon="mdi-alert-outline" size="16" />
+            Expense lines on a leave or holiday day.
+          </div>
+
+          <ul v-if="d.entries.length > 0" class="entries">
+            <li v-for="e in d.entries" :key="e.activityId" class="entry" :class="{ 'entry--muted': !e.completed && !e.isLeave }">
+              <template v-if="e.isLeave">
+                <div class="entry__time mono">Whole day</div>
+                <div class="entry__body">
+                  <div class="entry__title">
+                    <span class="font-weight-medium">{{ e.subject ?? e.activityType }}</span>
+                    <span class="pill entry__pill entry__pill--leave">Other activity</span>
+                  </div>
                 </div>
-                <div v-if="details(e)" class="text-caption text-medium-emphasis">{{ details(e) }}</div>
-                <div class="text-caption text-medium-emphasis">
-                  {{ e.role }}<span v-if="e.workWith"> · with {{ e.workWith }}</span>
+              </template>
+              <template v-else>
+                <div class="entry__time mono">{{ timeRange(e) ?? 'No time' }}</div>
+                <div class="entry__body">
+                  <div class="entry__title">
+                    <span class="font-weight-medium">{{ e.customerName ?? e.subject ?? e.activityId }}</span>
+                    <span v-if="e.activityType" class="text-medium-emphasis"> · {{ e.activityType }}</span>
+                    <span v-if="!e.completed" class="pill entry__pill">{{ e.status ?? 'Not completed' }}</span>
+                    <span v-if="e.claimedOnThisReport" class="pill entry__pill entry__pill--claimed">On this report</span>
+                  </div>
+                  <div v-if="details(e)" class="text-caption text-medium-emphasis">{{ details(e) }}</div>
+                  <div class="text-caption text-medium-emphasis">
+                    {{ e.role }}<span v-if="e.workWith"> · with {{ e.workWith }}</span>
+                  </div>
                 </div>
-              </div>
+              </template>
             </li>
           </ul>
         </li>
@@ -177,6 +193,9 @@ function details(e: CrmCalendarEntry): string {
 }
 .entry__pill--claimed {
   color: rgb(var(--v-theme-success));
+}
+.entry__pill--leave {
+  color: rgb(var(--v-theme-info));
 }
 @media (max-width: 599px) {
   .day {

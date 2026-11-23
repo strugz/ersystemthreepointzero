@@ -4,6 +4,8 @@ namespace ERFWeb.Application.Features.Crm;
 /// One CRM activity on a day of the claimant's calendar. <see cref="Completed"/> is false for Open and Cancelled
 /// ones. <see cref="Role"/> is Lead or Companion; <see cref="WorkWith"/> names the other people on it (ERFWeb names
 /// where linked). <see cref="ClaimedOnThisReport"/> is true when a line of the report under review uses it.
+/// <see cref="IsLeave"/> marks a whole-day leave or other activity from the CRM calendar (VL, SL, Holiday, ...; the
+/// type is <see cref="ActivityType"/>, the text <see cref="Subject"/>).
 /// </summary>
 public sealed record CrmCalendarEntryDto(
     string ActivityId,
@@ -19,10 +21,14 @@ public sealed record CrmCalendarEntryDto(
     string? SerialNumber,
     string Role,
     string? WorkWith,
-    bool ClaimedOnThisReport);
+    bool ClaimedOnThisReport,
+    bool IsLeave);
 
-/// <summary>One day of the report period: the claimant's CRM activities and how many of the report's lines fall on it.</summary>
-public sealed record CrmCalendarDayDto(DateOnly Date, int ExpenseLineCount, IReadOnlyList<CrmCalendarEntryDto> Entries);
+/// <summary>
+/// One day of the report period: the claimant's CRM activities and how many of the report's lines fall on it.
+/// <see cref="TimeOff"/> is true when the CRM has the claimant on vacation leave, sick leave or a holiday that day.
+/// </summary>
+public sealed record CrmCalendarDayDto(DateOnly Date, int ExpenseLineCount, IReadOnlyList<CrmCalendarEntryDto> Entries, bool TimeOff);
 
 /// <summary>
 /// The claimant's CRM calendar over the report period. <see cref="Linked"/> is false when the claimant's account has

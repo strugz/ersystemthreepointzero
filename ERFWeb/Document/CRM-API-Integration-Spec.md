@@ -55,6 +55,14 @@ GET /api2/erf/v1/activities?employeeId=CNT-001&dateFrom=2026-10-01&dateTo=2026-1
 | `dateFrom`, `dateTo` | yes | Inclusive. Range at most 62 days. |
 | `status` | no | Default `Completed`. Only completed activities are claimable. |
 | `page`, `pageSize` | no | Defaults 1 and 50. |
+| `includeLeave` | no | Default `false`. `true` also returns the employee's leave and other activities from the CRM calendar (table `LVEMST`). Only the review-page calendar (section 8) sends it; the expense-line picker never does. |
+
+**Leave and other activities** (only with `includeLeave=true`, added 2026-11-20): one item per `LVEMST` row, as
+`activityId` `LVE-<LVEMID>`, `workflow` `Leave`, `status` `Completed`, `activityDate` = the day, no `startAt`/`endAt`,
+`customer`, `instrument` or companions, `employee` = the employee as `Lead`. `activityType` is the CRM preset (`VL`,
+`SL`, `Holiday`, `Convention`, `MDMPI Office`, `EnRoute`) or `Others` when the employee typed their own text;
+`subject` is the preset's label (`Vacation leave`, `Sick leave`, the others as written) or that text (max 150).
+They are never claimable: section 3.2 answers `404` for an `LVE-` ID, so ERFWeb's claim check refuses them.
 
 **Response 200**
 
@@ -129,7 +137,7 @@ not tied to a specific activity.
 | CRM field | Type | Required | Max length | ERFWeb expense line field | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `activityId` | string | **yes** | 50 | stored as the CRM link | Unique, stable. Used to stop the same activity from being claimed twice. |
-| `workflow` | string | **yes** | 10 | (filter) | `Sales` (itinerary visit), `PS` or `TSG` (service work), matching the lookup's `workflows`. |
+| `workflow` | string | **yes** | 10 | (filter) | `Sales` (itinerary visit), `PS` or `TSG` (service work), matching the lookup's `workflows`; `Leave` for a leave or other activity (only with `includeLeave=true`). |
 | `activityType` | string | **yes** | 50 | part of Particulars | e.g. Corrective Maintenance, Preventive Maintenance, Installation, Training, Sales Call, Demo. Please send the full list of values. |
 | `status` | string | **yes** | 20 | filter | `Completed`, `Cancelled`, `Open`. Only `Completed` is claimable. |
 | `activityDate` | date | **yes** | | Transaction Date | Must fall inside the report's Date From/To. |
@@ -207,8 +215,13 @@ ERFWeb copies it into an empty Mobile No. on the Add User screen, for SMS notifi
 Since API 0.11.0 (PR #64, 2026-11-20), a signatory reviewing a report sees the claimant's CRM activities for each
 day of the report period. The ERFWeb server reads the claimant's `employeeId` from their ERFWeb account and calls
 section 3.1 once per status (`Completed`, `Open`, `Cancelled`) over the whole period (at most 62 days, `pageSize`
-100). One review therefore makes at least three calls, well under the 300-a-minute limit. Nothing new is needed from
-the CRM for this; ERFWeb now also reads `startAt`.
+100). One review therefore makes at least three calls, well under the 300-a-minute limit. ERFWeb also reads `startAt`.
+
+**Leave and other activities (API 0.12.0, 2026-11-20).** The calendar sends `includeLeave=true` (section 3.1), so the
+claimant's VL, SL, Holiday, Convention, MDMPI Office, EnRoute and Others entries from the CRM calendar show as whole-day
+**Other activity** rows. A day with VL, SL or Holiday and expense lines shows a warning for the signatory (Domain
+`CrmCalendarRules.IsTimeOff`); nothing is blocked. This needs the CRM release that reads `LVEMST`; an older CRM ignores
+the parameter and the card shows no leave.
 
 **FWMS embed page not used (decided 2026-11-20).** The FWMS team built a calendar page for an ERFWeb iframe
 (`#/embed/calendar`, their plan `docs/plans/erfweb-shared-calendar-plan.md`, Phase 0). ERFWeb does not use it: it needs
@@ -217,5 +230,5 @@ head's department viewer instead of the claimant's days. The page was removed be
 `frame-ancestors` change is needed.
 
 **Still wanted from the CRM:** the calendar endpoint the FWMS team plans (`GET /api2/erf/v1/calendar/{employeeId}`,
-their plan Phase 1), for leave, planned service visits without a report, call-center sessions and check-in times,
-which section 3.1 does not return. ERFWeb's calendar card switches to it once the contract is agreed.
+their plan Phase 1), for planned service visits without a report, call-center sessions and check-in times, which
+section 3.1 does not return (leave now comes through `includeLeave`). ERFWeb's calendar card switches to it once the contract is agreed.

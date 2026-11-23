@@ -29,7 +29,7 @@ public sealed class CrmActivityDirectory(HttpClient http, IOptions<CrmOptions> o
 
     public bool IsConfigured => _api.IsConfigured;
 
-    public async Task<PagedResult<CrmActivityDto>?> ListAsync(string employeeId, DateOnly from, DateOnly to, string status, int page, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<CrmActivityDto>?> ListAsync(string employeeId, DateOnly from, DateOnly to, string status, int page, int pageSize, bool includeLeave = false, CancellationToken ct = default)
     {
         var id = employeeId?.Trim() ?? string.Empty;
         if (id.Length == 0 || id.Length > CrmEmployeeDirectory.MaxEmployeeIdLength)
@@ -40,7 +40,8 @@ public sealed class CrmActivityDirectory(HttpClient http, IOptions<CrmOptions> o
         var path = $"activities?employeeId={Uri.EscapeDataString(id)}"
             + $"&dateFrom={from.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}"
             + $"&dateTo={to.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}"
-            + $"&status={Uri.EscapeDataString(status)}&page={page}&pageSize={pageSize}";
+            + $"&status={Uri.EscapeDataString(status)}&page={page}&pageSize={pageSize}"
+            + (includeLeave ? "&includeLeave=true" : string.Empty);
 
         using var response = await _api.SendAsync(path, ct);
         if (response.StatusCode == HttpStatusCode.NotFound)
@@ -102,7 +103,8 @@ public sealed class CrmActivityDirectory(HttpClient http, IOptions<CrmOptions> o
             Clean(a.Travel?.Origin),
             Clean(a.Travel?.Destination),
             a.Travel?.IsOvernight ?? false,
-            a.StartAt);
+            a.StartAt,
+            Clean(a.Workflow));
     }
 
     private static CrmActivityPersonDto? Person(CrmPerson? p) =>
@@ -116,6 +118,7 @@ public sealed class CrmActivityDirectory(HttpClient http, IOptions<CrmOptions> o
         string? ActivityId,
         string? ActivityType,
         string? Status,
+        string? Workflow,
         DateOnly? ActivityDate,
         DateTimeOffset? StartAt,
         DateTimeOffset? EndAt,

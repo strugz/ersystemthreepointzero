@@ -61,12 +61,16 @@ export interface CrmCalendarEntry {
   role: string;
   workWith: string | null;
   claimedOnThisReport: boolean;
+  /** A whole-day leave or other activity from the CRM calendar (VL, SL, Holiday, ...); never claimable. */
+  isLeave: boolean;
 }
 
 export interface CrmCalendarDay {
   date: string;
   expenseLineCount: number;
   entries: CrmCalendarEntry[];
+  /** The CRM has the claimant on vacation leave, sick leave or a holiday that day. */
+  timeOff: boolean;
 }
 
 /** The claimant's CRM calendar over the report period; linked is false when the account has no CRM link. */

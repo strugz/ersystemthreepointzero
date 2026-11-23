@@ -10,6 +10,15 @@ public static class CrmCalendarRules
     /// <summary>The CRM lists at most this many days in one call.</summary>
     public const int MaxDays = 62;
 
+    /// <summary>
+    /// The CRM's other-activity types that mean the employee was off work (vacation leave, sick leave, holiday), so a
+    /// signatory is warned about expense lines on that day. Convention, MDMPI Office, EnRoute and Others can carry costs.
+    /// </summary>
+    private static readonly string[] TimeOffTypes = ["VL", "SL", "Holiday"];
+
+    public static bool IsTimeOff(string? activityType) =>
+        activityType is not null && TimeOffTypes.Contains(activityType.Trim(), StringComparer.OrdinalIgnoreCase);
+
     public static bool FitsCrmRange(DateOnly from, DateOnly to) => to >= from && to.DayNumber - from.DayNumber + 1 <= MaxDays;
 
     /// <summary>Every day from <paramref name="from"/> to <paramref name="to"/>, both included.</summary>
