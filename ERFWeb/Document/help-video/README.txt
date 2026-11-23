@@ -28,4 +28,5 @@ Steps
   5. Copy the new start times from chapters.json into src/features/help/topics.ts.
   6. Bump the SPA version and deploy as usual (README "Versions" rule).
 
-Voice: en-US-AndrewNeural, rate -8%. Video: 1280x720, about 13 MB for 6:45.
+Voice: en-US-AndrewNeural, rate -8%. Video: 1280x720 at 5 fps (H.264 CRF 30), mono AAC 32 kbps;
+about 3.8 MB for 6:45. Keep it small: users on slow or mobile links download only what they play.

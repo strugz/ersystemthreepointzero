@@ -93,8 +93,11 @@ def main():
         f.writelines(f"file '{c.replace(os.sep, '/')}'\n" for c in clips)
     raw = os.path.join(OUT, "raw.mp4")
     subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", lst, "-c", "copy", raw], check=True)
-    subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", raw, "-c:v", "copy", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
-                    "-ar", "48000", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", VIDEO], check=True)
+    # Kept small for slow and mobile links: still screens need only 5 fps, and one voice needs only 32 kbps mono.
+    subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", raw,
+                    "-c:v", "libx264", "-preset", "veryslow", "-crf", "30", "-tune", "stillimage", "-r", "5", "-g", "250",
+                    "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:a", "aac", "-b:a", "32k", "-ac", "1", "-ar", "24000",
+                    "-movflags", "+faststart", VIDEO], check=True)
     print("total", round(duration(VIDEO), 1), "s ->", VIDEO)
 
 

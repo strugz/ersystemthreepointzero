@@ -22,7 +22,8 @@ section of the root `CLAUDE.md`) in the same change.
   filing a report beside a searchable list of questions (creating a report, each of the 11 expense categories, From
   CRM, OR no. and VAT, cash advance, receipts, filing); selecting a question plays the video from that part and shows
   a written answer. A **?** in the expense line window opens the question for the picked category in a new tab. The
-  video is `public/help/erfweb-filing-guide.mp4` (names blurred, since Render serves it without sign-in); its build
+  video is `public/help/erfweb-filing-guide.mp4` (3.8 MB: 720p at 5 fps, mono voice; names blurred, since Render
+  serves it without sign-in); its build
   kit is `Document/help-video/`. Frontend only, no database script. SPA 0.16.0 (minor).
 
 ### 2026-11-20
