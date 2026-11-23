@@ -18,6 +18,11 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-23
 
+- **Maintenance script `unlock_user.sql`** (PR #70). Lets one account sign
+  in again: clears its sign-in lockout and, by switches at the top, reactivates it, sets a password hash you supply
+  (a new password must then be chosen at the next sign-in; empty keeps the password) and deletes all of that user's
+  expense reports with everything tied to them (off by default); works for `admin` too. Documented under "Letting
+  one account sign in again". Maintenance script only; no numbered database script, no version change.
 - **Help page** (PR #67). **Help** in the menu (`/help`, signed-in users) plays a narrated 6:45 video of
   filing a report beside a searchable list of questions (creating a report, each of the 11 expense categories, From
   CRM, OR no. and VAT, cash advance, receipts, filing); selecting a question plays the video from that part and shows
@@ -595,6 +600,20 @@ each user signs in with their current password and must choose a new one, as a n
 rates, routes, delegations, reports and audit are not touched; one `Users.FirstSignInResetByScript` event with the
 count is written. Run the whole script in pgAdmin's Query Tool or with `psql -d erms_db -f`; safe to re-run. To
 give one user a new password, use **Reset password** on the Users page instead.
+
+**Letting one account sign in again.** `Database/maintenance/unlock_user.sql` takes one username (set
+`target_username` in its `DECLARE` block) and deletes its `login_security` row, so failed attempts and any lockout are
+cleared. The password stays unless `new_password_hash` is filled in with a PBKDF2 hash of a password you know (copy
+`password_hash` from an account that already uses it); then it is set with `must_change_password` true, so the user
+signs in with that password and must choose a new one first. Never commit a password or hash in the script: the
+repository is public. `reactivate` (default true) also sets `is_active` to true.
+`delete_reports` (default false; set true to delete) also deletes every expense report of that user
+(`employee_user_id`), any status, with the same tied rows as `reset_reports.sql` (lines, meal and fare items,
+verification requests, receipts and documents, approval steps, finance tracking, cash advance lines, reminder, email
+and SMS delivery rows, the reports' audit rows); other people's reports, `record_history` and used ERF numbers stay.
+There is no rollback for that part or for a replaced password, so take a `pg_dump` first. It works for `admin` too, for when no administrator can open the Users page. An unknown username stops
+the script with nothing changed; one `Users.UnlockedByScript` event is written and the result shows as a NOTICE.
+Safe to re-run.
 
 ### Database setup — Option B: EF Core migrations (when EF tooling is available)
 
