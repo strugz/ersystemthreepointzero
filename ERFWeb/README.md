@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-20
 
-- **Leave and other activities on the CRM calendar** (not yet committed). The review page's **CRM calendar** card
+- **Leave and other activities on the CRM calendar** (PR #68). The review page's **CRM calendar** card
   shows the claimant's VL, SL, Holiday, Convention, MDMPI Office, EnRoute and Others entries from the CRM calendar as
   whole-day **Other activity** rows, and warns on a VL, SL or Holiday day that has expense lines (notice only). The
   server asks the CRM activity API with the new `includeLeave=true` (CRM change on its own branch,
