@@ -1,5 +1,19 @@
-/** The narrated filing video; rebuilt from ERFWeb/Document/help-video (see its README.txt). */
-export const HELP_VIDEO_SRC = '/help/erfweb-filing-guide.mp4';
+/**
+ * The narrated filing video (rebuilt from ERFWeb/Document/help-video, see its README.txt). A path inside the SPA,
+ * built from the base path so a sub-path host still works, or a full https:// URL to a file server or CDN.
+ * Raise ?v= whenever the file is replaced under the same name, so browsers fetch the new copy.
+ */
+export const HELP_VIDEO_URL = `${import.meta.env.BASE_URL}help/erfweb-filing-guide.mp4?v=1`;
+
+/** A same-site path or an https:// URL plays; anything else (empty, http:, //host, javascript:) counts as no video. */
+export function safeVideoUrl(url: string | null | undefined): string | null {
+  const u = (url ?? '').trim();
+  if (u.startsWith('https://')) return u;
+  if (u.startsWith('/') && !u.startsWith('//')) return u;
+  const base = import.meta.env.BASE_URL;
+  if (base && base !== '/' && u.startsWith(base) && !u.startsWith('//')) return u;
+  return null;
+}
 
 export interface HelpTopic {
   /** Used in the address (`/help?topic=…`); category topics are `category-<ExpenseCategory>`. */

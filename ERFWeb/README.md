@@ -24,7 +24,8 @@ section of the root `CLAUDE.md`) in the same change.
   a written answer. A **?** in the expense line window opens the question for the picked category in a new tab. The
   video is `public/help/erfweb-filing-guide.mp4` (3.8 MB: 720p at 5 fps, mono voice; names blurred, since Render
   serves it without sign-in); its build
-  kit is `Document/help-video/`. Frontend only, no database script. SPA 0.16.0 (minor).
+  kit is `Document/help-video/`. Its address is one setting (`HELP_VIDEO_URL`, with a `?v=` cache version) that may
+  also be an `https://` URL; a missing or failing video shows a notice and the answers stay. Frontend only, no database script. SPA 0.16.0 (minor).
 
 ### 2026-11-20
 
@@ -698,7 +699,11 @@ the **?** beside Close in the expense line window opens that topic for the picke
 being typed stays open. Render serves `public/` without sign-in, so the video holds no names: screenshots are blurred
 by `Document/help-video/redact.py` before the build. To change the video, follow `Document/help-video/README.txt`
 (screenshots, `redact.py`, `build.py`, which writes the video here and `chapters.json`), then copy the new start times
-from `chapters.json` into `topics.ts`. Nothing is sent to the API.
+from `chapters.json` into `topics.ts` and raise the `?v=` in `HELP_VIDEO_URL` so browsers drop the cached copy.
+`HELP_VIDEO_URL` (in `topics.ts`) is the one place the video address is set: built from Vite's base path, or a full
+`https://` URL to a file server or CDN. `safeVideoUrl` plays only a same-site path or an `https://` URL; anything else
+shows "Video coming soon", and a file that fails to load shows "This video could not be loaded"; the written answers
+stay in both cases. Nothing is sent to the API.
 
 ## Reporting — R47 "EXPENSE REPORT" (plan Phase 3)
 

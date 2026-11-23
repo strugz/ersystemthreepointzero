@@ -25,7 +25,9 @@ Steps
   3. python redact.py
   4. python build.py   (delete out\*.mp3 first when the narration text changed)
      It writes the video straight into the SPA's public/help folder and updates chapters.json.
-  5. Copy the new start times from chapters.json into src/features/help/topics.ts.
+  5. Copy the new start times from chapters.json into src/features/help/topics.ts, and raise the ?v=
+     number in HELP_VIDEO_URL there so browsers fetch the new file instead of a cached copy.
+     HELP_VIDEO_URL may also be a full https:// URL (file server or CDN) instead of the SPA file.
   6. Bump the SPA version and deploy as usual (README "Versions" rule).
 
 Voice: en-US-AndrewNeural, rate -8%. Video: 1280x720 at 5 fps (H.264 CRF 30), mono AAC 32 kbps;

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { HELP_VIDEO_SRC, formatStart, helpTopics } from '@/features/help/topics';
+import { HELP_VIDEO_URL, formatStart, helpTopics, safeVideoUrl } from '@/features/help/topics';
 import type { HelpTopic } from '@/features/help/topics';
 
 const props = defineProps<{ topicId: string | null }>();
 const emit = defineEmits<{ 'update:topicId': [id: string | null] }>();
 
+const videoSrc = safeVideoUrl(HELP_VIDEO_URL);
+const loadFailed = ref(false);
 const video = ref<HTMLVideoElement | null>(null);
 const search = ref('');
 const openId = ref<string | null>(null);
@@ -58,10 +60,17 @@ watch(() => props.topicId, openFromAddress);
 <template>
   <div class="help">
     <div class="help__video">
-      <video ref="video" :src="HELP_VIDEO_SRC" controls preload="metadata" playsinline class="help__player">
-        Your browser cannot play this video.
-      </video>
-      <p class="help__hint">Select a question to play the video from that part.</p>
+      <template v-if="videoSrc && !loadFailed">
+        <video ref="video" :src="videoSrc" controls preload="metadata" playsinline class="help__player" @error="loadFailed = true">
+          Your browser cannot play this video.
+        </video>
+        <p class="help__hint">Select a question to play the video from that part.</p>
+      </template>
+      <div v-else class="help__player help__novideo" role="status">
+        <v-icon :icon="loadFailed ? 'mdi-video-off-outline' : 'mdi-video-outline'" size="32" />
+        <span>{{ loadFailed ? 'This video could not be loaded.' : 'Video coming soon.' }}</span>
+        <span class="help__novideo-sub">The written answers still apply.</span>
+      </div>
     </div>
 
     <div class="help__topics">
@@ -113,6 +122,23 @@ watch(() => props.topicId, openFromAddress);
   border-radius: var(--radius);
   background: #000;
   box-shadow: var(--shadow-1);
+}
+.help__novideo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--ink-2);
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.help__novideo-sub {
+  font-size: 12px;
+  color: var(--ink-3);
 }
 .help__hint {
   margin: 8px 0 0;
