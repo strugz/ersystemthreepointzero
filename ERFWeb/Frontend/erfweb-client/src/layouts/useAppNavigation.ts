@@ -32,6 +32,7 @@ const approvalsItem: NavItem = { title: 'Approvals', icon: 'mdi-check-decagram-o
 
 // Open to every signed-in user; kept out of the main nav so the phone bottom bar stays at four items.
 const wellnessNav: NavItem[] = [{ title: 'Healthy living', icon: 'mdi-heart-pulse', to: { name: 'random-quotes' }, exact: true }];
+const helpNav: NavItem[] = [{ title: 'Help', icon: 'mdi-help-circle-outline', to: { name: 'help' }, exact: true }];
 
 export const themeOptions: { value: ThemePreference; label: string; icon: string }[] = [
   { value: 'light', label: 'Light', icon: 'mdi-white-balance-sunny' },
@@ -110,6 +111,7 @@ export function useAppNavigation() {
       { label: 'Signatory structure', items: entitlementNav.value },
       { label: 'Administration', items: adminNav.value },
       { label: 'Wellness', items: wellnessNav },
+      { label: 'Help', items: helpNav },
     ].filter((g) => g.items.length > 0),
   );
 

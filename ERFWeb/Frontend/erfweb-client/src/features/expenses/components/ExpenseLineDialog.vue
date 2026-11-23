@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { addDaysIso, formatDate, formatMoney, todayIso } from '@/shared/format';
 import { hasCamera } from '@/shared/images';
@@ -203,6 +204,10 @@ function applyCategoryDefaults() {
   }
   syncRateAmount();
 }
+
+// Help for the picked category opens in a new tab so the line being typed stays open.
+const router = useRouter();
+const helpHref = computed(() => router.resolve({ name: 'help', query: { topic: `category-${form.category}` } }).href);
 
 // After Add line, the dialog asks whether the next line is on the next date (none after the period's last day).
 const nextDateOffer = ref<{ added: string; next: string } | null>(null);
@@ -674,7 +679,20 @@ function close() {
           <h2 class="eline__title">{{ isEdit ? 'Edit expense line' : 'Add expense line' }}</h2>
           <p class="eline__sub">Goes in the <span class="mono">{{ r47Column(form.category, form.expenseType) }}</span> column of the R47</p>
         </div>
-        <v-btn class="press" icon="mdi-close" variant="text" size="small" aria-label="Close" :disabled="saving" @click="close" />
+        <div class="d-flex">
+          <v-btn
+            class="press"
+            icon="mdi-help-circle-outline"
+            variant="text"
+            size="small"
+            :href="helpHref"
+            target="_blank"
+            rel="noopener"
+            :aria-label="`How to fill a ${categoryLabel[form.category]} line`"
+            :title="`How to fill a ${categoryLabel[form.category]} line`"
+          />
+          <v-btn class="press" icon="mdi-close" variant="text" size="small" aria-label="Close" :disabled="saving" @click="close" />
+        </div>
       </header>
 
       <v-card-text class="eline__body">
