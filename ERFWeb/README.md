@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-23
 
-- **Maintenance script `unlock_user.sql`** (branch `chore/erfweb-unlock-user`, no PR yet). Lets one account sign
+- **Maintenance script `unlock_user.sql`** (PR #70). Lets one account sign
   in again: clears its sign-in lockout and, by switches at the top, reactivates it, sets a password hash you supply
   (a new password must then be chosen at the next sign-in; empty keeps the password) and deletes all of that user's
   expense reports with everything tied to them (off by default); works for `admin` too. Documented under "Letting
