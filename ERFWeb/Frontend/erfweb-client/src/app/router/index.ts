@@ -78,6 +78,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/help',
+    name: 'help',
+    component: () => import('@/views/HelpView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/account/password',
     name: 'change-password',
     component: () => import('@/views/auth/ChangePasswordView.vue'),
