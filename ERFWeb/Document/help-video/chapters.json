@@ -1,0 +1,152 @@
+[
+ {
+  "scene": "title",
+  "caption": "How to file an expense report",
+  "start": 0.0
+ },
+ {
+  "scene": "02-dashboard.jpg",
+  "caption": "Sign in and open the Dashboard",
+  "start": 8.9
+ },
+ {
+  "scene": "03-new-report.jpg",
+  "caption": "Step 1: Create the report",
+  "start": 27.8
+ },
+ {
+  "scene": "03b-new-report-type.jpg",
+  "caption": "Step 1: Create the report",
+  "start": 46.0
+ },
+ {
+  "scene": "04-editor.jpg",
+  "caption": "Your draft report",
+  "start": 50.3
+ },
+ {
+  "scene": "06-line-categories.jpg",
+  "caption": "Step 2: Add expense lines",
+  "start": 62.0
+ },
+ {
+  "scene": "07-meals.jpg",
+  "caption": "Meals",
+  "start": 74.7
+ },
+ {
+  "scene": "08-line-added.jpg",
+  "caption": "After Add line",
+  "start": 91.6
+ },
+ {
+  "scene": "09-transport.jpg",
+  "caption": "Transportation",
+  "start": 105.7
+ },
+ {
+  "scene": "20-toll.jpg",
+  "caption": "Toll",
+  "start": 120.7
+ },
+ {
+  "scene": "21-lodging.jpg",
+  "caption": "Lodging",
+  "start": 134.4
+ },
+ {
+  "scene": "22-gas-reason.jpg",
+  "caption": "Gas",
+  "start": 152.5
+ },
+ {
+  "scene": "23-gas.jpg",
+  "caption": "Gas",
+  "start": 159.7
+ },
+ {
+  "scene": "24-vehicle.jpg",
+  "caption": "Vehicle emergency",
+  "start": 171.5
+ },
+ {
+  "scene": "25-representation.jpg",
+  "caption": "Representation",
+  "start": 184.2
+ },
+ {
+  "scene": "26-sponsorship.jpg",
+  "caption": "Sponsorship",
+  "start": 194.6
+ },
+ {
+  "scene": "27-demo.jpg",
+  "caption": "Demo",
+  "start": 201.8
+ },
+ {
+  "scene": "28-others.jpg",
+  "caption": "Others",
+  "start": 217.0
+ },
+ {
+  "scene": "10-same-visit.jpg",
+  "caption": "Same visit, other expense",
+  "start": 229.1
+ },
+ {
+  "scene": "09b-crm-pick.jpg",
+  "caption": "From CRM",
+  "start": 246.0
+ },
+ {
+  "scene": "09c-crm-filled.jpg",
+  "caption": "Line filled from CRM",
+  "start": 267.5
+ },
+ {
+  "scene": "09d-or-vat-service.jpg",
+  "caption": "Invoice / OR no., VAT and Service details",
+  "start": 282.5
+ },
+ {
+  "scene": "11-lines.jpg",
+  "caption": "Review your lines",
+  "start": 302.1
+ },
+ {
+  "scene": "05-cash-advance.jpg",
+  "caption": "Step 3: Record the cash advance (Liquidation only)",
+  "start": 316.3
+ },
+ {
+  "scene": "11b-totals.jpg",
+  "caption": "Totals",
+  "start": 333.4
+ },
+ {
+  "scene": "13-receipts.jpg",
+  "caption": "Step 4: Attach receipts",
+  "start": 340.5
+ },
+ {
+  "scene": "12-checklist.jpg",
+  "caption": "Step 5: Check and send the report",
+  "start": 355.4
+ },
+ {
+  "scene": "14-file-confirm.jpg",
+  "caption": "Step 5: Check and send the report",
+  "start": 369.7
+ },
+ {
+  "scene": "15-my-reports.jpg",
+  "caption": "After filing",
+  "start": 382.4
+ },
+ {
+  "scene": "end",
+  "caption": "Thank you",
+  "start": 397.3
+ }
+]

@@ -16,6 +16,17 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-11-23
+
+- **Help page** (PR #67). **Help** in the menu (`/help`, signed-in users) plays a narrated 6:45 video of
+  filing a report beside a searchable list of questions (creating a report, each of the 11 expense categories, From
+  CRM, OR no. and VAT, cash advance, receipts, filing); selecting a question plays the video from that part and shows
+  a written answer. A **?** in the expense line window opens the question for the picked category in a new tab. The
+  video is `public/help/erfweb-filing-guide.mp4` (3.8 MB: 720p at 5 fps, mono voice; names blurred, since Render
+  serves it without sign-in); its build
+  kit is `Document/help-video/`. Its address is one setting (`HELP_VIDEO_URL`, with a `?v=` cache version) that may
+  also be an `https://` URL; a missing or failing video shows a notice and the answers stay. Frontend only, no database script. SPA 0.16.0 (minor).
+
 ### 2026-11-20
 
 - **CRM calendar decision recorded** (PR #66). `Document/CRM-API-Integration-Spec.md` section 8 and the
@@ -678,6 +689,21 @@ nothing is stored or sent to the API.
 The same quote also appears once a day in a dialog on the first signed-in page
 (`features/wellness/components/DailyQuoteDialog.vue`, mounted by `AuthenticatedLayout`); the day it was last shown
 is kept per user in the browser's `localStorage` (`erfweb.dailyQuote.<userId>`), so a new browser shows it again.
+
+**Help page:** `/help` (`views/HelpView.vue`, signed-in users; **Help** in the rail and on the phone More page) plays the
+narrated filing video `public/help/erfweb-filing-guide.mp4` beside a searchable list of questions
+(`features/help/topics.ts`: question, written answer, start time; `features/help/components/HelpContent.vue`).
+Selecting a question plays the video from that part and opens its answer; `/help?topic=<id>` opens a question and
+cues the video without playing it. Category questions are `category-<ExpenseCategory>` (e.g. `category-Representation`);
+the **?** beside Close in the expense line window opens that topic for the picked category in a new tab, so the line
+being typed stays open. Render serves `public/` without sign-in, so the video holds no names: screenshots are blurred
+by `Document/help-video/redact.py` before the build. To change the video, follow `Document/help-video/README.txt`
+(screenshots, `redact.py`, `build.py`, which writes the video here and `chapters.json`), then copy the new start times
+from `chapters.json` into `topics.ts` and raise the `?v=` in `HELP_VIDEO_URL` so browsers drop the cached copy.
+`HELP_VIDEO_URL` (in `topics.ts`) is the one place the video address is set: built from Vite's base path, or a full
+`https://` URL to a file server or CDN. `safeVideoUrl` plays only a same-site path or an `https://` URL; anything else
+shows "Video coming soon", and a file that fails to load shows "This video could not be loaded"; the written answers
+stay in both cases. Nothing is sent to the API.
 
 ## Reporting — R47 "EXPENSE REPORT" (plan Phase 3)
 
