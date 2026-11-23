@@ -5,11 +5,11 @@ description: Write or refresh a step-by-step ERFWeb end-user guide for one role 
 
 # ERFWeb role guide
 
-Produces a short, click-by-click guide for one ERFWeb role. The reference is the **ERFWeb Employee Filing Guide** (Claude Doc `https://claude.ai/artifact/SCUXpSnVU7XdwZbPnsRp6q`, exported to `ERFWeb/Document/ERFWeb Employee Filing Guide.docx` / `.pdf`). The other guides were made the same way; update these rather than starting new ones. The export caps pictures at 16 per file: a guide with more gets "[image: …]" placeholders, so add the missing pictures to the .docx and make that PDF from it with Word (done for the Filing guide on 2026-11-05):
+Produces a short, click-by-click guide for one ERFWeb role. The reference is the **ERFWeb Employee Filing Guide** (Claude Doc `https://claude.ai/artifact/SCUXpSnVU7XdwZbPnsRp6q`, exported to `ERFWeb/Document/ERFWeb Employee Filing Guide.docx` / `.pdf`). The other guides were made the same way; update these rather than starting new ones. Export the .docx with `pictures: "fit"`, which keeps every picture (28 in the Filing guide on 2026-11-23; without it the export stops at 16 and the rest become "[image: …]" placeholders), write the decoded bytes to the file, then make the PDF from that .docx with Word (`ExportAsFixedFormat`, format 17):
 
 | Guide | Claude Doc | Word/PDF in `ERFWeb/Document/` |
 | --- | --- | --- |
-| Employee Filing | `https://claude.ai/artifact/SCUXpSnVU7XdwZbPnsRp6q` | yes (exported 2026-11-05) |
+| Employee Filing | `https://claude.ai/artifact/SCUXpSnVU7XdwZbPnsRp6q` | yes (exported 2026-11-23) |
 | Signatory | `https://claude.ai/artifact/R2NtPN24LukQ1vEk7KPCTw` | yes (exported 2026-11-05) |
 | Finance | `https://claude.ai/artifact/JCVhLYTgSZAsdhqPVchvak` | yes (exported 2026-11-05) |
 | Expense Verifier | `https://claude.ai/artifact/BHwSkTQT1iUFr1eoQPvcui` | yes (exported 2026-11-05) |
