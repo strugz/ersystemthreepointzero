@@ -30,7 +30,7 @@ section of the root `CLAUDE.md`) in the same change.
   video is `public/help/erfweb-filing-guide.mp4` (3.8 MB: 720p at 5 fps, mono voice; names blurred, since Render
   serves it without sign-in); its build
   kit is `Document/help-video/`. Its address is one setting (`HELP_VIDEO_URL`, with a `?v=` cache version) that may
-  also be an `https://` URL; a missing or failing video shows a notice and the answers stay. Frontend only, no database script. SPA 0.16.0 (minor).
+  also be an `https://` URL; a missing or failing video shows a notice and the answers stay. Frontend only, no database script. SPA 0.17.0 (minor).
 
 ### 2026-11-20
 
