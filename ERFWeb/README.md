@@ -18,14 +18,14 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-24
 
-- **Help for signatories** (not yet committed). Level 1 and Level 2 signatories get a second **Help** tab,
+- **Help for signatories** (PR #72). Level 1 and Level 2 signatories get a second **Help** tab,
   **Approving reports**: a narrated 5:54 video (`public/help/erfweb-approving-guide.mp4`, 3.1 MB, names blurred) with
   21 questions (finding reports, the review page, Check receipts side by side, the CRM calendar, Approve / Return /
   Reject, approving from the R47 PDF, lowering a line (Level 1), override and Queries (Level 2), delegations, budgets,
   summary). Employees without a signatory role see only **Filing a report**. The ERFWeb Signatory Guide (Word/PDF in
   `Document/`) adds the Dashboard card, Check receipts side by side, the CRM calendar and Reports I sign for.
   Frontend only, no database script. SPA 0.19.0 (minor).
-- **Rates resolve per category** (not yet committed). A person's rates no longer come from one profile: each
+- **Rates resolve per category** (PR #72). A person's rates no longer come from one profile: each
   category (and meal) takes its line from the highest-ranked assignment (Individual > Grade > Department > Company)
   whose profile has it. Before, the Lodging profiles assigned by job grade from 2026-11-19 hid the department
   MEALS profile, so meals pre-filled ₱0 from that date. `GET /api/rates/resolve` adds `sources`; **Check who gets
