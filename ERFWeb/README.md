@@ -18,6 +18,17 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-24
 
+- **Reports for other departments** (not yet committed). An employee who works for more than one department can
+  charge a report to one of them, and that department's approvers sign it. The System Administrator allows it per
+  person on the user form (**Can file reports for other departments** plus **Other departments**; script `032`,
+  `users.multi_department_enabled` / `other_department_ids`). The employee picks the **Department** in Report details
+  (shown only when there is a choice); it is stored as `expense_reports.charged_department_id` (null = main department),
+  routes the approval and is snapshotted into `department_id` at filing, so the cost center budget follows it. Rules page,
+  Approvals tab, **Reports for other departments**: who signs when the employee also has a by-name approver (default:
+  the other department's approvers) and whose rates apply (default: the main department). Turning the switch off never
+  touches filed reports; a draft or returned report charged elsewhere is refused at filing until moved back to the main
+  department. The review page shows the report's department. API 0.14.0, SPA 0.20.0 (minor); apply `032`, deploy the
+  backend before the frontend.
 - **Help for signatories** (PR #72). Level 1 and Level 2 signatories get a second **Help** tab,
   **Approving reports**: a narrated 5:54 video (`public/help/erfweb-approving-guide.mp4`, 3.1 MB, names blurred) with
   21 questions (finding reports, the review page, Check receipts side by side, the CRM calendar, Approve / Return /
@@ -588,6 +599,7 @@ psql -d erfweb -f Database/028_job_grades.sql                  # job_grades mast
 psql -d erfweb -f Database/029_user_vehicle.sql                # users.vehicle_model / vehicle_plate_no: the employee's saved vehicle
 psql -d erfweb -f Database/030_expense_line_work_with_user_ids.sql # expense_lines.work_with_user_ids: accounts a line tags as Work With
 psql -d erfweb -f Database/031_user_fleet_card.sql             # users.has_fleet_card: Gas only for the fleet card reasons
+psql -d erfweb -f Database/032_multi_department_reports.sql     # reports charged to another department (user switch + report choice)
 ```
 
 Run the scripts in order on a new database. `004` inserts into the `users.role` column that `006` drops, so it
@@ -1302,6 +1314,18 @@ threshold, when the total exceeds the Level 1 approval limit, or when the claima
 files their own report goes to their Level 2 alone, and nobody is ever routed to their own report (9.1). The steps
 are snapshotted into `approval_steps` (with `signatory_level`) so later scope changes never re-route a filed report
 (9.3). Zero matches or an ambiguous match block filing with the reason.
+
+**Reports for other departments** (script `032`, Domain `MultiDepartmentRules`). An account with **Can file reports
+for other departments** on (`users.multi_department_enabled`) may charge a report to its main department or one of
+its **Other departments** (`users.other_department_ids`, never the main one). The report keeps the choice in
+`expense_reports.charged_department_id` (null = main; set on create or update, `departmentId` in the request, 400 for
+a department the account may not use). Routing resolves scope for that department; a by-name assignment counts for it
+only when the Rules page says **The by-name approver, for every report** (`Workflow.MultiDepartmentByName`, default
+`DepartmentWins`). Rates follow the main department unless the Rules page picks the report's department
+(`Workflow.MultiDepartmentRates`; `my-rates?departmentId=`, the Lodging cap). `my-filing-readiness?departmentId=` lists
+the allowed `departments` and previews that route. Filing re-checks the choice: if the switch was turned off or the
+department removed, filing is refused with a message to change the department; reports already filed keep their
+approvers, department and budget. A verification query to Level 2 falls back to the report's department too.
 
 **Rate profiles.** A profile holds versioned lines per category (Meals per meal: Breakfast, Lunch, Dinner, OTMeal).
 A planned change adds a version and closes the open one the day before, so a report always uses the rate in force

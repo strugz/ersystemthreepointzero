@@ -52,6 +52,8 @@ const blank = (): FormState => ({
   crmEmployeeId: null,
   r47ReviewedBy: '',
   hasFleetCard: false,
+  multiDepartmentEnabled: false,
+  otherDepartmentIds: [],
 });
 
 const form = reactive<FormState>(blank());
@@ -100,6 +102,8 @@ function load(value: UserDetail | null) {
       crmEmployeeId: value.crmEmployeeId,
       r47ReviewedBy: value.r47ReviewedBy ?? '',
       hasFleetCard: value.hasFleetCard ?? false,
+      multiDepartmentEnabled: value.multiDepartmentEnabled ?? false,
+      otherDepartmentIds: (value.otherDepartments ?? []).map((d) => d.id),
     });
   }
   splitEmail(form.email ?? '');
@@ -113,6 +117,12 @@ const isDirty = computed(() => JSON.stringify(form) !== snapshot);
 const departmentItems = computed(() =>
   props.departments
     .filter((d) => d.isActive || d.id === form.departmentId)
+    .map((d) => ({ value: d.id, title: d.code ? `${d.code} · ${d.name}` : d.name })),
+);
+// Other departments: never the main one; an inactive one stays listed only while the account already has it.
+const otherDepartmentItems = computed(() =>
+  props.departments
+    .filter((d) => d.id !== form.departmentId && (d.isActive || form.otherDepartmentIds.includes(d.id)))
     .map((d) => ({ value: d.id, title: d.code ? `${d.code} · ${d.name}` : d.name })),
 );
 // What prints in REVIEWED BY while this account has none of its own.
@@ -167,6 +177,8 @@ function submit() {
     crmEmployeeId: form.crmEmployeeId,
     r47ReviewedBy: form.r47ReviewedBy.trim(),
     hasFleetCard: form.hasFleetCard,
+    multiDepartmentEnabled: form.multiDepartmentEnabled,
+    otherDepartmentIds: form.otherDepartmentIds.filter((id) => id !== form.departmentId),
   });
 }
 
@@ -298,6 +310,28 @@ defineExpose({ isDirty });
           label="Has a fleet card (Gas only for the fleet card reasons on the Rules page)"
           hide-details
           :error-messages="fieldErrors('hasFleetCard')"
+        />
+      </v-col>
+      <v-col cols="12" sm="6" class="d-flex align-center">
+        <v-switch
+          v-model="form.multiDepartmentEnabled"
+          color="primary"
+          label="Can file reports for other departments (their approvers sign)"
+          hide-details
+          :error-messages="fieldErrors('multiDepartmentEnabled')"
+        />
+      </v-col>
+      <v-col v-if="form.multiDepartmentEnabled" cols="12" sm="6">
+        <v-autocomplete
+          v-model="form.otherDepartmentIds"
+          :items="otherDepartmentItems"
+          label="Other departments"
+          multiple
+          chips
+          closable-chips
+          hint="The main department is always available. Turning the switch off keeps this list."
+          persistent-hint
+          :error-messages="fieldErrors('otherDepartmentIds')"
         />
       </v-col>
     </v-row>

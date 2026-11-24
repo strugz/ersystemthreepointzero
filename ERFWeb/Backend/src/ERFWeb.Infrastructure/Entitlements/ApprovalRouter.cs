@@ -14,7 +14,7 @@ namespace ERFWeb.Infrastructure.Entitlements;
 /// </summary>
 public sealed class ApprovalRouter(ErfDbContext db, EntitlementContext context, ISystemSettingsService settings) : IApprovalRouter
 {
-    public async Task<RoutingResultDto> RouteAsync(long claimantUserId, decimal reportTotal, DateOnly date, CancellationToken ct = default)
+    public async Task<RoutingResultDto> RouteAsync(long claimantUserId, decimal reportTotal, DateOnly date, long? chargedDepartmentId = null, CancellationToken ct = default)
     {
         var claimant = await context.SubjectAsync(claimantUserId, ct);
         if (claimant is null)
@@ -22,11 +22,16 @@ public sealed class ApprovalRouter(ErfDbContext db, EntitlementContext context, 
             return new RoutingResultDto([], "Your account was not found.");
         }
 
-        var candidates = await context.ScopeCandidatesAsync(validHoldersOnly: true, ct);
-        var level1 = ScopeRules.Resolve(candidates, claimant.Scope, 1, date);
-        var level2 = ScopeRules.Resolve(candidates, claimant.Scope, 2, date);
-
         var rules = await settings.GetAsync(ct);
+        var scope = new ScopeSubject(
+            claimantUserId,
+            MultiDepartmentRules.Effective(chargedDepartmentId, claimant.DepartmentId),
+            MultiDepartmentRules.ByNameApplies(rules.MultiDepartment, chargedDepartmentId, claimant.DepartmentId));
+
+        var candidates = await context.ScopeCandidatesAsync(validHoldersOnly: true, ct);
+        var level1 = ScopeRules.Resolve(candidates, scope, 1, date);
+        var level2 = ScopeRules.Resolve(candidates, scope, 2, date);
+
         var plan = ApprovalRouting.Build(
             claimantUserId,
             await context.IsSignatoryAsync(claimantUserId, ct),

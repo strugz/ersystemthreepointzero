@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Application.Features.Verification;
 using ERFWeb.Domain;
@@ -32,6 +33,7 @@ public sealed class VerificationService(
     ExpenseReportDetailLoader loader,
     EntitlementContext entitlements,
     IApprovalNotifier notifier,
+    ISystemSettingsService settings,
     ILogger<VerificationService> logger) : IVerificationService
 {
     // ---------- Finance raises ----------
@@ -344,7 +346,7 @@ public sealed class VerificationService(
 
     /// <summary>
     /// The Level 2 to query: the one who approved the report, or else whoever holds Level 2 scope
-    /// over the employee today (for a route that had no Level 2 step). Never the claimant.
+    /// over the report's department today (for a route that had no Level 2 step). Never the claimant.
     /// </summary>
     private async Task<long?> Level2ForAsync(ExpenseReport report, CancellationToken ct)
     {
@@ -363,8 +365,14 @@ public sealed class VerificationService(
             return null;
         }
 
+        var multiDepartment = await settings.GetMultiDepartmentSettingsAsync(ct);
+        var scope = subject.Scope with
+        {
+            DepartmentId = MultiDepartmentRules.Effective(report.ChargedDepartmentId, subject.DepartmentId),
+            ByNameApplies = MultiDepartmentRules.ByNameApplies(multiDepartment, report.ChargedDepartmentId, subject.DepartmentId),
+        };
         var candidates = await entitlements.ScopeCandidatesAsync(validHoldersOnly: true, ct);
-        var holder = ScopeRules.Resolve(candidates, subject.Scope, 2, entitlements.Today).HolderUserId;
+        var holder = ScopeRules.Resolve(candidates, scope, 2, entitlements.Today).HolderUserId;
         return holder is { } h && h != report.EmployeeUserId ? h : null;
     }
 

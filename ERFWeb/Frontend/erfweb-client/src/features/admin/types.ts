@@ -88,6 +88,9 @@ export interface UserDetail {
   signatureApprovedByName?: string | null;
   /** Has a company fleet card: Gas only for the fleet card reasons (Finance rules). Absent from an older API. */
   hasFleetCard?: boolean;
+  /** May charge a report to one of otherDepartments, whose signatories then approve it. Absent from an older API. */
+  multiDepartmentEnabled?: boolean;
+  otherDepartments?: { id: number; name: string }[];
 }
 
 /** Where a signature image stands: none on file, waiting for Finance, or approved to print on the R47. */
@@ -199,6 +202,9 @@ export interface UserProfileInput {
   /** Empty string clears it back to the department's reviewer. */
   r47ReviewedBy: string;
   hasFleetCard: boolean;
+  multiDepartmentEnabled: boolean;
+  /** Kept while the switch is off, so switching it back on restores them. */
+  otherDepartmentIds: number[];
 }
 
 /** A CRM user from the CRM employee lookup; only employeeId is stored, the rest is for display. */
@@ -459,6 +465,15 @@ export interface SystemSettingsInput {
   /** Minutes a locked username stays locked (1 to 1440). */
   loginLockoutMinutes: number;
   financeRules: FinanceRules;
+  multiDepartment: MultiDepartmentSettings;
+}
+
+/** Reports charged to another department (for accounts allowed to on the user form). */
+export interface MultiDepartmentSettings {
+  /** DepartmentWins: a by-name signatory signs only main-department reports. ByNameWins: every report. */
+  byName: 'DepartmentWins' | 'ByNameWins';
+  /** Whose rate profiles apply to such a report. */
+  rates: 'MainDepartment' | 'ReportDepartment';
 }
 
 export interface SystemSettings extends SystemSettingsInput {

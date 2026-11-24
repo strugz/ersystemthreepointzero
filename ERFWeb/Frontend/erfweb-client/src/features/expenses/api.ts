@@ -68,9 +68,10 @@ export const expensesApi = {
   removeAttachment: (id: string, attachmentId: number) => api.del<void>(`${r(id)}/attachments/${attachmentId}`),
 
   workWith: (search?: string) => api.get<WorkWithOption[]>(`/lookups/work-with${qs({ search })}`),
-  /** The rates in force on the date (today when omitted). */
-  myRates: (date?: string) => api.get<EmployeeRates>(`/lookups/my-rates${qs({ date })}`),
-  filingReadiness: () => api.get<FilingReadiness>('/lookups/my-filing-readiness'),
+  /** The rates in force on the date (today when omitted), for the report's department. */
+  myRates: (date?: string, departmentId?: number | null) => api.get<EmployeeRates>(`/lookups/my-rates${qs({ date, departmentId: departmentId ?? undefined })}`),
+  /** The filing checklist; the route is previewed for the report's department. */
+  filingReadiness: (departmentId?: number | null) => api.get<FilingReadiness>(`/lookups/my-filing-readiness${qs({ departmentId: departmentId ?? undefined })}`),
   myVehicle: () => api.get<MyVehicle>('/lookups/my-vehicle'),
   /** Saves the employee's own vehicle (both empty clears it). */
   updateMyVehicle: (input: { model: string; plateNo: string }) => api.put<MyVehicle>('/lookups/my-vehicle', input),

@@ -5,6 +5,7 @@ using ERFWeb.Application.Features.Crm;
 using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Expenses;
+using ERFWeb.Domain.Scope;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -63,14 +64,18 @@ public sealed class LookupService(
             .ToListAsync(ct);
 
     /// <summary>The rates in force on the expense date (spec section 5); today when no date is given.</summary>
-    public async Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, CancellationToken ct = default)
+    public async Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, long? departmentId = null, CancellationToken ct = default)
     {
-        var editorRates = await rates.EditorRatesAsync(user.UserId, date ?? calendar.Today, ct);
+        var account = await MyDepartmentsAsync(ct);
+        var charged = account is not null && MultiDepartmentRules.IsAllowed(departmentId, account.DepartmentId, account.MultiDepartmentEnabled, account.OtherDepartmentIds)
+            ? MultiDepartmentRules.StoredChoice(departmentId, account.DepartmentId)
+            : null;
+        var editorRates = await rates.EditorRatesAsync(user.UserId, date ?? calendar.Today, charged, ct);
         var financeRules = await settings.GetFinanceRulesAsync(ct);
         return editorRates with { LodgingRate = LodgingRules.Rate(financeRules, editorRates.LodgingRate) };
     }
 
-    public async Task<MyFilingReadinessDto> MyFilingReadinessAsync(CancellationToken ct = default)
+    public async Task<MyFilingReadinessDto> MyFilingReadinessAsync(long? departmentId = null, CancellationToken ct = default)
     {
         var account = await db.Users.AsNoTracking()
             .Where(u => u.Id == user.UserId)
@@ -82,8 +87,24 @@ public sealed class LookupService(
         var coolingElapsed = account is null || AccountRules.CoolingPeriodElapsed(account.CreatedAt, clock.UtcNow, coolingDays);
         var coolingEndsAt = account is null || coolingElapsed ? (DateTimeOffset?)null : account.CreatedAt.AddDays(coolingDays);
 
+        // The departments the employee may charge a report to, main first (one unless the account allows more).
+        var mine = await MyDepartmentsAsync(ct);
+        var allowedIds = mine is null ? [] : MultiDepartmentRules.Allowed(mine.DepartmentId, mine.MultiDepartmentEnabled, mine.OtherDepartmentIds);
+        var names = await db.Departments.AsNoTracking()
+            .Where(d => allowedIds.Contains(d.Id) || d.Id == departmentId)
+            .ToDictionaryAsync(d => d.Id, d => new DepartmentOptionDto(d.Id, d.Code, d.Name), ct);
+        var departments = allowedIds.Where(names.ContainsKey).Select(id => names[id]).ToList();
+
         // A zero total shows the base route; a larger report may still add a Level 2 step at filing.
-        var routing = await router.RouteAsync(user.UserId, 0m, calendar.Today, ct);
+        var charged = MultiDepartmentRules.StoredChoice(departmentId, mine?.DepartmentId);
+        var departmentProblem = mine is null
+            ? null
+            : MultiDepartmentRules.FilingProblem(charged, mine.DepartmentId, mine.MultiDepartmentEnabled, mine.OtherDepartmentIds,
+                charged is { } c && names.TryGetValue(c, out var chargedName) ? chargedName.Name : null,
+                mine.DepartmentId is { } m && names.TryGetValue(m, out var mainName) ? mainName.Name : null);
+        var routing = departmentProblem is null
+            ? await router.RouteAsync(user.UserId, 0m, calendar.Today, charged, ct)
+            : new RoutingResultDto([], departmentProblem);
         var approvers = routing.Approvers.Select(a => a.FullName).ToList();
 
         var crmAvailable = crm.IsConfigured && !string.IsNullOrWhiteSpace(account?.CrmEmployeeId);
@@ -95,8 +116,16 @@ public sealed class LookupService(
         return new MyFilingReadinessDto(hasSignature, approvers.Count, approvers, coolingElapsed, coolingEndsAt, routing.Problem, crmAvailable,
             cutoff?.ProcessingDate, cutoff?.IsLate ?? false, cutoff?.CutoffText, CategoryDocumentRules.Disabled(financeRules), documents,
             WorkWithMealRules.Notice(financeRules), FleetCardRules.ReasonsFor(financeRules, account?.HasFleetCard ?? false),
-            financeRules.FleetCardOtherReasonAllowed);
+            financeRules.FleetCardOtherReasonAllowed, departments);
     }
+
+    private sealed record MyDepartments(long? DepartmentId, bool MultiDepartmentEnabled, List<long> OtherDepartmentIds);
+
+    private Task<MyDepartments?> MyDepartmentsAsync(CancellationToken ct) =>
+        db.Users.AsNoTracking()
+            .Where(u => u.Id == user.UserId)
+            .Select(u => new MyDepartments(u.DepartmentId, u.MultiDepartmentEnabled, u.OtherDepartmentIds))
+            .FirstOrDefaultAsync(ct);
 
     public async Task<MyVehicleDto> MyVehicleAsync(CancellationToken ct = default) =>
         await db.Users.AsNoTracking()

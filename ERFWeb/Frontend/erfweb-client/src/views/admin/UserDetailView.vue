@@ -30,6 +30,12 @@ const { compact } = useLayoutMode();
 const userId = Number(route.params.id);
 
 const user = ref<UserDetail | null>(null);
+const otherDepartmentsText = computed(() => {
+  const u = user.value;
+  const names = (u?.otherDepartments ?? []).map((d) => d.name).join(', ');
+  if (!u?.multiDepartmentEnabled) return names ? `Off (kept: ${names})` : 'Off: main department only';
+  return names || 'On, but none listed yet';
+});
 const loading = ref(true);
 const loadError = ref<string | null>(null);
 const departments = ref<Department[]>([]);
@@ -107,6 +113,8 @@ async function saveProfile(input: CreateUserInput) {
       crmEmployeeId: input.crmEmployeeId,
       r47ReviewedBy: input.r47ReviewedBy,
       hasFleetCard: input.hasFleetCard,
+      multiDepartmentEnabled: input.multiDepartmentEnabled,
+      otherDepartmentIds: input.otherDepartmentIds,
       rowVersion: user.value.rowVersion,
     });
     editOpen.value = false;
@@ -312,6 +320,10 @@ async function revoke(grant: RoleGrant, note: string | null) {
               <div class="field">
                 <span class="lbl">Fleet card</span>
                 <span class="val" :class="{ muted: !user.hasFleetCard }">{{ user.hasFleetCard ? 'Yes: Gas only for fleet card reasons' : 'None' }}</span>
+              </div>
+              <div class="field">
+                <span class="lbl">Other departments</span>
+                <span class="val" :class="{ muted: !user.multiDepartmentEnabled }">{{ otherDepartmentsText }}</span>
               </div>
               <div class="field"><span class="lbl">Created</span><span class="val">{{ formatDateTime(user.createdAt) }}</span></div>
             </div>

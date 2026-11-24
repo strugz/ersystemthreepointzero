@@ -1,15 +1,25 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue';
 import { useSnackbar } from '@/shared/composables/useSnackbar';
 import { expensesApi } from '@/features/expenses/api';
 import ReportHeaderForm from '@/features/expenses/components/ReportHeaderForm.vue';
-import type { ReportHeaderInput } from '@/features/expenses/types';
+import type { ReportDepartmentOption, ReportHeaderInput } from '@/features/expenses/types';
 
 const router = useRouter();
 const snack = useSnackbar();
 const saving = ref(false);
+
+// Only an account allowed to charge other departments gets more than one; a failed load leaves the main department.
+const departments = ref<ReportDepartmentOption[]>([]);
+onMounted(async () => {
+  try {
+    departments.value = (await expensesApi.filingReadiness()).departments ?? [];
+  } catch {
+    departments.value = [];
+  }
+});
 
 async function create(input: ReportHeaderInput) {
   saving.value = true;
@@ -35,7 +45,7 @@ async function create(input: ReportHeaderInput) {
     <v-card>
       <div class="card-h"><span class="card-t">Report details</span><span class="card-meta">Printed on the R47 header</span></div>
       <div class="pa-5 pt-4">
-        <ReportHeaderForm :saving="saving" submit-text="Create report" :dirty-hint="false" @submit="create" />
+        <ReportHeaderForm :saving="saving" :departments="departments" submit-text="Create report" :dirty-hint="false" @submit="create" />
       </div>
     </v-card>
   </AuthenticatedLayout>

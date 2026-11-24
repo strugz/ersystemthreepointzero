@@ -6,6 +6,7 @@ using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Authentication;
 using ERFWeb.Domain.Expenses;
 using ERFWeb.Domain.Reporting;
+using ERFWeb.Domain.Scope;
 using ERFWeb.Infrastructure.Persistence;
 using ERFWeb.Infrastructure.Reporting;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,10 @@ public static class SystemSettingKeys
     public const string R47SignatureMode = "Reports.R47SignatureMode";
     public const string LoginMaxFailedAttempts = "Security.LoginMaxFailedAttempts";
     public const string LoginLockoutMinutes = "Security.LoginLockoutMinutes";
+
+    /// <summary>Reports charged to another department (<see cref="MultiDepartmentSettings"/>).</summary>
+    public const string MultiDepartmentByName = "Workflow.MultiDepartmentByName";
+    public const string MultiDepartmentRates = "Workflow.MultiDepartmentRates";
 
     /// <summary>The Finance rules, one JSON row (<see cref="FinanceRuleSet"/>).</summary>
     public const string FinanceRules = "Business.FinanceRules";
@@ -73,6 +78,8 @@ public static class SystemSettingKeys
         [LoginMaxFailedAttempts] = LoginLockoutPolicy.Default.MaxFailedAttempts.ToString(CultureInfo.InvariantCulture),
         [LoginLockoutMinutes] = LoginLockoutPolicy.Default.LockoutMinutes.ToString(CultureInfo.InvariantCulture),
         [FinanceRules] = FinanceRulesJson.Serialize(FinanceRuleSet.Default),
+        [MultiDepartmentByName] = MultiDepartmentSettings.Default.ByName.ToString(),
+        [MultiDepartmentRates] = MultiDepartmentSettings.Default.Rates.ToString(),
     };
 }
 
@@ -121,7 +128,8 @@ public sealed class SystemSettingsService(
             FormatFrom(values),
             Int(values, SystemSettingKeys.LoginMaxFailedAttempts),
             Int(values, SystemSettingKeys.LoginLockoutMinutes),
-            FinanceRulesJson.Parse(Raw(values, SystemSettingKeys.FinanceRules)));
+            FinanceRulesJson.Parse(Raw(values, SystemSettingKeys.FinanceRules)),
+            MultiDepartmentFrom(values));
     }
 
     public async Task<SystemSettingsDto> UpdateAsync(UpdateSystemSettingsRequest request, CancellationToken ct = default)
@@ -195,6 +203,13 @@ public sealed class SystemSettingsService(
                 CutoffTime = financeRules.CutoffTime.Trim(),
                 FleetCardGasReasons = FleetCardRules.NormalizeReasons(financeRules.FleetCardGasReasons),
             });
+        }
+
+        // And one that predates the multi-department rules.
+        if (request.MultiDepartment is { } multiDepartment)
+        {
+            incoming[SystemSettingKeys.MultiDepartmentByName] = multiDepartment.ByName.ToString();
+            incoming[SystemSettingKeys.MultiDepartmentRates] = multiDepartment.Rates.ToString();
         }
 
         await tx.ExecuteAsync(async token =>
@@ -292,6 +307,24 @@ public sealed class SystemSettingsService(
         return FinanceRulesJson.Parse(value);
     }
 
+    public async Task<MultiDepartmentSettings> GetMultiDepartmentSettingsAsync(CancellationToken ct = default)
+    {
+        var values = await db.AppSettings.AsNoTracking()
+            .Where(s => s.Key == SystemSettingKeys.MultiDepartmentByName || s.Key == SystemSettingKeys.MultiDepartmentRates)
+            .ToDictionaryAsync(s => s.Key, s => s.Value, StringComparer.Ordinal, ct);
+        return MultiDepartmentFrom(values);
+    }
+
+    /// <summary>The saved multi-department rules; a value never saved or unknown is the default.</summary>
+    private static MultiDepartmentSettings MultiDepartmentFrom(IReadOnlyDictionary<string, string> values) =>
+        new(
+            Enum.TryParse<MultiDepartmentByName>(values.GetValueOrDefault(SystemSettingKeys.MultiDepartmentByName), out var byName) && Enum.IsDefined(byName)
+                ? byName
+                : MultiDepartmentSettings.Default.ByName,
+            Enum.TryParse<MultiDepartmentRates>(values.GetValueOrDefault(SystemSettingKeys.MultiDepartmentRates), out var rates) && Enum.IsDefined(rates)
+                ? rates
+                : MultiDepartmentSettings.Default.Rates);
+
     /// <summary>The saved R47 format; each value never saved (or blank, or an unknown engine) is the server's.</summary>
     private R47Format FormatFrom(IReadOnlyDictionary<string, string> values)
     {
@@ -361,6 +394,19 @@ public sealed class SystemSettingsService(
             foreach (var (field, message) in FinanceRuleSetRules.Validate(financeRules))
             {
                 errors[field] = [message];
+            }
+        }
+
+        if (r.MultiDepartment is { } multiDepartment)
+        {
+            if (!Enum.IsDefined(multiDepartment.ByName))
+            {
+                errors["multiDepartment.byName"] = ["Choose who signs a report charged to another department."];
+            }
+
+            if (!Enum.IsDefined(multiDepartment.Rates))
+            {
+                errors["multiDepartment.rates"] = ["Choose which department's rates apply."];
             }
         }
 

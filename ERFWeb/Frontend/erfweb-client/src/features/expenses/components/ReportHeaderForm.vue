@@ -2,7 +2,7 @@
 import { computed, reactive, watch } from 'vue';
 import { reportTypeLabel, usesCashAdvance, usesRevolvingFund } from '../labels';
 import ReportTypePicker from './ReportTypePicker.vue';
-import type { ReportHeaderInput } from '../types';
+import type { ReportDepartmentOption, ReportHeaderInput } from '../types';
 
 // Header + cash-advance form. Emits the typed input; the parent owns save/create.
 // Which money block is shown follows the report type, exactly as the desktop form does:
@@ -16,8 +16,10 @@ const props = withDefaults(
     saving?: boolean;
     submitText?: string;
     dirtyHint?: boolean;
+    /** The departments the report may be charged to, main first; the picker shows only when there is a choice. */
+    departments?: ReportDepartmentOption[];
   }>(),
-  { initial: null, disabled: false, saving: false, submitText: 'Save changes', dirtyHint: true },
+  { initial: null, disabled: false, saving: false, submitText: 'Save changes', dirtyHint: true, departments: () => [] },
 );
 
 const emit = defineEmits<{ submit: [input: ReportHeaderInput] }>();
@@ -28,6 +30,7 @@ const blank = (): ReportHeaderInput => ({
   dateFrom: null,
   dateTo: null,
   revolvingFundAmount: 0,
+  departmentId: null,
 });
 
 // Deep copy that works on Vue reactive proxies (structuredClone throws DataCloneError on a Proxy).
@@ -68,6 +71,14 @@ watch(
 );
 
 const isDirty = computed(() => JSON.stringify(form) !== snapshot);
+const showDepartment = computed(() => props.departments.length > 1);
+// No choice made yet means the main department, listed first.
+const department = computed({
+  get: () => form.departmentId ?? props.departments[0]?.id ?? null,
+  set: (value: number | null) => {
+    form.departmentId = value;
+  },
+});
 const showRevolving = computed(() => usesRevolvingFund(form.reportType));
 const showCash = computed(() => usesCashAdvance(form.reportType));
 
@@ -103,6 +114,17 @@ defineExpose({ isDirty });
           maxlength="300"
           counter
           hint="Printed on the R47 as the report purpose."
+          persistent-hint
+        />
+      </v-col>
+      <v-col v-if="showDepartment" cols="12" md="8">
+        <v-select
+          v-model="department"
+          :items="departments"
+          item-title="name"
+          item-value="id"
+          label="Department"
+          hint="The department this report is for. Its approvers sign it."
           persistent-hint
         />
       </v-col>

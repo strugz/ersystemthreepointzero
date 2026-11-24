@@ -46,7 +46,17 @@ const blank = (): SystemSettingsInput => ({
   loginMaxFailedAttempts: LOCKOUT.attempts.default,
   loginLockoutMinutes: LOCKOUT.minutes.default,
   financeRules: blankFinanceRules(),
+  multiDepartment: { byName: 'DepartmentWins', rates: 'MainDepartment' },
 });
+
+const BY_NAME_ITEMS = [
+  { value: 'DepartmentWins', title: "The other department's approvers" },
+  { value: 'ByNameWins', title: 'The by-name approver, for every report' },
+];
+const RATES_ITEMS = [
+  { value: 'MainDepartment', title: "The employee's main department" },
+  { value: 'ReportDepartment', title: "The report's department" },
+];
 
 // Same defaults as the server (Domain FinanceRuleSet.Default); also what an API older than the Finance rules is shown.
 function blankFinanceRules(): FinanceRules {
@@ -167,6 +177,8 @@ function load(value: SystemSettings | null) {
       loginLockoutMinutes: value.loginLockoutMinutes ?? LOCKOUT.minutes.default,
       // And for an API older than the Finance rules.
       financeRules: { ...blankFinanceRules(), ...value.financeRules },
+      // And for an API older than the multi-department rules.
+      multiDepartment: { ...blank().multiDepartment, ...value.multiDepartment },
     } satisfies SystemSettingsInput);
   }
   snapshot = JSON.stringify(form);
@@ -264,6 +276,7 @@ function submit() {
   for (const f of FORMAT_FIELDS) {
     out.r47Format[f.key] = form.r47Format[f.key].trim();
   }
+  out.multiDepartment = { ...form.multiDepartment };
   emit('submit', out);
 }
 
@@ -295,6 +308,36 @@ defineExpose({ isDirty });
           </v-col>
           <v-col cols="12" sm="6" class="d-flex align-center">
             <v-switch v-model="form.level2AlwaysRequired" color="primary" label="Always require Level 2 approval" hide-details :error-messages="fieldErrors('level2AlwaysRequired')" />
+          </v-col>
+        </v-row>
+      </div>
+    </v-card>
+
+    <v-card v-show="shows('approvals')" class="mb-4">
+      <div class="card-h"><span class="card-t">Reports for other departments</span></div>
+      <div class="pa-4">
+        <p class="text-body-2 text-medium-emphasis mb-3">
+          For employees allowed on the user form to file for other departments. Such a report goes to that department's approvers;
+          reports already filed keep their approvers.
+        </p>
+        <v-row dense>
+          <v-col cols="12" sm="6">
+            <v-select
+              v-model="form.multiDepartment.byName"
+              :items="BY_NAME_ITEMS"
+              label="If the employee has a by-name approver, who signs"
+              hint="A by-name approver always signs main-department reports"
+              persistent-hint
+              :error-messages="fieldErrors('multiDepartment.byName')"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-select
+              v-model="form.multiDepartment.rates"
+              :items="RATES_ITEMS"
+              label="Rates (meals, lodging) come from"
+              :error-messages="fieldErrors('multiDepartment.rates')"
+            />
           </v-col>
         </v-row>
       </div>

@@ -206,6 +206,11 @@ export interface ExpenseReportDetail {
   finance?: FinanceSummary | null;
   /** Present when there are requests or the viewer (Finance) may raise one. */
   verification?: VerificationPanel | null;
+  /** The report's department: the filed one, else the one it would file under. Absent from an older API. */
+  departmentId?: number | null;
+  departmentName?: string | null;
+  /** The employee charged it to one of their other departments, whose signatories approve it. */
+  chargedToOtherDepartment?: boolean;
 }
 
 export interface FileReportResult {
@@ -221,6 +226,15 @@ export interface ReportHeaderInput {
   dateFrom: string | null;
   dateTo: string | null;
   revolvingFundAmount: number;
+  /** One of the employee's departments; null on create is the main one, on update keeps the current one. */
+  departmentId?: number | null;
+}
+
+/** A department the employee may charge a report to (main first). */
+export interface ReportDepartmentOption {
+  id: number;
+  code: string | null;
+  name: string;
 }
 
 export interface SaveExpenseLineInput {
@@ -307,6 +321,8 @@ export interface FilingReadiness {
   fleetCardGasReasons?: string[] | null;
   /** Fleet card holders may type another reason. */
   fleetCardOtherReasonAllowed?: boolean;
+  /** The departments a report may be charged to, main first; more than one only when the account allows it. */
+  departments?: ReportDepartmentOption[] | null;
 }
 
 export interface RequiredDocument {

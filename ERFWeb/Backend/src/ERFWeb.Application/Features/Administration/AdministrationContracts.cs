@@ -5,6 +5,7 @@ using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Authentication;
 using ERFWeb.Domain.Expenses;
 using ERFWeb.Domain.Reporting;
+using ERFWeb.Domain.Scope;
 
 namespace ERFWeb.Application.Features.Administration;
 
@@ -71,7 +72,12 @@ public sealed record UserDetailDto(
     SignatureStatus SignatureStatus = SignatureStatus.None,
     DateTimeOffset? SignatureApprovedAt = null,
     string? SignatureApprovedByName = null,
-    bool HasFleetCard = false);
+    bool HasFleetCard = false,
+    bool MultiDepartmentEnabled = false,
+    IReadOnlyList<DepartmentRefDto>? OtherDepartments = null);
+
+/// <summary>A department named on an account (the other departments a report may be charged to).</summary>
+public sealed record DepartmentRefDto(long Id, string Name);
 
 public sealed record UserListQuery : PagedRequest
 {
@@ -94,7 +100,9 @@ public sealed record CreateUserRequest(
     bool WorkWithEnabled,
     string? CrmEmployeeId = null,
     string? R47ReviewedBy = null,
-    bool HasFleetCard = false);
+    bool HasFleetCard = false,
+    bool MultiDepartmentEnabled = false,
+    IReadOnlyList<long>? OtherDepartmentIds = null);
 
 public sealed record UpdateUserRequest(
     string FullName,
@@ -108,7 +116,9 @@ public sealed record UpdateUserRequest(
     uint RowVersion,
     string? CrmEmployeeId = null,
     string? R47ReviewedBy = null,
-    bool? HasFleetCard = null);
+    bool? HasFleetCard = null,
+    bool? MultiDepartmentEnabled = null,
+    IReadOnlyList<long>? OtherDepartmentIds = null);
 
 public sealed record SetUserActiveRequest(bool IsActive, uint RowVersion);
 
@@ -240,7 +250,8 @@ public sealed record SystemSettingsDto(
     R47Format R47Format,
     int LoginMaxFailedAttempts,
     int LoginLockoutMinutes,
-    FinanceRuleSet FinanceRules);
+    FinanceRuleSet FinanceRules,
+    MultiDepartmentSettings MultiDepartment);
 
 public sealed record UpdateSystemSettingsRequest(
     decimal Level2ThresholdAmount,
@@ -260,7 +271,8 @@ public sealed record UpdateSystemSettingsRequest(
     R47Format? R47Format = null,
     int? LoginMaxFailedAttempts = null,
     int? LoginLockoutMinutes = null,
-    FinanceRuleSet? FinanceRules = null);
+    FinanceRuleSet? FinanceRules = null,
+    MultiDepartmentSettings? MultiDepartment = null);
 
 public interface ISystemSettingsService
 {
@@ -281,6 +293,9 @@ public interface ISystemSettingsService
 
     /// <summary>The Finance rules (weekly processing cutoff and later rules): saved values, else the defaults.</summary>
     Task<FinanceRuleSet> GetFinanceRulesAsync(CancellationToken ct = default);
+
+    /// <summary>The rules for reports charged to another department: saved values, else the defaults.</summary>
+    Task<MultiDepartmentSettings> GetMultiDepartmentSettingsAsync(CancellationToken ct = default);
 }
 
 // ---------- R47 designer ----------

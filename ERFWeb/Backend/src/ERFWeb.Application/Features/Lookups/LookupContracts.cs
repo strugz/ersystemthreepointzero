@@ -41,7 +41,8 @@ public sealed record MyFilingReadinessDto(
     IReadOnlyList<RequiredDocumentDto>? RequiredDocuments = null,
     string? WorkWithNotice = null,
     IReadOnlyList<string>? FleetCardGasReasons = null,
-    bool FleetCardOtherReasonAllowed = false);
+    bool FleetCardOtherReasonAllowed = false,
+    IReadOnlyList<DepartmentOptionDto>? Departments = null);
 
 /// <summary>A category whose lines need a document of <see cref="DocumentType"/> attached before filing (Finance rules).</summary>
 public sealed record RequiredDocumentDto(ExpenseCategory Category, AttachmentDocumentType DocumentType, string Label);
@@ -57,8 +58,11 @@ public interface ILookupService
     Task<IReadOnlyList<FareModeOptionDto>> FareModesAsync(CancellationToken ct = default);
     Task<IReadOnlyList<DepartmentOptionDto>> DepartmentsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<WorkWithOptionDto>> WorkWithAsync(string? search, CancellationToken ct = default);
-    Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, CancellationToken ct = default);
-    Task<MyFilingReadinessDto> MyFilingReadinessAsync(CancellationToken ct = default);
+    /// <summary><paramref name="departmentId"/> is the report's department; one the employee may not charge to is ignored.</summary>
+    Task<EmployeeRatesDto> MyRatesAsync(DateOnly? date = null, long? departmentId = null, CancellationToken ct = default);
+
+    /// <summary><paramref name="departmentId"/> is the report's department (null: the main one); the route is previewed for it.</summary>
+    Task<MyFilingReadinessDto> MyFilingReadinessAsync(long? departmentId = null, CancellationToken ct = default);
     Task<MyVehicleDto> MyVehicleAsync(CancellationToken ct = default);
     Task<MyVehicleDto> UpdateMyVehicleAsync(UpdateMyVehicleRequest request, CancellationToken ct = default);
 }

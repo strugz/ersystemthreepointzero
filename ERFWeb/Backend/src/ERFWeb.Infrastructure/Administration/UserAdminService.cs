@@ -4,6 +4,7 @@ using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Crm;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Administration;
+using ERFWeb.Domain.Scope;
 using ERFWeb.Infrastructure.Persistence;
 using ERFWeb.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
@@ -148,6 +149,7 @@ public sealed class UserAdminService(
             }
 
             await EnsureReferencesAsync(request.DepartmentId, request.CostCenterId, token);
+            var otherDepartmentIds = await OtherDepartmentsAsync(request.OtherDepartmentIds, request.DepartmentId, [], token);
             await EnsureCrmLinkFreeAsync(crmEmployeeId, null, token);
             var jobGrade = await JobGradeCheck.RequireAsync(db, request.JobGrade, null, token);
 
@@ -164,6 +166,8 @@ public sealed class UserAdminService(
                 CostCenterId = request.CostCenterId,
                 WorkWithEnabled = request.WorkWithEnabled,
                 HasFleetCard = request.HasFleetCard,
+                MultiDepartmentEnabled = request.MultiDepartmentEnabled,
+                OtherDepartmentIds = otherDepartmentIds,
                 CrmEmployeeId = crmEmployeeId,
                 R47ReviewedBy = Clean(request.R47ReviewedBy),
                 IsActive = true,
@@ -213,6 +217,7 @@ public sealed class UserAdminService(
             await EnsureCrmLinkFreeAsync(crmEmployeeId, userId, token);
 
             var before = Snapshot(entity);
+            var mainBefore = entity.DepartmentId;
             entity.FullName = request.FullName.Trim();
             entity.Position = Clean(request.Position);
             entity.JobGrade = await JobGradeCheck.RequireAsync(db, request.JobGrade, entity.JobGrade, token);
@@ -232,6 +237,18 @@ public sealed class UserAdminService(
             if (request.HasFleetCard is { } hasFleetCard)
             {
                 entity.HasFleetCard = hasFleetCard;
+            }
+
+            // Switching it off keeps the other departments, so switching it back on restores them.
+            if (request.MultiDepartmentEnabled is { } multiDepartmentEnabled)
+            {
+                entity.MultiDepartmentEnabled = multiDepartmentEnabled;
+            }
+
+            if (request.OtherDepartmentIds is not null || request.DepartmentId != mainBefore)
+            {
+                entity.OtherDepartmentIds = await OtherDepartmentsAsync(
+                    request.OtherDepartmentIds ?? entity.OtherDepartmentIds, request.DepartmentId, entity.OtherDepartmentIds, token);
             }
 
             db.SetRowVersion(entity, request.RowVersion);
@@ -397,6 +414,22 @@ public sealed class UserAdminService(
         }
     }
 
+    /// <summary>
+    /// The other departments as stored (never the main one). A newly named department must be active; one the
+    /// account already has stays even if since deactivated, so an ordinary profile save is never blocked by it.
+    /// </summary>
+    private async Task<List<long>> OtherDepartmentsAsync(IEnumerable<long>? requested, long? mainDepartmentId, IReadOnlyCollection<long> current, CancellationToken ct)
+    {
+        var ids = MultiDepartmentRules.NormalizeOthers(requested, mainDepartmentId);
+        var added = ids.Where(id => !current.Contains(id)).ToList();
+        if (added.Count > 0 && await db.Departments.CountAsync(d => added.Contains(d.Id) && d.IsActive, ct) != added.Count)
+        {
+            throw new ValidationException("otherDepartmentIds", "One of the other departments does not exist or is inactive.");
+        }
+
+        return ids;
+    }
+
     /// <summary>The admin picks the ID from the CRM lookup; this catches a stale or typed ID before it is stored.</summary>
     private async Task EnsureCrmEmployeeExistsAsync(string? crmEmployeeId, CancellationToken ct)
     {
@@ -482,6 +515,8 @@ public sealed class UserAdminService(
         u.CostCenterId,
         u.WorkWithEnabled,
         u.HasFleetCard,
+        u.MultiDepartmentEnabled,
+        OtherDepartmentIds = u.OtherDepartmentIds.ToList(),
         u.CrmEmployeeId,
         u.R47ReviewedBy,
     };
