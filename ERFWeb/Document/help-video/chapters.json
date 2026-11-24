@@ -15,138 +15,143 @@
   "start": 27.8
  },
  {
-  "scene": "03b-new-report-type.jpg",
+  "scene": "03c-new-report-department.jpg",
   "caption": "Step 1: Create the report",
   "start": 46.0
  },
  {
+  "scene": "03b-new-report-type.jpg",
+  "caption": "Step 1: Create the report",
+  "start": 60.6
+ },
+ {
   "scene": "04-editor.jpg",
   "caption": "Your draft report",
-  "start": 50.3
+  "start": 64.9
  },
  {
   "scene": "06-line-categories.jpg",
   "caption": "Step 2: Add expense lines",
-  "start": 62.0
+  "start": 76.6
  },
  {
   "scene": "07-meals.jpg",
   "caption": "Meals",
-  "start": 74.7
+  "start": 89.3
  },
  {
   "scene": "08-line-added.jpg",
   "caption": "After Add line",
-  "start": 91.6
+  "start": 106.2
  },
  {
   "scene": "09-transport.jpg",
   "caption": "Transportation",
-  "start": 105.7
+  "start": 120.3
  },
  {
   "scene": "20-toll.jpg",
   "caption": "Toll",
-  "start": 120.7
+  "start": 135.3
  },
  {
   "scene": "21-lodging.jpg",
   "caption": "Lodging",
-  "start": 134.4
+  "start": 149.0
  },
  {
   "scene": "22-gas-reason.jpg",
   "caption": "Gas",
-  "start": 152.5
+  "start": 167.1
  },
  {
   "scene": "23-gas.jpg",
   "caption": "Gas",
-  "start": 159.7
+  "start": 174.3
  },
  {
   "scene": "24-vehicle.jpg",
   "caption": "Vehicle emergency",
-  "start": 171.5
+  "start": 186.1
  },
  {
   "scene": "25-representation.jpg",
   "caption": "Representation",
-  "start": 184.2
+  "start": 198.8
  },
  {
   "scene": "26-sponsorship.jpg",
   "caption": "Sponsorship",
-  "start": 194.6
+  "start": 209.2
  },
  {
   "scene": "27-demo.jpg",
   "caption": "Demo",
-  "start": 201.8
+  "start": 216.4
  },
  {
   "scene": "28-others.jpg",
   "caption": "Others",
-  "start": 217.0
+  "start": 231.6
  },
  {
   "scene": "10-same-visit.jpg",
   "caption": "Same visit, other expense",
-  "start": 229.1
+  "start": 243.7
  },
  {
   "scene": "09b-crm-pick.jpg",
   "caption": "From CRM",
-  "start": 246.0
+  "start": 260.6
  },
  {
   "scene": "09c-crm-filled.jpg",
   "caption": "Line filled from CRM",
-  "start": 267.5
+  "start": 282.1
  },
  {
   "scene": "09d-or-vat-service.jpg",
   "caption": "Invoice / OR no., VAT and Service details",
-  "start": 282.5
+  "start": 297.1
  },
  {
   "scene": "11-lines.jpg",
   "caption": "Review your lines",
-  "start": 302.1
+  "start": 316.8
  },
  {
   "scene": "05-cash-advance.jpg",
   "caption": "Step 3: Record the cash advance (Liquidation only)",
-  "start": 316.3
+  "start": 330.9
  },
  {
   "scene": "11b-totals.jpg",
   "caption": "Totals",
-  "start": 333.4
+  "start": 348.0
  },
  {
   "scene": "13-receipts.jpg",
   "caption": "Step 4: Attach receipts",
-  "start": 340.5
+  "start": 355.1
  },
  {
   "scene": "12-checklist.jpg",
   "caption": "Step 5: Check and send the report",
-  "start": 355.4
+  "start": 370.0
  },
  {
   "scene": "14-file-confirm.jpg",
   "caption": "Step 5: Check and send the report",
-  "start": 369.7
+  "start": 384.3
  },
  {
   "scene": "15-my-reports.jpg",
   "caption": "After filing",
-  "start": 382.4
+  "start": 397.0
  },
  {
   "scene": "end",
   "caption": "Thank you",
-  "start": 397.3
+  "start": 411.9
  }
 ]

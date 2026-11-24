@@ -6,8 +6,8 @@ export type HelpVideoKey = 'filing' | 'approving';
  * Raise ?v= whenever a file is replaced under the same name, so browsers fetch the new copy.
  */
 export const HELP_VIDEOS: Record<HelpVideoKey, { title: string; url: string }> = {
-  filing: { title: 'Filing a report', url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide.mp4?v=1` },
-  approving: { title: 'Approving reports', url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide.mp4?v=1` },
+  filing: { title: 'Filing a report', url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide.mp4?v=2` },
+  approving: { title: 'Approving reports', url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide.mp4?v=2` },
 };
 
 /** A same-site path or an https:// URL plays; anything else (empty, http:, //host, javascript:) counts as no video. */
@@ -62,10 +62,22 @@ const filingTopics: TopicEntry[] = [
     keywords: 'new report type reimbursement liquidation revolving fund purpose period',
   },
   {
+    id: 'report-department',
+    group: 'Getting started',
+    question: 'I work for more than one department. How do I file a report for the other one?',
+    start: 46.0,
+    answer: [
+      "On New report (or Edit on Report details before you file), choose the Department this report is for. That department's approvers sign it.",
+      'You see the Department field only when your administrator has allowed it for your account; otherwise every report goes to your own department.',
+      'If filing says "Filing for other departments is off for your account", change the Department back to your main department.',
+    ],
+    keywords: 'department other department collection approver multi',
+  },
+  {
     id: 'draft',
     group: 'Getting started',
     question: 'What is a draft report?',
-    start: 50.3,
+    start: 64.9,
     answer: [
       'A new report is saved as a draft. You may edit it at any time until you file it.',
       'The ERF reference number is assigned only when the report is filed.',
@@ -76,7 +88,7 @@ const filingTopics: TopicEntry[] = [
     id: 'add-line',
     group: 'Expense lines',
     question: 'How do I add an expense line?',
-    start: 62.0,
+    start: 76.6,
     answer: [
       'Select Add expense line (Add line once the report has lines).',
       'Enter the Date; it must fall within the report period. Leave Local selected, or select Foreign for expenses abroad.',
@@ -89,7 +101,7 @@ const filingTopics: TopicEntry[] = [
     id: 'after-add-line',
     group: 'Expense lines',
     question: 'What do Go to and Stay on mean after Add line?',
-    start: 91.6,
+    start: 106.2,
     answer: [
       'The window stays open for your next expense.',
       'Go to moves the next line to the following day; Stay on keeps the same date.',
@@ -101,7 +113,7 @@ const filingTopics: TopicEntry[] = [
     id: 'same-visit',
     group: 'Expense lines',
     question: 'How do I add another expense from the same visit?',
-    start: 229.1,
+    start: 243.7,
     answer: [
       'After Add line, select Same visit, other expense.',
       'The date, Local or Foreign, Location, Work with, service details and CRM activities are kept.',
@@ -113,7 +125,7 @@ const filingTopics: TopicEntry[] = [
     id: 'from-crm',
     group: 'Expense lines',
     question: 'How do I fill a line from my CRM activities?',
-    start: 246.0,
+    start: 260.6,
     answer: [
       'Before entering any details, select From CRM.',
       'Choose the day, tick each activity the expense covers and select Use activity.',
@@ -127,7 +139,7 @@ const filingTopics: TopicEntry[] = [
     id: 'or-vat-service',
     group: 'Expense lines',
     question: 'Where do I enter the OR number, VAT and service details?',
-    start: 282.5,
+    start: 297.1,
     answer: [
       'Enter the official receipt number in Invoice / OR no.; the VAT amount can be entered only after it.',
       'Under Service details, enter the Instrument, Serial no., Service no. and Remarks. From CRM fills these in for you.',
@@ -138,7 +150,7 @@ const filingTopics: TopicEntry[] = [
     id: 'review-lines',
     group: 'Expense lines',
     question: 'How do I edit or remove a line?',
-    start: 302.1,
+    start: 316.8,
     answer: [
       'Lines appear in the Expense lines card, grouped by date and location, in the order they print on the R47.',
       'Select the pencil icon to edit a line, or the X icon to remove it.',
@@ -149,7 +161,7 @@ const filingTopics: TopicEntry[] = [
     id: 'category-Meals',
     group: 'Expense categories',
     question: 'What do I need for a Meals line?',
-    start: 74.7,
+    start: 89.3,
     answer: [
       'Select each meal you took that day (Breakfast, Lunch, Dinner, OT Meal). The amount comes from your approved rates.',
       'Enter the Location and the colleagues under Work with.',
@@ -162,7 +174,7 @@ const filingTopics: TopicEntry[] = [
     id: 'category-Transportation',
     group: 'Expense categories',
     question: 'What do I need for a Transportation line?',
-    start: 105.7,
+    start: 120.3,
     answer: [
       'Under Fare legs, select the Mode (for example Grab), then enter From, To and the Fare for each ride.',
       'Select Use as amount to copy the legs total into Amount.',
@@ -173,7 +185,7 @@ const filingTopics: TopicEntry[] = [
     id: 'category-Toll',
     group: 'Expense categories',
     question: 'What do I need for a Toll line?',
-    start: 120.7,
+    start: 135.3,
     answer: [
       'Describe the route in Particulars, for example "Toll - SLEX Alabang to Calamba".',
       'Paid the same toll more than once? Enter the amount once and set the Multiplier.',
@@ -184,7 +196,7 @@ const filingTopics: TopicEntry[] = [
     id: 'category-Parking',
     group: 'Expense categories',
     question: 'What do I need for a Parking line?',
-    start: 229.1,
+    start: 243.7,
     answer: [
       'Enter where you parked in Particulars and Location, and the Amount.',
       'If you have an official receipt, enter its Invoice / OR no. and the VAT amount.',
@@ -196,7 +208,7 @@ const filingTopics: TopicEntry[] = [
     id: 'category-Lodging',
     group: 'Expense categories',
     question: 'What do I need for a Lodging line?',
-    start: 134.4,
+    start: 149.0,
     answer: [
       'Enter the amount Per night and the number of Nights.',
       'The amount per night cannot exceed your allowed lodging rate.',
@@ -208,7 +220,7 @@ const filingTopics: TopicEntry[] = [
     id: 'category-Gas',
     group: 'Expense categories',
     question: 'What do I need for a Gas line?',
-    start: 152.5,
+    start: 167.1,
     answer: [
       'For fuel for your company-issued vehicle.',
       'Select the Reason from the list, then enter the Vehicle model and Plate no. ERFWeb builds the Particulars from them.',
@@ -220,7 +232,7 @@ const filingTopics: TopicEntry[] = [
     id: 'category-VehicleEmergency',
     group: 'Expense categories',
     question: 'What do I need for a Vehicle emergency purchase line?',
-    start: 171.5,
+    start: 186.1,
     answer: [
       'For an urgent repair or purchase for your company-issued vehicle.',
       'Select the Reason (for example Flat tire or Battery replacement), then enter the Vehicle model and Plate no.',
@@ -231,7 +243,7 @@ const filingTopics: TopicEntry[] = [
     id: 'category-Representation',
     group: 'Expense categories',
     question: 'What do I need for a Representation line?',
-    start: 184.2,
+    start: 198.8,
     answer: [
       'For meals with clients.',
       'Attach the food or meal receipt first: select Upload in the yellow notice. Add line stays unavailable until it is attached.',
@@ -242,7 +254,7 @@ const filingTopics: TopicEntry[] = [
     id: 'category-Sponsorship',
     group: 'Expense categories',
     question: 'What do I need for a Sponsorship line?',
-    start: 194.6,
+    start: 209.2,
     answer: ['Attach the approved Activity Request Form first: select Upload in the yellow notice.'],
     keywords: 'sponsorship activity request form arf',
   },
@@ -250,7 +262,7 @@ const filingTopics: TopicEntry[] = [
     id: 'category-Demo',
     group: 'Expense categories',
     question: 'What do I need for a Demo line?',
-    start: 201.8,
+    start: 216.4,
     answer: [
       'Attach the ISO-registered attendance sheet (form R94) first: select Upload in the yellow notice.',
       'ERFWeb checks the file for the form code; for a photo or scan it asks you to confirm.',
@@ -261,7 +273,7 @@ const filingTopics: TopicEntry[] = [
     id: 'category-Others',
     group: 'Expense categories',
     question: 'When do I use Others?',
-    start: 217.0,
+    start: 231.6,
     answer: [
       'For a work expense that fits no other category, such as a courier fee.',
       'Describe it clearly in Particulars. No document is required.',
@@ -272,7 +284,7 @@ const filingTopics: TopicEntry[] = [
     id: 'cash-advance',
     group: 'Cash advance and receipts',
     question: 'How do I record a cash advance?',
-    start: 316.3,
+    start: 330.9,
     answer: [
       'For a Liquidation of Cash Advance only.',
       'Under Cash advance received, select Add advance. Enter the Date, Amount, Reference document (for example Check Voucher) and Ref. no.',
@@ -284,7 +296,7 @@ const filingTopics: TopicEntry[] = [
     id: 'totals',
     group: 'Cash advance and receipts',
     question: 'Who is the balance due to?',
-    start: 333.4,
+    start: 348.0,
     answer: ['The top of the report shows the total expenses, the cash advance and to whom the balance is due (you or MDMPI).'],
     keywords: 'balance due total',
   },
@@ -292,7 +304,7 @@ const filingTopics: TopicEntry[] = [
     id: 'receipts',
     group: 'Cash advance and receipts',
     question: 'How do I attach receipts?',
-    start: 340.5,
+    start: 355.1,
     answer: [
       'In the Receipts card, select what the file is, then drop the file or tap to choose (JPEG, PNG or PDF).',
       'Keep the original receipts; Finance still needs them.',
@@ -303,7 +315,7 @@ const filingTopics: TopicEntry[] = [
     id: 'checklist',
     group: 'Filing',
     question: 'What must be complete before I file?',
-    start: 355.4,
+    start: 370.0,
     answer: [
       'Review the Before you file checklist and resolve any item that is not checked. The signature item is optional.',
       'The checklist also shows the Friday on which your report will be processed.',
@@ -314,7 +326,7 @@ const filingTopics: TopicEntry[] = [
     id: 'file-report',
     group: 'Filing',
     question: 'How do I file the report?',
-    start: 369.7,
+    start: 384.3,
     answer: [
       'Select File report. ERFWeb shows the total and the approver.',
       'Select File report again to submit it. Once filed, the expenses can no longer be changed.',
@@ -325,7 +337,7 @@ const filingTopics: TopicEntry[] = [
     id: 'after-filing',
     group: 'Filing',
     question: 'What happens after I file?',
-    start: 382.4,
+    start: 397.0,
     answer: [
       'The report appears under My reports with its ERF reference number and the status For Approval.',
       'ERFWeb notifies you by text message and email when it is approved or returned.',
@@ -369,10 +381,21 @@ const approvingTopics: TopicEntry[] = [
     keywords: 'review page totals details lines',
   },
   {
+    id: 'approve-other-department',
+    group: 'Reviewing a report',
+    question: 'Why did I get a report from someone outside my department?',
+    start: 45.2,
+    answer: [
+      "Some employees work for more than one department and charge a report to the department it is for. That department's approvers sign it.",
+      'The review page shows the department next to the report type, and Report details shows it as "other department".',
+    ],
+    keywords: 'department other department charged employee outside',
+  },
+  {
     id: 'approve-receipts',
     group: 'Reviewing a report',
     question: 'How do I check the receipts against the lines?',
-    start: 72.2,
+    start: 84.4,
     answer: [
       'Select Check receipts side by side. The lines are on the left and the receipt on the right.',
       'Use the up and down arrow keys to move between lines and the left and right arrow keys to move between receipts. You can zoom, rotate, open or download a receipt, and Return or Approve from this window.',
@@ -383,7 +406,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-crm',
     group: 'Reviewing a report',
     question: 'How do I use the CRM calendar?',
-    start: 93.3,
+    start: 105.5,
     answer: [
       "Before you approve, compare the employee's CRM activities and leave, day by day, with the expense lines.",
       'A warning appears when an expense line falls on a leave or holiday day.',
@@ -394,7 +417,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-steps',
     group: 'Reviewing a report',
     question: 'Where do I see the approval steps?',
-    start: 114.0,
+    start: 126.2,
     answer: ['The Approval card shows each step in order with its status. The Receipts card lists the files the employee attached.'],
     keywords: 'approval steps timeline status receipts',
   },
@@ -402,7 +425,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-approve',
     group: 'Deciding',
     question: 'How do I approve a report?',
-    start: 123.2,
+    start: 135.3,
     answer: [
       'Select Approve, add a note if you wish, and select Approve again.',
       'Line amounts lock once the report has its first approval. After the Level 1 approves, the report moves to the Level 2.',
@@ -413,7 +436,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-return',
     group: 'Deciding',
     question: 'How do I return a report for correction?',
-    start: 136.0,
+    start: 148.2,
     answer: [
       'Select Return and state what the employee should fix (required).',
       'The employee corrects the report and files it again; approval restarts from the first approver.',
@@ -424,7 +447,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-reject',
     group: 'Deciding',
     question: 'When should I reject instead of return?',
-    start: 148.4,
+    start: 160.6,
     answer: [
       'Reject only when the report must not be paid at all. The reason is required and rejection is final: the report cannot be filed again.',
       'Use Return whenever the employee can correct the report.',
@@ -435,7 +458,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-r47',
     group: 'Deciding',
     question: 'Can I approve from the R47 PDF?',
-    start: 162.3,
+    start: 174.5,
     answer: ['Yes. Select R47 PDF on the review page; the form shows exactly as it prints, with Approve at the top right.'],
     keywords: 'r47 pdf print approve',
   },
@@ -443,7 +466,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-acted',
     group: 'Deciding',
     question: 'Where do I see the reports I already acted on?',
-    start: 173.1,
+    start: 185.3,
     answer: ['The Acted on tab on the Approvals page lists the reports you approved, returned or rejected, with your action and its date.'],
     keywords: 'acted on history',
   },
@@ -452,7 +475,7 @@ const approvingTopics: TopicEntry[] = [
     level: 'Level 1',
     group: 'Level 1 and Level 2',
     question: 'How do I lower a line amount?',
-    start: 181.2,
+    start: 193.4,
     answer: [
       'Only the current Level 1, before the first approval, can lower a line.',
       'Select the lower amount icon on the line, or Lower this amount in the receipt check. Enter the new amount, pick or type a reason, and select Lower amount.',
@@ -465,7 +488,7 @@ const approvingTopics: TopicEntry[] = [
     level: 'Level 2',
     group: 'Level 1 and Level 2',
     question: 'What does You can override mean?',
-    start: 202.2,
+    start: 214.4,
     answer: [
       'A Level 2 sees a report after its Level 1 approves it, marked Your turn.',
       'A report still waiting for its Level 1 is marked You can override.',
@@ -477,7 +500,7 @@ const approvingTopics: TopicEntry[] = [
     level: 'Level 2',
     group: 'Level 1 and Level 2',
     question: 'How do I approve without the Level 1?',
-    start: 213.0,
+    start: 225.1,
     answer: [
       'Open the report, select Override, state why, and select Override and approve.',
       'The Level 1 step is marked Overridden, and the reason is kept in the audit trail.',
@@ -488,7 +511,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-final',
     group: 'Level 1 and Level 2',
     question: 'What happens after the final approval?',
-    start: 230.3,
+    start: 242.5,
     answer: [
       'The report is approved and goes to Finance, which waits for the original receipts.',
       'Gas and vehicle emergency lines may also be checked by an Expense Verifier.',
@@ -500,7 +523,7 @@ const approvingTopics: TopicEntry[] = [
     level: 'Level 2',
     group: 'Level 1 and Level 2',
     question: 'How do I decide on a Finance query?',
-    start: 244.9,
+    start: 257.1,
     answer: [
       'When an Expense Verifier cannot verify a line, Finance may ask the Level 2 to decide. The query appears under Queries.',
       'Open the report, select Decide, and choose Let it through, Return for correction or Reject the report.',
@@ -511,7 +534,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-delegate',
     group: 'Leave and reports',
     question: 'How do I name a delegate while I am on leave?',
-    start: 262.2,
+    start: 274.4,
     answer: [
       'On Delegations, select New delegation, choose a delegate of your level or higher, set the dates and a reason, and select Save.',
       'The delegate approves, returns or rejects in your place, stamped "on behalf of" you. A delegation lasts at most 90 days; rates and scope are never delegated.',
@@ -523,7 +546,7 @@ const approvingTopics: TopicEntry[] = [
     level: 'Level 2',
     group: 'Leave and reports',
     question: 'How do I name a delegate for a Level 1?',
-    start: 289.3,
+    start: 301.5,
     answer: ['In New delegation, choose A Level 1 I am over, then select the Level 1 and the delegate.'],
     keywords: 'delegation level 1 i am over',
   },
@@ -531,7 +554,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-budgets',
     group: 'Leave and reports',
     question: 'What does the Budgets page show?',
-    start: 299.4,
+    start: 311.6,
     answer: [
       "Each department's yearly budget against what its employees spent, for the departments in your scope. It is for monitoring only.",
       'If no cost center is shown, ask the System Administrator to set one up.',
@@ -542,7 +565,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-summary',
     group: 'Leave and reports',
     question: 'How do I see and export a summary of expenses?',
-    start: 314.5,
+    start: 326.7,
     answer: [
       'On Summary, choose Reports I sign for, set the dates and the department, or use This month or Last month.',
       'Select Export for a CSV file (Excel) or a PDF.',
@@ -553,7 +576,7 @@ const approvingTopics: TopicEntry[] = [
     id: 'approve-notifications',
     group: 'Leave and reports',
     question: 'Which notifications do I receive?',
-    start: 336.2,
+    start: 348.4,
     answer: [
       'A text message and an email when a report is filed for you.',
       'Where reminders are enabled, a reminder when a report waits too long.',

@@ -10,7 +10,9 @@ SCENES = [
      "You can search by employee, purpose or reference number, and export the list as a CSV file. Select a report to open it."),
     ("a-03-review-top.jpg", "Review the report",
      "The review page shows the totals and the report details. Your actions are at the top right: R47 PDF, Reject, Return and Approve. "
-     "Before the first approval, a notice reminds the Level 1 that a line amount can still be lowered."),
+     "Before the first approval, a notice reminds the Level 1 that a line amount can still be lowered. "
+     "Next to the report type you see the department the report is for. "
+     "An employee who works for more than one department can charge a report to another department, and it then comes to that department's approvers."),
     ("a-04-lines.jpg", "Check the expense lines",
      "Review each expense line by date and location. Select Check receipts side by side to compare every line with its receipt."),
     ("a-07-check-receipts.jpg", "Check receipts side by side",

@@ -22,106 +22,106 @@
  {
   "scene": "a-04-lines.jpg",
   "caption": "Check the expense lines",
-  "start": 62.6
+  "start": 74.8
  },
  {
   "scene": "a-07-check-receipts.jpg",
   "caption": "Check receipts side by side",
-  "start": 72.2
+  "start": 84.4
  },
  {
   "scene": "a-05-crm-calendar.jpg",
   "caption": "CRM calendar",
-  "start": 93.3
+  "start": 105.5
  },
  {
   "scene": "a-06-timeline-receipts.jpg",
   "caption": "Approval steps and receipts",
-  "start": 114.0
+  "start": 126.2
  },
  {
   "scene": "a-09-approve-dialog.jpg",
   "caption": "Approve",
-  "start": 123.2
+  "start": 135.3
  },
  {
   "scene": "a-10-return-dialog.jpg",
   "caption": "Return",
-  "start": 136.0
+  "start": 148.2
  },
  {
   "scene": "a-11-reject-dialog.jpg",
   "caption": "Reject",
-  "start": 148.4
+  "start": 160.6
  },
  {
   "scene": "a-12-r47-approve.jpg",
   "caption": "Approve from the R47 PDF",
-  "start": 162.3
+  "start": 174.5
  },
  {
   "scene": "a-13-acted-on.jpg",
   "caption": "Acted on",
-  "start": 173.1
+  "start": 185.3
  },
  {
   "scene": "a-08-lower-amount.jpg",
   "caption": "Level 1 only: lower a line amount",
-  "start": 181.2
+  "start": 193.4
  },
  {
   "scene": "a-19-l2-inbox.jpg",
   "caption": "Level 2: your approvals",
-  "start": 202.2
+  "start": 214.4
  },
  {
   "scene": "a-23-override.jpg",
   "caption": "Level 2 only: override a Level 1",
-  "start": 213.0
+  "start": 225.1
  },
  {
   "scene": "a-22-final-approved.jpg",
   "caption": "Final approval",
-  "start": 230.3
+  "start": 242.5
  },
  {
   "scene": "a-20-queries.jpg",
   "caption": "Level 2 only: Queries",
-  "start": 244.9
+  "start": 257.1
  },
  {
   "scene": "a-14-delegations.jpg",
   "caption": "Delegations",
-  "start": 262.2
+  "start": 274.4
  },
  {
   "scene": "a-15-new-delegation.jpg",
   "caption": "New delegation",
-  "start": 275.2
+  "start": 287.4
  },
  {
   "scene": "a-21-l2-delegation.jpg",
   "caption": "Level 2 only: delegate for a Level 1",
-  "start": 289.3
+  "start": 301.5
  },
  {
   "scene": "a-16-budgets.jpg",
   "caption": "Budgets",
-  "start": 299.4
+  "start": 311.6
  },
  {
   "scene": "a-17-summary.jpg",
   "caption": "Expense summary",
-  "start": 314.5
+  "start": 326.7
  },
  {
   "scene": "a-18-summary-export.jpg",
   "caption": "Export",
-  "start": 329.1
+  "start": 341.3
  },
  {
   "scene": "end",
   "caption": "Thank you",
-  "start": 336.2
+  "start": 348.4
  }
 ]
