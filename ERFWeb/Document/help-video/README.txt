@@ -37,7 +37,7 @@ Steps
   6. Bump the SPA version and deploy as usual (README "Versions" rule).
 
 Voice: en-US-AndrewNeural, rate -8%. Video: 1280x720 at 5 fps (H.264 CRF 30), mono AAC 32 kbps;
-about 3.8 MB for the 6:45 filing video and 3.1 MB for the 5:54 approving video. Keep them small:
+about 4.0 MB for the 7:00 filing video and 3.2 MB for the 6:06 approving video. Keep them small:
 users on slow or mobile links download only what they play.
 
 Test data for the approving video (2026-11-24, kept for the Expense Verifier and Finance videos):

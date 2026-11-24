@@ -9,6 +9,9 @@ SCENES = [
      "First, select the report type. Select Reimbursement when the company owes you the full amount. "
      "Select Liquidation of Cash Advance when you received money before your trip. "
      "Then enter the Date from and the Date to. ERFWeb fills in the purpose, which you may edit."),
+    ("03c-new-report-department.jpg", "Step 1: Create the report",
+     "If you work for more than one department, and your administrator has allowed it, choose the Department this report is for. "
+     "The approvers of that department will sign it. If you do not see this field, the report goes to your own department."),
     ("03b-new-report-type.jpg", "Step 1: Create the report",
      "When the details are correct, select Create report."),
     ("04-editor.jpg", "Your draft report",

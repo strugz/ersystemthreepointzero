@@ -19,6 +19,7 @@ BOXES = {
     "02-dashboard.jpg": [NAME_WIDE, AVATAR, (204, 114, 274, 146), (100, 352, 362, 372)],
     "03-new-report.jpg": [NAME_NEW, AVATAR],
     "03b-new-report-type.jpg": [NAME_NEW, AVATAR],
+    "03c-new-report-department.jpg": [NAME_NEW, AVATAR],
     "04-editor.jpg": [NAME_EDITOR, AVATAR],
     "05-cash-advance.jpg": [NAME_EDITOR, AVATAR],
     "06-line-categories.jpg": [AVATAR],
@@ -40,13 +41,12 @@ BOXES = {
 # "Approving reports" video (prefix a-), captured at a 1200x675 viewport.
 A_HEAD_REVIEW = (358, 10, 452, 32)
 A_HEAD_LIST = (636, 10, 734, 32)
-A_TITLE = (72, 60, 272, 86)
 A_ACTIVITIES_TOP = (194, 80, 430, 170)
 A_TIMELINE = (106, 222, 200, 274)
 BOXES.update({
     "a-01-dashboard.jpg": [(550, 10, 650, 32), (180, 96, 268, 126), (86, 288, 200, 318), (86, 331, 200, 361), (86, 374, 200, 404)],
     "a-02-inbox.jpg": [A_HEAD_LIST, (80, 168, 136, 198), (166, 168, 240, 224), (166, 234, 240, 290), (166, 300, 240, 356)],
-    "a-03-review-top.jpg": [A_HEAD_REVIEW, A_TITLE],
+    "a-03-review-top.jpg": [A_HEAD_REVIEW, (72, 60, 188, 86)],
     "a-04-lines.jpg": [A_HEAD_REVIEW, (152, 338, 304, 354)],
     "a-05-crm-calendar.jpg": [A_HEAD_REVIEW, (194, 200, 430, 450)],
     "a-06-timeline-receipts.jpg": [A_HEAD_REVIEW, A_ACTIVITIES_TOP, A_TIMELINE],
