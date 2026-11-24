@@ -18,9 +18,10 @@ import ReportDetailsCard from '@/features/expenses/components/ReportDetailsCard.
 import ExpenseLinesTable from '@/features/expenses/components/ExpenseLinesTable.vue';
 import CashAdvancesCard from '@/features/expenses/components/CashAdvancesCard.vue';
 import AttachmentsPanel from '@/features/expenses/components/AttachmentsPanel.vue';
+import ReceiptCheckDialog from '@/features/expenses/components/ReceiptCheckDialog.vue';
 import ApprovalTimeline from '@/features/expenses/components/ApprovalTimeline.vue';
 import FinanceSummaryCard from '@/features/expenses/components/FinanceSummaryCard.vue';
-import type { ExpenseLine, ExpenseReportDetail } from '@/features/expenses/types';
+import type { Attachment, ExpenseLine, ExpenseReportDetail } from '@/features/expenses/types';
 import { approvalsApi } from '@/features/approvals/api';
 import { approvalActionCopy } from '@/features/approvals/labels';
 import ApprovalActionDialog from '@/features/approvals/components/ApprovalActionDialog.vue';
@@ -91,6 +92,15 @@ const hasActions = computed(() => {
   return !!r && (r.canApprove || r.canReturn || r.canReject || r.canOverride);
 });
 
+// ---- receipts side by side with the lines ------------------------------------
+const checking = ref(false);
+const checkAttachmentId = ref<number | null>(null);
+
+function openCheck(attachment: Attachment | null = null) {
+  checkAttachmentId.value = attachment?.id ?? null;
+  checking.value = true;
+}
+
 // ---- approve / return / reject / override -----------------------------------
 const action = ref<ApprovalActionKind | null>(null);
 const acting = ref(false);
@@ -116,6 +126,7 @@ async function confirmAction(note: string | null) {
         : approvalActionCopy[kind].done,
     );
     if (result.status !== 'ForApproval') {
+      checking.value = false;
       await router.push({ name: 'approvals' });
     }
   } catch (err) {
@@ -266,6 +277,7 @@ async function saveAdjust(amount: number, reason: string) {
           <v-card min-width="220" class="pa-1">
             <v-list density="compact" class="py-0">
               <v-list-item prepend-icon="mdi-printer-outline" title="R47 PDF" :to="pdfLink" />
+              <v-list-item v-if="report.attachments.length" prepend-icon="mdi-file-compare" title="Check receipts" @click="openCheck()" />
               <v-list-item v-if="review?.canOverride" prepend-icon="mdi-debug-step-over" title="Override Level 1" @click="startAction('override')" />
               <v-list-item v-if="review?.canReject" prepend-icon="mdi-close-octagon-outline" title="Reject" base-color="error" @click="startAction('reject')" />
             </v-list>
@@ -318,7 +330,20 @@ async function saveAdjust(amount: number, reason: string) {
               <span class="card-t">Expense lines</span>
               <span class="card-meta">{{ report.lines.length }} line{{ report.lines.length === 1 ? '' : 's' }}</span>
             </div>
-            <span v-if="compact" class="mono card-t">{{ formatMoney(report.totalAmount) }}</span>
+            <div class="d-flex align-center ga-2">
+              <v-btn
+                v-if="report.attachments.length && report.lines.length"
+                class="press"
+                size="small"
+                variant="tonal"
+                color="primary"
+                prepend-icon="mdi-file-compare"
+                @click="openCheck()"
+              >
+                {{ compact ? 'Receipts' : 'Check receipts side by side' }}
+              </v-btn>
+              <span v-if="compact" class="mono card-t">{{ formatMoney(report.totalAmount) }}</span>
+            </div>
           </div>
           <ExpenseLinesTable
             :lines="report.lines"
@@ -345,7 +370,7 @@ async function saveAdjust(amount: number, reason: string) {
         <div v-if="!lgAndUp" class="review__two-up">
           <ApprovalTimeline :steps="report.approvalSteps" :status="report.status" :cycle="report.currentCycle" />
           <FinanceSummaryCard v-if="report.finance" :finance="report.finance" />
-          <AttachmentsPanel class="review__span" :report-id="report.id" :attachments="report.attachments" :editable="false" />
+          <AttachmentsPanel class="review__span" :report-id="report.id" :attachments="report.attachments" :editable="false" viewable @view="openCheck" />
         </div>
       </div>
 
@@ -353,8 +378,17 @@ async function saveAdjust(amount: number, reason: string) {
         <ReportTotalsCard :total="report.totalAmount" :cash-advance="report.cashAdvanceTotal" />
         <ApprovalTimeline :steps="report.approvalSteps" :status="report.status" :cycle="report.currentCycle" />
         <FinanceSummaryCard v-if="report.finance" :finance="report.finance" />
-        <AttachmentsPanel :report-id="report.id" :attachments="report.attachments" :editable="false" />
+        <AttachmentsPanel :report-id="report.id" :attachments="report.attachments" :editable="false" viewable @view="openCheck" />
       </aside>
+
+      <ReceiptCheckDialog
+        v-model="checking"
+        :report="report"
+        :start-attachment-id="checkAttachmentId"
+        @approve="startAction('approve')"
+        @return="startAction('return')"
+        @adjust="startAdjust"
+      />
 
       <ApprovalActionDialog :action="action" :loading="acting" :error="actionError" @close="action = null" @confirm="confirmAction" />
       <VerificationActionDialog

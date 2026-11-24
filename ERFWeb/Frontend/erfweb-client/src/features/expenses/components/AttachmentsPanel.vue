@@ -4,17 +4,19 @@ import { formatBytes } from '@/shared/format';
 import { hasCamera } from '@/shared/images';
 import AppCameraCapture from '@/shared/ui/AppCameraCapture.vue';
 import { expensesApi } from '../api';
-import { documentTypeLabel, documentTypeOptions, hasFormCode } from '../labels';
+import { documentTypeLabel, documentTypeOptions, formCodeText, formCodeTitle, hasFormCode } from '../labels';
 import type { Attachment, AttachmentDocumentType } from '../types';
 
+// `viewable`: a reviewer's panel; a file opens in the side-by-side check (emits `view`) instead of a new tab.
 const props = withDefaults(
-  defineProps<{ reportId: string; attachments: Attachment[]; editable: boolean; uploading?: boolean; busyId?: number | null }>(),
-  { uploading: false, busyId: null },
+  defineProps<{ reportId: string; attachments: Attachment[]; editable: boolean; viewable?: boolean; uploading?: boolean; busyId?: number | null }>(),
+  { viewable: false, uploading: false, busyId: null },
 );
 
 const emit = defineEmits<{
   upload: [file: File, documentType: AttachmentDocumentType];
   remove: [attachment: Attachment];
+  view: [attachment: Attachment];
 }>();
 
 // What the next file is; Sponsorship and Demo lines need their document uploaded with its type.
@@ -46,14 +48,6 @@ function onDrop(event: DragEvent) {
   }
 }
 
-// Form code check of an attendance sheet (R94): Finance looks closer at the ones the employee only confirmed.
-const formCodeText = { Found: 'Code found', Confirmed: 'Confirmed by employee', None: 'Not checked' } as const;
-const formCodeTitle = {
-  Found: 'The form code was found in the PDF.',
-  Confirmed: 'A photo or scan: the employee confirmed it is the form.',
-  None: 'Uploaded before the form code check; upload it again so it counts.',
-} as const;
-
 function icon(contentType: string): string {
   return contentType === 'application/pdf' ? 'mdi-file-pdf-box' : 'mdi-file-image-outline';
 }
@@ -70,7 +64,10 @@ function icon(contentType: string): string {
       <li v-if="attachments.length === 0" class="files__none text-body-2 text-medium-emphasis">No scans attached yet.</li>
       <li v-for="(a, i) in attachments" :key="a.id" class="file stagger-in" :style="{ '--i': Math.min(i, 8) }">
         <v-icon :icon="icon(a.contentType)" size="18" class="file__icon" />
-        <a class="file__name" :href="expensesApi.attachmentUrl(props.reportId, a.id)" target="_blank" rel="noopener" :title="`${a.uploadedBy}`">
+        <button v-if="viewable" type="button" class="file__name file__name--btn" :title="`${a.uploadedBy}`" @click="emit('view', a)">
+          {{ a.fileName }}
+        </button>
+        <a v-else class="file__name" :href="expensesApi.attachmentUrl(props.reportId, a.id)" target="_blank" rel="noopener" :title="`${a.uploadedBy}`">
           {{ a.fileName }}
         </a>
         <span v-if="a.documentType && a.documentType !== 'Receipt'" class="pill pill--neutral">{{ documentTypeLabel[a.documentType] }}</span>
@@ -177,6 +174,14 @@ function icon(contentType: string): string {
   white-space: nowrap;
   color: var(--ink);
   text-decoration: none;
+}
+.file__name--btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 .file__name:hover {
   text-decoration: underline;

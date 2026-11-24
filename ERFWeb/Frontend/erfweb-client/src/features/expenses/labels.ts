@@ -194,7 +194,15 @@ export const documentTypeLabel = Object.fromEntries(documentTypeOptions.map((o) 
 /** Upload types that must show an ISO form code (attendance sheet R94, Job Order R42) to count. */
 export const hasFormCode = (type: AttachmentDocumentType | null | undefined): boolean => type === 'IsoAttendanceSheet' || type === 'JobOrder';
 
-export const countedDocumentType = (a: Attachment): AttachmentDocumentType =>
+/** Form code check of an attendance sheet or Job Order: Finance looks closer at the ones the employee only confirmed. */
+export const formCodeText = { Found: 'Code found', Confirmed: 'Confirmed by employee', None: 'Not checked' } as const;
+export const formCodeTitle = {
+  Found: 'The form code was found in the PDF.',
+  Confirmed: 'A photo or scan: the employee confirmed it is the form.',
+  None: 'Uploaded before the form code check; upload it again so it counts.',
+} as const;
+
+export const countedDocumentType =(a: Attachment): AttachmentDocumentType =>
   hasFormCode(a.documentType) && !a.formCodeCheck ? 'Receipt' : (a.documentType ?? 'Receipt');
 
 /** Icon for a fare mode by its code; unknown or admin-added codes get a generic route icon. */

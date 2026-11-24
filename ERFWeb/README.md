@@ -16,6 +16,17 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-11-24
+
+- **Check receipts side by side** (not yet committed). On the review page, approvers, Expense Verifiers and
+  Finance open **Check receipts side by side** (Expense lines card) or select a file in **Receipts**: a full-screen
+  view with every expense line listed in full and one receipt previewed at a time (phones and upright tablets:
+  receipt on top, the lines below, Return and Approve in a bottom bar). Pinch or buttons to zoom, rotate, swipe or
+  ‹ › for the next receipt, ↑/↓ and ←/→ keys; PDF receipts on phones and tablets are drawn in place with pdf.js
+  (new SPA dependency `pdfjs-dist` 4.10.38, Apache-2.0, loaded only when needed); Approve, Return and Lower this
+  amount work from it. Receipts are still attached to the report, not to a line. See "Checking receipts on the
+  review page". Frontend only, SPA 0.18.0 (minor); no database script.
+
 ### 2026-11-23
 
 - **Maintenance script `unlock_user.sql`** (PR #70). Lets one account sign
@@ -839,8 +850,9 @@ order of the bands and what each prints are the controlled form and do not chang
 
 ### PDF libraries — which one to use
 
-ERFWeb has two PDF libraries, both referenced only by `ERFWeb.Infrastructure` (code under `Infrastructure/Reporting`);
-Domain, Application, the API and the SPA never reference either. QuestPDF is never removed.
+ERFWeb has two PDF libraries for making and editing PDFs, both referenced only by `ERFWeb.Infrastructure` (code under
+`Infrastructure/Reporting`); Domain, Application, the API and the SPA never reference either. The table also lists
+the two that only read PDFs. QuestPDF is never removed.
 
 | Job | Library |
 | --- | --- |
@@ -848,6 +860,7 @@ Domain, Application, the API and the SPA never reference either. QuestPDF is nev
 | **Summary and list exports** (`ExportPdfDocument`) and any new printed form or report | **QuestPDF** |
 | **Work on PDF files that already exist**: merge or append (e.g. an R47 plus PDF receipts), split, import or reorder pages, overlay on a page ERFWeb did not make, page count | **PDFsharp** (QuestPDF cannot open existing PDFs) |
 | **Read the text of an uploaded PDF** (only the attendance sheet's form code, `Infrastructure/Expenses/PdfFormCodeReader`) | **PdfPig** (Apache-2.0); PDFsharp cannot extract text |
+| **Show a PDF receipt in the browser on phones and tablets** (SPA only, `src/shared/pdfPreview.ts`; desktop frames the PDF) | **pdf.js** (`pdfjs-dist`, Apache-2.0), pinned to exactly 4.10.38: 5.x needs newer browsers than some Android phones have. Loaded only when a PDF receipt is shown, in its own chunk with its worker; scripts in a PDF never run (`isEvalSupported: false`) |
 
 Switching the R47 engine: **Rules → Expense report (R47) → Format of the R47 → PDF engine**, then **Save rules**; the
 next R47 uses it, with no restart. Nothing else changes: same URL, same layout and pagination, same signature rule.
@@ -1185,6 +1198,30 @@ Activity API for ERFWeb".
   linked employee ID (relink the account); 503 `crm_not_configured` / `crm_unavailable` as for the lookup.
 - **Not used yet.** `distanceKm`, `isOutOfTown` and the customer branch/city are always null in the CRM for
   now; the "claimed" callback to the CRM is not built.
+
+### Checking receipts on the review page
+
+Everyone who reviews a report (signatories, Expense Verifiers, Finance) can compare each expense line with the
+scans without switching tabs. **Check receipts side by side** on the **Expense lines** card (phones: **Receipts**,
+or **Check receipts** in the ⋮ menu) or a file name in the **Receipts** panel opens a full-screen view
+(`features/expenses/components/ReceiptCheckDialog.vue`): every line in R47 order, in full (date, particulars,
+amount, category, meals, location, Work with, computation, OR no. or a **No OR no.** pill, VAT, service details,
+remarks, lowered amounts and Work With warnings, with the line count and total on top), and one receipt at a time
+(`ReceiptViewer.vue`) with previous/next, zoom and rotate, document-type and form-code pills, open in a new tab and
+download. Selecting a line highlights it and offers **Lower this amount** when the viewer may lower amounts. Pictures
+and PDF pages zoom from fit to 5x: pinch (around the fingers), double-tap (on that spot; again to fit), the mouse
+wheel, or the − / % / + buttons (over the bottom-left of the receipt on phones and tablets, in the toolbar on
+desktop; % fits again); drag pans and stops at the edges, and a swipe (not zoomed) moves to the next receipt. PDF
+pages are drawn about 2400 px wide so small print stays sharp zoomed in. Keys: ↑/↓
+line, ←/→ receipt. Desktop and sideways phones and tablets show the lines left and the receipt right; upright
+phones and tablets show the receipt on top (46 % of the height, ‹ 1 / 3 › over its bottom edge, the file name and
+pills under it) and the lines below, with **Return** and **Approve** in a bottom bar. Desktop frames a PDF in the
+browser's viewer; phones and tablets cannot (Android shows a blank frame, iOS only page 1), so each page is drawn
+as an image with pdf.js (`src/shared/pdfPreview.ts`, page ‹ › for longer PDFs). **Approve**, **Return** and
+**Lower this amount** open the review page's own dialogs. Files are fetched once with the session cookie, shown
+from blob URLs (the API's `frame-ancestors` header would block a PDF framed from it) and kept for the time the view
+is open. Receipts belong to the report, not to a line, so the reviewer picks the
+file for each line. The claimant's editor still opens files in a new tab.
 
 ### CRM calendar on the review page
 
