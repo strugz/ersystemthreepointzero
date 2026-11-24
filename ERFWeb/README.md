@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-24
 
-- **Check receipts side by side** (not yet committed). On the review page, approvers, Expense Verifiers and
+- **Check receipts side by side** (PR #71). On the review page, approvers, Expense Verifiers and
   Finance open **Check receipts side by side** (Expense lines card) or select a file in **Receipts**: a full-screen
   view with every expense line listed in full and one receipt previewed at a time (phones and upright tablets:
   receipt on top, the lines below, Return and Approve in a bottom bar). Pinch or buttons to zoom, rotate, swipe or
