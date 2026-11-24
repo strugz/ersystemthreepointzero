@@ -30,6 +30,10 @@ const date = ref(todayIso());
 
 const items = computed(() => personItems(props.people));
 const personName = computed(() => props.people.find((p) => p.userId === props.result?.userId)?.fullName ?? 'This person');
+// Each category comes from the most specific profile that has it, so one person can get lines from several profiles.
+const sources = computed(() => props.result?.sources ?? []);
+const sourceName = (profileId: number) => sources.value.find((s) => s.profileId === profileId)?.profileName ?? '';
+const fromCurrent = computed(() => props.currentProfileId !== null && sources.value.some((s) => s.profileId === props.currentProfileId));
 
 function run() {
   if (userId.value === null || !date.value) return;
@@ -61,12 +65,19 @@ function run() {
           {{ personName }} has no rate profile on {{ formatDate(result.date) }}.
         </div>
         <template v-else>
-          <div class="text-body-2">
+          <div v-if="sources.length" class="text-body-2">
+            {{ personName }} gets rates from
+            <template v-for="(s, i) in sources" :key="s.profileId">
+              <template v-if="i > 0">{{ i === sources.length - 1 ? ' and ' : ', ' }}</template>
+              <strong>{{ s.profileName }}</strong> (via {{ targetTypeLabel[s.via].toLowerCase() }})</template>
+            on {{ formatDate(result.date) }}.
+          </div>
+          <div v-else class="text-body-2">
             {{ personName }} gets
             <strong>{{ result.profileName }}</strong>
             on {{ formatDate(result.date) }}<template v-if="result.via"> via {{ targetTypeLabel[result.via].toLowerCase() }}</template>.
           </div>
-          <v-chip v-if="currentProfileId !== null && result.profileId !== currentProfileId" size="x-small" label variant="tonal" color="warning" class="mt-1">
+          <v-chip v-if="currentProfileId !== null && !fromCurrent && result.profileId !== currentProfileId" size="x-small" label variant="tonal" color="warning" class="mt-1">
             A different profile
           </v-chip>
           <ul v-if="result.lines.length" class="lines mt-2">
@@ -74,7 +85,7 @@ function run() {
               <span>{{ rateKeyLabel(l.category, l.subCategory) }}</span>
               <span class="mono text-no-wrap">{{ l.currency }} {{ formatMoney(l.amount) }}</span>
               <span class="text-caption text-medium-emphasis lines__rule">
-                {{ rateTypeLabel[l.rateType] }}<template v-if="l.frequencyCap !== null"> · max {{ l.frequencyCap }}×</template><template v-if="l.requiresReceipt"> · receipt</template>
+                {{ rateTypeLabel[l.rateType] }}<template v-if="l.frequencyCap !== null"> · max {{ l.frequencyCap }}×</template><template v-if="l.requiresReceipt"> · receipt</template><template v-if="sources.length > 1"> · {{ sourceName(l.profileId) }}</template>
               </span>
             </li>
           </ul>

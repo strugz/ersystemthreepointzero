@@ -18,6 +18,12 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-24
 
+- **Rates resolve per category** (not yet committed). A person's rates no longer come from one profile: each
+  category (and meal) takes its line from the highest-ranked assignment (Individual > Grade > Department > Company)
+  whose profile has it. Before, the Lodging profiles assigned by job grade from 2026-11-19 hid the department
+  MEALS profile, so meals pre-filled ₱0 from that date. `GET /api/rates/resolve` adds `sources`; **Check who gets
+  what** lists them and names each line's profile. No database script. API 0.13.0 (minor), SPA 0.18.1 (patch);
+  deploy backend before frontend.
 - **Check receipts side by side** (PR #71). On the review page, approvers, Expense Verifiers and
   Finance open **Check receipts side by side** (Expense lines card) or select a file in **Receipts**: a full-screen
   view with every expense line listed in full and one receipt previewed at a time (phones and upright tablets:
@@ -1291,8 +1297,11 @@ are snapshotted into `approval_steps` (with `signatory_level`) so later scope ch
 A planned change adds a version and closes the open one the day before, so a report always uses the rate in force
 on its expense date. **Edit** corrects one version in place (amount, rule, receipt, cap, dates; category and meal
 stay) with a required reason, audited as `Rates.LineCorrected`; its dates may not overlap another version. Filed
-reports keep their own amounts, and the old values stay in `record_history`. A profile reaches a person by assignment, resolved Individual > Grade >
-Department > Company on the expense date. **Edit** on an assignment (`PUT /api/rates/assignments/{id}`) corrects
+reports keep their own amounts, and the old values stay in `record_history`. A profile reaches a person by assignment,
+ranked Individual > Grade > Department > Company on the expense date (latest start first within a tier). Each
+category (and meal) takes its line from the highest-ranked profile that has one in force (Domain `RateRules.ResolveLines`),
+so a grade profile with only Lodging leaves the department's Meals profile in charge of meals. **Check who gets what**
+and `GET /api/rates/resolve` (`sources`) name the profile each line came from. **Edit** on an assignment (`PUT /api/rates/assignments/{id}`) corrects
 its target or dates in place (the profile stays) with a required reason, audited as `Rates.AssignmentCorrected`;
 its period may not overlap another assignment for the same target, and it needs `backdateOverride` only when it
 changes a day before today. A change that starts before today and replaces what is in force (a new version, a correction, an assignment that ends another for the same target) needs `backdateOverride` and a reason; the first rate line for a category/meal and the first assignment for a target may start in the past freely, e.g. to cover claims from before go-live.

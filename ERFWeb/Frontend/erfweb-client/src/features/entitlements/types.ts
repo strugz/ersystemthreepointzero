@@ -237,5 +237,14 @@ export interface ResolvedRates {
   profileId: number | null;
   profileName: string | null;
   via: RateTargetType | null;
+  /** One per category; each line's profileId names the profile it came from. */
   lines: RateLine[];
+  /** The profiles the lines came from, most specific first. */
+  sources: ResolvedRateSource[];
+}
+
+export interface ResolvedRateSource {
+  profileId: number;
+  profileName: string;
+  via: RateTargetType;
 }

@@ -197,14 +197,21 @@ public sealed record EndRateAssignmentRequest(DateOnly EffectiveTo, string? Chan
 
 public sealed record RateAssignmentQuery(long? ProfileId, RateTargetType? TargetType, bool IncludeEnded);
 
-/// <summary>The profile and lines that apply to one person on one date.</summary>
+/// <summary>
+/// The lines that apply to one person on one date. Each category comes from the highest-ranked profile that has it
+/// (a line's <c>ProfileId</c> names its profile); <c>Sources</c> lists those profiles in rank order. ProfileId,
+/// ProfileName and Via are the highest-ranked assignment.
+/// </summary>
 public sealed record ResolvedRatesDto(
     long UserId,
     DateOnly Date,
     long? ProfileId,
     string? ProfileName,
     RateTargetType? Via,
-    IReadOnlyList<RateLineDto> Lines);
+    IReadOnlyList<RateLineDto> Lines,
+    IReadOnlyList<ResolvedRateSourceDto> Sources);
+
+public sealed record ResolvedRateSourceDto(long ProfileId, string ProfileName, RateTargetType Via);
 
 public interface IRateService
 {
@@ -223,7 +230,7 @@ public interface IRateService
     /// <summary>Today in the business calendar when no date is given.</summary>
     Task<ResolvedRatesDto> ResolveAsync(long userId, DateOnly? date, CancellationToken ct = default);
 
-    /// <summary>The meal and transport amounts the line editor offers, from the profile in force on the date.</summary>
+    /// <summary>The meal, transport and lodging amounts the line editor offers, as resolved for the date.</summary>
     Task<EmployeeRatesDto> EditorRatesAsync(long userId, DateOnly date, CancellationToken ct = default);
 }
 
