@@ -275,3 +275,6 @@ Web/Frontend/ersystem-web-client/.env.render
 # .claude/settings.json, .claude/skills/, and the CLAUDE.md files are committed.
 .claude/settings.local.json
 CLAUDE.local.md
+
+# graphify knowledge-graph output (generated, any folder)
+graphify-out/
