@@ -98,7 +98,11 @@ public sealed record AttachmentDto(
     AttachmentDocumentType DocumentType = AttachmentDocumentType.Receipt,
     FormCodeCheck? FormCodeCheck = null);
 
-/// <summary>The full editor model for one report. <see cref="CanEdit"/> is computed server-side.</summary>
+/// <summary>
+/// The full editor model for one report. <see cref="CanEdit"/> is computed server-side. <see cref="DepartmentId"/> is
+/// the report's department (the filed one once filed, else the charged one or the employee's main department);
+/// <see cref="ChargedToOtherDepartment"/> is true when the employee charged it to another department.
+/// </summary>
 public sealed record ExpenseReportDetailDto(
     Guid Id,
     string? ReferenceNo,
@@ -129,7 +133,10 @@ public sealed record ExpenseReportDetailDto(
     IReadOnlyList<AttachmentDto> Attachments,
     ReviewActionsDto? Review = null,
     FinanceSummaryDto? Finance = null,
-    VerificationPanelDto? Verification = null);
+    VerificationPanelDto? Verification = null,
+    long? DepartmentId = null,
+    string? DepartmentName = null,
+    bool ChargedToOtherDepartment = false);
 
 /// <summary>What the viewer may do on the report as an approver. Computed by the same rules the actions enforce.</summary>
 public sealed record ReviewActionsDto(bool CanApprove, bool CanReturn, bool CanReject, bool CanOverride, bool CanAdjustLines);
@@ -153,21 +160,27 @@ public sealed record ExpenseReportListQuery : PagedRequest
     public string? Search { get; init; }
 }
 
-/// <summary>Report header. The ERF reference number is issued by the system on first filing; cash advances are separate rows.</summary>
+/// <summary>
+/// Report header. The ERF reference number is issued by the system on first filing; cash advances are separate rows.
+/// <see cref="DepartmentId"/> charges the report to one of the employee's departments (null: the main one).
+/// </summary>
 public sealed record CreateExpenseReportRequest(
     ReportType ReportType,
     string? Purpose,
     DateOnly? DateFrom,
     DateOnly? DateTo,
-    decimal RevolvingFundAmount);
+    decimal RevolvingFundAmount,
+    long? DepartmentId = null);
 
+/// <summary><see cref="DepartmentId"/> null keeps the report's department; the main department's ID charges it there.</summary>
 public sealed record UpdateExpenseReportRequest(
     ReportType ReportType,
     string? Purpose,
     DateOnly? DateFrom,
     DateOnly? DateTo,
     decimal RevolvingFundAmount,
-    uint RowVersion);
+    uint RowVersion,
+    long? DepartmentId = null);
 
 /// <summary>Create or replace one cash advance row. <see cref="RowVersion"/> is required on update.</summary>
 public sealed record SaveCashAdvanceLineRequest(

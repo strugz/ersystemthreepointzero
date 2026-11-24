@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ERFWeb.Application.Common;
+using ERFWeb.Application.Features.Administration;
 using ERFWeb.Application.Features.Entitlements;
 using ERFWeb.Application.Features.Lookups;
 using ERFWeb.Domain;
@@ -26,6 +27,7 @@ public sealed class RateService(
     IWorkflowAuditWriter audit,
     EntitlementContext context,
     IEntitlementChangeNotifier notifier,
+    ISystemSettingsService settings,
     ILogger<RateService> logger) : IRateService
 {
     private const int MaxNameLength = 200;
@@ -509,11 +511,21 @@ public sealed class RateService(
 
     // ---------- Resolution ----------
 
-    public async Task<ResolvedRatesDto> ResolveAsync(long userId, DateOnly? on, CancellationToken ct = default)
+    public Task<ResolvedRatesDto> ResolveAsync(long userId, DateOnly? on, CancellationToken ct = default) => ResolveAsync(userId, on, null, ct);
+
+    /// <summary>A report charged to another department takes that department's rates only when the Rules page says so.</summary>
+    private async Task<ResolvedRatesDto> ResolveAsync(long userId, DateOnly? on, long? chargedDepartmentId, CancellationToken ct)
     {
         var date = on ?? context.Today;
         var subject = await context.SubjectAsync(userId, ct) ?? throw new NotFoundException("User not found.");
-        var ranked = RateRules.RankAssignments(await context.RateAssignmentsAsync(ct), subject.Rate, date);
+        var rate = subject.Rate;
+        if (MultiDepartmentRules.IsOtherDepartment(chargedDepartmentId, subject.DepartmentId))
+        {
+            var multiDepartment = await settings.GetMultiDepartmentSettingsAsync(ct);
+            rate = rate with { DepartmentId = MultiDepartmentRules.RateDepartment(multiDepartment, chargedDepartmentId, subject.DepartmentId) };
+        }
+
+        var ranked = RateRules.RankAssignments(await context.RateAssignmentsAsync(ct), rate, date);
         if (ranked.Count == 0)
         {
             return new ResolvedRatesDto(userId, date, null, null, null, [], []);
@@ -524,7 +536,7 @@ public sealed class RateService(
             .Where(l => profileIds.Contains(l.RateProfileId) && l.EffectiveFrom <= date && (l.EffectiveTo == null || l.EffectiveTo >= date))
             .Select(l => new RateLineCandidate(l.Id, l.RateProfileId, l.Category, l.SubCategory, l.RateType, l.Amount, l.RequiresReceipt, l.EffectiveFrom, l.EffectiveTo))
             .ToListAsync(ct);
-        var resolved = RateRules.ResolveLines(ranked, candidates, subject.Rate, date);
+        var resolved = RateRules.ResolveLines(ranked, candidates, rate, date);
         var lineIds = resolved.Select(r => r.Line.Id).ToList();
         var lines = await LinesAsync(l => lineIds.Contains(l.Id), ct);
 
@@ -536,9 +548,9 @@ public sealed class RateService(
         return new ResolvedRatesDto(userId, date, top.ProfileId, names[top.ProfileId], top.TargetType, lines, sources);
     }
 
-    public async Task<EmployeeRatesDto> EditorRatesAsync(long userId, DateOnly date, CancellationToken ct = default)
+    public async Task<EmployeeRatesDto> EditorRatesAsync(long userId, DateOnly date, long? chargedDepartmentId = null, CancellationToken ct = default)
     {
-        var resolved = await ResolveAsync(userId, date, ct);
+        var resolved = await ResolveAsync(userId, date, chargedDepartmentId, ct);
         decimal Amount(ExpenseCategory category, string? sub) => resolved.Lines
             .FirstOrDefault(l => l.Category == category && string.Equals(l.SubCategory ?? "", sub ?? "", StringComparison.OrdinalIgnoreCase))?.Amount ?? 0m;
 

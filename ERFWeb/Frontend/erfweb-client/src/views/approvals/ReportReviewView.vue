@@ -81,7 +81,12 @@ const pdfLink = reviewPdfLink(reportId, route.query.from);
 const subtitle = computed(() => {
   const r = report.value;
   if (!r) return '';
-  const parts = [r.employeeName, reportTypeLabel[r.reportType], r.dateFrom || r.dateTo ? `${formatDate(r.dateFrom)} – ${formatDate(r.dateTo)}` : null];
+  const parts = [
+    r.employeeName,
+    r.departmentName,
+    reportTypeLabel[r.reportType],
+    r.dateFrom || r.dateTo ? `${formatDate(r.dateFrom)} – ${formatDate(r.dateTo)}` : null,
+  ];
   return parts.filter(Boolean).join(' · ');
 });
 
@@ -300,7 +305,7 @@ async function saveAdjust(amount: number, reason: string) {
           <h1 class="page-title">{{ report.employeeName }}</h1>
           <ReportStatusChip :status="report.status" />
           <span class="text-body-2 text-medium-emphasis">
-            {{ reportTypeLabel[report.reportType] }}<span v-if="report.filedAt"> · filed {{ formatDateTime(report.filedAt) }}</span>
+            {{ reportTypeLabel[report.reportType] }}<span v-if="report.departmentName"> · {{ report.departmentName }}</span><span v-if="report.filedAt"> · filed {{ formatDateTime(report.filedAt) }}</span>
           </span>
         </div>
 

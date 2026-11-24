@@ -89,7 +89,11 @@ public sealed record RoutingResultDto(IReadOnlyList<RoutedApproverDto> Approvers
 /// <summary>Resolves the approval steps for a claimant from scope and the workflow rules.</summary>
 public interface IApprovalRouter
 {
-    Task<RoutingResultDto> RouteAsync(long claimantUserId, decimal reportTotal, DateOnly date, CancellationToken ct = default);
+    /// <summary>
+    /// <paramref name="chargedDepartmentId"/> is the other department a report is charged to (null: the main one);
+    /// that department's signatories then sign, and by-name assignments only as the Rules page says.
+    /// </summary>
+    Task<RoutingResultDto> RouteAsync(long claimantUserId, decimal reportTotal, DateOnly date, long? chargedDepartmentId = null, CancellationToken ct = default);
 }
 
 // ---------- Rate profiles ----------
@@ -230,8 +234,11 @@ public interface IRateService
     /// <summary>Today in the business calendar when no date is given.</summary>
     Task<ResolvedRatesDto> ResolveAsync(long userId, DateOnly? date, CancellationToken ct = default);
 
-    /// <summary>The meal, transport and lodging amounts the line editor offers, as resolved for the date.</summary>
-    Task<EmployeeRatesDto> EditorRatesAsync(long userId, DateOnly date, CancellationToken ct = default);
+    /// <summary>
+    /// The meal, transport and lodging amounts the line editor offers, as resolved for the date. A report charged to
+    /// another department (<paramref name="chargedDepartmentId"/>) uses that department's rates when the Rules page says so.
+    /// </summary>
+    Task<EmployeeRatesDto> EditorRatesAsync(long userId, DateOnly date, long? chargedDepartmentId = null, CancellationToken ct = default);
 }
 
 // ---------- Change notifications (spec 9.14) ----------

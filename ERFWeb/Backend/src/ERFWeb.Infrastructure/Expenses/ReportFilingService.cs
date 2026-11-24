@@ -6,6 +6,7 @@ using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Administration;
 using ERFWeb.Domain.Expenses;
+using ERFWeb.Domain.Scope;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -41,7 +42,7 @@ public sealed class ReportFilingService(
 
             var employee = await db.Users.AsNoTracking()
                 .Where(u => u.Id == report.EmployeeUserId)
-                .Select(u => new { u.FullName, u.CreatedAt, u.DepartmentId, u.HasFleetCard })
+                .Select(u => new { u.FullName, u.CreatedAt, u.DepartmentId, u.HasFleetCard, u.MultiDepartmentEnabled, u.OtherDepartmentIds })
                 .FirstAsync(token);
 
             // Spec 9.11: a newly registered employee files only after the cooling period.
@@ -51,8 +52,16 @@ public sealed class ReportFilingService(
             var lineCount = await db.ExpenseLines.CountAsync(l => l.ReportId == reportId && l.IsActive, token);
             var reportTotal = await db.ExpenseLines.Where(l => l.ReportId == reportId && l.IsActive).SumAsync(l => (decimal?)l.TotalAmount, token) ?? 0m;
 
+            // A report charged to another department files only while the account still allows that department.
+            var departmentProblem = MultiDepartmentRules.IsAllowed(report.ChargedDepartmentId, employee.DepartmentId, employee.MultiDepartmentEnabled, employee.OtherDepartmentIds)
+                ? null
+                : MultiDepartmentRules.FilingProblem(report.ChargedDepartmentId, employee.DepartmentId, employee.MultiDepartmentEnabled, employee.OtherDepartmentIds,
+                    await DepartmentNameAsync(report.ChargedDepartmentId, token), await DepartmentNameAsync(employee.DepartmentId, token));
+
             // Spec 9.3: the approvers are resolved from scope now and snapshotted, so later scope edits never re-route this report.
-            var routing = await router.RouteAsync(report.EmployeeUserId, reportTotal, calendar.Today, token);
+            var routing = departmentProblem is null
+                ? await router.RouteAsync(report.EmployeeUserId, reportTotal, calendar.Today, report.ChargedDepartmentId, token)
+                : new RoutingResultDto([], departmentProblem);
             var route = routing.Approvers;
             var cashAmount = await db.CashAdvanceLines.AsNoTracking()
                 .Where(c => c.ReportId == reportId).SumAsync(c => (decimal?)c.Amount, token) ?? 0m;
@@ -115,7 +124,7 @@ public sealed class ReportFilingService(
             report.Status = ReportStatus.ForApproval;
 
             // The department's cost center counts this report's spending; snapshotted so a later move does not shift it.
-            report.DepartmentId = employee.DepartmentId;
+            report.DepartmentId = MultiDepartmentRules.Effective(report.ChargedDepartmentId, employee.DepartmentId);
             report.FiledAt = now;
 
             // Finance requirement 1: with "Flag for Finance", a report filed after the weekly cutoff is marked late.
@@ -150,6 +159,11 @@ public sealed class ReportFilingService(
 
         return outcome.Result;
     }
+
+    private async Task<string?> DepartmentNameAsync(long? departmentId, CancellationToken ct) =>
+        departmentId is { } id
+            ? await db.Departments.AsNoTracking().Where(d => d.Id == id).Select(d => d.Name).FirstOrDefaultAsync(ct)
+            : null;
 
     public async Task<ExpenseReportDetailDto> ReopenAsync(Guid reportId, CancellationToken ct = default)
     {

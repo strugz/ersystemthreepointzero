@@ -17,8 +17,11 @@ public sealed record ScopeCandidate(
         IsActive && EffectiveFrom <= date && (EffectiveTo is null || EffectiveTo >= date);
 }
 
-/// <summary>The employee being routed.</summary>
-public sealed record ScopeSubject(long UserId, long? DepartmentId);
+/// <summary>
+/// The employee being routed. <see cref="DepartmentId"/> is the report's department; <see cref="ByNameApplies"/> is
+/// false for a report charged to another department when that department's signatories win (MultiDepartmentRules).
+/// </summary>
+public sealed record ScopeSubject(long UserId, long? DepartmentId, bool ByNameApplies = true);
 
 /// <summary>Result of resolving one signatory level for one employee.</summary>
 public sealed record ScopeResolution(int Level, ScopeCandidate? Assignment, string? Problem, bool IsAmbiguous = false)
@@ -41,12 +44,15 @@ public static class ScopeRules
         ArgumentNullException.ThrowIfNull(subject);
         var inForce = assignments.Where(a => a.Level == level && a.InForceOn(date)).ToList();
 
-        var byName = inForce
-            .Where(a => a.Type == ScopeAssignmentType.Individual && a.MemberUserIds.Contains(subject.UserId))
-            .ToList();
-        if (byName.Count > 0)
+        if (subject.ByNameApplies)
         {
-            return Pick(byName, level, "named");
+            var byName = inForce
+                .Where(a => a.Type == ScopeAssignmentType.Individual && a.MemberUserIds.Contains(subject.UserId))
+                .ToList();
+            if (byName.Count > 0)
+            {
+                return Pick(byName, level, "named");
+            }
         }
 
         if (subject.DepartmentId is not { } departmentId)

@@ -92,7 +92,7 @@ async function load() {
 async function loadLookups() {
   const [ww, fr, fm, mv] = await Promise.allSettled([
     expensesApi.workWith(),
-    expensesApi.filingReadiness(),
+    expensesApi.filingReadiness(report.value?.departmentId),
     expensesApi.fareModes(),
     expensesApi.myVehicle(),
   ]);
@@ -181,7 +181,7 @@ function onLineDateChange(date: string) {
   ratesTimer = setTimeout(async () => {
     const request = ++ratesRequest;
     try {
-      const result = await expensesApi.myRates(date);
+      const result = await expensesApi.myRates(date, report.value?.departmentId);
       if (request === ratesRequest) {
         rates.value = result;
         ratesDate = date;
@@ -202,7 +202,7 @@ onMounted(async () => {
   if (report.value?.canEdit) {
     lookups = loadLookups();
   } else if (report.value) {
-    lookups = expensesApi.filingReadiness().then((v) => (readiness.value = v)).catch(() => undefined);
+    lookups = expensesApi.filingReadiness(report.value.departmentId).then((v) => (readiness.value = v)).catch(() => undefined);
   }
   if (fileRequested) {
     void router.replace({ query: { ...route.query, file: undefined } });
@@ -246,8 +246,15 @@ async function saveHeader(input: ReportHeaderInput) {
   if (!report.value) return;
   savingHeader.value = true;
   try {
+    const departmentBefore = report.value.departmentId;
     report.value = await expensesApi.update(reportId, { ...input, rowVersion: report.value.rowVersion });
     crmList.value = null;
+    // Another department means other approvers (and maybe other rates): refresh the checklist and drop cached rates.
+    if (report.value.departmentId !== departmentBefore) {
+      rates.value = null;
+      ratesDate = null;
+      expensesApi.filingReadiness(report.value.departmentId).then((v) => (readiness.value = v)).catch(() => undefined);
+    }
     detailsOpen.value = false;
     snack.success('Report details saved.');
   } catch (err) {
@@ -704,7 +711,15 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
         <!-- Totals move above the document when there is no side column -->
         <ReportTotalsCard v-if="!lgAndUp" :total="report.totalAmount" :cash-advance="report.cashAdvanceTotal" :variant="compact ? 'card' : 'strip'" />
 
-        <ReportDetailsCard v-model:open="detailsOpen" class="editor__details" :report="report" :editable="report.canEdit" :saving="savingHeader" @save="saveHeader" />
+        <ReportDetailsCard
+          v-model:open="detailsOpen"
+          class="editor__details"
+          :report="report"
+          :editable="report.canEdit"
+          :departments="readiness?.departments ?? []"
+          :saving="savingHeader"
+          @save="saveHeader"
+        />
 
         <CashAdvancesCard
           v-if="usesCashAdvance(report.reportType)"

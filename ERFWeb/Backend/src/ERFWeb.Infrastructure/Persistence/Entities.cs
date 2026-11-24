@@ -130,6 +130,10 @@ public class User
 
     /// <summary>Has a company fleet card: with the Fleet card rule on, Gas only for the listed reasons (script 031).</summary>
     public bool HasFleetCard { get; set; }
+
+    /// <summary>May charge a report to one of <see cref="OtherDepartmentIds"/> instead of the main department (script 032).</summary>
+    public bool MultiDepartmentEnabled { get; set; }
+    public List<long> OtherDepartmentIds { get; set; } = [];
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; }
 
@@ -183,8 +187,11 @@ public class ExpenseReport
     public DateOnly? DateTo { get; set; }
     public ReportStatus Status { get; set; } = ReportStatus.New;
 
-    /// <summary>The employee's department when the report was last filed; its cost center counts the spending.</summary>
+    /// <summary>The report's department when it was last filed (the charged one, else the employee's); its cost center counts the spending.</summary>
     public long? DepartmentId { get; set; }
+
+    /// <summary>The other department the employee charged the report to; null = the main department (script 032).</summary>
+    public long? ChargedDepartmentId { get; set; }
 
     public decimal RevolvingFundAmount { get; set; }
     public int CurrentCycle { get; set; } = 1;

@@ -2,6 +2,7 @@ using ERFWeb.Application.Common;
 using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Expenses;
+using ERFWeb.Domain.Scope;
 using ERFWeb.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -93,6 +94,7 @@ public sealed class ExpenseReportService(
 
         var reportId = await tx.ExecuteAsync(async token =>
         {
+            var chargedDepartmentId = await ChargedDepartmentAsync(request.DepartmentId, token);
             var now = clock.UtcNow;
             var report = new ExpenseReport
             {
@@ -105,6 +107,7 @@ public sealed class ExpenseReportService(
                 Status = ReportStatus.New,
                 RevolvingFundAmount = ReportWorkflowRules.UsesRevolvingFund(request.ReportType) ? request.RevolvingFundAmount : 0m,
                 CurrentCycle = 1,
+                ChargedDepartmentId = chargedDepartmentId,
                 CreatedAt = now,
                 UpdatedAt = now,
             };
@@ -141,6 +144,14 @@ public sealed class ExpenseReportService(
             report.DateFrom = request.DateFrom;
             report.DateTo = request.DateTo;
             report.RevolvingFundAmount = ReportWorkflowRules.UsesRevolvingFund(request.ReportType) ? request.RevolvingFundAmount : 0m;
+
+            // Checked only when it changes, so a report whose department is no longer allowed can still be edited
+            // (filing tells the employee to change it).
+            if (request.DepartmentId is { } departmentId && departmentId != (report.ChargedDepartmentId ?? await MainDepartmentAsync(token)))
+            {
+                report.ChargedDepartmentId = await ChargedDepartmentAsync(departmentId, token);
+            }
+
             report.UpdatedAt = clock.UtcNow;
             await db.SaveWithConcurrencyAsync(token);
         }, ct);
@@ -162,6 +173,29 @@ public sealed class ExpenseReportService(
             await db.SaveWithConcurrencyAsync(token);
             await audit.WriteAsync(new WorkflowAuditEntry("ReportDeleted", reportId, user.UserId, null), token);
         }, ct);
+
+    /// <summary>The stored choice for a requested department: null for the main one; 400 for one the employee may not use.</summary>
+    private async Task<long?> ChargedDepartmentAsync(long? departmentId, CancellationToken ct)
+    {
+        if (departmentId is null)
+        {
+            return null;
+        }
+
+        var account = await db.Users.AsNoTracking()
+            .Where(u => u.Id == user.UserId)
+            .Select(u => new { u.DepartmentId, u.MultiDepartmentEnabled, u.OtherDepartmentIds })
+            .FirstAsync(ct);
+        if (!MultiDepartmentRules.IsAllowed(departmentId, account.DepartmentId, account.MultiDepartmentEnabled, account.OtherDepartmentIds))
+        {
+            throw new ValidationException("departmentId", "You can charge a report only to your main department or one of your other departments.");
+        }
+
+        return MultiDepartmentRules.StoredChoice(departmentId, account.DepartmentId);
+    }
+
+    private Task<long?> MainDepartmentAsync(CancellationToken ct) =>
+        db.Users.AsNoTracking().Where(u => u.Id == user.UserId).Select(u => u.DepartmentId).FirstAsync(ct);
 
     private static void ValidateHeader(string? purpose, DateOnly? from, DateOnly? to, decimal revolvingFund)
     {

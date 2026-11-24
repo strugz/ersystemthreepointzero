@@ -196,7 +196,7 @@ public sealed class ExpenseLineService(
         }
         else if (r.Category == ExpenseCategory.Lodging && financeRules.LodgingCapAtRate)
         {
-            var profileRates = await rates.EditorRatesAsync(report.EmployeeUserId, r.TransactionDate, ct);
+            var profileRates = await rates.EditorRatesAsync(report.EmployeeUserId, r.TransactionDate, report.ChargedDepartmentId, ct);
             var rate = LodgingRules.Rate(financeRules, profileRates.LodgingRate);
             if (LodgingRules.AmountProblem(r.Amount, rate, financeRules) is { } lodgingProblem)
             {

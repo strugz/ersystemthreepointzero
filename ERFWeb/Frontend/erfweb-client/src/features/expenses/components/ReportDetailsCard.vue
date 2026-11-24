@@ -4,11 +4,14 @@ import { useLayoutMode } from '@/shared/composables/useLayoutMode';
 import { formatDate } from '@/shared/format';
 import { balanceDueTo, reportTypeLabel, usesCashAdvance, usesRevolvingFund } from '../labels';
 import ReportHeaderForm from './ReportHeaderForm.vue';
-import type { ExpenseReportDetail, ReportHeaderInput } from '../types';
+import type { ExpenseReportDetail, ReportDepartmentOption, ReportHeaderInput } from '../types';
 
 // Read view of the header in R47-style definition fields; editing happens in a dialog so the
 // document stays calm and the form only appears when asked for.
-const props = defineProps<{ report: ExpenseReportDetail; editable: boolean; saving: boolean }>();
+const props = withDefaults(
+  defineProps<{ report: ExpenseReportDetail; editable: boolean; saving: boolean; departments?: ReportDepartmentOption[] }>(),
+  { departments: () => [] },
+);
 const emit = defineEmits<{ save: [input: ReportHeaderInput] }>();
 const open = defineModel<boolean>('open', { default: false });
 
@@ -23,7 +26,17 @@ const initial = computed<ReportHeaderInput>(() => ({
   dateFrom: props.report.dateFrom,
   dateTo: props.report.dateTo,
   revolvingFundAmount: props.report.revolvingFundAmount,
+  departmentId: props.report.departmentId ?? null,
 }));
+
+// A department the account no longer allows stays listed (marked) so the picker can show it and move the report off it.
+const departmentOptions = computed<ReportDepartmentOption[]>(() => {
+  const { departmentId, departmentName } = props.report;
+  if (departmentId == null || props.departments.length === 0 || props.departments.some((d) => d.id === departmentId)) {
+    return props.departments;
+  }
+  return [...props.departments, { id: departmentId, code: null, name: `${departmentName ?? 'Department'} (no longer allowed)` }];
+});
 
 // `initial` above feeds the edit dialog; the read view below derives everything else from the report.
 
@@ -64,6 +77,10 @@ const period = computed(() =>
       <div v-else class="field"><span class="lbl">Cash advance</span><span class="val muted">None (reimbursement)</span></div>
       <div class="field details__wide"><span class="lbl">Purpose</span><span class="val" :class="{ muted: !report.purpose }">{{ report.purpose || 'Not set' }}</span></div>
       <div class="field"><span class="lbl">Period</span><span class="val" :class="{ muted: !period }">{{ period ?? 'Not set' }}</span></div>
+      <div class="field">
+        <span class="lbl">Department</span>
+        <span class="val" :class="{ muted: !report.departmentName }">{{ report.departmentName ?? 'Not set' }}<span v-if="report.chargedToOtherDepartment" class="text-medium-emphasis"> · other department</span></span>
+      </div>
       <div class="field"><span class="lbl">Balance due to</span><span class="val">{{ dueTo }}<span class="text-medium-emphasis"> · from the figures</span></span></div>
     </div>
 
@@ -74,7 +91,7 @@ const period = computed(() =>
           <v-btn class="press" icon="mdi-close" variant="text" size="small" aria-label="Close" :disabled="saving" @click="open = false" />
         </div>
         <v-card-text class="pt-4">
-          <ReportHeaderForm :initial="initial" :saving="saving" submit-text="Save changes" @submit="emit('save', $event)" />
+          <ReportHeaderForm :initial="initial" :departments="departmentOptions" :saving="saving" submit-text="Save changes" @submit="emit('save', $event)" />
         </v-card-text>
       </v-card>
     </v-dialog>

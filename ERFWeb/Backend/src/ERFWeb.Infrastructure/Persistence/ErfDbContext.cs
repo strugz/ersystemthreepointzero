@@ -157,6 +157,7 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.Property(x => x.CrmEmployeeId).HasMaxLength(50);
             e.HasIndex(x => x.CrmEmployeeId).IsUnique();
             e.Property(x => x.R47ReviewedBy).HasColumnName("r47_reviewed_by").HasMaxLength(60);
+            e.Property(x => x.OtherDepartmentIds).HasColumnType("bigint[]");
             e.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId);
             e.HasOne<CostCenter>().WithMany().HasForeignKey(x => x.CostCenterId);
             e.HasOne<User>().WithMany().HasForeignKey(x => x.SignatureApprovedByUserId).OnDelete(DeleteBehavior.SetNull);
@@ -209,8 +210,10 @@ public class ErfDbContext(DbContextOptions<ErfDbContext> options) : DbContext(op
             e.HasIndex(x => x.EmployeeUserId);
             e.HasIndex(x => x.Status);
             e.HasIndex(x => x.DepartmentId);
+            e.HasIndex(x => x.ChargedDepartmentId);
             e.HasOne<User>().WithMany().HasForeignKey(x => x.EmployeeUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Department>().WithMany().HasForeignKey(x => x.ChargedDepartmentId).OnDelete(DeleteBehavior.Restrict);
             AddConcurrencyToken(e);
         });
 

@@ -29,17 +29,17 @@ public sealed class LookupsController(ILookupService lookups) : ControllerBase
     public async Task<ActionResult<IReadOnlyList<FareModeOptionDto>>> FareModes(CancellationToken ct) =>
         Ok(await lookups.FareModesAsync(ct));
 
-    /// <summary>The signed-in employee's meal/transport rates (zeros when none are configured).</summary>
+    /// <summary>The signed-in employee's meal/transport rates (zeros when none are configured), for the report's department when given.</summary>
     [HttpGet("my-rates")]
     [ProducesResponseType<EmployeeRatesDto>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<EmployeeRatesDto>> MyRates([FromQuery] DateOnly? date, CancellationToken ct) =>
-        Ok(await lookups.MyRatesAsync(date, ct));
+    public async Task<ActionResult<EmployeeRatesDto>> MyRates([FromQuery] DateOnly? date, [FromQuery] long? departmentId, CancellationToken ct) =>
+        Ok(await lookups.MyRatesAsync(date, departmentId, ct));
 
-    /// <summary>Whether the signed-in employee can file: signature on record and approvers configured.</summary>
+    /// <summary>Whether the signed-in employee can file: signature on record and approvers configured (for the report's department when given).</summary>
     [HttpGet("my-filing-readiness")]
     [ProducesResponseType<MyFilingReadinessDto>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<MyFilingReadinessDto>> MyFilingReadiness(CancellationToken ct) =>
-        Ok(await lookups.MyFilingReadinessAsync(ct));
+    public async Task<ActionResult<MyFilingReadinessDto>> MyFilingReadiness([FromQuery] long? departmentId, CancellationToken ct) =>
+        Ok(await lookups.MyFilingReadinessAsync(departmentId, ct));
 
     /// <summary>The signed-in employee's saved vehicle (model and plate number), filled into new Gas and Vehicle emergency purchase lines.</summary>
     [HttpGet("my-vehicle")]

@@ -4,6 +4,7 @@ using ERFWeb.Application.Features.Expenses;
 using ERFWeb.Domain;
 using ERFWeb.Domain.Approval;
 using ERFWeb.Domain.Expenses;
+using ERFWeb.Domain.Scope;
 using ERFWeb.Infrastructure.Persistence;
 using ERFWeb.Infrastructure.Verification;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,7 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
                 Report = r,
                 RowVersion = EF.Property<uint>(r, DbContextExtensions.RowVersionProperty),
                 EmployeeName = u.FullName,
+                MainDepartmentId = u.DepartmentId,
             }).FirstOrDefaultAsync(ct)
             ?? throw new NotFoundException("Expense report not found.");
 
@@ -67,6 +69,14 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
             finance = finance with { UnderVerification = panel.UnderVerification };
         }
 
+        // While the employee can still change it, the report shows the department it would file under.
+        var departmentId = ReportWorkflowRules.CanEdit(rep.Status)
+            ? MultiDepartmentRules.Effective(rep.ChargedDepartmentId, header.MainDepartmentId)
+            : rep.DepartmentId ?? MultiDepartmentRules.Effective(rep.ChargedDepartmentId, header.MainDepartmentId);
+        var departmentName = departmentId is { } dept
+            ? await db.Departments.AsNoTracking().Where(d => d.Id == dept).Select(d => d.Name).FirstOrDefaultAsync(ct)
+            : null;
+
         var isOwner = rep.EmployeeUserId == user.UserId;
         var actingFor = (await delegations.ActingForAsync(ct)).Keys.ToHashSet();
         var review = ApprovalWorkflow.Permissions(rep.Status, workflowSteps, rep.EmployeeUserId, user.UserId, actingFor);
@@ -101,7 +111,10 @@ public sealed class ExpenseReportDetailLoader(ErfDbContext db, ICurrentUser user
             attachments,
             new ReviewActionsDto(review.CanApprove, review.CanReturn, review.CanReject, review.CanOverride, review.CanAdjustLines),
             finance,
-            panel.Requests.Count > 0 || panel.CanRequest ? panel : null);
+            panel.Requests.Count > 0 || panel.CanRequest ? panel : null,
+            departmentId,
+            departmentName,
+            rep.ChargedDepartmentId is not null);
     }
 
     public async Task<IReadOnlyList<ExpenseLineDto>> LoadLinesAsync(Guid reportId, CancellationToken ct)
