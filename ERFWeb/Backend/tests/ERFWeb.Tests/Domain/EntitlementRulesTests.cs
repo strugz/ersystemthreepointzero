@@ -162,8 +162,34 @@ public class RateRulesTests
             Assign(2, 2, RateTargetType.Department, dept: 10),
             Assign(3, 3, RateTargetType.Grade, grade: "g3"),
         };
-        Assert.Equal(3, RateRules.ResolveAssignment(assignments, Ana, Jan1.AddDays(10))!.ProfileId);
-        Assert.Equal(4, RateRules.ResolveAssignment(assignments.Append(Assign(4, 4, RateTargetType.Individual, user: 100)), Ana, Jan1.AddDays(10))!.ProfileId);
+        Assert.Equal([3L, 2L, 1L], RateRules.RankAssignments(assignments, Ana, Jan1.AddDays(10)).Select(a => a.ProfileId));
+        Assert.Equal(4, RateRules.RankAssignments(assignments.Append(Assign(4, 4, RateTargetType.Individual, user: 100)), Ana, Jan1.AddDays(10))[0].ProfileId);
+    }
+
+    [Fact]
+    public void Each_category_comes_from_the_highest_ranked_profile_that_has_it()
+    {
+        var nov19 = new DateOnly(2026, 11, 19);
+        var assignments = new[]
+        {
+            Assign(1, 1, RateTargetType.Department, dept: 10, from: new DateOnly(2026, 10, 1)),
+            Assign(2, 2, RateTargetType.Grade, grade: "G3", from: nov19),
+        };
+        var lines = new[]
+        {
+            new RateLineCandidate(10, 1, ExpenseCategory.Meals, "Lunch", RateType.FixedPerDay, 200m, true, new DateOnly(2026, 10, 5), null),
+            new RateLineCandidate(11, 1, ExpenseCategory.Lodging, null, RateType.FixedPerDay, 1000m, true, new DateOnly(2026, 10, 5), null),
+            new RateLineCandidate(20, 2, ExpenseCategory.Lodging, null, RateType.FixedPerDay, 1800m, true, nov19, null),
+        };
+
+        var before = RateRules.ResolveLines(assignments, lines, Ana, new DateOnly(2026, 11, 18));
+        Assert.Equal([10L, 11L], before.Select(r => r.Line.Id).Order());
+
+        var after = RateRules.ResolveLines(assignments, lines, Ana, nov19);
+        Assert.Equal(200m, after.Single(r => r.Line.Category == ExpenseCategory.Meals).Line.Amount);
+        var lodging = after.Single(r => r.Line.Category == ExpenseCategory.Lodging);
+        Assert.Equal(1800m, lodging.Line.Amount);
+        Assert.Equal(RateTargetType.Grade, lodging.Assignment.TargetType);
     }
 
     [Fact]
@@ -174,8 +200,8 @@ public class RateRulesTests
             Assign(1, 1, RateTargetType.Company),
             Assign(2, 2, RateTargetType.Individual, user: 100, from: new DateOnly(2026, 6, 1)),
         };
-        Assert.Equal(1, RateRules.ResolveAssignment(assignments, Ana, new DateOnly(2026, 5, 31))!.ProfileId);
-        Assert.Equal(2, RateRules.ResolveAssignment(assignments, Ana, new DateOnly(2026, 6, 1))!.ProfileId);
+        Assert.Equal(1, RateRules.RankAssignments(assignments, Ana, new DateOnly(2026, 5, 31))[0].ProfileId);
+        Assert.Equal(2, RateRules.RankAssignments(assignments, Ana, new DateOnly(2026, 6, 1))[0].ProfileId);
     }
 
     [Fact]

@@ -10,7 +10,7 @@ Produces a short, click-by-click guide for one ERFWeb role. The reference is the
 | Guide | Claude Doc | Word/PDF in `ERFWeb/Document/` |
 | --- | --- | --- |
 | Employee Filing | `https://claude.ai/artifact/SCUXpSnVU7XdwZbPnsRp6q` | yes (exported 2026-11-23) |
-| Signatory | `https://claude.ai/artifact/R2NtPN24LukQ1vEk7KPCTw` | yes (exported 2026-11-05) |
+| Signatory | `https://claude.ai/artifact/R2NtPN24LukQ1vEk7KPCTw` | yes (exported 2026-11-24) |
 | Finance | `https://claude.ai/artifact/JCVhLYTgSZAsdhqPVchvak` | yes (exported 2026-11-05) |
 | Expense Verifier | `https://claude.ai/artifact/BHwSkTQT1iUFr1eoQPvcui` | yes (exported 2026-11-05) |
 | Administrator | `https://claude.ai/artifact/2Yx5f5VuTMBTELwd99YKCC` | yes (exported 2026-11-05) |

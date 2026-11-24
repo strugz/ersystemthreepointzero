@@ -49,39 +49,59 @@ public sealed record RateVersionPlan(long? CloseLineId, DateOnly? CloseOn, strin
     public bool IsValid => Problem is null;
 }
 
+/// <summary>A rate line that applies to the subject, with the assignment that brought it.</summary>
+public sealed record ResolvedRateLine(RateAssignmentCandidate Assignment, RateLineCandidate Line);
+
 /// <summary>
-/// Pure rate-profile rules (RBAC v0.6 section 5). A profile reaches a person through the most
-/// specific assignment in force on the expense date: Individual, then Grade, then Department,
-/// then Company. Lines are versioned: a change never edits a line in place, it closes the open
-/// version the day before the new one starts, so an ERF always uses the rate in force on its
-/// expense date and old ERFs never change.
+/// Pure rate-profile rules (RBAC v0.6 section 5). Assignments in force on the expense date rank
+/// Individual, then Grade, then Department, then Company. Each category (and meal) takes its line
+/// from the highest-ranked profile that has one, so a grade profile holding only Lodging does not
+/// hide the department's meal rates. Lines are versioned: a change never edits a line in place, it
+/// closes the open version the day before the new one starts, so an ERF always uses the rate in
+/// force on its expense date and old ERFs never change.
 /// </summary>
 public static class RateRules
 {
     private static readonly RateTargetType[] Precedence =
         [RateTargetType.Individual, RateTargetType.Grade, RateTargetType.Department, RateTargetType.Company];
 
-    /// <summary>The assignment that gives the subject their profile on the date, or null.</summary>
-    public static RateAssignmentCandidate? ResolveAssignment(IEnumerable<RateAssignmentCandidate> assignments, RateSubject subject, DateOnly date)
+    /// <summary>The assignments that reach the subject on the date, most specific first (latest start breaks ties).</summary>
+    public static IReadOnlyList<RateAssignmentCandidate> RankAssignments(IEnumerable<RateAssignmentCandidate> assignments, RateSubject subject, DateOnly date)
     {
         ArgumentNullException.ThrowIfNull(assignments);
         ArgumentNullException.ThrowIfNull(subject);
-        var inForce = assignments.Where(a => a.InForceOn(date) && Matches(a, subject)).ToList();
+        return assignments
+            .Where(a => a.InForceOn(date) && Matches(a, subject))
+            .OrderBy(a => Array.IndexOf(Precedence, a.TargetType))
+            .ThenByDescending(a => a.EffectiveFrom)
+            .ThenByDescending(a => a.Id)
+            .ToList();
+    }
 
-        foreach (var tier in Precedence)
+    /// <summary>One line per category (and meal) in force on the date, each from the highest-ranked profile that has it.</summary>
+    public static IReadOnlyList<ResolvedRateLine> ResolveLines(
+        IEnumerable<RateAssignmentCandidate> assignments, IEnumerable<RateLineCandidate> lines, RateSubject subject, DateOnly date)
+    {
+        ArgumentNullException.ThrowIfNull(lines);
+        var inForce = lines.Where(l => l.InForceOn(date)).ToList();
+        var taken = new HashSet<(ExpenseCategory, string)>();
+        var resolved = new List<ResolvedRateLine>();
+        foreach (var assignment in RankAssignments(assignments, subject, date))
         {
-            var match = inForce
-                .Where(a => a.TargetType == tier)
-                .OrderByDescending(a => a.EffectiveFrom)
-                .ThenByDescending(a => a.Id)
-                .FirstOrDefault();
-            if (match is not null)
+            var profileLines = inForce
+                .Where(l => l.ProfileId == assignment.ProfileId)
+                .OrderByDescending(l => l.EffectiveFrom)
+                .ThenByDescending(l => l.Id);
+            foreach (var line in profileLines)
             {
-                return match;
+                if (taken.Add((line.Category, (line.SubCategory ?? "").ToUpperInvariant())))
+                {
+                    resolved.Add(new ResolvedRateLine(assignment, line));
+                }
             }
         }
 
-        return null;
+        return resolved;
     }
 
     /// <summary>The line of a profile in force for a category (and meal sub-category) on the date.</summary>

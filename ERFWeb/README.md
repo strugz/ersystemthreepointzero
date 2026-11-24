@@ -18,6 +18,19 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-24
 
+- **Help for signatories** (PR #72). Level 1 and Level 2 signatories get a second **Help** tab,
+  **Approving reports**: a narrated 5:54 video (`public/help/erfweb-approving-guide.mp4`, 3.1 MB, names blurred) with
+  21 questions (finding reports, the review page, Check receipts side by side, the CRM calendar, Approve / Return /
+  Reject, approving from the R47 PDF, lowering a line (Level 1), override and Queries (Level 2), delegations, budgets,
+  summary). Employees without a signatory role see only **Filing a report**. The ERFWeb Signatory Guide (Word/PDF in
+  `Document/`) adds the Dashboard card, Check receipts side by side, the CRM calendar and Reports I sign for.
+  Frontend only, no database script. SPA 0.19.0 (minor).
+- **Rates resolve per category** (PR #72). A person's rates no longer come from one profile: each
+  category (and meal) takes its line from the highest-ranked assignment (Individual > Grade > Department > Company)
+  whose profile has it. Before, the Lodging profiles assigned by job grade from 2026-11-19 hid the department
+  MEALS profile, so meals pre-filled ₱0 from that date. `GET /api/rates/resolve` adds `sources`; **Check who gets
+  what** lists them and names each line's profile. No database script. API 0.13.0 (minor), SPA 0.18.1 (patch);
+  deploy backend before frontend.
 - **Check receipts side by side** (PR #71). On the review page, approvers, Expense Verifiers and
   Finance open **Check receipts side by side** (Expense lines card) or select a file in **Receipts**: a full-screen
   view with every expense line listed in full and one receipt previewed at a time (phones and upright tablets:
@@ -727,18 +740,21 @@ The same quote also appears once a day in a dialog on the first signed-in page
 (`features/wellness/components/DailyQuoteDialog.vue`, mounted by `AuthenticatedLayout`); the day it was last shown
 is kept per user in the browser's `localStorage` (`erfweb.dailyQuote.<userId>`), so a new browser shows it again.
 
-**Help page:** `/help` (`views/HelpView.vue`, signed-in users; **Help** in the rail and on the phone More page) plays the
-narrated filing video `public/help/erfweb-filing-guide.mp4` beside a searchable list of questions
-(`features/help/topics.ts`: question, written answer, start time; `features/help/components/HelpContent.vue`).
+**Help page:** `/help` (`views/HelpView.vue`, signed-in users; **Help** in the rail and on the phone More page) plays a
+narrated video beside a searchable list of questions (`features/help/topics.ts`: video, question, written answer,
+start time, optional Level 1 / Level 2 badge; `features/help/components/HelpContent.vue`). Everyone sees the
+**Filing a report** tab (`public/help/erfweb-filing-guide.mp4`); Level 1 and Level 2 signatories also see
+**Approving reports** (`public/help/erfweb-approving-guide.mp4`, `approve-*` questions). The tabs only decide what is
+shown; the files themselves are public.
 Selecting a question plays the video from that part and opens its answer; `/help?topic=<id>` opens a question and
 cues the video without playing it. Category questions are `category-<ExpenseCategory>` (e.g. `category-Representation`);
 the **?** beside Close in the expense line window opens that topic for the picked category in a new tab, so the line
 being typed stays open. Render serves `public/` without sign-in, so the video holds no names: screenshots are blurred
-by `Document/help-video/redact.py` before the build. To change the video, follow `Document/help-video/README.txt`
-(screenshots, `redact.py`, `build.py`, which writes the video here and `chapters.json`), then copy the new start times
-from `chapters.json` into `topics.ts` and raise the `?v=` in `HELP_VIDEO_URL` so browsers drop the cached copy.
-`HELP_VIDEO_URL` (in `topics.ts`) is the one place the video address is set: built from Vite's base path, or a full
-`https://` URL to a file server or CDN. `safeVideoUrl` plays only a same-site path or an `https://` URL; anything else
+by `Document/help-video/redact.py` before the build. To change a video, follow `Document/help-video/README.txt`
+(screenshots, `redact.py`, `build.py filing|approving`, which writes the video here and `chapters.json` /
+`chapters_approving.json`), then copy the new start times into `topics.ts` and raise that video's `?v=` in
+`HELP_VIDEOS` so browsers drop the cached copy. `HELP_VIDEOS` (in `topics.ts`) is the one place the video addresses
+are set: built from Vite's base path, or a full `https://` URL to a file server or CDN. `safeVideoUrl` plays only a same-site path or an `https://` URL; anything else
 shows "Video coming soon", and a file that fails to load shows "This video could not be loaded"; the written answers
 stay in both cases. Nothing is sent to the API.
 
@@ -1291,8 +1307,11 @@ are snapshotted into `approval_steps` (with `signatory_level`) so later scope ch
 A planned change adds a version and closes the open one the day before, so a report always uses the rate in force
 on its expense date. **Edit** corrects one version in place (amount, rule, receipt, cap, dates; category and meal
 stay) with a required reason, audited as `Rates.LineCorrected`; its dates may not overlap another version. Filed
-reports keep their own amounts, and the old values stay in `record_history`. A profile reaches a person by assignment, resolved Individual > Grade >
-Department > Company on the expense date. **Edit** on an assignment (`PUT /api/rates/assignments/{id}`) corrects
+reports keep their own amounts, and the old values stay in `record_history`. A profile reaches a person by assignment,
+ranked Individual > Grade > Department > Company on the expense date (latest start first within a tier). Each
+category (and meal) takes its line from the highest-ranked profile that has one in force (Domain `RateRules.ResolveLines`),
+so a grade profile with only Lodging leaves the department's Meals profile in charge of meals. **Check who gets what**
+and `GET /api/rates/resolve` (`sources`) name the profile each line came from. **Edit** on an assignment (`PUT /api/rates/assignments/{id}`) corrects
 its target or dates in place (the profile stays) with a required reason, audited as `Rates.AssignmentCorrected`;
 its period may not overlap another assignment for the same target, and it needs `backdateOverride` only when it
 changes a day before today. A change that starts before today and replaces what is in force (a new version, a correction, an assignment that ends another for the same target) needs `backdateOverride` and a reason; the first rate line for a category/meal and the first assignment for a target may start in the past freely, e.g. to cover claims from before go-live.

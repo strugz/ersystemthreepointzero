@@ -1,13 +1,23 @@
-"""Builds the narrated filing video for the ERFWeb Help page. Steps: README.txt in this folder."""
-import asyncio, json, os, shutil, subprocess
+"""Builds a narrated video for the ERFWeb Help page: python build.py [filing|approving]. Steps: README.txt here."""
+import asyncio, importlib, json, os, shutil, subprocess, sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import edge_tts
-from scenes import SCENES
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SHOTS = os.path.join(HERE, "shots_redacted")
-OUT = os.path.join(HERE, "out")
-VIDEO = os.path.normpath(os.path.join(HERE, "..", "..", "Frontend", "erfweb-client", "public", "help", "erfweb-filing-guide.mp4"))
+PUBLIC_HELP = os.path.normpath(os.path.join(HERE, "..", "..", "Frontend", "erfweb-client", "public", "help"))
+# name: (scenes module, work folder, video file, chapters file, title-card subtitle, guide named on the end card)
+VIDEOS = {
+    "filing": ("scenes", "out", "erfweb-filing-guide.mp4", "chapters.json", "Employee filing guide",
+               "ERFWeb Employee Filing Guide"),
+    "approving": ("scenes_approving", os.path.join("out", "approving"), "erfweb-approving-guide.mp4",
+                  "chapters_approving.json", "Signatory guide: Level 1 and Level 2", "ERFWeb Signatory Guide"),
+}
+NAME = sys.argv[1] if len(sys.argv) > 1 else "filing"
+SCENES_MODULE, OUT_DIR, VIDEO_FILE, CHAPTERS_FILE, SUBTITLE, GUIDE = VIDEOS[NAME]
+SCENES = importlib.import_module(SCENES_MODULE).SCENES
+OUT = os.path.join(HERE, OUT_DIR)
+VIDEO = os.path.join(PUBLIC_HELP, VIDEO_FILE)
 FFMPEG = os.environ.get("FFMPEG") or shutil.which("ffmpeg") or "ffmpeg"
 FFPROBE = os.environ.get("FFPROBE") or shutil.which("ffprobe") or "ffprobe"
 VOICE = "en-US-AndrewNeural"
@@ -69,9 +79,9 @@ def main():
         dur = duration(mp3) + 0.9
         png = os.path.join(OUT, f"{i:02d}.png")
         if key == "title":
-            card("ERFWeb: " + caption, "Employee filing guide").save(png)
+            card("ERFWeb: " + caption, SUBTITLE).save(png)
         elif key == "end":
-            card(caption, "Refer to the ERFWeb Employee Filing Guide for complete details").save(png)
+            card(caption, f"Refer to the {GUIDE} for complete details").save(png)
         else:
             frame(key, caption, steps.index((key, caption, text)) + 1, len(steps)).save(png)
         mp4 = os.path.join(OUT, f"{i:02d}.mp4")
@@ -86,7 +96,7 @@ def main():
         chapters.append({"scene": key, "caption": caption, "start": round(start, 1)})
         start += duration(mp4)
         print(f"{i:02d} {dur:5.1f}s {caption}")
-    with open(os.path.join(HERE, "chapters.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(HERE, CHAPTERS_FILE), "w", encoding="utf-8") as f:
         json.dump(chapters, f, indent=1)
     lst = os.path.join(OUT, "list.txt")
     with open(lst, "w", encoding="utf-8") as f:

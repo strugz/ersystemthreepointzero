@@ -513,16 +513,27 @@ public sealed class RateService(
     {
         var date = on ?? context.Today;
         var subject = await context.SubjectAsync(userId, ct) ?? throw new NotFoundException("User not found.");
-        var assignment = RateRules.ResolveAssignment(await context.RateAssignmentsAsync(ct), subject.Rate, date);
-        if (assignment is null)
+        var ranked = RateRules.RankAssignments(await context.RateAssignmentsAsync(ct), subject.Rate, date);
+        if (ranked.Count == 0)
         {
-            return new ResolvedRatesDto(userId, date, null, null, null, []);
+            return new ResolvedRatesDto(userId, date, null, null, null, [], []);
         }
 
-        var name = await db.RateProfiles.AsNoTracking().Where(p => p.Id == assignment.ProfileId).Select(p => p.Name).FirstAsync(ct);
-        var lines = await LinesAsync(l => l.RateProfileId == assignment.ProfileId
-            && l.EffectiveFrom <= date && (l.EffectiveTo == null || l.EffectiveTo >= date), ct);
-        return new ResolvedRatesDto(userId, date, assignment.ProfileId, name, assignment.TargetType, lines);
+        var profileIds = ranked.Select(a => a.ProfileId).Distinct().ToList();
+        var candidates = await db.RateProfileLines.AsNoTracking()
+            .Where(l => profileIds.Contains(l.RateProfileId) && l.EffectiveFrom <= date && (l.EffectiveTo == null || l.EffectiveTo >= date))
+            .Select(l => new RateLineCandidate(l.Id, l.RateProfileId, l.Category, l.SubCategory, l.RateType, l.Amount, l.RequiresReceipt, l.EffectiveFrom, l.EffectiveTo))
+            .ToListAsync(ct);
+        var resolved = RateRules.ResolveLines(ranked, candidates, subject.Rate, date);
+        var lineIds = resolved.Select(r => r.Line.Id).ToList();
+        var lines = await LinesAsync(l => lineIds.Contains(l.Id), ct);
+
+        var names = await db.RateProfiles.AsNoTracking().Where(p => profileIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p.Name, ct);
+        var sources = resolved.Select(r => r.Assignment).Distinct()
+            .Select(a => new ResolvedRateSourceDto(a.ProfileId, names[a.ProfileId], a.TargetType))
+            .ToList();
+        var top = ranked[0];
+        return new ResolvedRatesDto(userId, date, top.ProfileId, names[top.ProfileId], top.TargetType, lines, sources);
     }
 
     public async Task<EmployeeRatesDto> EditorRatesAsync(long userId, DateOnly date, CancellationToken ct = default)
@@ -568,7 +579,8 @@ public sealed class RateService(
     {
         var assignments = await context.RateAssignmentsAsync(ct);
         var subjects = await context.SubjectsAsync(ct);
-        return subjects.Where(s => RateRules.ResolveAssignment(assignments, s.Rate, date)?.ProfileId == profileId).Select(s => s.UserId).ToList();
+        // Any category may come from the profile, so everyone it reaches on the date is affected.
+        return subjects.Where(s => RateRules.RankAssignments(assignments, s.Rate, date).Any(a => a.ProfileId == profileId)).Select(s => s.UserId).ToList();
     }
 
     private async Task<List<long>> AffectedByTargetAsync(RateTarget target, CancellationToken ct)
