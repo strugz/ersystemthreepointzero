@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-24
 
-- **Help videos show reports for other departments** (not yet committed). The filing video (now 7:00, 4.0 MB) has a
+- **Help videos show reports for other departments** (PR #74). The filing video (now 7:00, 4.0 MB) has a
   scene on picking the **Department** on New report; the approving video (now 6:06, 3.2 MB) re-shoots the review
   page, which shows the department next to the report type, and says why such a report reaches that department's
   approvers. Two new Help questions (`report-department`, `approve-other-department`); every later start time in
