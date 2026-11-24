@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-24
 
-- **Reports for other departments** (not yet committed). An employee who works for more than one department can
+- **Reports for other departments** (PR #73). An employee who works for more than one department can
   charge a report to one of them, and that department's approvers sign it. The System Administrator allows it per
   person on the user form (**Can file reports for other departments** plus **Other departments**; script `032`,
   `users.multi_department_enabled` / `other_department_ids`). The employee picks the **Department** in Report details
