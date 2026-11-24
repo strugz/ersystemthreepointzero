@@ -84,17 +84,23 @@ function detail(l: ExpenseLine): string {
     (l.particulars ?? '').trim().toLowerCase() === category.toLowerCase() ? null : category,
     l.meals.length ? l.meals.map((m) => m.mealType).join(', ') : null,
     l.location,
-    l.workWith ? `w/ ${l.workWith}` : null,
     l.computation ?? (l.multiplier > 1 ? `${formatMoney(l.amount)} × ${l.multiplier}` : null),
   ]
     .filter(Boolean)
     .join(' · ');
 }
 
+/** What a reviewer matches against the receipt, labelled; each only when the line has it. */
+function receiptFacts(l: ExpenseLine): { label: string; value: string; mono?: boolean }[] {
+  return [
+    { label: 'Invoice / OR', value: l.invoiceOrNo?.trim() || '', mono: true },
+    { label: 'VAT', value: l.vatAmount ? formatMoney(l.vatAmount) : '', mono: true },
+    { label: 'Work with', value: l.workWith?.trim() || '' },
+  ].filter((f) => f.value);
+}
+
 function refs(l: ExpenseLine): string {
   return [
-    l.invoiceOrNo ? `OR ${l.invoiceOrNo}` : null,
-    l.vatAmount ? `VAT ${formatMoney(l.vatAmount)}` : null,
     l.serviceNumber ? `SN ${l.serviceNumber}` : null,
     l.instrument,
     l.serialNumber ? `S/N ${l.serialNumber}` : null,
@@ -149,10 +155,14 @@ function adjustmentNote(l: ExpenseLine): string | null {
                   </span>
                 </span>
                 <span v-if="detail(l)" class="row__sub">{{ detail(l) }}</span>
-                <span class="row__refs">
-                  <span v-if="!l.invoiceOrNo" class="pill pill--warning">No OR no.</span>
-                  <span v-if="refs(l)" class="mono">{{ refs(l) }}</span>
+                <span class="facts">
+                  <span v-if="!l.invoiceOrNo?.trim()" class="pill pill--warning">No OR no.</span>
+                  <span v-for="f in receiptFacts(l)" :key="f.label" class="fact">
+                    <span class="fact__label">{{ f.label }}</span>
+                    <span class="fact__value" :class="{ mono: f.mono }">{{ f.value }}</span>
+                  </span>
                 </span>
+                <span v-if="refs(l)" class="row__refs mono">{{ refs(l) }}</span>
                 <span v-if="l.remarks" class="row__sub">{{ l.remarks }}</span>
                 <span v-if="adjustmentNote(l)" class="warn">{{ adjustmentNote(l) }}</span>
                 <span v-for="(w, wi) in l.workWithWarnings ?? []" :key="wi" class="warn"><v-icon icon="mdi-alert-outline" size="14" /> {{ w }}</span>
@@ -313,11 +323,29 @@ function adjustmentNote(l: ExpenseLine): string | null {
   font-size: 12px;
   color: var(--ink-2);
 }
-.row__refs {
+.facts {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px 8px;
+  gap: 4px 14px;
+}
+.fact {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+}
+.fact__label {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.fact__value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.row__refs {
   font-size: 12px;
   color: var(--ink-3);
 }

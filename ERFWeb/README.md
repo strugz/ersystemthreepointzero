@@ -1205,8 +1205,9 @@ Everyone who reviews a report (signatories, Expense Verifiers, Finance) can comp
 scans without switching tabs. **Check receipts side by side** on the **Expense lines** card (phones: **Receipts**,
 or **Check receipts** in the ⋮ menu) or a file name in the **Receipts** panel opens a full-screen view
 (`features/expenses/components/ReceiptCheckDialog.vue`): every line in R47 order, in full (date, particulars,
-amount, category, meals, location, Work with, computation, OR no. or a **No OR no.** pill, VAT, service details,
-remarks, lowered amounts and Work With warnings, with the line count and total on top), and one receipt at a time
+amount, category, meals, location, computation; labelled **Invoice / OR**, **VAT** and **Work with** when the line
+has them, a **No OR no.** pill when it has no OR; service details, remarks, lowered amounts and Work With warnings;
+the line count and total on top), and one receipt at a time
 (`ReceiptViewer.vue`) with previous/next, zoom and rotate, document-type and form-code pills, open in a new tab and
 download. Selecting a line highlights it and offers **Lower this amount** when the viewer may lower amounts. Pictures
 and PDF pages zoom from fit to 5x: pinch (around the fingers), double-tap (on that spot; again to fit), the mouse
