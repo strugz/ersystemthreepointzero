@@ -1,9 +1,14 @@
+export type HelpVideoKey = 'filing' | 'approving';
+
 /**
- * The narrated filing video (rebuilt from ERFWeb/Document/help-video, see its README.txt). A path inside the SPA,
- * built from the base path so a sub-path host still works, or a full https:// URL to a file server or CDN.
- * Raise ?v= whenever the file is replaced under the same name, so browsers fetch the new copy.
+ * The narrated videos (rebuilt from ERFWeb/Document/help-video, see its README.txt). Each url is a path inside the
+ * SPA, built from the base path so a sub-path host still works, or a full https:// URL to a file server or CDN.
+ * Raise ?v= whenever a file is replaced under the same name, so browsers fetch the new copy.
  */
-export const HELP_VIDEO_URL = `${import.meta.env.BASE_URL}help/erfweb-filing-guide.mp4?v=1`;
+export const HELP_VIDEOS: Record<HelpVideoKey, { title: string; url: string }> = {
+  filing: { title: 'Filing a report', url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide.mp4?v=1` },
+  approving: { title: 'Approving reports', url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide.mp4?v=1` },
+};
 
 /** A same-site path or an https:// URL plays; anything else (empty, http:, //host, javascript:) counts as no video. */
 export function safeVideoUrl(url: string | null | undefined): string | null {
@@ -18,15 +23,20 @@ export function safeVideoUrl(url: string | null | undefined): string | null {
 export interface HelpTopic {
   /** Used in the address (`/help?topic=…`); category topics are `category-<ExpenseCategory>`. */
   id: string;
+  video: HelpVideoKey;
+  /** Shown as a badge on questions about one signatory level only. */
+  level?: 'Level 1' | 'Level 2';
   group: string;
   question: string;
-  /** Start time in the video, in seconds (from help-video/chapters.json). */
+  /** Start time in the video, in seconds (help-video/chapters.json or chapters_approving.json). */
   start: number;
   answer: string[];
   keywords?: string;
 }
 
-export const helpTopics: HelpTopic[] = [
+type TopicEntry = Omit<HelpTopic, 'video'>;
+
+const filingTopics: TopicEntry[] = [
   {
     id: 'sign-in',
     group: 'Getting started',
@@ -322,6 +332,239 @@ export const helpTopics: HelpTopic[] = [
     ],
     keywords: 'status for approval approved returned my reports notification',
   },
+];
+
+const approvingTopics: TopicEntry[] = [
+  {
+    id: 'approve-dashboard',
+    group: 'Finding reports',
+    question: 'Where do I see the reports waiting for me?',
+    start: 8.8,
+    answer: [
+      'The Dashboard shows a For your approval card when reports wait for you, with the employee, reference no. and whether it is your turn.',
+      'Select All approvals, or Approvals in the menu, to see them all.',
+    ],
+    keywords: 'dashboard for your approval inbox pending',
+  },
+  {
+    id: 'approve-inbox',
+    group: 'Finding reports',
+    question: 'What do Your turn and Waiting for mean?',
+    start: 24.0,
+    answer: [
+      'To review lists the reports routed to you. Your turn means you can act now; Waiting for means an earlier step must act first.',
+      'Search by employee, purpose or reference no., and use Export CSV to download the list. Select a report to open it.',
+    ],
+    keywords: 'approvals to review your turn waiting search export csv',
+  },
+  {
+    id: 'approve-review',
+    group: 'Reviewing a report',
+    question: 'What is on the review page?',
+    start: 45.2,
+    answer: [
+      'The totals, the report details, the expense lines, the CRM calendar, the approval steps and the receipts.',
+      'Your actions are at the top right: R47 PDF, Reject, Return and Approve.',
+    ],
+    keywords: 'review page totals details lines',
+  },
+  {
+    id: 'approve-receipts',
+    group: 'Reviewing a report',
+    question: 'How do I check the receipts against the lines?',
+    start: 72.2,
+    answer: [
+      'Select Check receipts side by side. The lines are on the left and the receipt on the right.',
+      'Use the up and down arrow keys to move between lines and the left and right arrow keys to move between receipts. You can zoom, rotate, open or download a receipt, and Return or Approve from this window.',
+    ],
+    keywords: 'receipt check side by side zoom rotate',
+  },
+  {
+    id: 'approve-crm',
+    group: 'Reviewing a report',
+    question: 'How do I use the CRM calendar?',
+    start: 93.3,
+    answer: [
+      "Before you approve, compare the employee's CRM activities and leave, day by day, with the expense lines.",
+      'A warning appears when an expense line falls on a leave or holiday day.',
+    ],
+    keywords: 'crm calendar activities leave holiday visit warning',
+  },
+  {
+    id: 'approve-steps',
+    group: 'Reviewing a report',
+    question: 'Where do I see the approval steps?',
+    start: 114.0,
+    answer: ['The Approval card shows each step in order with its status. The Receipts card lists the files the employee attached.'],
+    keywords: 'approval steps timeline status receipts',
+  },
+  {
+    id: 'approve-approve',
+    group: 'Deciding',
+    question: 'How do I approve a report?',
+    start: 123.2,
+    answer: [
+      'Select Approve, add a note if you wish, and select Approve again.',
+      'Line amounts lock once the report has its first approval. After the Level 1 approves, the report moves to the Level 2.',
+    ],
+    keywords: 'approve note',
+  },
+  {
+    id: 'approve-return',
+    group: 'Deciding',
+    question: 'How do I return a report for correction?',
+    start: 136.0,
+    answer: [
+      'Select Return and state what the employee should fix (required).',
+      'The employee corrects the report and files it again; approval restarts from the first approver.',
+    ],
+    keywords: 'return correction fix refile',
+  },
+  {
+    id: 'approve-reject',
+    group: 'Deciding',
+    question: 'When should I reject instead of return?',
+    start: 148.4,
+    answer: [
+      'Reject only when the report must not be paid at all. The reason is required and rejection is final: the report cannot be filed again.',
+      'Use Return whenever the employee can correct the report.',
+    ],
+    keywords: 'reject final reason',
+  },
+  {
+    id: 'approve-r47',
+    group: 'Deciding',
+    question: 'Can I approve from the R47 PDF?',
+    start: 162.3,
+    answer: ['Yes. Select R47 PDF on the review page; the form shows exactly as it prints, with Approve at the top right.'],
+    keywords: 'r47 pdf print approve',
+  },
+  {
+    id: 'approve-acted',
+    group: 'Deciding',
+    question: 'Where do I see the reports I already acted on?',
+    start: 173.1,
+    answer: ['The Acted on tab on the Approvals page lists the reports you approved, returned or rejected, with your action and its date.'],
+    keywords: 'acted on history',
+  },
+  {
+    id: 'approve-lower',
+    level: 'Level 1',
+    group: 'Level 1 and Level 2',
+    question: 'How do I lower a line amount?',
+    start: 181.2,
+    answer: [
+      'Only the current Level 1, before the first approval, can lower a line.',
+      'Select the lower amount icon on the line, or Lower this amount in the receipt check. Enter the new amount, pick or type a reason, and select Lower amount.',
+      'The employee sees the reason, and the filed amount stays on record.',
+    ],
+    keywords: 'lower amount reduce reason above the allowed rate',
+  },
+  {
+    id: 'approve-l2-inbox',
+    level: 'Level 2',
+    group: 'Level 1 and Level 2',
+    question: 'What does You can override mean?',
+    start: 202.2,
+    answer: [
+      'A Level 2 sees a report after its Level 1 approves it, marked Your turn.',
+      'A report still waiting for its Level 1 is marked You can override.',
+    ],
+    keywords: 'level 2 you can override waiting',
+  },
+  {
+    id: 'approve-override',
+    level: 'Level 2',
+    group: 'Level 1 and Level 2',
+    question: 'How do I approve without the Level 1?',
+    start: 213.0,
+    answer: [
+      'Open the report, select Override, state why, and select Override and approve.',
+      'The Level 1 step is marked Overridden, and the reason is kept in the audit trail.',
+    ],
+    keywords: 'override level 1 on leave',
+  },
+  {
+    id: 'approve-final',
+    group: 'Level 1 and Level 2',
+    question: 'What happens after the final approval?',
+    start: 230.3,
+    answer: [
+      'The report is approved and goes to Finance, which waits for the original receipts.',
+      'Gas and vehicle emergency lines may also be checked by an Expense Verifier.',
+    ],
+    keywords: 'final approval finance receipts verifier',
+  },
+  {
+    id: 'approve-queries',
+    level: 'Level 2',
+    group: 'Level 1 and Level 2',
+    question: 'How do I decide on a Finance query?',
+    start: 244.9,
+    answer: [
+      'When an Expense Verifier cannot verify a line, Finance may ask the Level 2 to decide. The query appears under Queries.',
+      'Open the report, select Decide, and choose Let it through, Return for correction or Reject the report.',
+    ],
+    keywords: 'queries decide verification finance',
+  },
+  {
+    id: 'approve-delegate',
+    group: 'Leave and reports',
+    question: 'How do I name a delegate while I am on leave?',
+    start: 262.2,
+    answer: [
+      'On Delegations, select New delegation, choose a delegate of your level or higher, set the dates and a reason, and select Save.',
+      'The delegate approves, returns or rejects in your place, stamped "on behalf of" you. A delegation lasts at most 90 days; rates and scope are never delegated.',
+    ],
+    keywords: 'delegation delegate leave on behalf',
+  },
+  {
+    id: 'approve-delegate-l1',
+    level: 'Level 2',
+    group: 'Leave and reports',
+    question: 'How do I name a delegate for a Level 1?',
+    start: 289.3,
+    answer: ['In New delegation, choose A Level 1 I am over, then select the Level 1 and the delegate.'],
+    keywords: 'delegation level 1 i am over',
+  },
+  {
+    id: 'approve-budgets',
+    group: 'Leave and reports',
+    question: 'What does the Budgets page show?',
+    start: 299.4,
+    answer: [
+      "Each department's yearly budget against what its employees spent, for the departments in your scope. It is for monitoring only.",
+      'If no cost center is shown, ask the System Administrator to set one up.',
+    ],
+    keywords: 'budgets cost center monitoring',
+  },
+  {
+    id: 'approve-summary',
+    group: 'Leave and reports',
+    question: 'How do I see and export a summary of expenses?',
+    start: 314.5,
+    answer: [
+      'On Summary, choose Reports I sign for, set the dates and the department, or use This month or Last month.',
+      'Select Export for a CSV file (Excel) or a PDF.',
+    ],
+    keywords: 'summary export csv pdf reports i sign for',
+  },
+  {
+    id: 'approve-notifications',
+    group: 'Leave and reports',
+    question: 'Which notifications do I receive?',
+    start: 336.2,
+    answer: [
+      'A text message and an email when a report is filed for you.',
+      'Where reminders are enabled, a reminder when a report waits too long.',
+    ],
+    keywords: 'notification sms email reminder',
+  },
+];
+
+export const helpTopics: HelpTopic[] = [
+  ...filingTopics.map((t) => ({ ...t, video: 'filing' as const })),
+  ...approvingTopics.map((t) => ({ ...t, video: 'approving' as const })),
 ];
 
 export function formatStart(seconds: number): string {

@@ -1,22 +1,36 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { HELP_VIDEO_URL, formatStart, helpTopics, safeVideoUrl } from '@/features/help/topics';
-import type { HelpTopic } from '@/features/help/topics';
+import { HELP_VIDEOS, formatStart, helpTopics, safeVideoUrl } from '@/features/help/topics';
+import type { HelpTopic, HelpVideoKey } from '@/features/help/topics';
 
-const props = defineProps<{ topicId: string | null }>();
+/** `videos`: the tabs this user sees, first one open by default. */
+const props = defineProps<{ videos: HelpVideoKey[]; topicId: string | null }>();
 const emit = defineEmits<{ 'update:topicId': [id: string | null] }>();
 
-const videoSrc = safeVideoUrl(HELP_VIDEO_URL);
+const tab = ref<HelpVideoKey>(props.videos[0] ?? 'filing');
+const videoSrc = computed(() => safeVideoUrl(HELP_VIDEOS[tab.value].url));
 const loadFailed = ref(false);
 const video = ref<HTMLVideoElement | null>(null);
 const search = ref('');
 const openId = ref<string | null>(null);
 
+watch(tab, () => {
+  loadFailed.value = false;
+  openId.value = null;
+});
+
+function pickTab(key: HelpVideoKey) {
+  if (key === tab.value) return;
+  tab.value = key;
+  emit('update:topicId', null);
+}
+
 const groups = computed(() => {
   const q = search.value.trim().toLowerCase();
+  const own = helpTopics.filter((t) => t.video === tab.value);
   const matches = q
-    ? helpTopics.filter((t) => [t.question, t.group, t.keywords ?? '', ...t.answer].join(' ').toLowerCase().includes(q))
-    : helpTopics;
+    ? own.filter((t) => [t.question, t.group, t.level ?? '', t.keywords ?? '', ...t.answer].join(' ').toLowerCase().includes(q))
+    : own;
   const byGroup = new Map<string, HelpTopic[]>();
   for (const t of matches) byGroup.set(t.group, [...(byGroup.get(t.group) ?? []), t]);
   return [...byGroup].map(([label, topics]) => ({ label, topics }));
@@ -46,11 +60,14 @@ function choose(topic: HelpTopic) {
 // From the address (e.g. the ? in the expense line window): open the topic and cue the video. No
 // autoplay, since a page opened in a new tab has no click to allow it.
 function openFromAddress(id: string | null) {
-  const topic = helpTopics.find((t) => t.id === id);
+  const topic = helpTopics.find((t) => t.id === id && props.videos.includes(t.video));
   if (!topic || openId.value === topic.id) return;
-  openId.value = topic.id;
-  seek(topic.start, false);
-  void nextTick(() => document.getElementById(`help-${topic.id}`)?.scrollIntoView({ block: 'center' }));
+  tab.value = topic.video;
+  void nextTick(() => {
+    openId.value = topic.id;
+    seek(topic.start, false);
+    document.getElementById(`help-${topic.id}`)?.scrollIntoView({ block: 'center' });
+  });
 }
 
 onMounted(() => openFromAddress(props.topicId));
@@ -58,10 +75,33 @@ watch(() => props.topicId, openFromAddress);
 </script>
 
 <template>
+  <div v-if="videos.length > 1" class="help__tabs mb-4" role="tablist" aria-label="Help videos">
+    <button
+      v-for="key in videos"
+      :key="key"
+      type="button"
+      role="tab"
+      class="help__tab press"
+      :class="{ 'help__tab--on': tab === key }"
+      :aria-selected="tab === key"
+      @click="pickTab(key)"
+    >
+      {{ HELP_VIDEOS[key].title }}
+    </button>
+  </div>
   <div class="help">
     <div class="help__video">
       <template v-if="videoSrc && !loadFailed">
-        <video ref="video" :src="videoSrc" controls preload="metadata" playsinline class="help__player" @error="loadFailed = true">
+        <video
+          :key="tab"
+          ref="video"
+          :src="videoSrc"
+          controls
+          preload="metadata"
+          playsinline
+          class="help__player"
+          @error="loadFailed = true"
+        >
           Your browser cannot play this video.
         </video>
         <p class="help__hint">Select a question to play the video from that part.</p>
@@ -80,7 +120,7 @@ watch(() => props.topicId, openFromAddress);
         hide-details
         clearable
         prepend-inner-icon="mdi-magnify"
-        placeholder="Search, e.g. Representation, OR no., cash advance"
+        :placeholder="tab === 'approving' ? 'Search, e.g. return, override, delegate' : 'Search, e.g. Representation, OR no., cash advance'"
         class="mb-4"
       />
 
@@ -91,7 +131,10 @@ watch(() => props.topicId, openFromAddress);
         <v-card>
           <article v-for="t in g.topics" :id="`help-${t.id}`" :key="t.id" class="topic" :class="{ 'topic--open': openId === t.id }">
             <button type="button" class="topic__head press" :aria-expanded="openId === t.id" @click="choose(t)">
-              <span class="topic__q">{{ t.question }}</span>
+              <span class="topic__q">
+                {{ t.question }}
+                <span v-if="t.level" class="topic__level">{{ t.level }}</span>
+              </span>
               <span class="topic__time"><v-icon icon="mdi-play" size="14" />{{ formatStart(t.start) }}</span>
             </button>
             <ul v-if="openId === t.id" class="topic__answer">
@@ -177,6 +220,44 @@ watch(() => props.topicId, openFromAddress);
 .topic__q {
   flex: 1;
   font-size: 14px;
+}
+.topic__level {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: 1px;
+  color: rgb(var(--v-theme-warning));
+  background: rgba(var(--v-theme-warning), 0.14);
+}
+.help__tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+.help__tab {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+  background: none;
+  cursor: pointer;
+}
+.help__tab--on {
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.14);
+}
+.help__tab:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: 1px;
 }
 .topic--open .topic__q {
   font-weight: 600;

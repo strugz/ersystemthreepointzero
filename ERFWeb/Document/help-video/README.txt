@@ -1,15 +1,20 @@
-ERFWeb Help video: how to rebuild it
-=====================================
+ERFWeb Help videos: how to rebuild them
+=======================================
 
-The Help page (/help) plays Frontend/erfweb-client/public/help/erfweb-filing-guide.mp4 and jumps
-to the start times in Frontend/erfweb-client/src/features/help/topics.ts. This folder builds that
-video from screenshots of the live site plus a narration read by Microsoft's online voices.
+The Help page (/help) plays the videos in Frontend/erfweb-client/public/help/ and jumps to the start
+times in Frontend/erfweb-client/src/features/help/topics.ts. This folder builds them from screenshots
+of the live site plus a narration read by Microsoft's online voices.
+
+  name       scenes               video file                   chapters                  shown to
+  filing     scenes.py            erfweb-filing-guide.mp4      chapters.json             everyone
+  approving  scenes_approving.py  erfweb-approving-guide.mp4   chapters_approving.json   Level 1 and Level 2
 
 Files
-  scenes.py      one entry per scene: (screenshot file, caption, narration text), in play order
-  redact.py      blur boxes per screenshot (names, approver, ERF no., CRM client, serial no.)
-  build.py       makes the voice clips, frames and the final video, and writes chapters.json
-  chapters.json  start time (seconds) of every scene in the last build
+  scenes*.py     one entry per scene: (screenshot file, caption, narration text), in play order
+  redact.py      blur boxes per screenshot (names, initials, approver, ERF no., CRM client, serial no.);
+                 approving shots start with a-
+  build.py       makes the voice clips, frames and the final video, and writes the chapters file
+  chapters*.json start time (seconds) of every scene in the last build
 
 Not in git (they hold real names): shots/, shots_redacted/, out/.
 
@@ -18,17 +23,23 @@ on PATH (or set FFMPEG / FFPROBE), Windows Segoe UI fonts, internet for the voic
 The narration text is sent to Microsoft's speech service; keep it generic (no names or data).
 
 Steps
-  1. Put the screenshots (800x450, from the built-in browser at a 1024x576 viewport) in shots/
-     with the file names used in scenes.py.
+  1. Put the screenshots (800x450 from the built-in browser: filing at a 1024x576 viewport,
+     approving at 1200x675) in shots/ with the file names used in the scenes file.
   2. Check redact.py covers every name, initial, approver, ERF no., client and serial no. on
      screen; adjust the boxes and look at shots_redacted/ before building.
   3. python redact.py
-  4. python build.py   (delete out\*.mp3 first when the narration text changed)
-     It writes the video straight into the SPA's public/help folder and updates chapters.json.
-  5. Copy the new start times from chapters.json into src/features/help/topics.ts, and raise the ?v=
-     number in HELP_VIDEO_URL there so browsers fetch the new file instead of a cached copy.
-     HELP_VIDEO_URL may also be a full https:// URL (file server or CDN) instead of the SPA file.
+  4. python build.py filing   or   python build.py approving
+     (delete that video's out\*.mp3 first when the narration text changed; approving uses out\approving)
+     It writes the video straight into the SPA's public/help folder and updates the chapters file.
+  5. Copy the new start times from the chapters file into src/features/help/topics.ts, and raise the
+     ?v= number of that video in HELP_VIDEOS there so browsers fetch the new file, not a cached copy.
+     A url in HELP_VIDEOS may also be a full https:// URL (file server or CDN) instead of the SPA file.
   6. Bump the SPA version and deploy as usual (README "Versions" rule).
 
 Voice: en-US-AndrewNeural, rate -8%. Video: 1280x720 at 5 fps (H.264 CRF 30), mono AAC 32 kbps;
-about 3.8 MB for 6:45. Keep it small: users on slow or mobile links download only what they play.
+about 3.8 MB for the 6:45 filing video and 3.1 MB for the 5:54 approving video. Keep them small:
+users on slow or mobile links download only what they play.
+
+Test data for the approving video (2026-11-24, kept for the Expense Verifier and Finance videos):
+ERF-2026-000005 (approved), -000006 (waiting Level 2), -000007 (waiting Level 1), purpose "TEST ...
+will be deleted", claimant ALEXANDER H ANCLOTE, Level 1 Frederick T. Galicha, Level 2 Richard B. Garces.
