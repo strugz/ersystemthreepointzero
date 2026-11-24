@@ -64,6 +64,7 @@ export const expensesApi = {
   },
   attachmentUrl: (id: string, attachmentId: number, download = false) =>
     apiUrl(`${r(id)}/attachments/${attachmentId}/content${download ? '?download=true' : ''}`),
+  fetchAttachment: (id: string, attachmentId: number) => api.getFile(`${r(id)}/attachments/${attachmentId}/content`, 'receipt'),
   removeAttachment: (id: string, attachmentId: number) => api.del<void>(`${r(id)}/attachments/${attachmentId}`),
 
   workWith: (search?: string) => api.get<WorkWithOption[]>(`/lookups/work-with${qs({ search })}`),
