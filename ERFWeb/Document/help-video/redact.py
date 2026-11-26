@@ -129,6 +129,29 @@ BOXES.update({
                              (111, 345, 183, 358)],
 })
 
+# "System Administrator" video (prefix ad-), captured sharp at 1920x1080 as admin; forms filled and cancelled.
+AD_CRUMB = (210, 10, 312, 30)
+AD_TITLE = (176, 55, 364, 81)
+AD_PROFILE_TOP = [(176, 78, 234, 93), (188, 169, 297, 185), (371, 169, 430, 185), (188, 260, 342, 276),
+                  (371, 260, 450, 276), (371, 305, 507, 334)]
+BOXES.update({
+    "ad-02-users.jpg": [(184, 172, 334, 450)],
+    "ad-05-user.jpg": [AD_CRUMB, AD_TITLE] + AD_PROFILE_TOP,
+    "ad-06-roles.jpg": [AD_CRUMB, (188, 65, 297, 81), (371, 65, 430, 81), (188, 156, 342, 172), (371, 156, 450, 172),
+                        (371, 201, 507, 230)],
+    "ad-07-grant-role.jpg": [AD_CRUMB, (188, 77, 342, 93), (371, 77, 450, 93), (371, 122, 507, 151)],
+    "ad-08-reset-password.jpg": [AD_CRUMB, AD_TITLE, (386, 155, 504, 169), (176, 78, 234, 93), (188, 169, 250, 185), (188, 260, 250, 276)],
+    "ad-09-deactivate.jpg": [AD_CRUMB, AD_TITLE, (276, 205, 392, 219), (176, 78, 234, 93), (188, 169, 256, 185), (188, 260, 256, 276),
+                            (371, 305, 507, 334)],
+    "ad-10-scope.jpg": [(184, 192, 268, 450), (312, 192, 446, 450)],
+    "ad-11-new-assignment.jpg": [(184, 192, 206, 450)],
+    "ad-12-coverage.jpg": [(184, 194, 302, 450), (398, 280, 762, 450)],
+    "ad-18-who-gets-what.jpg": [(570, 87, 692, 103), (560, 164, 670, 179)],
+    "ad-37-rules-notifications.jpg": [(348, 221, 544, 237)],
+    "ad-38-rules-signin.jpg": [(348, 66, 544, 82)],
+    "ad-42-audit.jpg": [(486, 158, 727, 450)],
+})
+
 
 def main():
     os.makedirs(DST, exist_ok=True)

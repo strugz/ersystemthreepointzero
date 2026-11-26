@@ -1,4 +1,4 @@
-"""Builds a narrated video for the ERFWeb Help page: python build.py [filing|approving|finance|verifier] [--hd]. Steps: README.txt here."""
+"""Builds a narrated video for the ERFWeb Help page: python build.py [filing|approving|finance|verifier|admin] [--hd]. Steps: README.txt here."""
 import asyncio, importlib, json, os, shutil, subprocess, sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import edge_tts
@@ -16,6 +16,8 @@ VIDEOS = {
                 "chapters_finance.json", "Finance guide", "ERFWeb Finance Guide"),
     "verifier": ("scenes_verifier", os.path.join("out", "verifier"), "erfweb-verifier-guide.mp4",
                  "chapters_verifier.json", "Expense Verifier guide", "ERFWeb Expense Verifier Guide"),
+    "admin": ("scenes_admin", os.path.join("out", "admin"), "erfweb-admin-guide.mp4",
+              "chapters_admin.json", "System Administrator guide", "ERFWeb System Administrator Guide"),
 }
 ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
 NAME = ARGS[0] if ARGS else "filing"

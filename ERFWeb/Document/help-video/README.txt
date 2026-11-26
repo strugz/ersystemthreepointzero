@@ -10,6 +10,7 @@ of the live site plus a narration read by Microsoft's online voices.
   approving  scenes_approving.py  erfweb-approving-guide.mp4   chapters_approving.json   Level 1 and Level 2
   finance    scenes_finance.py    erfweb-finance-guide.mp4     chapters_finance.json     Finance
   verifier   scenes_verifier.py   erfweb-verifier-guide.mp4    chapters_verifier.json    Expense Verifier
+  admin      scenes_admin.py      erfweb-admin-guide.mp4       chapters_admin.json       System Administrator
 
 Files
   scenes*.py     one entry per scene: (screenshot file, caption, narration text), in play order
@@ -41,7 +42,7 @@ Steps
      A url in HELP_VIDEOS may also be a full https:// URL (file server or CDN) instead of the SPA file.
   6. Bump the SPA version and deploy as usual (README "Versions" rule).
 
-Sharp screenshots (1920x1080; all four videos use them since 2026-11-26)
+Sharp screenshots (1920x1080; every video uses them since 2026-11-26)
   The built-in browser pane only returns 800x450 screenshots, which look soft in full screen. capture.mjs
   drives a separate Chrome instead (Node 22+, no packages):
     chrome.exe --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1
@@ -51,11 +52,11 @@ Sharp screenshots (1920x1080; all four videos use them since 2026-11-26)
   the picture, so read box positions off an 800x450 preview. Close that Chrome when done.
 
 Voice: en-US-AndrewNeural, rate -8%. Video: 1280x720 at 5 fps (H.264 CRF 30), mono AAC 32 kbps;
-about 3.8 MB for the 7:00 filing video, 3.0 MB for the 6:06 approving video and 1.8 MB for the 3:26 Finance video and 1.2 MB for the 2:31 Expense Verifier video. Keep them small:
+about 3.8 MB for the 7:00 filing video, 3.0 MB for the 6:06 approving video and 1.8 MB for the 3:26 Finance video and 1.2 MB for the 2:31 Expense Verifier video, 5.1 MB for the 9:01 System Administrator video. Keep them small:
 users on slow or mobile links download only what they play.
 HD copy (the HD switch under the Help player, fetched only when picked): 1920x1080 at 5 fps (H.264 CRF 22), mono
 AAC 96 kbps; 13.5 MB filing, 10.2 MB approving, 6.0 MB Finance and
-4.1 MB Expense Verifier.
+4.1 MB Expense Verifier and 17.9 MB System Administrator.
 
 Test data for the approving video (2026-11-24, kept for the Expense Verifier and Finance videos):
 ERF-2026-000005 (approved), -000006 (waiting Level 2), -000007 (waiting Level 1), purpose "TEST ...
@@ -74,3 +75,5 @@ in the Finance queue; -000007 still waits for Level 1.
 The sharp filing re-shoot (2026-11-26) used a TEST draft as Loid M Copino (Liquidation, Nov 9-13, 2026) and, for
 the two From CRM shots, a TEST draft as ALEXANDER H ANCLOTE (Nov 16-20); both drafts were deleted afterwards, the
 File report dialog was cancelled, and nothing was filed or sent. The receipt is a made-up image marked as test data.
+The System Administrator video (2026-11-26, ad- shots, account admin) only filled forms and cancelled them; nothing
+was saved. Password fields were left empty. The user page shown is ALEXANDER H ANCLOTE's (blurred).

@@ -18,6 +18,14 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
+- **Help: System Administrator video** (PR #82). System Administrators get a Help tab,
+  **System Administrator**: a narrated 9:01 video (`public/help/erfweb-admin-guide.mp4`, 5.1 MB; HD 17.9 MB) from
+  sharp 1920x1080 screenshots, with 19 `admin-*` questions covering Users (new user, roles, signature, reset
+  password, deactivate), Scope and Coverage, Rates (lines, new version, assignments, who gets what), Master data,
+  every Rules tab (Approvals, Filing and Finance with each Finance rule, R47, Notifications and sign-in), the R47
+  designer and the Audit log. `HelpView` adds the tab for the SystemAdministrator role. Build kit: `build.py admin`,
+  `scenes_admin.py`, `chapters_admin.json`, `ad-` blur boxes. All five role videos now exist. Frontend only, SPA
+  0.25.0 (minor).
 - **Help: HD plays in the player** (PR #81). The **Download HD** button under each Help video is
   replaced by a **Standard | HD (size)** switch: HD plays the 1920x1080 copy in the same player and carries on
   from the same second (still playing if it was); Standard (720p) stays the default, so the HD file is fetched only
@@ -807,7 +815,8 @@ start time, optional Level 1 / Level 2 badge; `features/help/components/HelpCont
 **Filing a report** tab (`public/help/erfweb-filing-guide.mp4`); Level 1 and Level 2 signatories also see
 **Approving reports** (`public/help/erfweb-approving-guide.mp4`, `approve-*` questions), Finance **Finance**
 (`public/help/erfweb-finance-guide.mp4`, `finance-*`) and Expense Verifiers **Expense Verifier**
-(`public/help/erfweb-verifier-guide.mp4`, `verifier-*`). The tabs only decide what is
+(`public/help/erfweb-verifier-guide.mp4`, `verifier-*`), and System Administrators **System Administrator**
+(`public/help/erfweb-admin-guide.mp4`, `admin-*`). The tabs only decide what is
 shown; the files themselves are public. The **Standard | HD** switch under the video plays the 1920x1080
 copy (`<video>-hd.mp4`) in the same player from the same second; it is fetched only when HD is picked.
 Selecting a question plays the video from that part and opens its answer; `/help?topic=<id>` opens a question and
