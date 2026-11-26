@@ -1,6 +1,6 @@
 """Blurs names and record numbers in the screenshots before the video is built.
 
-Boxes are (left, top, right, bottom) in the 800x450 screenshot. Reads shots/, writes shots_redacted/.
+Boxes are (left, top, right, bottom) in 800x450 space, scaled to larger screenshots. Reads shots/, writes shots_redacted/.
 """
 import os
 import shutil
@@ -89,21 +89,26 @@ BOXES.update({
     "f-13-waiting-verifier.jpg": [F_HEAD_REVIEW, (94, 314, 212, 334)],
     "f-14-under-verification.jpg": [F_HEAD_QUEUE, (84, 272, 330, 318), (84, 354, 330, 372), (84, 384, 330, 400), (84, 402, 330, 450)],
 })
-# "Expense Verifier" video (prefix v-), captured at a 1200x675 viewport.
-V_HEAD_LIST = (616, 10, 732, 32)
-V_HEAD_REVIEW = (542, 10, 658, 32)
+# "Expense Verifier" video (prefix v-), captured sharp at 1920x1080 (CSS 1280x720 at 1.5x) in Chrome.
+V_HEAD_LIST = (628, 9, 736, 31)
+V_HEAD_REVIEW = (558, 9, 666, 31)
+V_APPROVERS_TOP = [(586, 117, 688, 130), (586, 148, 656, 161)]
 BOXES.update({
-    "v-01-queue.jpg": [V_HEAD_LIST, (144, 166, 254, 181), (180, 211, 258, 224)],
-    "v-02-report.jpg": [V_HEAD_REVIEW, (72, 60, 272, 86)],
-    "v-03-card.jpg": [V_HEAD_REVIEW, (96, 155, 210, 175), (108, 297, 224, 313), (108, 330, 212, 346)],
-    "v-04-picked-up.jpg": [V_HEAD_REVIEW, (96, 155, 210, 175), (116, 205, 208, 219), (154, 236, 304, 251),
-                           (108, 317, 224, 333), (108, 350, 212, 366)],
-    "v-05-receipts.jpg": [(118, 21, 232, 35)],
-    "v-06-finding.jpg": [V_HEAD_REVIEW, (96, 135, 210, 155), (116, 186, 230, 200), (110, 217, 230, 232),
-                         (108, 297, 224, 313), (108, 330, 224, 346)],
-    "v-07-recorded.jpg": [V_HEAD_REVIEW, (96, 135, 210, 155), (116, 184, 208, 198), (96, 205, 226, 225),
-                          (108, 357, 224, 373), (108, 390, 212, 406)],
-    "v-08-my-findings.jpg": [V_HEAD_LIST, (86, 166, 192, 181), (120, 211, 204, 224)],
+    "v-01-queue.jpg": [V_HEAD_LIST, (80, 155, 182, 169), (111, 197, 183, 212)],
+    "v-02-report.jpg": [V_HEAD_REVIEW, (68, 57, 253, 80), (586, 206, 688, 219), (586, 237, 656, 250)],
+    "v-03-card.jpg": [V_HEAD_REVIEW, (90, 127, 198, 146), (109, 174, 236, 189), (90, 192, 210, 210),
+                      (90, 358, 198, 377)] + V_APPROVERS_TOP,
+    "v-04-picked-up.jpg": [V_HEAD_REVIEW, (90, 108, 198, 127), (109, 155, 236, 170), (90, 173, 210, 191),
+                           (90, 339, 198, 358), (109, 386, 236, 401), (148, 416, 288, 431)] + V_APPROVERS_TOP,
+    "v-05-receipts.jpg": [(114, 19, 212, 32)],
+    "v-06-finding.jpg": [V_HEAD_REVIEW, (90, 53, 198, 72), (109, 99, 236, 114), (90, 117, 210, 135),
+                         (90, 283, 198, 302), (109, 330, 236, 345), (148, 360, 240, 375),
+                         (586, 61, 688, 74), (586, 92, 656, 105)],
+    "v-07-recorded.jpg": [V_HEAD_REVIEW, (90, 53, 198, 72), (109, 100, 236, 115), (90, 118, 210, 136),
+                          (90, 284, 198, 303), (109, 331, 236, 346), (90, 348, 210, 366),
+                          (586, 180, 688, 194), (586, 211, 656, 225)],
+    "v-08-my-findings.jpg": [V_HEAD_LIST, (80, 155, 182, 169), (111, 198, 183, 211), (80, 302, 182, 316),
+                             (111, 345, 183, 358)],
 })
 
 
@@ -116,8 +121,10 @@ def main():
             shutil.copyfile(src, dst)
             continue
         im = Image.open(src).convert("RGB")
+        k = im.width / 800  # boxes are in 800x450 space; sharp shots are larger
         for box in boxes:
-            im.paste(im.crop(box).filter(ImageFilter.GaussianBlur(7)), box[:2])
+            box = tuple(round(v * k) for v in box)
+            im.paste(im.crop(box).filter(ImageFilter.GaussianBlur(7 * k)), box[:2])
         im.save(dst, quality=92)
     print("redacted", len(BOXES), "of", len(os.listdir(SRC)))
 

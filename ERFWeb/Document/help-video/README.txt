@@ -33,14 +33,29 @@ Steps
   4. python build.py filing   or   python build.py approving
      (delete that video's out\*.mp3 first when the narration text changed; approving uses out\approving)
      It writes the video straight into the SPA's public/help folder and updates the chapters file.
+     Then python build.py <name> --hd makes the 1920x1080 download copy (<video>-hd.mp4) from the same
+     voice clips (out\<name>\hd holds its frames); it leaves the chapters file alone.
   5. Copy the new start times from the chapters file into src/features/help/topics.ts, and raise the
-     ?v= number of that video in HELP_VIDEOS there so browsers fetch the new file, not a cached copy.
+     ?v= number of that video (and of its hd copy, with its size) in HELP_VIDEOS there so browsers fetch the
+     new file, not a cached copy.
      A url in HELP_VIDEOS may also be a full https:// URL (file server or CDN) instead of the SPA file.
   6. Bump the SPA version and deploy as usual (README "Versions" rule).
 
+Sharp screenshots (1920x1080; the Expense Verifier video uses them, the others are still 800x450)
+  The built-in browser pane only returns 800x450 screenshots, which look soft in full screen. capture.mjs
+  drives a separate Chrome instead (Node 22+, no packages):
+    chrome.exe --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1
+               --user-data-dir=<scratch folder> https://ersystemthreepointzero.onrender.com/
+  Sign in there yourself, then: node capture.mjs nav <url>, click "<button text>", shot shots\<name>.png ...
+  Save the shots as .jpg (quality 93) in shots/. redact.py keeps every box in 800x450 space and scales it to
+  the picture, so read box positions off an 800x450 preview. Close that Chrome when done.
+
 Voice: en-US-AndrewNeural, rate -8%. Video: 1280x720 at 5 fps (H.264 CRF 30), mono AAC 32 kbps;
-about 4.0 MB for the 7:00 filing video, 3.2 MB for the 6:06 approving video and 2.0 MB for the 3:26 Finance video and 1.2 MB for the 2:25 Expense Verifier video. Keep them small:
+about 4.0 MB for the 7:00 filing video, 3.2 MB for the 6:06 approving video and 2.0 MB for the 3:26 Finance video and 1.2 MB for the 2:31 Expense Verifier video. Keep them small:
 users on slow or mobile links download only what they play.
+HD copy (Download HD on the Help page, fetched only on that click): 1920x1080 at 5 fps (H.264 CRF 22), mono
+AAC 96 kbps; 14.6 MB filing, 11.6 MB approving, 7.4 MB Finance and
+4.1 MB Expense Verifier.
 
 Test data for the approving video (2026-11-24, kept for the Expense Verifier and Finance videos):
 ERF-2026-000005 (approved), -000006 (waiting Level 2), -000007 (waiting Level 1), purpose "TEST ...
@@ -49,3 +64,5 @@ The Finance video (2026-11-26, f- shots, Finance account Rosemarie Asuncion) rec
 as received and opened one verification request on its Parking line for the Expense Verifier video; it is not cleared.
 The Expense Verifier video (2026-11-26, v- shots, verifier account Donna Rose C. Parducho) picked that request up and
 recorded it as Verified, so the request is closed and Finance can clear ERF-2026-000005.
+The sharp re-shoot (2026-11-26) opened a second request, as Finance, on its Transportation line (SUCAT - NICHOLS,
+285.00) and recorded it as Verified with note; both requests on ERF-2026-000005 are closed.

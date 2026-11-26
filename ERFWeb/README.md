@@ -18,6 +18,13 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
+- **Help: download in HD** (not yet committed). Each Help tab has **Download HD (size)** under the video: a
+  1920x1080 copy of that video (`public/help/<video>-hd.mp4`, 4.1 to 14.6 MB, 38 MB for all four) built with `build.py <name> --hd` from the
+  same voice. The Expense Verifier video is re-shot from sharp 1920x1080 screenshots (`capture.mjs`, Chrome at
+  CSS 1280x720 x1.5; now 2:31, start times moved, `?v=2`); the other three still come from 800x450 shots, so
+  their HD copies look soft in full screen until re-shot. `redact.py` scales its 800x450 boxes. It is a plain download link, so the file is fetched only when the user clicks it;
+  the player still streams the small 720p file. `HELP_VIDEOS` entries carry `hd: { url, size }`. Frontend only,
+  SPA 0.23.0 (minor).
 - **Help: Expense Verifier video** (PR #76). Expense Verifiers get a **Help** tab, **Expense Verifier**:
   a narrated 2:25 video (`public/help/erfweb-verifier-guide.mp4`, 1.2 MB, names blurred) with 7 questions
   (`verifier-*`: where requests come from, read-only report, Pick up, checking receipts side by side, recording a
@@ -780,7 +787,8 @@ start time, optional Level 1 / Level 2 badge; `features/help/components/HelpCont
 **Approving reports** (`public/help/erfweb-approving-guide.mp4`, `approve-*` questions), Finance **Finance**
 (`public/help/erfweb-finance-guide.mp4`, `finance-*`) and Expense Verifiers **Expense Verifier**
 (`public/help/erfweb-verifier-guide.mp4`, `verifier-*`). The tabs only decide what is
-shown; the files themselves are public.
+shown; the files themselves are public. **Download HD** under the video saves a 1920x1080 copy
+(`<video>-hd.mp4`); it is only a link, so nothing is fetched until it is clicked.
 Selecting a question plays the video from that part and opens its answer; `/help?topic=<id>` opens a question and
 cues the video without playing it. Category questions are `category-<ExpenseCategory>` (e.g. `category-Representation`);
 the **?** beside Close in the expense line window opens that topic for the picked category in a new tab, so the line
