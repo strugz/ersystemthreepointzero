@@ -53,7 +53,7 @@ Sharp screenshots (1920x1080; all four videos use them since 2026-11-26)
 Voice: en-US-AndrewNeural, rate -8%. Video: 1280x720 at 5 fps (H.264 CRF 30), mono AAC 32 kbps;
 about 3.8 MB for the 7:00 filing video, 3.0 MB for the 6:06 approving video and 1.8 MB for the 3:26 Finance video and 1.2 MB for the 2:31 Expense Verifier video. Keep them small:
 users on slow or mobile links download only what they play.
-HD copy (Download HD on the Help page, fetched only on that click): 1920x1080 at 5 fps (H.264 CRF 22), mono
+HD copy (the HD switch under the Help player, fetched only when picked): 1920x1080 at 5 fps (H.264 CRF 22), mono
 AAC 96 kbps; 13.5 MB filing, 10.2 MB approving, 6.0 MB Finance and
 4.1 MB Expense Verifier.
 

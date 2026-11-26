@@ -15,8 +15,10 @@ const SEARCH_HINTS: Record<HelpVideoKey, string> = {
 };
 
 const tab = ref<HelpVideoKey>(props.videos[0] ?? 'filing');
-const videoSrc = computed(() => safeVideoUrl(HELP_VIDEOS[tab.value].url));
+// Standard plays by default; the 1080p file is fetched only when the viewer picks HD.
+const hd = ref(false);
 const hdSrc = computed(() => safeVideoUrl(HELP_VIDEOS[tab.value].hd.url));
+const videoSrc = computed(() => (hd.value && hdSrc.value) || safeVideoUrl(HELP_VIDEOS[tab.value].url));
 const loadFailed = ref(false);
 const video = ref<HTMLVideoElement | null>(null);
 const search = ref('');
@@ -54,6 +56,27 @@ function seek(seconds: number, play: boolean) {
   };
   if (v.readyState >= HTMLMediaElement.HAVE_METADATA) go();
   else v.addEventListener('loadedmetadata', go, { once: true });
+}
+
+// Switching quality reloads the player, so carry on from the same second.
+function setQuality(on: boolean) {
+  if (on === hd.value) return;
+  const v = video.value;
+  const at = v?.currentTime ?? 0;
+  const playing = !!v && !v.paused;
+  hd.value = on;
+  void nextTick(() => {
+    const el = video.value;
+    if (!el) return;
+    // play() right after the jump is aborted while the new file is still seeking, so resume once it lands.
+    if (playing) el.addEventListener('seeked', () => void el.play().catch(() => undefined), { once: true });
+    seek(at, false);
+  });
+}
+
+function onVideoError() {
+  if (hd.value) setQuality(false);
+  else loadFailed.value = true;
 }
 
 function choose(topic: HelpTopic) {
@@ -108,23 +131,26 @@ watch(() => props.topicId, openFromAddress);
           preload="metadata"
           playsinline
           class="help__player"
-          @error="loadFailed = true"
+          @error="onVideoError"
         >
           Your browser cannot play this video.
         </video>
         <div class="help__below">
           <p class="help__hint">Select a question to play the video from that part.</p>
-          <v-btn
+          <v-btn-toggle
             v-if="hdSrc"
-            :href="hdSrc"
-            download
-            class="press"
-            size="small"
-            variant="text"
-            prepend-icon="mdi-download"
+            :model-value="hd ? 'hd' : 'sd'"
+            mandatory
+            density="compact"
+            variant="outlined"
+            divided
+            color="primary"
+            aria-label="Video quality"
+            @update:model-value="setQuality($event === 'hd')"
           >
-            Download HD ({{ HELP_VIDEOS[tab].hd.size }})
-          </v-btn>
+            <v-btn value="sd" size="small" class="press">Standard</v-btn>
+            <v-btn value="hd" size="small" class="press">HD · {{ HELP_VIDEOS[tab].hd.size }}</v-btn>
+          </v-btn-toggle>
         </div>
       </template>
       <div v-else class="help__player help__novideo" role="status">

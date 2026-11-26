@@ -3,7 +3,7 @@ export type HelpVideoKey = 'filing' | 'approving' | 'finance' | 'verifier';
 /**
  * The narrated videos (rebuilt from ERFWeb/Document/help-video, see its README.txt). Each url is a path inside the
  * SPA, built from the base path so a sub-path host still works, or a full https:// URL to a file server or CDN.
- * `hd` is the 1080p copy offered only as a download link, so it is fetched only when the user asks for it.
+ * `hd` is the 1080p copy the player switches to when the viewer picks HD, so it is fetched only then.
  * Raise ?v= whenever a file is replaced under the same name, so browsers fetch the new copy.
  */
 export const HELP_VIDEOS: Record<HelpVideoKey, { title: string; url: string; hd: { url: string; size: string } }> = {
