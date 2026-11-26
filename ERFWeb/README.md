@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
-- **Help: System Administrator video** (not yet committed). System Administrators get a Help tab,
+- **Help: System Administrator video** (PR #82). System Administrators get a Help tab,
   **System Administrator**: a narrated 9:01 video (`public/help/erfweb-admin-guide.mp4`, 5.1 MB; HD 17.9 MB) from
   sharp 1920x1080 screenshots, with 19 `admin-*` questions covering Users (new user, roles, signature, reset
   password, deactivate), Scope and Coverage, Rates (lines, new version, assignments, who gets what), Master data,
