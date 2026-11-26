@@ -1,13 +1,16 @@
 -- =====================================================================
---  ERFWeb: let ONE account sign in again (admin included, e.g. when nobody can open the Users page).
---  * login_security row of that username is deleted (clears failed attempts and any lockout).
+--  ERFWeb: let ONE account sign in again (admin included, e.g. when nobody can open the Users page),
+--  or, with all_except_sysadmin = true, every account without an active System Administrator role.
+--  * login_security rows of the target usernames are deleted (clears failed attempts and any lockout).
 --  * reactivate = true also sets users.is_active = true (a deactivated account cannot sign in).
+--    One username only: with all_except_sysadmin, inactive accounts stay inactive.
 --  * The password stays unless new_password_hash is filled in. Then it is set to that PBKDF2 hash and
 --    users.must_change_password = true, so the user signs in with that password and must choose a new one.
 --    Get a hash of a password you know from an account that already uses it:
 --      SELECT password_hash FROM users WHERE username = '<account whose password you know>';
 --    Never put a plain password or a hash in this file in git (the repository is public).
---  * delete_reports = true (default false) also deletes every expense report this user filed or drafted
+--  * delete_reports = true (default false; one username only, refused with all_except_sysadmin) also deletes
+--    every expense report this user filed or drafted
 --    (expense_reports.employee_user_id), any status, with everything tied to it, the same tables
 --    as reset_reports.sql: lines and their meal/fare items, verification requests, receipts and
 --    documents (stored in the row), approval steps, finance tracking, cash advance lines, reminder,
@@ -18,40 +21,64 @@
 --
 --  Usage: set the values in the DECLARE block, then run the whole script
 --  (pgAdmin Query Tool, or psql -d erms_db -f ...). Safe to re-run. The result is shown as a NOTICE.
+--  Before an all_except_sysadmin run, list who it changes:
+--    SELECT u.username FROM users u WHERE NOT EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = u.id
+--      AND r.role = 'SystemAdministrator' AND r.status = 'Active') ORDER BY 1;
 --  Rollback: deleted reports only from the backup; a replaced password cannot be restored. The lockout
 --    needs none (a new lock starts after the next failed attempts).
 --    is_active: UPDATE users SET is_active = false WHERE username = '<username>';
 -- =====================================================================
 DO $$
 DECLARE
-  target_username   text    := 'CHANGE_ME';  -- username exactly as on the Users page
-  reactivate        boolean := true;
-  delete_reports    boolean := false;        -- true deletes ALL of this user's expense reports
-  new_password_hash text    := '';           -- optional PBKDF2 hash (see the header); empty keeps the password
+  target_username     text    := 'CHANGE_ME';  -- username exactly as on the Users page
+  all_except_sysadmin boolean := false;        -- true: every account without an active SystemAdministrator role (target_username is ignored)
+  reactivate          boolean := true;         -- one username only
+  delete_reports      boolean := false;        -- true deletes ALL of this user's expense reports (one username only)
+  new_password_hash   text    := '';           -- optional PBKDF2 hash (see the header); empty keeps the password
 
-  target_id   bigint;
-  was_active  boolean;
-  had_lock    boolean;
-  report_ids  uuid[];
-  line_count  bigint := 0;
-  file_count  bigint := 0;
+  target_ids        bigint[];
+  target_names      text[];
+  do_reactivate     boolean;
+  lock_count        bigint;
+  reactivated_count bigint;
+  report_ids        uuid[];
+  line_count        bigint := 0;
+  file_count        bigint := 0;
 BEGIN
-  SELECT id, is_active INTO target_id, was_active FROM users WHERE username = target_username;
-  IF target_id IS NULL THEN
-    RAISE EXCEPTION 'No user with username "%". Nothing changed.', target_username;
+  IF all_except_sysadmin THEN
+    IF delete_reports THEN
+      RAISE EXCEPTION 'delete_reports works for one username only, not with all_except_sysadmin. Nothing changed.';
+    END IF;
+    SELECT array_agg(u.id), array_agg(u.username) INTO target_ids, target_names
+    FROM users u
+    WHERE NOT EXISTS (SELECT 1 FROM user_roles r
+                      WHERE r.user_id = u.id AND r.role = 'SystemAdministrator' AND r.status = 'Active');
+    IF target_ids IS NULL THEN
+      RAISE EXCEPTION 'Every account is a System Administrator. Nothing changed.';
+    END IF;
+  ELSE
+    SELECT array_agg(id), array_agg(username) INTO target_ids, target_names
+    FROM users WHERE username = target_username;
+    IF target_ids IS NULL THEN
+      RAISE EXCEPTION 'No user with username "%". Nothing changed.', target_username;
+    END IF;
   END IF;
 
-  DELETE FROM login_security WHERE username = target_username;
-  had_lock := FOUND;
+  do_reactivate := reactivate AND NOT all_except_sysadmin;
+
+  DELETE FROM login_security WHERE username = ANY (target_names);
+  GET DIAGNOSTICS lock_count = ROW_COUNT;
+
+  SELECT count(*) INTO reactivated_count FROM users WHERE id = ANY (target_ids) AND NOT is_active AND do_reactivate;
 
   UPDATE users
-  SET is_active            = CASE WHEN reactivate THEN true ELSE is_active END,
+  SET is_active            = CASE WHEN do_reactivate THEN true ELSE is_active END,
       password_hash        = CASE WHEN new_password_hash <> '' THEN new_password_hash ELSE password_hash END,
       must_change_password = CASE WHEN new_password_hash <> '' THEN true ELSE must_change_password END
-  WHERE id = target_id;
+  WHERE id = ANY (target_ids);
 
   IF delete_reports THEN
-    SELECT coalesce(array_agg(id), '{}') INTO report_ids FROM expense_reports WHERE employee_user_id = target_id;
+    SELECT coalesce(array_agg(id), '{}') INTO report_ids FROM expense_reports WHERE employee_user_id = ANY (target_ids);
 
     IF cardinality(report_ids) > 0 THEN
       SELECT count(*) INTO line_count FROM expense_lines WHERE report_id = ANY (report_ids);
@@ -80,14 +107,18 @@ BEGIN
 
   INSERT INTO workflow_audit (event, actor_user_id, detail)
   VALUES ('Users.UnlockedByScript', NULL,
-          jsonb_build_object('userId', target_id, 'lockCleared', had_lock,
-                             'reactivated', reactivate AND NOT was_active, 'passwordReset', new_password_hash <> '',
+          jsonb_build_object('userId', CASE WHEN all_except_sysadmin THEN NULL ELSE target_ids[1] END,
+                             'allExceptSysadmin', all_except_sysadmin, 'users', cardinality(target_ids),
+                             'locksCleared', lock_count, 'reactivated', reactivated_count,
+                             'passwordReset', new_password_hash <> '',
                              'reportsDeleted', coalesce(cardinality(report_ids), 0),
                              'linesDeleted', line_count, 'attachmentsDeleted', file_count,
                              'script', 'maintenance/unlock_user'));
 
-  RAISE NOTICE 'User "%": lockout cleared = %, reactivated = %, password replaced = %, reports deleted = % (lines %, attachments %).',
-    target_username, had_lock, reactivate AND NOT was_active, new_password_hash <> '',
+  RAISE NOTICE '% account(s)%: lockouts cleared = %, reactivated = %, password replaced = %, reports deleted = % (lines %, attachments %).',
+    cardinality(target_ids),
+    CASE WHEN all_except_sysadmin THEN ' (all except System Administrators)' ELSE ' "' || target_username || '"' END,
+    lock_count, reactivated_count, new_password_hash <> '',
     coalesce(cardinality(report_ids), 0), line_count, file_count;
 END $$;
 
