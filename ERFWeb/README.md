@@ -18,6 +18,14 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
+- **Report editor side panel scrolls on short windows** (not yet committed). On a desktop window shorter than
+  the panel (e.g. 1280x720) the sticky right-hand panel of the report editor (`.editor__side`: totals, Before you
+  file, approval, Finance, verification, Receipts) now scrolls on its own, so the Receipts card can be reached;
+  before, its bottom could never scroll into view. Tall windows, phones and tablets are unchanged. Frontend only,
+  same release as the sharp filing video (SPA 0.23.3, patch).
+- **Help: sharp filing video** (not yet committed). The Filing a report video is re-shot from 1920x1080
+  screenshots (`capture.mjs`), so all four Help videos and their HD downloads are now sharp in full screen. Same
+  scenes, narration and start times (7:00); HD 13.5 MB; `?v=3`. Frontend only, SPA 0.23.3 (patch).
 - **Help: sharp approving video** (PR #79). The Approving reports video is re-shot from 1920x1080
   screenshots (`capture.mjs`), so it and its HD download (now 10.2 MB) stay sharp in full screen. Same scenes,
   narration and start times (6:06); `?v=3`. Only the filing video is still from 800x450 shots. Frontend only,
