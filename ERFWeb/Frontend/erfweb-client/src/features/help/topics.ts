@@ -14,8 +14,8 @@ export const HELP_VIDEOS: Record<HelpVideoKey, { title: string; url: string; hd:
   },
   approving: {
     title: 'Approving reports',
-    url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide.mp4?v=2`,
-    hd: { url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide-hd.mp4?v=1`, size: '11.6 MB' },
+    url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide.mp4?v=3`,
+    hd: { url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide-hd.mp4?v=2`, size: '10.2 MB' },
   },
   finance: {
     title: 'Finance',
