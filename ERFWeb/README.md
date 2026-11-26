@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
-- **Help: sharp approving video** (not yet committed). The Approving reports video is re-shot from 1920x1080
+- **Help: sharp approving video** (PR #79). The Approving reports video is re-shot from 1920x1080
   screenshots (`capture.mjs`), so it and its HD download (now 10.2 MB) stay sharp in full screen. Same scenes,
   narration and start times (6:06); `?v=3`. Only the filing video is still from 800x450 shots. Frontend only,
   SPA 0.23.2 (patch).
