@@ -1,0 +1,212 @@
+[
+ {
+  "scene": "title",
+  "caption": "System Administrator: setting up ERFWeb",
+  "start": 0.0
+ },
+ {
+  "scene": "ad-01-dashboard.jpg",
+  "caption": "Your menu",
+  "start": 15.2
+ },
+ {
+  "scene": "ad-02-users.jpg",
+  "caption": "Users",
+  "start": 31.2
+ },
+ {
+  "scene": "ad-03-new-user.jpg",
+  "caption": "New user",
+  "start": 46.7
+ },
+ {
+  "scene": "ad-04-new-user-more.jpg",
+  "caption": "New user: department and options",
+  "start": 67.0
+ },
+ {
+  "scene": "ad-05-user.jpg",
+  "caption": "The account page",
+  "start": 88.7
+ },
+ {
+  "scene": "ad-06-roles.jpg",
+  "caption": "Roles",
+  "start": 104.5
+ },
+ {
+  "scene": "ad-07-grant-role.jpg",
+  "caption": "Grant a role",
+  "start": 113.5
+ },
+ {
+  "scene": "ad-08-reset-password.jpg",
+  "caption": "Reset password",
+  "start": 130.2
+ },
+ {
+  "scene": "ad-09-deactivate.jpg",
+  "caption": "Deactivate an account",
+  "start": 142.8
+ },
+ {
+  "scene": "ad-10-scope.jpg",
+  "caption": "Scope: who signs for whom",
+  "start": 153.4
+ },
+ {
+  "scene": "ad-11-new-assignment.jpg",
+  "caption": "New scope assignment",
+  "start": 173.1
+ },
+ {
+  "scene": "ad-12-coverage.jpg",
+  "caption": "Coverage",
+  "start": 189.2
+ },
+ {
+  "scene": "ad-13-rate-profiles.jpg",
+  "caption": "Rate profiles",
+  "start": 206.2
+ },
+ {
+  "scene": "ad-14-rate-lines.jpg",
+  "caption": "Rate lines",
+  "start": 216.5
+ },
+ {
+  "scene": "ad-15-rate-line-dialog.jpg",
+  "caption": "Add a rate line",
+  "start": 233.5
+ },
+ {
+  "scene": "ad-16-rate-assignments.jpg",
+  "caption": "Assignments",
+  "start": 247.5
+ },
+ {
+  "scene": "ad-17-assign-profile.jpg",
+  "caption": "Assign a profile",
+  "start": 262.2
+ },
+ {
+  "scene": "ad-18-who-gets-what.jpg",
+  "caption": "Check who gets what",
+  "start": 275.9
+ },
+ {
+  "scene": "ad-19-departments.jpg",
+  "caption": "Master data: departments",
+  "start": 286.8
+ },
+ {
+  "scene": "ad-20-cost-centers.jpg",
+  "caption": "Cost centers",
+  "start": 302.1
+ },
+ {
+  "scene": "ad-20b-cost-center-dialog.jpg",
+  "caption": "Add a cost center",
+  "start": 312.1
+ },
+ {
+  "scene": "ad-21-job-grades.jpg",
+  "caption": "Job grades",
+  "start": 321.3
+ },
+ {
+  "scene": "ad-22-sites.jpg",
+  "caption": "Sites",
+  "start": 330.0
+ },
+ {
+  "scene": "ad-23-fare-modes.jpg",
+  "caption": "Fare modes",
+  "start": 334.0
+ },
+ {
+  "scene": "ad-24-currencies.jpg",
+  "caption": "Currencies",
+  "start": 341.9
+ },
+ {
+  "scene": "ad-25-categories.jpg",
+  "caption": "Expense categories",
+  "start": 346.5
+ },
+ {
+  "scene": "ad-26-rules-approvals.jpg",
+  "caption": "Rules: approvals",
+  "start": 356.4
+ },
+ {
+  "scene": "ad-27-rules-approvals-2.jpg",
+  "caption": "Service levels and reminders",
+  "start": 375.3
+ },
+ {
+  "scene": "ad-28-rules-filing.jpg",
+  "caption": "Rules: filing",
+  "start": 387.9
+ },
+ {
+  "scene": "ad-29-rules-cutoff.jpg",
+  "caption": "Finance rules: cutoff and documents",
+  "start": 399.0
+ },
+ {
+  "scene": "ad-31-rules-lodging.jpg",
+  "caption": "Finance rules: lodging, gas and vehicle",
+  "start": 415.9
+ },
+ {
+  "scene": "ad-33-rules-fleet.jpg",
+  "caption": "Finance rules: fleet card and Work With meals",
+  "start": 432.4
+ },
+ {
+  "scene": "ad-35-rules-r47.jpg",
+  "caption": "Rules: R47",
+  "start": 442.8
+ },
+ {
+  "scene": "ad-36-rules-r47-format.jpg",
+  "caption": "Format of the R47",
+  "start": 453.0
+ },
+ {
+  "scene": "ad-37-rules-notifications.jpg",
+  "caption": "Notifications and sign-in",
+  "start": 465.7
+ },
+ {
+  "scene": "ad-38-rules-signin.jpg",
+  "caption": "Account email domains",
+  "start": 477.8
+ },
+ {
+  "scene": "ad-40-r47-designer-grid.jpg",
+  "caption": "R47 designer",
+  "start": 485.5
+ },
+ {
+  "scene": "ad-39-r47-designer.jpg",
+  "caption": "Column widths and sizes",
+  "start": 498.6
+ },
+ {
+  "scene": "ad-41-r47-preview.jpg",
+  "caption": "Preview the R47",
+  "start": 506.3
+ },
+ {
+  "scene": "ad-42-audit.jpg",
+  "caption": "Audit log",
+  "start": 520.9
+ },
+ {
+  "scene": "end",
+  "caption": "Thank you",
+  "start": 533.3
+ }
+]

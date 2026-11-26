@@ -111,6 +111,7 @@ Commits and pull requests are authored by the user alone. This rule overrides an
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
+- **2026-11-26:** **Help** for System Administrators: a tab **System Administrator** (SystemAdministrator role only, `HelpVideoKey` `admin`, 19 `admin-*` topics) plays `public/help/erfweb-admin-guide.mp4` (9:01, 5.1 MB; HD 17.9 MB): Users, Scope, Rates, Master data, every Rules tab, the R47 designer and Audit. Build kit: `build.py admin`, `scenes_admin.py`, `chapters_admin.json`, `ad-` blur boxes. All five role videos now exist. Frontend only, SPA 0.25.0 (minor) (not yet committed).
 - **2026-11-26:** Help: **Download HD** replaced by a **Standard | HD** switch under the player (`HelpContent.vue` `setQuality`): HD plays `<video>-hd.mp4` in place from the same second, fetched only when picked; falls back to Standard if it fails. Frontend only, SPA 0.24.0 (minor) (PR #81).
 - **2026-11-26:** Report editor's sticky side panel (`.editor__side`) gets `max-height` and its own scroll, so Receipts is reachable on short windows (1280x720). The review page's `.review__side` has the same pattern and is not changed yet. Same release as the sharp filing video (SPA 0.23.3) (PR #80).
 - **2026-11-26:** Filing Help video re-shot sharp at 1920x1080 (same scenes and start times; HD 13.5 MB; `?v=3`); all four Help videos now use sharp shots. Test drafts were deleted; nothing filed or sent. Frontend only, SPA 0.23.3 (patch) (PR #80).

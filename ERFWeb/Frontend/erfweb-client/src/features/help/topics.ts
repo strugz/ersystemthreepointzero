@@ -1,4 +1,4 @@
-export type HelpVideoKey = 'filing' | 'approving' | 'finance' | 'verifier';
+export type HelpVideoKey = 'filing' | 'approving' | 'finance' | 'verifier' | 'admin';
 
 /**
  * The narrated videos (rebuilt from ERFWeb/Document/help-video, see its README.txt). Each url is a path inside the
@@ -26,6 +26,11 @@ export const HELP_VIDEOS: Record<HelpVideoKey, { title: string; url: string; hd:
     title: 'Expense Verifier',
     url: `${import.meta.env.BASE_URL}help/erfweb-verifier-guide.mp4?v=2`,
     hd: { url: `${import.meta.env.BASE_URL}help/erfweb-verifier-guide-hd.mp4?v=2`, size: '4.1 MB' },
+  },
+  admin: {
+    title: 'System Administrator',
+    url: `${import.meta.env.BASE_URL}help/erfweb-admin-guide.mp4?v=1`,
+    hd: { url: `${import.meta.env.BASE_URL}help/erfweb-admin-guide-hd.mp4?v=1`, size: '17.9 MB' },
   },
 };
 
@@ -806,11 +811,203 @@ const verifierTopics: TopicEntry[] = [
   },
 ];
 
+const adminTopics: TopicEntry[] = [
+  {
+    id: 'admin-menu',
+    group: 'Getting around',
+    question: 'What can the System Administrator do?',
+    start: 15.2,
+    answer: [
+      'The menu has two extra groups: Signatory structure (Scope, Rates) and Administration (Users, Master data, Rules, Audit).',
+      'You can also file your own reports like any employee.',
+    ],
+    keywords: 'menu admin administration overview',
+  },
+  {
+    id: 'admin-users',
+    group: 'Users and roles',
+    question: 'How do I find a user?',
+    start: 31.2,
+    answer: ['Open Users. Search by name, username or email, or filter by department, role and status, then select the account.'],
+    keywords: 'users search filter list',
+  },
+  {
+    id: 'admin-new-user',
+    group: 'Users and roles',
+    question: 'How do I create a user?',
+    start: 46.7,
+    answer: [
+      'Select New user and enter the username and a temporary password of at least 8 characters; share it with the employee yourself.',
+      'Link the CRM employee, then enter the full name, position, job grade, email and mobile number.',
+      'Choose the department and the options (Work With, fleet card, other departments), then select Create account. Every account starts as an Employee.',
+    ],
+    keywords: 'new user create account password crm job grade',
+  },
+  {
+    id: 'admin-user-options',
+    group: 'Users and roles',
+    question: 'What do Reviewed by, fleet card and other departments mean?',
+    start: 67.0,
+    answer: [
+      'Reviewed by prints in the R47 Reviewed by box; blank uses the department or Rules default.',
+      'Has a fleet card limits Gas to the fleet card reasons on the Rules page.',
+      'Can file reports for other departments lets the employee charge a report to the departments you pick; those approvers sign it.',
+    ],
+    keywords: 'reviewed by fleet card other departments work with',
+  },
+  {
+    id: 'admin-signature',
+    group: 'Users and roles',
+    question: "How do I add or remove a user's signature?",
+    start: 88.7,
+    answer: [
+      'Open the account and select Upload signature, or remove it from the signature card.',
+      'A signature prints on the R47 only after Finance approves it.',
+    ],
+    keywords: 'signature upload remove',
+  },
+  {
+    id: 'admin-grant-role',
+    group: 'Users and roles',
+    question: 'How do I make someone a signatory, Finance or Expense Verifier?',
+    start: 113.5,
+    answer: [
+      'Open the account, select Grant role, choose the role and select Grant. It applies at once.',
+      'A signatory also needs a scope (Scope page) before reports route to them.',
+    ],
+    keywords: 'grant role signatory finance verifier revoke',
+  },
+  {
+    id: 'admin-reset-password',
+    group: 'Users and roles',
+    question: 'How do I reset a password or unlock an account?',
+    start: 130.2,
+    answer: [
+      'Open the account and select Reset password. Share the temporary password directly; it is not emailed.',
+      'Resetting the password also unlocks an account locked after failed sign-ins.',
+    ],
+    keywords: 'reset password unlock locked',
+  },
+  {
+    id: 'admin-deactivate',
+    group: 'Users and roles',
+    question: 'What happens when I deactivate an account?',
+    start: 142.8,
+    answer: ['The person can no longer sign in; their reports and approvals stay on record. Activate brings the account back.'],
+    keywords: 'deactivate activate leaver',
+  },
+  {
+    id: 'admin-scope',
+    group: 'Scope',
+    question: 'How do I set who signs for whom?',
+    start: 153.4,
+    answer: [
+      'Open Scope. Every employee needs one Level 1 and one Level 2 signatory.',
+      'Select New assignment, choose the signatory and level, then whom they cover: a whole department, named people, or a department except named people.',
+      'Edit with the pencil; to end an assignment, set its Effective to date.',
+    ],
+    keywords: 'scope assignment signatory level 1 level 2',
+  },
+  {
+    id: 'admin-coverage',
+    group: 'Scope',
+    question: 'How do I find employees without a signatory?',
+    start: 189.2,
+    answer: ['Open Scope, then the Coverage tab. A Problem badge means nobody covers that person at Level 1 or Level 2, so they cannot file. Turn on Only problems.'],
+    keywords: 'coverage problem no signatory',
+  },
+  {
+    id: 'admin-rates',
+    group: 'Rates',
+    question: 'How do I change a rate?',
+    start: 216.5,
+    answer: [
+      'Open Rates and the profile. Use New version for a rate change (it closes the current rate the day before); use Edit only to correct a mistake.',
+      'Filed reports keep their amounts.',
+    ],
+    keywords: 'rates profile new version edit line',
+  },
+  {
+    id: 'admin-assign-rates',
+    group: 'Rates',
+    question: 'Who gets which rate?',
+    start: 247.5,
+    answer: [
+      'A profile is assigned to a person, job grade, department or the whole company. For each category the most specific assignment wins.',
+      "Use Check who gets what to see a person's rates on a date.",
+    ],
+    keywords: 'assign profile job grade department company check who gets what',
+  },
+  {
+    id: 'admin-master-data',
+    group: 'Master data',
+    question: 'What is in Master data?',
+    start: 286.8,
+    answer: [
+      'Departments, cost centers with their yearly budgets, job grades, sites, fare modes, currencies and the read-only expense categories.',
+      'Deactivate an entry rather than delete it.',
+    ],
+    keywords: 'master data department cost center budget job grade fare mode currency',
+  },
+  {
+    id: 'admin-rules',
+    group: 'Workflow rules',
+    question: 'How do I change the workflow rules?',
+    start: 356.4,
+    answer: [
+      'Open Rules, change the settings on a tab and select Save rules. Changes apply to reports filed from then on.',
+      'Approvals: Level 2 threshold, other departments, service levels and reminders.',
+    ],
+    keywords: 'rules settings level 2 threshold sla reminders',
+  },
+  {
+    id: 'admin-finance-rules',
+    group: 'Workflow rules',
+    question: 'Where are the Finance rules?',
+    start: 399.0,
+    answer: ['Rules, Filing and Finance tab: weekly cutoff, Sponsorship, Demo and Representation documents, Lodging, Gas and Vehicle emergency, Fleet card and Work With meals.'],
+    keywords: 'finance rules cutoff lodging gas fleet card work with',
+  },
+  {
+    id: 'admin-r47-settings',
+    group: 'Workflow rules',
+    question: 'How do I set the R47 signature and header?',
+    start: 442.8,
+    answer: ['Rules, R47 tab: the Reviewed by default, e-signature or status only, the PDF engine and the header details.'],
+    keywords: 'r47 signature header engine',
+  },
+  {
+    id: 'admin-signin',
+    group: 'Workflow rules',
+    question: 'How do I set notifications and sign-in security?',
+    start: 465.7,
+    answer: ['Rules, Notifications and sign-in tab: email and text messages, the sender address, failed sign-ins before a lock and the lock time, and account email domains.'],
+    keywords: 'notifications email sms lockout domains',
+  },
+  {
+    id: 'admin-r47-designer',
+    group: 'R47 designer',
+    question: 'How do I change the R47 layout?',
+    start: 485.5,
+    answer: ['Open the R47 designer from the R47 tab. Set sizes in each section or drag a divider, select Preview PDF to check, then Save layout. Reset to standard brings back the original.'],
+    keywords: 'r47 designer layout preview',
+  },
+  {
+    id: 'admin-audit',
+    group: 'Audit log',
+    question: 'Where do I see who changed what?',
+    start: 520.9,
+    answer: ['Open Audit. Filter by event and dates or show administration only, and expand a row for details. Entries cannot be changed.'],
+    keywords: 'audit log history changes',
+  },
+];
+
 export const helpTopics: HelpTopic[] = [
   ...filingTopics.map((t) => ({ ...t, video: 'filing' as const })),
   ...approvingTopics.map((t) => ({ ...t, video: 'approving' as const })),
   ...financeTopics.map((t) => ({ ...t, video: 'finance' as const })),
   ...verifierTopics.map((t) => ({ ...t, video: 'verifier' as const })),
+  ...adminTopics.map((t) => ({ ...t, video: 'admin' as const })),
 ];
 
 export function formatStart(seconds: number): string {
