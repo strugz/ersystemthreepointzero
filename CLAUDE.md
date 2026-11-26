@@ -111,6 +111,7 @@ Commits and pull requests are authored by the user alone. This rule overrides an
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
+- **2026-11-26:** `ERFWeb/Database/maintenance/unlock_user.sql` gets `all_except_sysadmin`: lockout clear and the supplied password hash for every account without an active `SystemAdministrator` role (inactive stay inactive; `delete_reports` refused in that mode); `Users.UnlockedByScript` detail now has counts. No numbered script, no version change (PR #84).
 - **2026-11-26:** The review page's sticky side panel (`.review__side`) gets the same `max-height` and own scroll as the editor's, so Receipts is reachable on short windows. Frontend only, SPA 0.25.1 (patch) (PR #83).
 - **2026-11-26:** **Help** for System Administrators: a tab **System Administrator** (SystemAdministrator role only, `HelpVideoKey` `admin`, 19 `admin-*` topics) plays `public/help/erfweb-admin-guide.mp4` (9:01, 5.1 MB; HD 17.9 MB): Users, Scope, Rates, Master data, every Rules tab, the R47 designer and Audit. Build kit: `build.py admin`, `scenes_admin.py`, `chapters_admin.json`, `ad-` blur boxes. All five role videos now exist. Frontend only, SPA 0.25.0 (minor) (PR #82).
 - **2026-11-26:** Help: **Download HD** replaced by a **Standard | HD** switch under the player (`HelpContent.vue` `setQuality`): HD plays `<video>-hd.mp4` in place from the same second, fetched only when picked; falls back to Standard if it fails. Frontend only, SPA 0.24.0 (minor) (PR #81).

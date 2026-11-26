@@ -22,6 +22,10 @@ section of the root `CLAUDE.md`) in the same change.
   right-hand panel (`.review__side`: totals, approval, Finance, Receipts) gets the same fix as the report editor:
   on a window shorter than the panel it scrolls on its own, so Receipts can be reached. Tall windows, phones and
   tablets are unchanged. Frontend only, SPA 0.25.1 (patch).
+- **`unlock_user.sql` for all accounts except System Administrators** (PR #84). New switch
+  `all_except_sysadmin` clears lockouts and sets the supplied password hash on every account without an active
+  System Administrator role; inactive accounts stay inactive, `delete_reports` is refused in that mode. The audit
+  event now records counts (`users`, `locksCleared`, `reactivated`). Maintenance script only; no version change.
 - **Help: System Administrator video** (PR #82). System Administrators get a Help tab,
   **System Administrator**: a narrated 9:01 video (`public/help/erfweb-admin-guide.mp4`, 5.1 MB; HD 17.9 MB) from
   sharp 1920x1080 screenshots, with 19 `admin-*` questions covering Users (new user, roles, signature, reset
@@ -710,7 +714,10 @@ verification requests, receipts and documents, approval steps, finance tracking,
 and SMS delivery rows, the reports' audit rows); other people's reports, `record_history` and used ERF numbers stay.
 There is no rollback for that part or for a replaced password, so take a `pg_dump` first. It works for `admin` too, for when no administrator can open the Users page. An unknown username stops
 the script with nothing changed; one `Users.UnlockedByScript` event is written and the result shows as a NOTICE.
-Safe to re-run.
+Safe to re-run. `all_except_sysadmin` (default false) applies the lockout clear and `new_password_hash` to every
+account without an active `SystemAdministrator` role instead of one username (e.g. a common starting password for
+everyone); inactive accounts stay inactive and `delete_reports` is refused in that mode. The script header has a
+query that lists who it changes.
 
 ### Database setup — Option B: EF Core migrations (when EF tooling is available)
 
