@@ -22,7 +22,7 @@ section of the root `CLAUDE.md`) in the same change.
   right-hand panel (`.review__side`: totals, approval, Finance, Receipts) gets the same fix as the report editor:
   on a window shorter than the panel it scrolls on its own, so Receipts can be reached. Tall windows, phones and
   tablets are unchanged. Frontend only, SPA 0.25.1 (patch).
-- **`unlock_user.sql` for all accounts except System Administrators** (not yet committed). New switch
+- **`unlock_user.sql` for all accounts except System Administrators** (PR #84). New switch
   `all_except_sysadmin` clears lockouts and sets the supplied password hash on every account without an active
   System Administrator role; inactive accounts stay inactive, `delete_reports` is refused in that mode. The audit
   event now records counts (`users`, `locksCleared`, `reactivated`). Maintenance script only; no version change.
