@@ -18,6 +18,10 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
+- **Help: sharp Finance video** (PR #78). The Finance video is re-shot from 1920x1080 screenshots
+  (`capture.mjs`), so it and its HD download (now 6.0 MB) stay sharp in full screen. The Under verification
+  scene is folded into the verification scene (3:26, 14 scenes); later start times moved, `?v=2`. Frontend only,
+  SPA 0.23.1 (patch).
 - **Help: download in HD** (PR #77). Each Help tab has **Download HD (size)** under the video: a
   1920x1080 copy of that video (`public/help/<video>-hd.mp4`, 4.1 to 14.6 MB, 38 MB for all four) built with `build.py <name> --hd` from the
   same voice. The Expense Verifier video is re-shot from sharp 1920x1080 screenshots (`capture.mjs`, Chrome at

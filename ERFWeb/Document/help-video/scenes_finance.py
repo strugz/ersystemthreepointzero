@@ -26,12 +26,10 @@ SCENES = [
     ("f-06-ask-verify.jpg", "Ask for a line to be verified",
      "Choose the line, write what Finance doubts, and select Send to verifiers. The Expense Verifiers get a text and an email."),
     ("f-13-waiting-verifier.jpg", "Follow the verification",
-     "The Verification card shows the request as a conversation: asked, picked up, and the finding. "
-     "The footer says whose turn it is, here an Expense Verifier who has not picked it up yet."),
-    ("f-14-under-verification.jpg", "Under verification",
-     "In the queue the report shows Under verification, and it cannot be cleared until the verification is resolved. "
-     "Gas and Vehicle emergency purchase lines get a verification request automatically when the report is fully approved. "
-     "You get a text and an email when the finding is recorded."),
+     "The Verification card shows each request as a conversation: asked, picked up, and the finding. "
+     "While a line is being verified, the report shows Under verification in the queue and cannot be cleared; "
+     "the footer says whose turn it is. Gas and Vehicle emergency purchase lines get a request automatically when the report is fully approved. "
+     "You get a text and an email when the finding is recorded. Here both requests are closed, so Finance can clear the report."),
     ("f-07-signatures.jpg", "Approve signatures",
      "A signature image prints on the R47 only after Finance approves it, always with an electronic signature watermark. "
      "New signatures wait on the Signatures page. Approve each one, or reject it, with a reason if you wish. Another Finance user approves your own signature."),
