@@ -18,6 +18,10 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
+- **Review page side panel scrolls on short windows** (PR #NN). The approver review page's sticky
+  right-hand panel (`.review__side`: totals, approval, Finance, Receipts) gets the same fix as the report editor:
+  on a window shorter than the panel it scrolls on its own, so Receipts can be reached. Tall windows, phones and
+  tablets are unchanged. Frontend only, SPA 0.25.1 (patch).
 - **Help: System Administrator video** (PR #82). System Administrators get a Help tab,
   **System Administrator**: a narrated 9:01 video (`public/help/erfweb-admin-guide.mp4`, 5.1 MB; HD 17.9 MB) from
   sharp 1920x1080 screenshots, with 19 `admin-*` questions covering Users (new user, roles, signature, reset
