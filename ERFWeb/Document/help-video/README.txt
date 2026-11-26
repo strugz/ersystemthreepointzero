@@ -41,7 +41,7 @@ Steps
      A url in HELP_VIDEOS may also be a full https:// URL (file server or CDN) instead of the SPA file.
   6. Bump the SPA version and deploy as usual (README "Versions" rule).
 
-Sharp screenshots (1920x1080; the Expense Verifier and Finance videos use them, filing and approving are still 800x450)
+Sharp screenshots (1920x1080; the approving, Finance and Expense Verifier videos use them, filing is still 800x450)
   The built-in browser pane only returns 800x450 screenshots, which look soft in full screen. capture.mjs
   drives a separate Chrome instead (Node 22+, no packages):
     chrome.exe --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1
@@ -51,10 +51,10 @@ Sharp screenshots (1920x1080; the Expense Verifier and Finance videos use them, 
   the picture, so read box positions off an 800x450 preview. Close that Chrome when done.
 
 Voice: en-US-AndrewNeural, rate -8%. Video: 1280x720 at 5 fps (H.264 CRF 30), mono AAC 32 kbps;
-about 4.0 MB for the 7:00 filing video, 3.2 MB for the 6:06 approving video and 1.8 MB for the 3:26 Finance video and 1.2 MB for the 2:31 Expense Verifier video. Keep them small:
+about 4.0 MB for the 7:00 filing video, 3.0 MB for the 6:06 approving video and 1.8 MB for the 3:26 Finance video and 1.2 MB for the 2:31 Expense Verifier video. Keep them small:
 users on slow or mobile links download only what they play.
 HD copy (Download HD on the Help page, fetched only on that click): 1920x1080 at 5 fps (H.264 CRF 22), mono
-AAC 96 kbps; 14.6 MB filing, 11.6 MB approving, 6.0 MB Finance and
+AAC 96 kbps; 14.6 MB filing, 10.2 MB approving, 6.0 MB Finance and
 4.1 MB Expense Verifier.
 
 Test data for the approving video (2026-11-24, kept for the Expense Verifier and Finance videos):
@@ -68,3 +68,6 @@ The sharp re-shoot (2026-11-26) opened a second request, as Finance, on its Tran
 285.00) and recorded it as Verified with note; both requests on ERF-2026-000005 are closed.
 The sharp Finance re-shoot (2026-11-26) changed nothing: its dialogs were filled and cancelled. The Under
 verification scene was dropped (no open request); the verification scene's narration covers it.
+The sharp approving re-shoot (2026-11-26, Level 1 Frederick, Level 2 Richard) cancelled every dialog, but
+Richard approved ERF-2026-000006 for the Final approval scene, so -000006 is now approved and waits for receipts
+in the Finance queue; -000007 still waits for Level 1.
