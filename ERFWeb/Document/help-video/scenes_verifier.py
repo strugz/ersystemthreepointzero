@@ -18,13 +18,14 @@ SCENES = [
      "Picking up sends no message."),
     ("v-05-receipts.jpg", "Check the facts",
      "Select Check receipts side by side on the Expense lines card. Each line is listed beside the receipts the employee uploaded. "
-     "Compare the date, the invoice or OR number and the amount, and check anything else Finance asked about."),
+     "Compare the date, the invoice or OR number and the amount, and check anything else Finance asked about. "
+     "Here the taxi fare has no OR number, so check the trip against the client visit."),
     ("v-06-finding.jpg", "Record your finding",
      "Back on the Verification card, select Record finding. Choose Verified if the facts check out, "
      "Verified with note if it checks out but Finance should know something, or Not verified if it does not check out. "
      "Write what you found, then select Record finding. A finding is recorded once and cannot be changed."),
     ("v-07-recorded.jpg", "Finding recorded",
-     "Finance gets a text and an email. A Verified finding closes the request, the employee is told the check is over, "
+     "Finance gets a text and an email. Verified, or Verified with note, closes the request, the employee is told the check is over, "
      "and Finance can clear the report. "
      "After a Not verified finding, Finance refers the line to the Level 2 signatory, who decides whether to let it through, "
      "return the report or reject it."),

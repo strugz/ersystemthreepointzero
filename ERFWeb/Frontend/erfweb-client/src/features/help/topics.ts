@@ -3,13 +3,30 @@ export type HelpVideoKey = 'filing' | 'approving' | 'finance' | 'verifier';
 /**
  * The narrated videos (rebuilt from ERFWeb/Document/help-video, see its README.txt). Each url is a path inside the
  * SPA, built from the base path so a sub-path host still works, or a full https:// URL to a file server or CDN.
+ * `hd` is the 1080p copy offered only as a download link, so it is fetched only when the user asks for it.
  * Raise ?v= whenever a file is replaced under the same name, so browsers fetch the new copy.
  */
-export const HELP_VIDEOS: Record<HelpVideoKey, { title: string; url: string }> = {
-  filing: { title: 'Filing a report', url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide.mp4?v=2` },
-  approving: { title: 'Approving reports', url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide.mp4?v=2` },
-  finance: { title: 'Finance', url: `${import.meta.env.BASE_URL}help/erfweb-finance-guide.mp4?v=1` },
-  verifier: { title: 'Expense Verifier', url: `${import.meta.env.BASE_URL}help/erfweb-verifier-guide.mp4?v=1` },
+export const HELP_VIDEOS: Record<HelpVideoKey, { title: string; url: string; hd: { url: string; size: string } }> = {
+  filing: {
+    title: 'Filing a report',
+    url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide.mp4?v=2`,
+    hd: { url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide-hd.mp4?v=1`, size: '14.6 MB' },
+  },
+  approving: {
+    title: 'Approving reports',
+    url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide.mp4?v=2`,
+    hd: { url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide-hd.mp4?v=1`, size: '11.6 MB' },
+  },
+  finance: {
+    title: 'Finance',
+    url: `${import.meta.env.BASE_URL}help/erfweb-finance-guide.mp4?v=1`,
+    hd: { url: `${import.meta.env.BASE_URL}help/erfweb-finance-guide-hd.mp4?v=1`, size: '7.4 MB' },
+  },
+  verifier: {
+    title: 'Expense Verifier',
+    url: `${import.meta.env.BASE_URL}help/erfweb-verifier-guide.mp4?v=2`,
+    hd: { url: `${import.meta.env.BASE_URL}help/erfweb-verifier-guide-hd.mp4?v=2`, size: '4.1 MB' },
+  },
 };
 
 /** A same-site path or an https:// URL plays; anything else (empty, http:, //host, javascript:) counts as no video. */
@@ -759,7 +776,7 @@ const verifierTopics: TopicEntry[] = [
     id: 'verifier-finding',
     group: 'Checking and findings',
     question: 'How do I record my finding?',
-    start: 88.9,
+    start: 94.0,
     answer: [
       'Select Record finding on the Verification card.',
       'Choose Verified, Verified with note or Not verified, write what you found, then select Record finding.',
@@ -771,7 +788,7 @@ const verifierTopics: TopicEntry[] = [
     id: 'verifier-after',
     group: 'Checking and findings',
     question: 'What happens after my finding?',
-    start: 109.3,
+    start: 114.4,
     answer: [
       'Finance gets a text and an email.',
       'A Verified finding closes the request and Finance can clear the report.',
@@ -783,7 +800,7 @@ const verifierTopics: TopicEntry[] = [
     id: 'verifier-my-findings',
     group: 'Checking and findings',
     question: 'Where do I see the requests I finished?',
-    start: 130.1,
+    start: 136.4,
     answer: ['Open Verifications and select My findings. Each request shows your finding, your note and how it ended.'],
     keywords: 'my findings history done',
   },

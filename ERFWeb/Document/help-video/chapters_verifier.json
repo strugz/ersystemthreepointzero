@@ -32,21 +32,21 @@
  {
   "scene": "v-06-finding.jpg",
   "caption": "Record your finding",
-  "start": 88.9
+  "start": 94.0
  },
  {
   "scene": "v-07-recorded.jpg",
   "caption": "Finding recorded",
-  "start": 109.3
+  "start": 114.4
  },
  {
   "scene": "v-08-my-findings.jpg",
   "caption": "My findings",
-  "start": 130.1
+  "start": 136.4
  },
  {
   "scene": "end",
   "caption": "Thank you",
-  "start": 137.2
+  "start": 143.5
  }
 ]

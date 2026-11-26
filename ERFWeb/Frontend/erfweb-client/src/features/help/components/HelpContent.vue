@@ -16,6 +16,7 @@ const SEARCH_HINTS: Record<HelpVideoKey, string> = {
 
 const tab = ref<HelpVideoKey>(props.videos[0] ?? 'filing');
 const videoSrc = computed(() => safeVideoUrl(HELP_VIDEOS[tab.value].url));
+const hdSrc = computed(() => safeVideoUrl(HELP_VIDEOS[tab.value].hd.url));
 const loadFailed = ref(false);
 const video = ref<HTMLVideoElement | null>(null);
 const search = ref('');
@@ -111,7 +112,20 @@ watch(() => props.topicId, openFromAddress);
         >
           Your browser cannot play this video.
         </video>
-        <p class="help__hint">Select a question to play the video from that part.</p>
+        <div class="help__below">
+          <p class="help__hint">Select a question to play the video from that part.</p>
+          <v-btn
+            v-if="hdSrc"
+            :href="hdSrc"
+            download
+            class="press"
+            size="small"
+            variant="text"
+            prepend-icon="mdi-download"
+          >
+            Download HD ({{ HELP_VIDEOS[tab].hd.size }})
+          </v-btn>
+        </div>
       </template>
       <div v-else class="help__player help__novideo" role="status">
         <v-icon :icon="loadFailed ? 'mdi-video-off-outline' : 'mdi-video-outline'" size="32" />
@@ -190,8 +204,16 @@ watch(() => props.topicId, openFromAddress);
   font-size: 12px;
   color: var(--ink-3);
 }
+.help__below {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 8px;
+}
 .help__hint {
-  margin: 8px 0 0;
+  margin: 0;
   font-size: 12px;
   color: var(--ink-3);
 }
