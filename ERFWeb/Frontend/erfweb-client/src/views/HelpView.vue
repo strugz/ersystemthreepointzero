@@ -14,9 +14,13 @@ const { compact } = useLayoutMode();
 
 const topicId = computed(() => (typeof route.query.topic === 'string' ? route.query.topic : null));
 
-// The approving video is shown to signatories only; it holds nothing secret, this only keeps Help relevant.
+// Each role video shows only to that role; they hold nothing secret, this only keeps Help relevant.
 const isSignatory = computed(() => session.hasRole('SignatoryLevel1') || session.hasRole('SignatoryLevel2'));
-const videos = computed<HelpVideoKey[]>(() => (isSignatory.value ? ['filing', 'approving'] : ['filing']));
+const videos = computed<HelpVideoKey[]>(() => [
+  'filing',
+  ...(isSignatory.value ? (['approving'] as const) : []),
+  ...(session.hasRole('Finance') ? (['finance'] as const) : []),
+]);
 
 function setTopic(id: string | null) {
   void router.replace({ query: { ...route.query, topic: id ?? undefined } });
@@ -28,7 +32,7 @@ function setTopic(id: string | null) {
     <div v-if="!compact" class="d-flex align-baseline ga-3 flex-wrap mb-5">
       <h1 class="page-title">Help</h1>
       <span class="text-body-2 text-medium-emphasis">
-        {{ isSignatory ? 'How to file an expense report, what each category needs, and how to approve reports.' : 'How to file an expense report, and what each expense category needs.' }}
+        {{ videos.length > 1 ? 'How to file an expense report, what each category needs, and how to do your other work in ERFWeb.' : 'How to file an expense report, and what each expense category needs.' }}
       </span>
     </div>
     <HelpContent :videos="videos" :topic-id="topicId" @update:topic-id="setTopic" />

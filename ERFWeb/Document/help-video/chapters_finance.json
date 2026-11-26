@@ -1,0 +1,82 @@
+[
+ {
+  "scene": "title",
+  "caption": "Finance: receipts, verification and clearing",
+  "start": 0.0
+ },
+ {
+  "scene": "f-01-queue.jpg",
+  "caption": "The Finance queue",
+  "start": 16.0
+ },
+ {
+  "scene": "f-02-receipts.jpg",
+  "caption": "Record the receipts",
+  "start": 37.2
+ },
+ {
+  "scene": "f-03-follow-up.jpg",
+  "caption": "Follow up",
+  "start": 54.5
+ },
+ {
+  "scene": "f-11-received.jpg",
+  "caption": "Receipts received",
+  "start": 69.1
+ },
+ {
+  "scene": "f-12-clear.jpg",
+  "caption": "Clear for payment",
+  "start": 76.9
+ },
+ {
+  "scene": "f-04-report.jpg",
+  "caption": "Open the report",
+  "start": 87.9
+ },
+ {
+  "scene": "f-05-verification-card.jpg",
+  "caption": "Ask for a line to be verified",
+  "start": 97.0
+ },
+ {
+  "scene": "f-06-ask-verify.jpg",
+  "caption": "Ask for a line to be verified",
+  "start": 107.6
+ },
+ {
+  "scene": "f-13-waiting-verifier.jpg",
+  "caption": "Follow the verification",
+  "start": 116.7
+ },
+ {
+  "scene": "f-14-under-verification.jpg",
+  "caption": "Under verification",
+  "start": 129.5
+ },
+ {
+  "scene": "f-07-signatures.jpg",
+  "caption": "Approve signatures",
+  "start": 147.5
+ },
+ {
+  "scene": "f-08-meal-claims.jpg",
+  "caption": "Meal claims",
+  "start": 166.5
+ },
+ {
+  "scene": "f-09-summary.jpg",
+  "caption": "Expense summary",
+  "start": 177.3
+ },
+ {
+  "scene": "f-10-budgets.jpg",
+  "caption": "Budgets",
+  "start": 190.2
+ },
+ {
+  "scene": "end",
+  "caption": "Thank you",
+  "start": 199.5
+ }
+]

@@ -7,6 +7,12 @@ import type { HelpTopic, HelpVideoKey } from '@/features/help/topics';
 const props = defineProps<{ videos: HelpVideoKey[]; topicId: string | null }>();
 const emit = defineEmits<{ 'update:topicId': [id: string | null] }>();
 
+const SEARCH_HINTS: Record<HelpVideoKey, string> = {
+  filing: 'Search, e.g. Representation, OR no., cash advance',
+  approving: 'Search, e.g. return, override, delegate',
+  finance: 'Search, e.g. receipts, clear, verify, signature',
+};
+
 const tab = ref<HelpVideoKey>(props.videos[0] ?? 'filing');
 const videoSrc = computed(() => safeVideoUrl(HELP_VIDEOS[tab.value].url));
 const loadFailed = ref(false);
@@ -120,7 +126,7 @@ watch(() => props.topicId, openFromAddress);
         hide-details
         clearable
         prepend-inner-icon="mdi-magnify"
-        :placeholder="tab === 'approving' ? 'Search, e.g. return, override, delegate' : 'Search, e.g. Representation, OR no., cash advance'"
+        :placeholder="SEARCH_HINTS[tab]"
         class="mb-4"
       />
 

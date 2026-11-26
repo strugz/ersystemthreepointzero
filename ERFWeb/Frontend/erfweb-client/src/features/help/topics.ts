@@ -1,4 +1,4 @@
-export type HelpVideoKey = 'filing' | 'approving';
+export type HelpVideoKey = 'filing' | 'approving' | 'finance';
 
 /**
  * The narrated videos (rebuilt from ERFWeb/Document/help-video, see its README.txt). Each url is a path inside the
@@ -8,6 +8,7 @@ export type HelpVideoKey = 'filing' | 'approving';
 export const HELP_VIDEOS: Record<HelpVideoKey, { title: string; url: string }> = {
   filing: { title: 'Filing a report', url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide.mp4?v=2` },
   approving: { title: 'Approving reports', url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide.mp4?v=2` },
+  finance: { title: 'Finance', url: `${import.meta.env.BASE_URL}help/erfweb-finance-guide.mp4?v=1` },
 };
 
 /** A same-site path or an https:// URL plays; anything else (empty, http:, //host, javascript:) counts as no video. */
@@ -585,9 +586,135 @@ const approvingTopics: TopicEntry[] = [
   },
 ];
 
+const financeTopics: TopicEntry[] = [
+  {
+    id: 'finance-queue',
+    group: 'Receipts and clearing',
+    question: 'What is on the Finance queue?',
+    start: 16.0,
+    answer: [
+      'Every fully approved report waiting for its original receipts. The Aging card counts open reports by days since final approval.',
+      'Search by employee, purpose or reference no., filter by receipt status, and turn on Include cleared for finished reports. Export CSV and Export aging download the lists.',
+    ],
+    keywords: 'finance queue aging export csv include cleared',
+  },
+  {
+    id: 'finance-receipts',
+    group: 'Receipts and clearing',
+    question: 'How do I record the original receipts?',
+    start: 37.2,
+    answer: [
+      "Select Receipts on the report's row.",
+      'Choose Receipts received, or Receipts incomplete and say which receipts are missing, then select Save.',
+      'Receipts received is one-time and cannot be changed afterwards.',
+    ],
+    keywords: 'receipts received incomplete original paper',
+  },
+  {
+    id: 'finance-follow-up',
+    group: 'Receipts and clearing',
+    question: 'How do I remind an employee to submit receipts?',
+    start: 54.5,
+    answer: [
+      "Select Follow up on the report's row. ERFWeb prepares a text message to the employee, also sent to the report's Level 1 and Level 2.",
+      'Edit the message if needed, then select Send. The row counts the follow-ups.',
+    ],
+    keywords: 'follow up sms text reminder receipts',
+  },
+  {
+    id: 'finance-clear',
+    group: 'Receipts and clearing',
+    question: 'How do I clear a report for payment?',
+    start: 69.1,
+    answer: [
+      'After Receipts received, select Clear for payment, add a remark if needed, and confirm.',
+      'Clearing is final. The report then shows only with Include cleared on.',
+      'A report under verification can be cleared only after the verification is resolved.',
+    ],
+    keywords: 'clear payment final cleared',
+  },
+  {
+    id: 'finance-open-report',
+    group: 'Verification',
+    question: 'How do I look at a report in full?',
+    start: 87.9,
+    answer: ['Select the report. You see the totals, the details, the expense lines and the receipts the employee uploaded.'],
+    keywords: 'open report lines receipts details',
+  },
+  {
+    id: 'finance-verify',
+    group: 'Verification',
+    question: 'How do I ask for a line to be verified?',
+    start: 97.0,
+    answer: [
+      "On the report's Verification card, select Verify a line.",
+      'Choose the line, write what Finance doubts, and select Send to verifiers. The Expense Verifiers get a text and an email.',
+    ],
+    keywords: 'verify line verification expense verifier doubt',
+  },
+  {
+    id: 'finance-verification-progress',
+    group: 'Verification',
+    question: 'How do I follow a verification?',
+    start: 116.7,
+    answer: [
+      'The Verification card shows the request as a conversation: asked, picked up and the finding, with whose turn it is.',
+      'You get a text and an email when the finding is recorded.',
+    ],
+    keywords: 'verification progress finding picked up',
+  },
+  {
+    id: 'finance-under-verification',
+    group: 'Verification',
+    question: 'Why does a report say Under verification?',
+    start: 129.5,
+    answer: [
+      'A verification request on one of its lines is not resolved yet, so the report cannot be cleared.',
+      'Gas and Vehicle emergency purchase lines get a request automatically when the report is fully approved.',
+    ],
+    keywords: 'under verification gas vehicle automatic',
+  },
+  {
+    id: 'finance-signatures',
+    group: 'Signatures and reports',
+    question: 'How do I approve a signature?',
+    start: 147.5,
+    answer: [
+      'Open Signatures. New signatures wait under Waiting for approval; approve each one or reject it (a reason is optional).',
+      'A signature prints on the R47 only after approval, always with the electronic signature watermark. Another Finance user approves your own.',
+    ],
+    keywords: 'signatures approve reject watermark r47',
+  },
+  {
+    id: 'finance-meal-claims',
+    group: 'Signatures and reports',
+    question: 'How do I check daily meal claims?',
+    start: 166.5,
+    answer: ['Open Meal claims, choose the dates and the department or Approved only, and select Export for the list.'],
+    keywords: 'meal claims daily breakfast lunch dinner export',
+  },
+  {
+    id: 'finance-summary',
+    group: 'Signatures and reports',
+    question: 'How do I export an expense summary?',
+    start: 177.3,
+    answer: ['Open Summary, set the dates and the department, then select Export for a CSV or PDF file.'],
+    keywords: 'summary export csv pdf totals',
+  },
+  {
+    id: 'finance-budgets',
+    group: 'Signatures and reports',
+    question: 'Where do I see the budgets?',
+    start: 190.2,
+    answer: ["The Budgets page compares each department's yearly budget with what its employees spent. It is for monitoring only."],
+    keywords: 'budgets cost center monitoring',
+  },
+];
+
 export const helpTopics: HelpTopic[] = [
   ...filingTopics.map((t) => ({ ...t, video: 'filing' as const })),
   ...approvingTopics.map((t) => ({ ...t, video: 'approving' as const })),
+  ...financeTopics.map((t) => ({ ...t, video: 'finance' as const })),
 ];
 
 export function formatStart(seconds: number): string {

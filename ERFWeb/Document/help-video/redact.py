@@ -69,6 +69,26 @@ BOXES.update({
     "a-22-final-approved.jpg": [(572, 10, 660, 32), A_ACTIVITIES_TOP, A_TIMELINE],
     "a-23-override.jpg": [(506, 10, 594, 32), (72, 60, 274, 86)],
 })
+# "Finance" video (prefix f-), captured at a 1200x675 viewport. Real reports in the queue lose their whole left block.
+F_HEAD_QUEUE = (632, 10, 734, 32)
+F_HEAD_REVIEW = (560, 10, 658, 32)
+BOXES.update({
+    "f-01-queue.jpg": [F_HEAD_QUEUE, (84, 272, 330, 318), (84, 355, 330, 371), (84, 402, 330, 448)],
+    "f-02-receipts.jpg": [F_HEAD_QUEUE, (352, 103, 478, 120), (84, 202, 248, 250), (84, 267, 248, 315), (84, 332, 248, 380)],
+    "f-03-follow-up.jpg": [F_HEAD_QUEUE, (266, 145, 386, 162), (264, 203, 404, 221), (84, 202, 240, 250), (84, 267, 240, 315),
+                           (84, 332, 240, 380)],
+    "f-04-report.jpg": [F_HEAD_REVIEW, (72, 60, 272, 86)],
+    "f-05-verification-card.jpg": [F_HEAD_REVIEW, (108, 311, 202, 328), (108, 344, 202, 361)],
+    "f-06-ask-verify.jpg": [F_HEAD_REVIEW, (108, 311, 230, 328), (108, 344, 230, 361)],
+    "f-07-signatures.jpg": [F_HEAD_QUEUE],
+    "f-08-meal-claims.jpg": [(568, 10, 666, 32)] + [(80, y, 212, y + 26) for y in (224, 292, 360, 428)],
+    "f-09-summary.jpg": [(553, 10, 652, 32), (80, 194, 200, 386)],
+    "f-10-budgets.jpg": [(568, 10, 666, 32)],
+    "f-11-received.jpg": [F_HEAD_QUEUE, (84, 202, 330, 248), (84, 285, 330, 303), (84, 314, 330, 330), (84, 346, 330, 394)],
+    "f-12-clear.jpg": [F_HEAD_QUEUE, (348, 156, 478, 174), (84, 190, 248, 236), (84, 271, 248, 324), (84, 332, 248, 382)],
+    "f-13-waiting-verifier.jpg": [F_HEAD_REVIEW, (94, 314, 212, 334)],
+    "f-14-under-verification.jpg": [F_HEAD_QUEUE, (84, 272, 330, 318), (84, 354, 330, 372), (84, 384, 330, 400), (84, 402, 330, 450)],
+})
 
 
 def main():
