@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
-- **Help: sharp Finance video** (not yet committed). The Finance video is re-shot from 1920x1080 screenshots
+- **Help: sharp Finance video** (PR #78). The Finance video is re-shot from 1920x1080 screenshots
   (`capture.mjs`), so it and its HD download (now 6.0 MB) stay sharp in full screen. The Under verification
   scene is folded into the verification scene (3:26, 14 scenes); later start times moved, `?v=2`. Frontend only,
   SPA 0.23.1 (patch).
