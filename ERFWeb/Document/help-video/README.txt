@@ -9,6 +9,7 @@ of the live site plus a narration read by Microsoft's online voices.
   filing     scenes.py            erfweb-filing-guide.mp4      chapters.json             everyone
   approving  scenes_approving.py  erfweb-approving-guide.mp4   chapters_approving.json   Level 1 and Level 2
   finance    scenes_finance.py    erfweb-finance-guide.mp4     chapters_finance.json     Finance
+  verifier   scenes_verifier.py   erfweb-verifier-guide.mp4    chapters_verifier.json    Expense Verifier
 
 Files
   scenes*.py     one entry per scene: (screenshot file, caption, narration text), in play order
@@ -38,7 +39,7 @@ Steps
   6. Bump the SPA version and deploy as usual (README "Versions" rule).
 
 Voice: en-US-AndrewNeural, rate -8%. Video: 1280x720 at 5 fps (H.264 CRF 30), mono AAC 32 kbps;
-about 4.0 MB for the 7:00 filing video, 3.2 MB for the 6:06 approving video and 2.0 MB for the 3:26 Finance video. Keep them small:
+about 4.0 MB for the 7:00 filing video, 3.2 MB for the 6:06 approving video and 2.0 MB for the 3:26 Finance video and 1.2 MB for the 2:25 Expense Verifier video. Keep them small:
 users on slow or mobile links download only what they play.
 
 Test data for the approving video (2026-11-24, kept for the Expense Verifier and Finance videos):
@@ -46,3 +47,5 @@ ERF-2026-000005 (approved), -000006 (waiting Level 2), -000007 (waiting Level 1)
 will be deleted", claimant ALEXANDER H ANCLOTE, Level 1 Frederick T. Galicha, Level 2 Richard B. Garces.
 The Finance video (2026-11-26, f- shots, Finance account Rosemarie Asuncion) recorded ERF-2026-000005's receipts
 as received and opened one verification request on its Parking line for the Expense Verifier video; it is not cleared.
+The Expense Verifier video (2026-11-26, v- shots, verifier account Donna Rose C. Parducho) picked that request up and
+recorded it as Verified, so the request is closed and Finance can clear ERF-2026-000005.

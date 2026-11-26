@@ -89,6 +89,22 @@ BOXES.update({
     "f-13-waiting-verifier.jpg": [F_HEAD_REVIEW, (94, 314, 212, 334)],
     "f-14-under-verification.jpg": [F_HEAD_QUEUE, (84, 272, 330, 318), (84, 354, 330, 372), (84, 384, 330, 400), (84, 402, 330, 450)],
 })
+# "Expense Verifier" video (prefix v-), captured at a 1200x675 viewport.
+V_HEAD_LIST = (616, 10, 732, 32)
+V_HEAD_REVIEW = (542, 10, 658, 32)
+BOXES.update({
+    "v-01-queue.jpg": [V_HEAD_LIST, (144, 166, 254, 181), (180, 211, 258, 224)],
+    "v-02-report.jpg": [V_HEAD_REVIEW, (72, 60, 272, 86)],
+    "v-03-card.jpg": [V_HEAD_REVIEW, (96, 155, 210, 175), (108, 297, 224, 313), (108, 330, 212, 346)],
+    "v-04-picked-up.jpg": [V_HEAD_REVIEW, (96, 155, 210, 175), (116, 205, 208, 219), (154, 236, 304, 251),
+                           (108, 317, 224, 333), (108, 350, 212, 366)],
+    "v-05-receipts.jpg": [(118, 21, 232, 35)],
+    "v-06-finding.jpg": [V_HEAD_REVIEW, (96, 135, 210, 155), (116, 186, 230, 200), (110, 217, 230, 232),
+                         (108, 297, 224, 313), (108, 330, 224, 346)],
+    "v-07-recorded.jpg": [V_HEAD_REVIEW, (96, 135, 210, 155), (116, 184, 208, 198), (96, 205, 226, 225),
+                          (108, 357, 224, 373), (108, 390, 212, 406)],
+    "v-08-my-findings.jpg": [V_HEAD_LIST, (86, 166, 192, 181), (120, 211, 204, 224)],
+})
 
 
 def main():

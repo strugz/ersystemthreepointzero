@@ -20,6 +20,7 @@ const videos = computed<HelpVideoKey[]>(() => [
   'filing',
   ...(isSignatory.value ? (['approving'] as const) : []),
   ...(session.hasRole('Finance') ? (['finance'] as const) : []),
+  ...(session.hasRole('ExpenseVerifier') ? (['verifier'] as const) : []),
 ]);
 
 function setTopic(id: string | null) {

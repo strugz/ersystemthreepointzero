@@ -11,6 +11,7 @@ const SEARCH_HINTS: Record<HelpVideoKey, string> = {
   filing: 'Search, e.g. Representation, OR no., cash advance',
   approving: 'Search, e.g. return, override, delegate',
   finance: 'Search, e.g. receipts, clear, verify, signature',
+  verifier: 'Search, e.g. pick up, finding, receipts',
 };
 
 const tab = ref<HelpVideoKey>(props.videos[0] ?? 'filing');

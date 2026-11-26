@@ -1,4 +1,4 @@
-export type HelpVideoKey = 'filing' | 'approving' | 'finance';
+export type HelpVideoKey = 'filing' | 'approving' | 'finance' | 'verifier';
 
 /**
  * The narrated videos (rebuilt from ERFWeb/Document/help-video, see its README.txt). Each url is a path inside the
@@ -9,6 +9,7 @@ export const HELP_VIDEOS: Record<HelpVideoKey, { title: string; url: string }> =
   filing: { title: 'Filing a report', url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide.mp4?v=2` },
   approving: { title: 'Approving reports', url: `${import.meta.env.BASE_URL}help/erfweb-approving-guide.mp4?v=2` },
   finance: { title: 'Finance', url: `${import.meta.env.BASE_URL}help/erfweb-finance-guide.mp4?v=1` },
+  verifier: { title: 'Expense Verifier', url: `${import.meta.env.BASE_URL}help/erfweb-verifier-guide.mp4?v=1` },
 };
 
 /** A same-site path or an https:// URL plays; anything else (empty, http:, //host, javascript:) counts as no video. */
@@ -711,10 +712,88 @@ const financeTopics: TopicEntry[] = [
   },
 ];
 
+const verifierTopics: TopicEntry[] = [
+  {
+    id: 'verifier-queue',
+    group: 'Verification requests',
+    question: 'Where do verification requests come from?',
+    start: 12.1,
+    answer: [
+      'Finance asks for a line to be verified, or a Gas or Vehicle emergency purchase line gets a request automatically when the report is fully approved.',
+      'Every Expense Verifier gets a text and an email, and the request waits under Open on the Verifications page.',
+      'Requests on your own reports, or on reports you approved, are left out.',
+    ],
+    keywords: 'verifications open in progress my findings queue request',
+  },
+  {
+    id: 'verifier-report',
+    group: 'Verification requests',
+    question: 'Can I change the amount or approve the report?',
+    start: 40.2,
+    answer: ['No. The report opens read-only. You only report what you find; Finance and the signatories decide.'],
+    keywords: 'read only amount approve return change',
+  },
+  {
+    id: 'verifier-pick-up',
+    group: 'Verification requests',
+    question: 'How do I start checking a request?',
+    start: 53.2,
+    answer: [
+      'Open the request, then select Pick up on the Verification card.',
+      'The request moves to In progress, so the other verifiers know you are checking it. Picking up sends no message.',
+    ],
+    keywords: 'pick up start in progress claim',
+  },
+  {
+    id: 'verifier-check',
+    group: 'Checking and findings',
+    question: 'How do I check the receipts?',
+    start: 73.3,
+    answer: [
+      'Select Check receipts side by side on the Expense lines card.',
+      'Compare the date, the invoice or OR number and the amount with the line, and check anything else Finance asked about.',
+    ],
+    keywords: 'receipts side by side check facts or invoice',
+  },
+  {
+    id: 'verifier-finding',
+    group: 'Checking and findings',
+    question: 'How do I record my finding?',
+    start: 88.9,
+    answer: [
+      'Select Record finding on the Verification card.',
+      'Choose Verified, Verified with note or Not verified, write what you found, then select Record finding.',
+      'A finding is recorded once and cannot be changed.',
+    ],
+    keywords: 'record finding verified with note not verified',
+  },
+  {
+    id: 'verifier-after',
+    group: 'Checking and findings',
+    question: 'What happens after my finding?',
+    start: 109.3,
+    answer: [
+      'Finance gets a text and an email.',
+      'A Verified finding closes the request and Finance can clear the report.',
+      'After Not verified, Finance refers the line to the Level 2 signatory, who lets it through, returns the report or rejects it.',
+    ],
+    keywords: 'after finding level 2 query closed clear',
+  },
+  {
+    id: 'verifier-my-findings',
+    group: 'Checking and findings',
+    question: 'Where do I see the requests I finished?',
+    start: 130.1,
+    answer: ['Open Verifications and select My findings. Each request shows your finding, your note and how it ended.'],
+    keywords: 'my findings history done',
+  },
+];
+
 export const helpTopics: HelpTopic[] = [
   ...filingTopics.map((t) => ({ ...t, video: 'filing' as const })),
   ...approvingTopics.map((t) => ({ ...t, video: 'approving' as const })),
   ...financeTopics.map((t) => ({ ...t, video: 'finance' as const })),
+  ...verifierTopics.map((t) => ({ ...t, video: 'verifier' as const })),
 ];
 
 export function formatStart(seconds: number): string {
