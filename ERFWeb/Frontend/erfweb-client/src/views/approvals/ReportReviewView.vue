@@ -431,6 +431,13 @@ async function saveAdjust(amount: number, reason: string) {
   gap: 16px;
   position: sticky;
   top: calc(var(--shell-header) + 28px);
+  /* Taller than a short window, the panel scrolls on its own so Receipts stays reachable. */
+  max-height: calc(100vh - var(--shell-header) - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.review__side > * {
+  flex-shrink: 0;
 }
 .title-row {
   display: flex;
