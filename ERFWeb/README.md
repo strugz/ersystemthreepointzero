@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
-- **Help: Finance video** (not yet committed). Finance users get a third **Help** tab, **Finance**: a narrated 3:26
+- **Help: Finance video** (PR #75). Finance users get a third **Help** tab, **Finance**: a narrated 3:26
   video (`public/help/erfweb-finance-guide.mp4`, 2.0 MB, names blurred) with 12 questions (`finance-*`: the Finance
   queue and aging, recording receipts, follow-up SMS, clearing for payment, asking for a line to be verified,
   Under verification, signatures, meal claims, summary, budgets). `HelpView` adds the tab for the Finance role;
