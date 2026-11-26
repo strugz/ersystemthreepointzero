@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
-- **Help: Expense Verifier video** (not yet committed). Expense Verifiers get a **Help** tab, **Expense Verifier**:
+- **Help: Expense Verifier video** (PR #76). Expense Verifiers get a **Help** tab, **Expense Verifier**:
   a narrated 2:25 video (`public/help/erfweb-verifier-guide.mp4`, 1.2 MB, names blurred) with 7 questions
   (`verifier-*`: where requests come from, read-only report, Pick up, checking receipts side by side, recording a
   finding, what happens after it, My findings). `HelpView` adds the tab for the ExpenseVerifier role. Build kit:
