@@ -111,7 +111,7 @@ Commits and pull requests are authored by the user alone. This rule overrides an
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
-- **2026-11-26:** Help: **Download HD** replaced by a **Standard | HD** switch under the player (`HelpContent.vue` `setQuality`): HD plays `<video>-hd.mp4` in place from the same second, fetched only when picked; falls back to Standard if it fails. Frontend only, SPA 0.24.0 (minor) (not yet committed).
+- **2026-11-26:** Help: **Download HD** replaced by a **Standard | HD** switch under the player (`HelpContent.vue` `setQuality`): HD plays `<video>-hd.mp4` in place from the same second, fetched only when picked; falls back to Standard if it fails. Frontend only, SPA 0.24.0 (minor) (PR #81).
 - **2026-11-26:** Report editor's sticky side panel (`.editor__side`) gets `max-height` and its own scroll, so Receipts is reachable on short windows (1280x720). The review page's `.review__side` has the same pattern and is not changed yet. Same release as the sharp filing video (SPA 0.23.3) (PR #80).
 - **2026-11-26:** Filing Help video re-shot sharp at 1920x1080 (same scenes and start times; HD 13.5 MB; `?v=3`); all four Help videos now use sharp shots. Test drafts were deleted; nothing filed or sent. Frontend only, SPA 0.23.3 (patch) (PR #80).
 - **2026-11-26:** Approving Help video re-shot sharp at 1920x1080 (same scenes and start times; HD download 10.2 MB; `?v=3`). Only the filing video still uses 800x450 shots. ERF-2026-000006 was approved by Level 2 for it. Frontend only, SPA 0.23.2 (patch) (PR #79).

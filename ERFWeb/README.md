@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
-- **Help: HD plays in the player** (not yet committed). The **Download HD** button under each Help video is
+- **Help: HD plays in the player** (PR #81). The **Download HD** button under each Help video is
   replaced by a **Standard | HD (size)** switch: HD plays the 1920x1080 copy in the same player and carries on
   from the same second (still playing if it was); Standard (720p) stays the default, so the HD file is fetched only
   when a viewer picks HD. If the HD file cannot load, the player falls back to Standard. Frontend only, SPA 0.24.0
