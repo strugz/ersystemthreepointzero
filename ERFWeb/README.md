@@ -16,6 +16,15 @@ See `../ER System 3.0/CLAUDE.md` context and the project documentation for the f
 Newest first. Every change to ERFWeb adds a line here and updates the matching section below (and the ERFWeb
 section of the root `CLAUDE.md`) in the same change.
 
+### 2026-11-26
+
+- **Help: Finance video** (not yet committed). Finance users get a third **Help** tab, **Finance**: a narrated 3:26
+  video (`public/help/erfweb-finance-guide.mp4`, 2.0 MB, names blurred) with 12 questions (`finance-*`: the Finance
+  queue and aging, recording receipts, follow-up SMS, clearing for payment, asking for a line to be verified,
+  Under verification, signatures, meal claims, summary, budgets). `HelpView` adds the tab for the Finance role;
+  `HelpContent` takes its search hint per video. Build kit: `build.py finance`, `scenes_finance.py`,
+  `chapters_finance.json`, `f-` blur boxes in `redact.py`. Frontend only, SPA 0.21.0 (minor).
+
 ### 2026-11-24
 
 - **Help videos show reports for other departments** (PR #74). The filing video (now 7:00, 4.0 MB) has a
