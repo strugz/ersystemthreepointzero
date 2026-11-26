@@ -18,6 +18,12 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
+- **Help: Expense Verifier video** (PR #76). Expense Verifiers get a **Help** tab, **Expense Verifier**:
+  a narrated 2:25 video (`public/help/erfweb-verifier-guide.mp4`, 1.2 MB, names blurred) with 7 questions
+  (`verifier-*`: where requests come from, read-only report, Pick up, checking receipts side by side, recording a
+  finding, what happens after it, My findings). `HelpView` adds the tab for the ExpenseVerifier role. Build kit:
+  `build.py verifier`, `scenes_verifier.py`, `chapters_verifier.json`, `v-` blur boxes in `redact.py`. The Help page
+  section below now lists the Finance and Expense Verifier tabs. Frontend only, SPA 0.22.0 (minor).
 - **Help: Finance video** (PR #75). Finance users get a third **Help** tab, **Finance**: a narrated 3:26
   video (`public/help/erfweb-finance-guide.mp4`, 2.0 MB, names blurred) with 12 questions (`finance-*`: the Finance
   queue and aging, recording receipts, follow-up SMS, clearing for payment, asking for a line to be verified,
@@ -771,7 +777,9 @@ is kept per user in the browser's `localStorage` (`erfweb.dailyQuote.<userId>`),
 narrated video beside a searchable list of questions (`features/help/topics.ts`: video, question, written answer,
 start time, optional Level 1 / Level 2 badge; `features/help/components/HelpContent.vue`). Everyone sees the
 **Filing a report** tab (`public/help/erfweb-filing-guide.mp4`); Level 1 and Level 2 signatories also see
-**Approving reports** (`public/help/erfweb-approving-guide.mp4`, `approve-*` questions). The tabs only decide what is
+**Approving reports** (`public/help/erfweb-approving-guide.mp4`, `approve-*` questions), Finance **Finance**
+(`public/help/erfweb-finance-guide.mp4`, `finance-*`) and Expense Verifiers **Expense Verifier**
+(`public/help/erfweb-verifier-guide.mp4`, `verifier-*`). The tabs only decide what is
 shown; the files themselves are public.
 Selecting a question plays the video from that part and opens its answer; `/help?topic=<id>` opens a question and
 cues the video without playing it. Category questions are `category-<ExpenseCategory>` (e.g. `category-Representation`);

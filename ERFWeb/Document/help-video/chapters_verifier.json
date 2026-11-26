@@ -1,0 +1,52 @@
+[
+ {
+  "scene": "title",
+  "caption": "Expense Verifier: checking a line",
+  "start": 0.0
+ },
+ {
+  "scene": "v-01-queue.jpg",
+  "caption": "The Verifications page",
+  "start": 12.1
+ },
+ {
+  "scene": "v-02-report.jpg",
+  "caption": "Open the report",
+  "start": 40.2
+ },
+ {
+  "scene": "v-03-card.jpg",
+  "caption": "The verification request",
+  "start": 53.2
+ },
+ {
+  "scene": "v-04-picked-up.jpg",
+  "caption": "Picked up",
+  "start": 64.3
+ },
+ {
+  "scene": "v-05-receipts.jpg",
+  "caption": "Check the facts",
+  "start": 73.3
+ },
+ {
+  "scene": "v-06-finding.jpg",
+  "caption": "Record your finding",
+  "start": 88.9
+ },
+ {
+  "scene": "v-07-recorded.jpg",
+  "caption": "Finding recorded",
+  "start": 109.3
+ },
+ {
+  "scene": "v-08-my-findings.jpg",
+  "caption": "My findings",
+  "start": 130.1
+ },
+ {
+  "scene": "end",
+  "caption": "Thank you",
+  "start": 137.2
+ }
+]

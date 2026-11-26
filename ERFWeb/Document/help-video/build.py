@@ -1,4 +1,4 @@
-"""Builds a narrated video for the ERFWeb Help page: python build.py [filing|approving|finance]. Steps: README.txt here."""
+"""Builds a narrated video for the ERFWeb Help page: python build.py [filing|approving|finance|verifier]. Steps: README.txt here."""
 import asyncio, importlib, json, os, shutil, subprocess, sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import edge_tts
@@ -14,6 +14,8 @@ VIDEOS = {
                   "chapters_approving.json", "Signatory guide: Level 1 and Level 2", "ERFWeb Signatory Guide"),
     "finance": ("scenes_finance", os.path.join("out", "finance"), "erfweb-finance-guide.mp4",
                 "chapters_finance.json", "Finance guide", "ERFWeb Finance Guide"),
+    "verifier": ("scenes_verifier", os.path.join("out", "verifier"), "erfweb-verifier-guide.mp4",
+                 "chapters_verifier.json", "Expense Verifier guide", "ERFWeb Expense Verifier Guide"),
 }
 NAME = sys.argv[1] if len(sys.argv) > 1 else "filing"
 SCENES_MODULE, OUT_DIR, VIDEO_FILE, CHAPTERS_FILE, SUBTITLE, GUIDE = VIDEOS[NAME]
