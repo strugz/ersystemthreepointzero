@@ -9,8 +9,8 @@ export type HelpVideoKey = 'filing' | 'approving' | 'finance' | 'verifier';
 export const HELP_VIDEOS: Record<HelpVideoKey, { title: string; url: string; hd: { url: string; size: string } }> = {
   filing: {
     title: 'Filing a report',
-    url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide.mp4?v=2`,
-    hd: { url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide-hd.mp4?v=1`, size: '14.6 MB' },
+    url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide.mp4?v=3`,
+    hd: { url: `${import.meta.env.BASE_URL}help/erfweb-filing-guide-hd.mp4?v=2`, size: '13.5 MB' },
   },
   approving: {
     title: 'Approving reports',

@@ -10,32 +10,45 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(HERE, "shots")
 DST = os.path.join(HERE, "shots_redacted")
 
-AVATAR = (8, 402, 48, 442)
-NAME_EDITOR = (372, 12, 466, 38)
-NAME_WIDE = (526, 12, 622, 38)
-NAME_NEW = (626, 12, 722, 38)
-
+# Filing video, captured sharp at 1920x1080 like the v- shots (employee Loid; From CRM shots as Alexander).
+AVATAR = (6, 412, 40, 446)
+NAME_LIST = (590, 9, 656, 31)
+NAME_EDITOR = (467, 9, 532, 31)
+NAME_NEW = (671, 9, 736, 31)
+ROUTE_SIDE = (564, 382, 742, 408)
+ROUTE_BEHIND = [(628, 95, 742, 113), (628, 115, 742, 133)]
+LINE_DIALOG = [AVATAR] + ROUTE_BEHIND
 BOXES = {
-    "02-dashboard.jpg": [NAME_WIDE, AVATAR, (204, 114, 274, 146), (100, 352, 362, 372)],
+    "02-dashboard.jpg": [NAME_LIST, AVATAR, (168, 93, 207, 114)],
     "03-new-report.jpg": [NAME_NEW, AVATAR],
     "03b-new-report-type.jpg": [NAME_NEW, AVATAR],
     "03c-new-report-department.jpg": [NAME_NEW, AVATAR],
-    "04-editor.jpg": [NAME_EDITOR, AVATAR],
-    "05-cash-advance.jpg": [NAME_EDITOR, AVATAR],
-    "06-line-categories.jpg": [AVATAR],
-    "07-meals.jpg": [AVATAR],
-    "08-line-added.jpg": [AVATAR],
-    "09-transport.jpg": [AVATAR],
-    "10-same-visit.jpg": [AVATAR],
-    "11-lines.jpg": [NAME_EDITOR, AVATAR],
-    "11b-totals.jpg": [NAME_EDITOR, AVATAR],
-    "12-checklist.jpg": [NAME_EDITOR, AVATAR, (98, 268, 202, 290)],
-    "13-receipts.jpg": [NAME_EDITOR, AVATAR, (98, 148, 202, 170)],
-    "14-file-confirm.jpg": [NAME_EDITOR, AVATAR, (98, 148, 222, 170), (282, 173, 478, 194)],
-    "15-my-reports.jpg": [NAME_WIDE, AVATAR, (92, 196, 146, 250)],
-    "09b-crm-pick.jpg": [(236, 238, 324, 256), (156, 256, 282, 278), (226, 292, 292, 311)],
-    "09c-crm-filled.jpg": [(116, 168, 246, 190), (124, 254, 250, 276)],
-    "09d-or-vat-service.jpg": [(306, 282, 378, 303), (492, 282, 588, 303)],
+    "04-editor.jpg": [NAME_EDITOR, AVATAR, ROUTE_SIDE],
+    "05-cash-advance.jpg": [NAME_EDITOR, AVATAR, ROUTE_SIDE],
+    "06-line-categories.jpg": LINE_DIALOG,
+    "07-meals.jpg": LINE_DIALOG,
+    "08-line-added.jpg": LINE_DIALOG,
+    "09-transport.jpg": LINE_DIALOG,
+    "09b-crm-pick.jpg": [AVATAR, (630, 147, 742, 161)] + [(206, y - 8, 352, y + 8) for y in (174, 248, 323, 397)]
+                        + [(206, y - 7, 300, y + 7) for y in (202, 276, 351)],
+    "09c-crm-filled.jpg": [AVATAR, (630, 147, 742, 161), (180, 232, 330, 252), (408, 305, 492, 325)],
+    "09d-or-vat-service.jpg": LINE_DIALOG,
+    "10-same-visit.jpg": LINE_DIALOG,
+    "11-lines.jpg": [NAME_EDITOR, AVATAR, (564, 143, 742, 169)],
+    "11b-totals.jpg": [NAME_EDITOR, AVATAR, ROUTE_SIDE],
+    "12-checklist.jpg": [NAME_EDITOR, AVATAR, (564, 277, 742, 303)],
+    "13-receipts.jpg": [NAME_EDITOR, AVATAR],
+    "14-file-confirm.jpg": [NAME_EDITOR, AVATAR, ROUTE_SIDE, (272, 185, 442, 199)],
+    "15-my-reports.jpg": [NAME_LIST, AVATAR],
+    "20-toll.jpg": LINE_DIALOG,
+    "21-lodging.jpg": LINE_DIALOG,
+    "22-gas-reason.jpg": LINE_DIALOG,
+    "23-gas.jpg": LINE_DIALOG,
+    "24-vehicle.jpg": LINE_DIALOG,
+    "25-representation.jpg": LINE_DIALOG,
+    "26-sponsorship.jpg": LINE_DIALOG,
+    "27-demo.jpg": LINE_DIALOG,
+    "28-others.jpg": LINE_DIALOG,
 }
 
 # "Approving reports" video (prefix a-), captured sharp at 1920x1080 like the v- shots.

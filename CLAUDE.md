@@ -111,6 +111,8 @@ Commits and pull requests are authored by the user alone. This rule overrides an
 
 Newest first; the full entries are in the **Change log** of `ERFWeb/README.md`.
 
+- **2026-11-26:** Report editor's sticky side panel (`.editor__side`) gets `max-height` and its own scroll, so Receipts is reachable on short windows (1280x720). The review page's `.review__side` has the same pattern and is not changed yet. Same release as the sharp filing video (SPA 0.23.3) (PR #80).
+- **2026-11-26:** Filing Help video re-shot sharp at 1920x1080 (same scenes and start times; HD 13.5 MB; `?v=3`); all four Help videos now use sharp shots. Test drafts were deleted; nothing filed or sent. Frontend only, SPA 0.23.3 (patch) (PR #80).
 - **2026-11-26:** Approving Help video re-shot sharp at 1920x1080 (same scenes and start times; HD download 10.2 MB; `?v=3`). Only the filing video still uses 800x450 shots. ERF-2026-000006 was approved by Level 2 for it. Frontend only, SPA 0.23.2 (patch) (PR #79).
 - **2026-11-26:** Finance Help video re-shot sharp at 1920x1080 (HD download 6.0 MB; Under verification scene folded into the verification scene; `?v=2`). Filing and approving still use 800x450 shots. Frontend only, SPA 0.23.1 (patch) (PR #78).
 - **2026-11-26:** **Download HD** under each Help video: a 1920x1080 copy (`public/help/<video>-hd.mp4`, `build.py <name> --hd`, `HELP_VIDEOS[...].hd`), fetched only when clicked; the player keeps the small 720p file. The Expense Verifier video is re-shot from sharp 1920x1080 screenshots (`Document/help-video/capture.mjs` drives a separate Chrome; `redact.py` scales its 800x450 boxes); the other three are still 800x450 shots. Frontend only, SPA 0.23.0 (minor) (PR #77).

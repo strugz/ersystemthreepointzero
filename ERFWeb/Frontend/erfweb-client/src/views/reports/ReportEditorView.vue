@@ -942,6 +942,13 @@ const fileLabel = computed(() => (report.value?.status === 'Returned' ? 'Re-file
   gap: 16px;
   position: sticky;
   top: calc(var(--shell-header) + 28px);
+  /* Taller than a short window, the panel scrolls on its own so Receipts stays reachable. */
+  max-height: calc(100vh - var(--shell-header) - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.editor__side > * {
+  flex-shrink: 0;
 }
 .title-row {
   display: flex;
