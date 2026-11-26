@@ -69,25 +69,29 @@ BOXES.update({
     "a-22-final-approved.jpg": [(572, 10, 660, 32), A_ACTIVITIES_TOP, A_TIMELINE],
     "a-23-override.jpg": [(506, 10, 594, 32), (72, 60, 274, 86)],
 })
-# "Finance" video (prefix f-), captured at a 1200x675 viewport. Real reports in the queue lose their whole left block.
-F_HEAD_QUEUE = (632, 10, 734, 32)
-F_HEAD_REVIEW = (560, 10, 658, 32)
+# "Finance" video (prefix f-), captured sharp at 1920x1080 like the v- shots. Real reports in the queue lose their names.
+F_HEAD_QUEUE = (644, 9, 738, 31)
+F_HEAD_REVIEW = (575, 9, 666, 31)
+F_APPROVERS = [(586, 206, 690, 219), (586, 237, 656, 250)]
+F_ROWS_SCROLLED = [(80, 222, 160, 236), (80, 283, 180, 297), (124, 310, 200, 322), (80, 357, 134, 371)]
 BOXES.update({
-    "f-01-queue.jpg": [F_HEAD_QUEUE, (84, 272, 330, 318), (84, 355, 330, 371), (84, 402, 330, 448)],
-    "f-02-receipts.jpg": [F_HEAD_QUEUE, (352, 103, 478, 120), (84, 202, 248, 250), (84, 267, 248, 315), (84, 332, 248, 380)],
-    "f-03-follow-up.jpg": [F_HEAD_QUEUE, (266, 145, 386, 162), (264, 203, 404, 221), (84, 202, 240, 250), (84, 267, 240, 315),
-                           (84, 332, 240, 380)],
-    "f-04-report.jpg": [F_HEAD_REVIEW, (72, 60, 272, 86)],
-    "f-05-verification-card.jpg": [F_HEAD_REVIEW, (108, 311, 202, 328), (108, 344, 202, 361)],
-    "f-06-ask-verify.jpg": [F_HEAD_REVIEW, (108, 311, 230, 328), (108, 344, 230, 361)],
+    "f-01-queue.jpg": [F_HEAD_QUEUE, (80, 272, 160, 286), (80, 333, 180, 347), (124, 360, 200, 372), (80, 407, 134, 421)],
+    "f-02-receipts.jpg": [F_HEAD_QUEUE, (358, 111, 446, 125)] + F_ROWS_SCROLLED,
+    "f-03-follow-up.jpg": [F_HEAD_QUEUE, (276, 151, 362, 165), (288, 205, 381, 219)] + F_ROWS_SCROLLED,
+    "f-11-received.jpg": [F_HEAD_QUEUE, (80, 272, 180, 286), (124, 300, 200, 312)],
+    "f-12-clear.jpg": [F_HEAD_QUEUE, (356, 162, 469, 176)] + F_ROWS_SCROLLED,
+    "f-04-report.jpg": [F_HEAD_REVIEW, (68, 57, 253, 80)] + F_APPROVERS,
+    "f-05-verification-card.jpg": [F_HEAD_REVIEW, (90, 132, 198, 151), (109, 179, 236, 193), (90, 196, 210, 214),
+                                   (90, 363, 198, 382), (109, 410, 236, 424), (90, 427, 210, 445)] + F_APPROVERS,
+    "f-06-ask-verify.jpg": [F_HEAD_REVIEW, (90, 308, 198, 327), (109, 355, 236, 369), (90, 373, 210, 391),
+                            (586, 205, 690, 219), (586, 236, 656, 250)],
+    "f-13-waiting-verifier.jpg": [F_HEAD_REVIEW, (90, 53, 198, 72), (109, 100, 236, 114), (90, 118, 210, 136),
+                                  (90, 284, 198, 303), (109, 331, 236, 345), (90, 348, 210, 366),
+                                  (586, 180, 690, 194), (586, 211, 656, 225)],
     "f-07-signatures.jpg": [F_HEAD_QUEUE],
-    "f-08-meal-claims.jpg": [(568, 10, 666, 32)] + [(80, y, 212, y + 26) for y in (224, 292, 360, 428)],
-    "f-09-summary.jpg": [(553, 10, 652, 32), (80, 194, 200, 386)],
-    "f-10-budgets.jpg": [(568, 10, 666, 32)],
-    "f-11-received.jpg": [F_HEAD_QUEUE, (84, 202, 330, 248), (84, 285, 330, 303), (84, 314, 330, 330), (84, 346, 330, 394)],
-    "f-12-clear.jpg": [F_HEAD_QUEUE, (348, 156, 478, 174), (84, 190, 248, 236), (84, 271, 248, 324), (84, 332, 248, 382)],
-    "f-13-waiting-verifier.jpg": [F_HEAD_REVIEW, (94, 314, 212, 334)],
-    "f-14-under-verification.jpg": [F_HEAD_QUEUE, (84, 272, 330, 318), (84, 354, 330, 372), (84, 384, 330, 400), (84, 402, 330, 450)],
+    "f-08-meal-claims.jpg": [(581, 9, 673, 31)] + [(76, y - 7, 172, y + 19) for y in (217, 281, 345, 409)],
+    "f-09-summary.jpg": [(568, 9, 660, 31), (76, 184, 172, 362)],
+    "f-10-budgets.jpg": [(581, 9, 673, 31)],
 })
 # "Expense Verifier" video (prefix v-), captured sharp at 1920x1080 (CSS 1280x720 at 1.5x) in Chrome.
 V_HEAD_LIST = (628, 9, 736, 31)

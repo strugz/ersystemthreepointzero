@@ -50,33 +50,28 @@
   "start": 116.7
  },
  {
-  "scene": "f-14-under-verification.jpg",
-  "caption": "Under verification",
-  "start": 129.5
- },
- {
   "scene": "f-07-signatures.jpg",
   "caption": "Approve signatures",
-  "start": 147.5
+  "start": 146.6
  },
  {
   "scene": "f-08-meal-claims.jpg",
   "caption": "Meal claims",
-  "start": 166.5
+  "start": 165.6
  },
  {
   "scene": "f-09-summary.jpg",
   "caption": "Expense summary",
-  "start": 177.3
+  "start": 176.3
  },
  {
   "scene": "f-10-budgets.jpg",
   "caption": "Budgets",
-  "start": 190.2
+  "start": 189.2
  },
  {
   "scene": "end",
   "caption": "Thank you",
-  "start": 199.5
+  "start": 198.5
  }
 ]
