@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
-- **Help: download in HD** (not yet committed). Each Help tab has **Download HD (size)** under the video: a
+- **Help: download in HD** (PR #77). Each Help tab has **Download HD (size)** under the video: a
   1920x1080 copy of that video (`public/help/<video>-hd.mp4`, 4.1 to 14.6 MB, 38 MB for all four) built with `build.py <name> --hd` from the
   same voice. The Expense Verifier video is re-shot from sharp 1920x1080 screenshots (`capture.mjs`, Chrome at
   CSS 1280x720 x1.5; now 2:31, start times moved, `?v=2`); the other three still come from 800x450 shots, so
