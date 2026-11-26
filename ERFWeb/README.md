@@ -18,7 +18,7 @@ section of the root `CLAUDE.md`) in the same change.
 
 ### 2026-11-26
 
-- **Review page side panel scrolls on short windows** (PR #NN). The approver review page's sticky
+- **Review page side panel scrolls on short windows** (PR #83). The approver review page's sticky
   right-hand panel (`.review__side`: totals, approval, Finance, Receipts) gets the same fix as the report editor:
   on a window shorter than the panel it scrolls on its own, so Receipts can be reached. Tall windows, phones and
   tablets are unchanged. Frontend only, SPA 0.25.1 (patch).
